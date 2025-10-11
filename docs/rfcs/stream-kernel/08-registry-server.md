@@ -947,78 +947,364 @@ class LLDPInterface {
 
 ### Connection Probing and Caching
 
-The Hostess works with a dedicated **Probe Server** to test connection methods and cache working paths:
+#### Why Self-Probing Doesn't Work
+
+You **cannot probe yourself** to determine which connection methods work from the outside:
+
+**The Firewall Problem:**
+- Your machine might have firewall rules blocking certain ports/protocols
+- From inside your machine, you can't tell if external machines can reach you
+- Testing `localhost` or `127.0.0.1` tells you nothing about external connectivity
+- NAT, firewalls, VPNs all affect what's reachable from outside
+
+**The Solution:**
+You need a **remote** system to probe **you**, while you run a **beacon** that reports success/failure back.
+
+#### Executor/Probe/Beacon Architecture
+
+Three separate servers work together to test connectivity:
+
+**1. Executor Server (on target machine)**
+- Spawns the Probe Server locally in a new process
+- Provides instructions to the Probe
+- Manages Probe lifecycle
+
+**2. Beacon Server (on target machine)**
+- Listens on unprivileged port range (e.g., 10000-65535)
+- Skips ports already in use
+- Responds to Probe connection attempts with authentication
+- Collects and reports working connection methods
+- Terminates Probe when complete
+
+**3. Probe Server (spawned locally by Executor)**
+- Tests all IP addresses on the target machine
+- Scans across the port range
+- Authenticates with Beacon using hash + passphrase
+- Reports working connection points back to Beacon
+
+**Key Insight:** The Probe is spawned **locally** (not remotely) because we're starting with same-machine testing to develop and prove the mechanisms. Future versions will support off-machine probing.
+
+#### Hash-Based Authentication
+
+The Probe and Beacon use hash-based authentication to prevent spoofing:
 
 ```typescript
-// Probe Server tests various connection methods
-class ProbeServer {
-  async probeRemoteHostess(remoteFqdn: string, remotePort: number) {
-    const methods = ['websocket', 'tcp', 'http', 'unix-socket'];
-    const workingMethods: ConnectionMethod[] = [];
+interface ProbeInstructions {
+  targetIpAddresses: string[];    // All IPs on this machine
+  portRangeStart: number;         // e.g., 10000
+  portRangeEnd: number;           // e.g., 65535
+  probeHash: string;              // Hash for probe to send
+  expectedResponseHash: string;   // What probe expects back
+  passphrase: string;             // Shared secret (known by probe only)
+}
+
+interface BeaconConfig {
+  portRangeStart: number;
+  portRangeEnd: number;
+  beaconHash: string;             // Different from probe hash
+  passphrase: string;             // Same passphrase as probe
+}
+
+// Authentication protocol
+class Beacon {
+  async handleProbeConnection(conn: Connection) {
+    // 1. Receive hash from probe
+    const probeHash = await conn.receive();
     
-    for (const method of methods) {
-      try {
-        const result = await this.testConnection(method, remoteFqdn, remotePort);
-        if (result.success) {
-          workingMethods.push({
-            type: method,
-            endpoint: result.endpoint,
-            latency: result.latency,
-            throughput: result.throughput
-          });
-        }
-      } catch (err) {
-        // Method doesn't work, skip it
-      }
-    }
+    // 2. Hash it with our passphrase
+    const response = crypto.createHash('sha256')
+      .update(probeHash + this.passphrase)
+      .digest('hex');
     
-    // Sort by latency (prefer faster connections)
-    workingMethods.sort((a, b) => a.latency - b.latency);
+    // 3. Send hashed response back
+    await conn.send(response);
     
-    return workingMethods;
+    // Probe will verify this matches its expectedResponseHash
   }
-  
-  private async testConnection(method: string, host: string, port: number) {
-    const startTime = Date.now();
-    
-    switch (method) {
-      case 'websocket':
-        const ws = new WebSocket(`ws://${host}:${port}/probe`);
-        await new Promise((resolve, reject) => {
-          ws.on('open', resolve);
-          ws.on('error', reject);
-          setTimeout(() => reject(new Error('timeout')), 5000);
-        });
-        const latency = Date.now() - startTime;
-        ws.close();
-        return { 
-          success: true, 
-          endpoint: `ws://${host}:${port}`,
-          latency,
-          throughput: null 
-        };
+}
+
+class Probe {
+  async testConnection(ip: string, port: number) {
+    try {
+      const conn = await connect(ip, port);
       
-      case 'tcp':
-        const socket = net.connect(port, host);
-        await new Promise((resolve, reject) => {
-          socket.on('connect', resolve);
-          socket.on('error', reject);
-          setTimeout(() => reject(new Error('timeout')), 5000);
-        });
-        const tcpLatency = Date.now() - startTime;
-        socket.end();
-        return { 
-          success: true, 
-          endpoint: `tcp://${host}:${port}`,
-          latency: tcpLatency,
-          throughput: null 
-        };
+      // 1. Send our hash to beacon
+      await conn.send(this.probeHash);
       
-      // ... other methods
+      // 2. Receive hashed response
+      const response = await conn.receive();
+      
+      // 3. Verify it matches expected (proves beacon has passphrase)
+      if (response === this.expectedResponseHash) {
+        return { success: true, ip, port, latency: conn.latency };
+      } else {
+        return { success: false, reason: 'auth_failed' };
+      }
+    } catch (err) {
+      return { success: false, reason: err.message };
     }
   }
 }
 ```
+
+**Why different hashes?**
+- Beacon has `beaconHash` and `passphrase`
+- Probe has `probeHash` and `expectedResponseHash` (which equals `hash(probeHash + passphrase)`)
+- This proves both sides know the passphrase without transmitting it
+- Prevents replay attacks or spoofed beacons
+
+#### Multi-IP/Port Testing Matrix
+
+The Probe must test **all IP addresses** on the machine across the **full port range**:
+
+```typescript
+class Executor {
+  async spawnProbe() {
+    // Get all IP addresses on this machine
+    const ipAddresses = this.getAllLocalIPs();
+    // ['192.168.1.100', '10.0.0.5', '172.16.0.1', '127.0.0.1']
+    
+    // Start beacon server
+    const beacon = new Beacon({
+      portRangeStart: 10000,
+      portRangeEnd: 65535,
+      beaconHash: generateHash(),
+      passphrase: generatePassphrase()
+    });
+    await beacon.start();
+    
+    // Calculate expected response
+    const probeHash = generateHash();
+    const expectedResponseHash = crypto.createHash('sha256')
+      .update(probeHash + beacon.passphrase)
+      .digest('hex');
+    
+    // Spawn probe in separate process
+    const probe = spawn('node', ['probe-server.js'], {
+      env: {
+        TARGET_IPS: ipAddresses.join(','),
+        PORT_RANGE_START: '10000',
+        PORT_RANGE_END: '65535',
+        PROBE_HASH: probeHash,
+        EXPECTED_RESPONSE_HASH: expectedResponseHash,
+        PASSPHRASE: beacon.passphrase
+      }
+    });
+    
+    // Wait for probe to complete
+    await beacon.waitForCompletion();
+    
+    // Get results
+    return beacon.getResults();
+  }
+  
+  private getAllLocalIPs(): string[] {
+    const interfaces = os.networkInterfaces();
+    const ips: string[] = [];
+    
+    for (const [name, addrs] of Object.entries(interfaces)) {
+      for (const addr of addrs || []) {
+        if (addr.family === 'IPv4') {
+          ips.push(addr.address);
+        }
+      }
+    }
+    
+    return ips;
+  }
+}
+```
+
+#### Communication Protocol
+
+The Probe and Beacon follow a specific communication protocol:
+
+```typescript
+class Probe {
+  async run() {
+    const ips = process.env.TARGET_IPS!.split(',');
+    const portStart = parseInt(process.env.PORT_RANGE_START!);
+    const portEnd = parseInt(process.env.PORT_RANGE_END!);
+    
+    let firstWorkingConnection: Connection | null = null;
+    const results: ConnectionTestResult[] = [];
+    
+    // Test all IP/port combinations
+    for (const ip of ips) {
+      for (let port = portStart; port <= portEnd; port++) {
+        const result = await this.testConnection(ip, port);
+        results.push(result);
+        
+        // Save first working connection for reporting
+        if (result.success && !firstWorkingConnection) {
+          firstWorkingConnection = result.connection;
+        }
+      }
+    }
+    
+    // Report all results to beacon on first working connection
+    if (firstWorkingConnection) {
+      await firstWorkingConnection.send({
+        type: 'PROBE_RESULTS',
+        results: results.filter(r => r.success),
+        testedMatrix: {
+          ips,
+          portRange: [portStart, portEnd],
+          totalTests: results.length,
+          successfulTests: results.filter(r => r.success).length
+        }
+      });
+      
+      // Signal completion
+      await firstWorkingConnection.send({
+        type: 'PROBE_COMPLETE'
+      });
+      
+      // Wait for termination signal from beacon
+      const terminationSignal = await firstWorkingConnection.receive();
+      
+      // Verify termination is authenticated
+      const expectedTermination = crypto.createHash('sha256')
+        .update('terminate' + process.env.PASSPHRASE!)
+        .digest('hex');
+      
+      if (terminationSignal.hash === expectedTermination) {
+        console.log('Authenticated termination received. Exiting.');
+        process.exit(0);
+      }
+    } else {
+      console.log('No working connections found. Exiting with error.');
+      process.exit(1);
+    }
+  }
+}
+
+class Beacon {
+  private results: ConnectionTestResult[] = [];
+  private completionPromise: Promise<void>;
+  
+  async handleConnection(conn: Connection) {
+    // Authenticate
+    const authenticated = await this.authenticate(conn);
+    if (!authenticated) {
+      conn.close();
+      return;
+    }
+    
+    // Listen for messages
+    while (true) {
+      const msg = await conn.receive();
+      
+      if (msg.type === 'PROBE_RESULTS') {
+        this.results = msg.results;
+        console.log(`Received ${msg.results.length} working connections`);
+        console.log(`Tested matrix: ${JSON.stringify(msg.testedMatrix)}`);
+      }
+      
+      if (msg.type === 'PROBE_COMPLETE') {
+        console.log('Probe signaled completion');
+        
+        // Send authenticated termination
+        const terminationHash = crypto.createHash('sha256')
+          .update('terminate' + this.passphrase)
+          .digest('hex');
+        
+        await conn.send({
+          type: 'TERMINATE',
+          hash: terminationHash
+        });
+        
+        this.completionResolve();
+        break;
+      }
+    }
+  }
+  
+  async waitForCompletion(): Promise<void> {
+    return this.completionPromise;
+  }
+  
+  getResults(): ConnectionTestResult[] {
+    return this.results;
+  }
+}
+```
+
+#### Example: Full Probe/Beacon Workflow
+
+```typescript
+// Machine A wants to know which connection methods work
+
+// 1. Executor spawns Beacon
+const executor = new Executor();
+const beacon = await executor.startBeacon({
+  portRange: [10000, 65535],
+  passphrase: 'secret-xyz-123'
+});
+
+// 2. Executor spawns Probe with instructions
+const probe = await executor.spawnProbe({
+  targetIps: ['192.168.1.100', '10.0.0.5', '172.16.0.1'],
+  portRange: [10000, 65535],
+  beaconPassphrase: 'secret-xyz-123'
+});
+
+// 3. Probe tests all IP/port combinations
+//    Tests: 192.168.1.100:10000, 192.168.1.100:10001, ..., 172.16.0.1:65535
+//    Total: 3 IPs × ~55,000 ports = ~165,000 tests (can be optimized)
+
+// 4. Probe finds working connections:
+//    ✅ 192.168.1.100:10500 (latency: 2ms)
+//    ✅ 192.168.1.100:10501 (latency: 3ms)
+//    ✅ 10.0.0.5:10500 (latency: 1ms)
+//    ❌ 172.16.0.1:* (all ports blocked by firewall)
+
+// 5. Probe reports results to Beacon on 192.168.1.100:10500
+await probe.reportToBeacon(results);
+
+// 6. Beacon collects results and sends authenticated termination
+await beacon.terminateProbe();
+
+// 7. Executor caches results for LLDP advertisement
+const workingMethods = beacon.getResults();
+executor.cacheConnectionMethods(workingMethods);
+
+// Now LLDP can advertise:
+// "I'm reachable at 10.0.0.5:10500 (1ms latency, TCP)"
+```
+
+#### Future: Off-Machine Testing
+
+This architecture can be expanded to **remote probing**:
+
+**Current (Same-Machine):**
+```
+Machine A:
+  Executor → spawns Probe locally
+  Beacon ← listens for Probe
+  Probe → tests Beacon
+```
+
+**Future (Cross-Machine):**
+```
+Machine A (target):
+  Executor → sends instructions to Machine B
+  Beacon ← listens for remote Probe
+
+Machine B (prober):
+  Receives instructions from Machine A's Executor
+  Spawns Probe locally
+  Probe → tests Machine A's Beacon over network
+  Reports results back to Machine A
+```
+
+**Expansion Strategy:**
+1. **Phase 1 (Current):** Same-machine testing to prove hash authentication and protocol
+2. **Phase 2:** Probe tests Beacon on different process on same machine (isolation)
+3. **Phase 3:** Probe on Machine B tests Beacon on Machine A (LAN)
+4. **Phase 4:** Probe on Machine C tests Beacon on Machine A (WAN/Internet)
+
+Each phase builds on the previous mechanisms, slowly developing robust cross-network testing.
 
 ### Caching Connection Methods in LLDP
 
@@ -1190,16 +1476,24 @@ When Local Customer at Restaurant A wants Shrimp:
   Hostess B: "Yes! Table for 2 GPU servers ready. Here's the pipe to connect."
   Customer: Gets shrimp scampi, doesn't know it came from another restaurant!
 
-Connection Optimization:
-  Probe Server (first visit): "Let me test all ways to connect..."
-    ✅ WebSocket: 5ms
-    ✅ TCP: 3ms
-    ❌ HTTP: too slow
-    ❌ Unix socket: not available (different machine)
+Connection Discovery (Executor/Probe/Beacon Pattern):
+  Hostess A (first time connecting to B): "I need to find out how to reach Restaurant B"
   
-  Hostess A (caches results): "Next time, try TCP first (3ms), then WebSocket (5ms)"
+  Executor on Machine A: "Let me start a Beacon and spawn a Probe"
+    → Beacon: Listens on ports 10000-65535 with hash authentication
+    → Probe: Tests all IPs (192.168.1.100, 10.0.0.5, etc.) across port range
   
-  Next Visit: Skip probing, use TCP immediately!
+  Probe discovers working connections:
+    ✅ 192.168.1.100:10500 (TCP, 2ms latency) ← authenticated with beacon
+    ✅ 10.0.0.5:10500 (TCP, 1ms latency) ← authenticated with beacon
+    ❌ 172.16.0.1:* (blocked by firewall)
+  
+  Probe → reports to Beacon on first working port (192.168.1.100:10500)
+  Beacon → collects all results, terminates Probe with hashed "terminate" signal
+  
+  Hostess A (caches results): "Machine B is reachable at 10.0.0.5:10500 (1ms, TCP)"
+  
+  Next Visit: Skip probing entirely, use cached 10.0.0.5:10500 immediately!
 ```
 
 ## Summary
@@ -1215,17 +1509,20 @@ The **Hostess/Registry Server** provides:
 7. ✅ **Information mesh** - Multi-machine discovery without central config
 8. ✅ **Reservations interface** - Local walk-ins and remote LLDP reservations
 9. ✅ **Inter-hostess capability sharing** - Restaurants sharing menus across machines
-10. ✅ **Connection probing** - Probe server tests multiple connection methods
-11. ✅ **Connection method caching** - Cache and advertise working connection paths in LLDP
-12. ✅ **Optimized connection establishment** - Try cached methods first, avoid re-probing
-13. ✅ **Separation from StateManager** - Registry ≠ Topology
-14. ✅ **Microkernel philosophy** - Hostess is a server, not kernel code
+10. ✅ **Executor/Probe/Beacon architecture** - Three-server pattern for connectivity testing
+11. ✅ **Hash-based authentication** - Prevents spoofing with passphrase verification
+12. ✅ **Multi-IP/port testing** - Tests all IP addresses across unprivileged port range
+13. ✅ **Connection method caching** - Cache and advertise working connection paths in LLDP
+14. ✅ **Optimized connection establishment** - Try cached methods first, avoid re-probing
+15. ✅ **Separation from StateManager** - Registry ≠ Topology
+16. ✅ **Microkernel philosophy** - All servers (Hostess, Executor, Probe, Beacon) are servers, not kernel code
 
 The Hostess knows **who is here** and **how to reach them**.  
 The StateManager knows **how they connect**.  
+The Executor/Probe/Beacon pattern discovers **what connection methods work**.  
 The kernel provides **the pipes**.
 
-Four simple, composable servers (Kernel, Hostess, Probe, StateManager) that together enable sophisticated distributed systems.
+Six simple, composable servers (Kernel, Hostess, Executor, Probe, Beacon, StateManager) that together enable sophisticated distributed systems.
 
 ## References
 
