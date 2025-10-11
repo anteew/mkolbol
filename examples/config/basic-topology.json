@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    {
+      "id": "timer1",
+      "module": "TimerSource",
+      "params": {
+        "periodMs": 500
+      }
+    },
+    {
+      "id": "upper1",
+      "module": "UppercaseTransform"
+    },
+    {
+      "id": "sink1",
+      "module": "ConsoleSink",
+      "params": {
+        "prefix": "[executor]"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "timer1.output",
+      "to": "upper1.input"
+    },
+    {
+      "from": "upper1.output",
+      "to": "sink1.input"
+    }
+  ]
+}
