@@ -25,6 +25,11 @@ This RFC proposes a minimal stream-based microkernel architecture (~100 lines) f
 - **[08 - Registry Server (The Hostess)](08-registry-server.md)** - Server registry, guest book, naming convention, reservations interface, executor/probe/beacon connection testing, LLDP-inspired discovery, information mesh
 - **[09 - Roadmap](09-roadmap.md)** - Implementation phases and timeline
 - **[10 - Executor Server](10-executor-server.md)** - Service lifecycle management, startup configuration, probe spawning for connection testing, external process management
+- **[11 - External Server Wrapper](11-external-wrapper.md)** - Wrapping external executables (npm packages, C programs, binaries) as first-class mkolbol servers
+- **[12 - PTY Wrapper Patterns](12-pty-wrapper-patterns.md)** - Wrapping interactive TUI applications with multi-modal rendering and multi-source input
+
+### Implementation Planning
+- **[External Wrapper Sprints](external-wrapper-sprints.md)** - 8-sprint implementation plan for external wrapper system (40-60 days)
 
 ## Quick Start
 
