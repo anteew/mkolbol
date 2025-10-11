@@ -97,3 +97,28 @@ export interface ProcessInfo {
   memoryUsage: number;
   cpuUsage: number;
 }
+
+export interface Cell {
+  char: string;
+  fg: string | null;
+  bg: string | null;
+}
+
+export interface TerminalState {
+  cells: Cell[][];
+  cursorX: number;
+  cursorY: number;
+  rows: number;
+  cols: number;
+  scrollback: Cell[][];
+  currentFg: string | null;
+  currentBg: string | null;
+}
+
+export interface EscapeSequence {
+  type: 'csi' | 'osc' | 'unknown';
+  params?: number[];
+  cmd?: string;
+  length: number;
+  raw?: string;
+}

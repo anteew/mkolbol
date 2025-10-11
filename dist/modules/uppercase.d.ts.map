@@ -1,0 +1,1 @@
+{"version":3,"file":"uppercase.d.ts","sourceRoot":"","sources":["../../src/modules/uppercase.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,IAAI,EAAE,MAAM,iBAAiB,CAAC;AAC5C,OAAO,EAAE,MAAM,EAAE,MAAM,kBAAkB,CAAC;AAG1C,qBAAa,kBAAkB;IAIjB,OAAO,CAAC,MAAM;IAH1B,SAAgB,SAAS,EAAE,IAAI,CAAC;IAChC,SAAgB,UAAU,EAAE,IAAI,CAAC;gBAEb,MAAM,EAAE,MAAM;CAYnC"}

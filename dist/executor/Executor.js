@@ -1,0 +1,152 @@
+import { ModuleRegistry } from './moduleRegistry.js';
+import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
+export class Executor {
+    kernel;
+    hostess;
+    stateManager;
+    config;
+    modules = new Map();
+    moduleRegistry;
+    constructor(kernel, hostess, stateManager) {
+        this.kernel = kernel;
+        this.hostess = hostess;
+        this.stateManager = stateManager;
+        this.moduleRegistry = new ModuleRegistry();
+    }
+    load(config) {
+        this.config = config;
+    }
+    async up() {
+        if (!this.config) {
+            throw new Error('No configuration loaded. Call load() first.');
+        }
+        for (const nodeConfig of this.config.nodes) {
+            await this.instantiateNode(nodeConfig);
+        }
+        for (const conn of this.config.connections) {
+            this.stateManager.connect(conn.from, conn.to);
+        }
+        for (const instance of this.modules.values()) {
+            if (typeof instance.module.start === 'function') {
+                instance.module.start();
+            }
+        }
+    }
+    async down() {
+        for (const instance of this.modules.values()) {
+            if (typeof instance.module.stop === 'function') {
+                instance.module.stop();
+            }
+        }
+        this.modules.clear();
+    }
+    async restartNode(id) {
+        const instance = this.modules.get(id);
+        if (!instance) {
+            throw new Error(`Node not found: ${id}`);
+        }
+        if (typeof instance.module.stop === 'function') {
+            instance.module.stop();
+        }
+        await this.instantiateNode(instance.config);
+        const newInstance = this.modules.get(id);
+        if (newInstance && typeof newInstance.module.start === 'function') {
+            newInstance.module.start();
+        }
+    }
+    registerModule(name, constructor) {
+        this.moduleRegistry.register(name, constructor);
+    }
+    async spawnExternalWrapper(manifest) {
+        const wrapper = new ExternalServerWrapper(this.kernel, this.hostess, manifest);
+        await wrapper.spawn();
+        this.stateManager.addNode({
+            id: manifest.uuid,
+            name: manifest.servername,
+            terminals: [
+                { name: 'input', direction: 'input' },
+                { name: 'output', direction: 'output' },
+                { name: 'error', direction: 'output' }
+            ],
+            capabilities: manifest.capabilities.features || [],
+            location: 'local'
+        });
+        return wrapper;
+    }
+    async instantiateNode(nodeConfig) {
+        const Constructor = this.moduleRegistry.get(nodeConfig.module);
+        if (!Constructor) {
+            throw new Error(`Module not found in registry: ${nodeConfig.module}`);
+        }
+        const params = nodeConfig.params || {};
+        const module = new Constructor(this.kernel, ...Object.values(params));
+        this.modules.set(nodeConfig.id, {
+            id: nodeConfig.id,
+            module,
+            config: nodeConfig
+        });
+        const terminalsForHostess = this.inferTerminalsForHostess(module);
+        const terminalsForStateManager = this.inferTerminalsForStateManager(module);
+        const manifest = {
+            fqdn: 'localhost',
+            servername: nodeConfig.id,
+            classHex: this.getClassHex(nodeConfig.module),
+            owner: 'system',
+            auth: 'no',
+            authMechanism: 'none',
+            terminals: terminalsForHostess,
+            capabilities: {
+                type: this.getModuleType(nodeConfig.module),
+                accepts: [],
+                produces: []
+            }
+        };
+        this.hostess.register(manifest);
+        this.stateManager.addNode({
+            id: nodeConfig.id,
+            name: nodeConfig.module,
+            terminals: terminalsForStateManager,
+            capabilities: [],
+            location: 'local'
+        });
+    }
+    inferTerminalsForHostess(module) {
+        const terminals = [];
+        if (module.inputPipe) {
+            terminals.push({ name: 'input', type: 'local', direction: 'input' });
+        }
+        if (module.outputPipe) {
+            terminals.push({ name: 'output', type: 'local', direction: 'output' });
+        }
+        return terminals;
+    }
+    inferTerminalsForStateManager(module) {
+        const terminals = [];
+        if (module.inputPipe) {
+            terminals.push({ name: 'input', direction: 'input' });
+        }
+        if (module.outputPipe) {
+            terminals.push({ name: 'output', direction: 'output' });
+        }
+        return terminals;
+    }
+    getClassHex(moduleName) {
+        if (moduleName.includes('Source') || moduleName.includes('Timer'))
+            return '0x0001';
+        if (moduleName.includes('Transform') || moduleName.includes('Uppercase'))
+            return '0x0002';
+        if (moduleName.includes('Sink') || moduleName.includes('Console'))
+            return '0x0003';
+        return '0x0000';
+    }
+    getModuleType(moduleName) {
+        if (moduleName.includes('Source') || moduleName.includes('Timer'))
+            return 'source';
+        if (moduleName.includes('Transform') || moduleName.includes('Uppercase'))
+            return 'transform';
+        if (moduleName.includes('Sink') || moduleName.includes('Console'))
+            return 'output';
+        return 'transform';
+    }
+}
+//# sourceMappingURL=Executor.js.map
