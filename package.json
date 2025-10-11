@@ -32,7 +32,8 @@
     "dev": "node --enable-source-maps dist/examples/basic-topology.js",
     "dev:split": "node --enable-source-maps dist/examples/split-topology.js",
     "dev:merge": "node --enable-source-maps dist/examples/merge-topology.js",
-    "dev:hostess": "node --enable-source-maps dist/examples/hostess-demo.js"
+    "dev:hostess": "node --enable-source-maps dist/examples/hostess-demo.js",
+    "dev:state-rewire": "node --enable-source-maps dist/examples/state-rewire.js"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
