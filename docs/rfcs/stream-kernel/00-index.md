@@ -23,10 +23,8 @@ This RFC proposes a minimal stream-based microkernel architecture (~100 lines) f
 ### Supporting Systems
 - **[07 - StateManager/ControlPlane](07-state-manager.md)** - HMI control room for topology tracking, wiring configs, runtime introspection/control
 - **[08 - Registry Server (The Hostess)](08-registry-server.md)** - Server registry, guest book, naming convention, reservations interface, executor/probe/beacon connection testing, LLDP-inspired discovery, information mesh
-- **[09 - Terminology](09-terminology.md)** - Best practices for discussing microkernel architectures
-- **[10 - Roadmap](10-roadmap.md)** - Implementation phases and timeline
-- **[11 - Success Criteria](11-success-criteria.md)** - How we know the design succeeded
-- **[12 - References](12-references.md)** - Inspirations from Plan 9, QNX, L4, Erlang, Kubernetes
+- **[09 - Roadmap](09-roadmap.md)** - Implementation phases and timeline
+- **[10 - Executor Server](10-executor-server.md)** - Service lifecycle management, startup configuration, probe spawning for connection testing, external process management
 
 ## Quick Start
 
