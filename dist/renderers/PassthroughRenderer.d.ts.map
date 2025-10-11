@@ -1,0 +1,1 @@
+{"version":3,"file":"PassthroughRenderer.d.ts","sourceRoot":"","sources":["../../src/renderers/PassthroughRenderer.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,IAAI,EAAE,MAAM,oBAAoB,CAAC;AAC/C,OAAO,EAAE,MAAM,EAAE,MAAM,qBAAqB,CAAC;AAE7C,qBAAa,mBAAmB;IAC9B,SAAgB,SAAS,EAAE,IAAI,CAAC;gBAEpB,MAAM,EAAE,MAAM;IAY1B,OAAO,IAAI,IAAI;CAIhB"}
