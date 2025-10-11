@@ -1,36 +1,48 @@
 # mkolbol
 
-**Microkernel for AI agent systems built on Model Context Protocol (MCP)**
+**Stream-based microkernel for AI agent systems**
 
 ## Overview
 
-mkolbol is a domain-agnostic microkernel designed for building AI-first systems. It provides:
+mkolbol is a minimal (~100 line) stream-based microkernel designed for building flexible, distributed AI agent systems. The kernel provides protocol-agnostic "physical layer" plumbing while all semantics live in composable modules.
 
-- **JSON-RPC/MCP router** - Request/response and notification handling
-- **Pluggable transports** - In-process bus, stdio, HTTP/SSE
-- **Plugin system** - Dynamic loading of capabilities via MCP tools/resources
-- **Middleware pipeline** - Composable cross-cutting concerns (compression, encryption, metrics)
-- **Event log** - Append-only audit trail with replay capability
-- **Presence tracking** - Heartbeat and liveness detection
-- **Control plane** - Runtime reconfiguration via sideband channels
+**Current Status:** 🏗️ **Architecture & RFC Phase**  
+The Stream Kernel architecture is fully documented in comprehensive RFCs. Implementation is planned for the near future.
 
-## Philosophy
+## Vision
 
-mkolbol follows a pragmatic microkernel design:
+Build the most flexible terminal I/O and AI agent system ever created:
+- **PTY hijacking** - Intercept and transform any terminal application's I/O
+- **Multi-modal rendering** - Display terminal output as xterm.js, Canvas, Video, TTS, AI-formatted text
+- **Multi-source input** - Accept input from keyboard, voice (STT), AI agents, network
+- **Protocol agnostic** - Pipes carry anything (bytes, JSON-RPC, MCP, custom protocols)
+- **Distributed deployment** - Same code runs single-process, multi-process, or across machines
+- **Browser-ready** - Works in Node.js and browsers (TypeScript)
 
-- **Not an OS kernel** - No reimplementation of schedulers, interrupts, or memory management
-- **Just-enough kernel** - RPC bus, priority queues, timeouts, backpressure, capability auth
-- **Plugin-first** - All business logic lives in user-space plugins
-- **Transport-agnostic** - Start single-process, graduate to distributed without API changes
+## Core Principles
 
-## Use Cases
+- **~100 line kernel** - Provides only: `createPipe()`, `connect()`, `split()`, `merge()`, service registry
+- **Pure plumbing** - Kernel is the "physical layer", doesn't understand protocols or data formats
+- **Everything is a module** - MCP, JSON-RPC, routing, supervision all live in modules
+- **Location transparency** - Modules don't know if peers are local or remote
+- **Infinite extensibility** - New features never require kernel changes
 
-mkolbol is designed to be the foundation for:
+## Architecture Documentation
 
-- **AI-first ticketing systems** (like obol)
-- **Build/CI systems** - AI agents managing builds, tests, and deployments
-- **PTY systems** - Terminal multiplexers with AI agent integration
-- **Any AI agent system** requiring modularity, testability, and extensibility
+### 📖 Stream Kernel RFC (Recommended)
+
+**Modular Version:** [docs/rfcs/stream-kernel/00-index.md](docs/rfcs/stream-kernel/00-index.md)
+
+The RFC is organized into focused documents:
+- **[Philosophy & Design Principles](docs/rfcs/stream-kernel/01-philosophy.md)** - Microkernel vision, mechanism vs policy
+- **[Core Architecture](docs/rfcs/stream-kernel/02-core-architecture.md)** - The ~100 line kernel API
+- **[Module Types](docs/rfcs/stream-kernel/03-module-types.md)** - Input, Source, Transform, Output, Routing modules
+- **[PTY Use Cases](docs/rfcs/stream-kernel/04-pty-use-cases.md)** - Real-world terminal hijacking examples
+- **[Deployment Flexibility](docs/rfcs/stream-kernel/05-deployment-flexibility.md)** - Single process → distributed
+- **[Distributed Service Mesh](docs/rfcs/stream-kernel/06-distributed-service-mesh.md)** - Routing servers, multi-hop communication
+- **[Implementation Roadmap](docs/rfcs/stream-kernel/09-roadmap.md)** - Phase-by-phase development plan
+
+**Single-File Version:** [STREAM_KERNEL_RFC.md](STREAM_KERNEL_RFC.md) (for offline reading)
 
 ## Installation
 
@@ -40,91 +52,76 @@ npm install mkolbol
 pnpm add mkolbol
 ```
 
-## Quick Start
+**Note:** The Stream Kernel implementation is not yet available. Current package contains the archived MCP-based implementation (see below).
+
+## Example (Future API)
 
 ```typescript
-import { Router, InProcBus } from 'mkolbol/kernel';
-import { createHttpTransport } from 'mkolbol/transports';
+import { Kernel } from 'mkolbol';
 
-const router = new Router();
-const bus = new InProcBus();
+// Create kernel
+const kernel = new Kernel();
 
-// Register a tool
-router.registerTool(
-  {
-    name: 'echo',
-    description: 'Echo back input',
-    inputSchema: { type: 'object', properties: { message: { type: 'string' } } }
-  },
-  async (params) => ({ echo: params.message })
-);
+// Create modules
+const keyboard = new KeyboardInput(kernel);
+const pty = new PTY(kernel);
+const parser = new ANSIParser(kernel);
+const screen = new ScreenRenderer(kernel);
+const ai = new AIFormatter(kernel);
 
-// Start HTTP transport
-const transport = createHttpTransport(router, bus, { port: 4317 });
-await transport.start();
+// Wire up the flow
+kernel.connect(keyboard.output, pty.input);     // Keyboard → PTY
+kernel.connect(pty.output, parser.input);       // PTY → Parser
+kernel.split(parser.output, [                   // Parser → Multiple outputs
+  screen.input,                                 //   → Screen
+  ai.input                                      //   → AI formatter
+]);
+
+// Start the system
+keyboard.start();
+pty.start();
 ```
 
-## Architecture
+## Use Cases
 
-### Core Components
+The Stream Kernel enables:
 
-- **Router** (`src/kernel/router.ts`) - JSON-RPC method dispatch, tool/resource registry
-- **Bus** (`src/kernel/bus.ts`) - In-process message bus with middleware support
-- **Event Log** (`src/kernel/eventlog.ts`) - Append-only audit trail
-- **Transports** (`src/transports/`) - HTTP/SSE and stdio adapters
-- **Middleware** (`src/middleware/`) - Compression, metrics, etc.
-- **Control Plane** (`src/control/`) - Runtime configuration
+1. **AI-Enhanced Terminals** - Multi-modal I/O with AI observation and control
+2. **Terminal Recording** - Capture sessions as video, text, or AI training data
+3. **Remote Processing** - Send terminal data to remote GPU, return to local display
+4. **Browser Extensions** - Terminal rendering in Chrome DevTools, Canvas
+5. **Accessibility** - TTS output, voice input, alternative input devices
+6. **Collaborative Terminals** - Multiple users, AI assistants, shared sessions
 
-### Migration Path
+See [PTY Use Cases RFC](docs/rfcs/stream-kernel/04-pty-use-cases.md) for detailed examples.
 
-1. **Single process** - In-proc bus, SQLite, easy install
-2. **Isolated** - Unix domain sockets for plugin isolation
-3. **Distributed** - TCP/WebSocket, no API changes
+## Archived: MCP-Based Implementation
 
-## Plugin Development
+The repository previously contained an MCP (Model Context Protocol) based microkernel implementation. This has been **archived** to `archived/mcp-kernel/` to prevent confusion with the new Stream Kernel architecture.
 
-Plugins register MCP tools and resources:
+**Why archived?** The Stream Kernel design provides:
+- More minimal kernel (~100 lines vs ~200 lines)
+- Protocol agnostic (not tied to JSON-RPC/MCP)
+- Greater deployment flexibility
+- Better separation of mechanism and policy
 
-```typescript
-// Register a tool (mutation)
-router.registerTool(
-  {
-    name: 'build.run',
-    description: 'Trigger a build',
-    inputSchema: { /* ... */ }
-  },
-  async (params, session) => {
-    // Tool implementation
-    return { buildId: '...' };
-  }
-);
+**Can I still use it?** The archived code is preserved for reference but not maintained. See [archived/mcp-kernel/README.md](archived/mcp-kernel/README.md) for details.
 
-// Register a resource (state)
-router.registerResource(
-  {
-    uri: 'mcp://builds/{id}.json',
-    description: 'Build status',
-    subscribable: true
-  },
-  async (uri, session) => {
-    // Resource reader implementation
-    return { status: 'running', ... };
-  }
-);
-```
+**Migration path:** MCP support will be built as a **module** on top of the Stream Kernel, providing the same capabilities with greater flexibility.
 
 ## Testing
 
 ```bash
 npm test
-# or
+# or  
 npm run test:watch
 ```
 
-The kernel is designed to be testable in isolation with:
-- Golden transcript tests
-- Event log replay
-- Mock transports and plugins
+The Stream Kernel is designed to be testable in isolation:
+- Test kernel with no modules (just pipe connections)
+- Test modules with mock kernel
+- Property-based testing of pipe operations
+- Golden transcript tests for complex flows
 
 ## Documentation
 
