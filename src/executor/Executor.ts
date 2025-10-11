@@ -2,8 +2,9 @@ import { Kernel } from '../kernel/Kernel.js';
 import { Hostess } from '../hostess/Hostess.js';
 import { StateManager } from '../state/StateManager.js';
 import { ModuleRegistry } from './moduleRegistry.js';
+import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
 import type { TopologyConfig, NodeConfig } from '../config/schema.js';
-import type { ServerManifest } from '../types.js';
+import type { ServerManifest, ExternalServerManifest } from '../types.js';
 
 interface ModuleInstance {
   id: string;
@@ -78,6 +79,25 @@ export class Executor {
 
   registerModule(name: string, constructor: any): void {
     this.moduleRegistry.register(name, constructor);
+  }
+
+  async spawnExternalWrapper(manifest: ExternalServerManifest): Promise<ExternalServerWrapper> {
+    const wrapper = new ExternalServerWrapper(this.kernel, this.hostess, manifest);
+    await wrapper.spawn();
+
+    this.stateManager.addNode({
+      id: manifest.uuid!,
+      name: manifest.servername,
+      terminals: [
+        { name: 'input', direction: 'input' as const },
+        { name: 'output', direction: 'output' as const },
+        { name: 'error', direction: 'output' as const }
+      ],
+      capabilities: manifest.capabilities.features || [],
+      location: 'local'
+    });
+
+    return wrapper;
   }
 
   private async instantiateNode(nodeConfig: NodeConfig): Promise<void> {
