@@ -6,14 +6,17 @@
 
 **Deliverables:**
 - [ ] Kernel implementation (createPipe, connect, split, merge, register, lookup)
+- [ ] StateManager/ControlPlane (topology tracking, wiring configs, introspection API)
 - [ ] Basic modules: KeyboardInput, LocalPTY, TerminalOutput
-- [ ] Configuration loader (YAML)
+- [ ] Configuration loader (YAML) for wiring configs
+- [ ] Wiring config validator (compile-time validation)
 - [ ] Unit tests for kernel
+- [ ] Unit tests for StateManager
 - [ ] Unit tests for basic modules
 
-**Success criteria:** Run `bash` with keyboard → PTY → screen
+**Success criteria:** Run `bash` with keyboard → PTY → screen, export topology diagram
 
-**Estimated effort:** 3-5 days
+**Estimated effort:** 4-6 days
 
 ## Phase 2: Parsers & Renderers (Week 2)
 
@@ -159,7 +162,9 @@ Some phases can be parallelized with multiple developers/agents:
 | Metric | Target |
 |--------|--------|
 | Kernel lines of code | < 150 |
+| StateManager lines of code | < 500 |
 | Kernel test coverage | > 90% |
+| StateManager test coverage | > 85% |
 | Module test coverage | > 80% |
 | Integration tests | > 20 scenarios |
 | Example applications | > 5 |

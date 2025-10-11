@@ -21,11 +21,12 @@ This RFC proposes a minimal stream-based microkernel architecture (~100 lines) f
 - **[06 - Distributed Service Mesh](06-distributed-service-mesh.md)** - Routing servers, terminals, multi-hop routing, hairpin flows
 
 ### Supporting Systems
-- **[07 - Service Registry](07-service-registry.md)** - Service discovery, capability matching, dynamic composition
-- **[08 - Terminology](08-terminology.md)** - Best practices for discussing microkernel architectures
-- **[09 - Roadmap](09-roadmap.md)** - Implementation phases and timeline
-- **[10 - Success Criteria](10-success-criteria.md)** - How we know the design succeeded
-- **[11 - References](11-references.md)** - Inspirations from Plan 9, QNX, L4, Erlang, Kubernetes
+- **[07 - StateManager/ControlPlane](07-state-manager.md)** - HMI control room for topology tracking, wiring configs, runtime introspection/control
+- **[08 - Service Registry](08-service-registry.md)** - Service discovery, capability matching, dynamic composition
+- **[09 - Terminology](09-terminology.md)** - Best practices for discussing microkernel architectures
+- **[10 - Roadmap](10-roadmap.md)** - Implementation phases and timeline
+- **[11 - Success Criteria](11-success-criteria.md)** - How we know the design succeeded
+- **[12 - References](12-references.md)** - Inspirations from Plan 9, QNX, L4, Erlang, Kubernetes
 
 ## Quick Start
 
