@@ -117,6 +117,17 @@ npm test
 npm run test:watch
 ```
 
+### Sprint 1 Quickstart (Local, In-Process)
+
+```bash
+pnpm i
+pnpm run build
+pnpm run dev          # runs examples/basic-topology
+# more demos
+pnpm run dev:split
+pnpm run dev:merge
+```
+
 The Stream Kernel is designed to be testable in isolation:
 - Test kernel with no modules (just pipe connections)
 - Test modules with mock kernel
