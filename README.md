@@ -128,7 +128,30 @@ The kernel is designed to be testable in isolation with:
 
 ## Documentation
 
-See [KERNEL_RFC.md](./KERNEL_RFC.md) for detailed architecture documentation.
+### Current Implementation (MCP Kernel)
+See [KERNEL_RFC.md](./KERNEL_RFC.md) for detailed architecture documentation of the current MCP-based kernel.
+
+### Proposed Architecture (Stream Kernel)
+A new stream-based microkernel architecture has been proposed with comprehensive documentation:
+
+**📖 [Stream Kernel RFC - Modular Version](docs/rfcs/stream-kernel/00-index.md)**
+
+The Stream Kernel RFC documents a ~100 line protocol-agnostic kernel design with:
+- Pure stream plumbing philosophy
+- Multi-modal terminal I/O capabilities
+- Deployment flexibility (single process → distributed)
+- Distributed service mesh architecture with routing servers
+- Complete separation of concerns for easier maintenance
+
+Key documents:
+- [Philosophy & Design Principles](docs/rfcs/stream-kernel/01-philosophy.md)
+- [Core Architecture (~100 lines)](docs/rfcs/stream-kernel/02-core-architecture.md)
+- [PTY Use Cases](docs/rfcs/stream-kernel/04-pty-use-cases.md)
+- [Deployment Flexibility](docs/rfcs/stream-kernel/05-deployment-flexibility.md)
+- [Distributed Service Mesh](docs/rfcs/stream-kernel/06-distributed-service-mesh.md)
+- [Implementation Roadmap](docs/rfcs/stream-kernel/09-roadmap.md)
+
+> **Note:** There is also a [single-file version](STREAM_KERNEL_RFC.md) of the Stream Kernel RFC, but the modular version is recommended for easier navigation and maintenance.
 
 ## License
 
