@@ -83,6 +83,12 @@ export interface ExternalServerManifest extends ServerManifest {
   restart?: RestartPolicy;
   restartDelay?: number;
   maxRestarts?: number;
+  terminalType?: string;
+  initialCols?: number;
+  initialRows?: number;
+  encoding?: 'utf8' | 'binary';
+  shell?: string;
+  shellArgs?: string[];
 }
 
 export interface ProcessInfo {
