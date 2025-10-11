@@ -70,3 +70,24 @@ export function buildServerIdentity(parts: {
   const { fqdn, servername, classHex, owner, auth, authMechanism, uuid } = parts;
   return `${fqdn}:${servername}:${classHex}:${owner}:${auth}:${authMechanism}:${uuid}`;
 }
+
+export type IOMode = 'stdio' | 'pty' | 'socket';
+export type RestartPolicy = 'never' | 'on-failure' | 'always';
+
+export interface ExternalServerManifest extends ServerManifest {
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  cwd: string;
+  ioMode: IOMode;
+  restart?: RestartPolicy;
+  restartDelay?: number;
+  maxRestarts?: number;
+}
+
+export interface ProcessInfo {
+  pid: number;
+  uptime: number;
+  memoryUsage: number;
+  cpuUsage: number;
+}
