@@ -1,5 +1,6 @@
 import { metricsMiddleware } from "./metrics";
 import { compressionMiddleware } from "./compression";
+export { metricsMiddleware, compressionMiddleware };
 export function defaultPipeline(config) {
     const cfg = { metrics: true, compression: false, ...(config ?? {}) };
     const mws = [];

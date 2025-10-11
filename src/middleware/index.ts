@@ -2,6 +2,8 @@ import { Middleware } from "../types";
 import { metricsMiddleware } from "./metrics";
 import { compressionMiddleware } from "./compression";
 
+export { metricsMiddleware, compressionMiddleware };
+
 export type PipelineConfig = {
   metrics: boolean;
   compression: boolean;
