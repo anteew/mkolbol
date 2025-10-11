@@ -21,7 +21,8 @@
     "docs/",
     "STREAM_KERNEL_RFC.md",
     "README.md",
-    "archived/"
+    "archived/",
+    "dist/"
   ],
   "scripts": {
     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
@@ -30,7 +31,8 @@
     "test:watch": "vitest",
     "dev": "node --enable-source-maps dist/examples/basic-topology.js",
     "dev:split": "node --enable-source-maps dist/examples/split-topology.js",
-    "dev:merge": "node --enable-source-maps dist/examples/merge-topology.js"
+    "dev:merge": "node --enable-source-maps dist/examples/merge-topology.js",
+    "dev:hostess": "node --enable-source-maps dist/examples/hostess-demo.js"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
