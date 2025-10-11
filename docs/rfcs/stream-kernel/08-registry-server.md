@@ -738,6 +738,470 @@ class WiringValidator {
 }
 ```
 
+## Reservations Interface
+
+The Hostess doesn't just track who's here - she also accepts "reservations" for server capabilities, both locally and remotely.
+
+### The Restaurant Metaphor Extended
+
+Imagine the Hostess running a restaurant:
+
+**Local Walk-Ins (Local Reservations):**
+- Local StateManager: "Hey, I need a table for 4 GPU renderers"
+- Hostess: "Let me check... yes, I have 6 GPU servers available. Here are 4 for you."
+
+**Remote Phone Calls (Remote Reservations via LLDP):**
+- Remote Hostess B calls: "Hi! I've got a customer asking for shrimp scampi, but we specialize in Mexican food. I heard you have seafood capabilities?"
+- Hostess A: "Yes! We have a GPURenderer with H264 encoding. I can open a pipe between us so your customers can access it."
+
+**Inter-Restaurant Sharing:**
+- Hostesses advertise their "menu" (server capabilities) to other Hostesses
+- Remote systems discover what's available without manual configuration
+- Cross-machine capability sharing becomes automatic
+
+### Reservations API
+
+The Hostess exposes a reservations interface that handles both local and remote requests:
+
+```typescript
+interface ReservationsAPI {
+  // Local reservation (walk-in)
+  reserveLocal(request: ReservationRequest): Promise<Reservation>;
+  
+  // Remote reservation (via LLDP/HTTP)
+  reserveRemote(request: RemoteReservationRequest): Promise<Reservation>;
+  
+  // Query available capabilities (for remote Hostesses)
+  queryCapabilities(filter: CapabilityFilter): Promise<CapabilityAdvertisement>;
+  
+  // Cancel reservation
+  cancelReservation(reservationId: string): Promise<void>;
+  
+  // List active reservations
+  listReservations(): Promise<Reservation[]>;
+}
+
+interface ReservationRequest {
+  requestedBy: string;           // Who's making the reservation
+  serverFilter: ServerFilter;    // What kind of servers needed
+  count: number;                 // How many servers
+  duration?: number;             // How long (ms), undefined = indefinite
+  priority?: number;             // Priority level (higher = more important)
+}
+
+interface RemoteReservationRequest extends ReservationRequest {
+  remoteFqdn: string;            // Which remote system is requesting
+  connectionInfo: ConnectionInfo; // How to reach back to requester
+}
+
+interface Reservation {
+  id: string;                    // Unique reservation ID
+  servers: GuestBookEntry[];     // Reserved servers
+  requestedBy: string;
+  expiresAt?: number;            // Timestamp when reservation expires
+  status: "active" | "expired" | "cancelled";
+}
+```
+
+### Local Reservations (Walk-Ins)
+
+Local StateManager or other servers can reserve capabilities:
+
+```typescript
+// StateManager needs GPU servers for wiring plan
+class StateManager {
+  async executeWiringPlan(plan: WiringPlan) {
+    // Make a reservation
+    const reservation = await hostess.reserveLocal({
+      requestedBy: "StateManager",
+      serverFilter: {
+        class: "0x0002",           // GPU renderer
+        capabilities: ["gpu", "h264"],
+        availableTerminals: 1
+      },
+      count: 4,
+      duration: 60000,             // Hold for 60 seconds while wiring
+      priority: 10
+    });
+    
+    // Use the reserved servers
+    for (const server of reservation.servers) {
+      await this.createConnection(plan.source, server.id, "input");
+    }
+    
+    // Reservation auto-released after duration or when cancelled
+  }
+}
+```
+
+### Remote Reservations (LLDP Phone Calls)
+
+Remote Hostesses can request capabilities from other Hostesses:
+
+```typescript
+// Hostess B discovers Hostess A has GPU capabilities
+class HostessB {
+  async handleRemoteCapabilityNeed() {
+    // Query remote Hostess A for GPU servers
+    const response = await fetch('http://machine-a.local:8080/capabilities', {
+      method: 'POST',
+      body: JSON.stringify({
+        class: "0x0002",
+        capabilities: ["gpu", "h264"]
+      })
+    });
+    
+    const capabilities = await response.json();
+    
+    if (capabilities.available > 0) {
+      // Make remote reservation
+      const reservation = await fetch('http://machine-a.local:8080/reserve', {
+        method: 'POST',
+        body: JSON.stringify({
+          requestedBy: "HostessB@machine-b.local",
+          remoteFqdn: "machine-b.local",
+          serverFilter: {
+            class: "0x0002",
+            capabilities: ["gpu", "h264"]
+          },
+          count: 2,
+          connectionInfo: {
+            preferredMethods: ["websocket", "tcp"],
+            endpoint: "ws://machine-b.local:9090"
+          }
+        })
+      });
+      
+      // Now can connect local servers to remote GPU servers
+    }
+  }
+}
+```
+
+### Inter-Hostess Capability Sharing
+
+Hostesses periodically advertise their capabilities to other Hostesses via LLDP:
+
+```typescript
+class LLDPInterface {
+  startCapabilitySharing(intervalMs: number = 60000) {
+    setInterval(async () => {
+      const servers = await this.hostess.listAll();
+      
+      // Aggregate capabilities by class
+      const capabilitiesByClass = this.aggregateByClass(servers);
+      
+      // Broadcast capability advertisement
+      const advertisement = {
+        type: 'CAPABILITY_ADVERTISEMENT',
+        timestamp: Date.now(),
+        fqdn: os.hostname(),
+        hostessId: this.hostess.id,
+        endpoint: `http://${os.hostname()}:${this.port}`,
+        capabilities: capabilitiesByClass,
+        connectionMethods: this.cachedConnectionMethods  // From probing
+      };
+      
+      // Send to known peers or multicast
+      this.broadcast(advertisement);
+    }, intervalMs);
+  }
+  
+  private aggregateByClass(servers: GuestBookEntry[]) {
+    const byClass = new Map<string, {
+      count: number;
+      availableCount: number;
+      capabilities: Set<string>;
+    }>();
+    
+    for (const server of servers) {
+      if (!byClass.has(server.class)) {
+        byClass.set(server.class, {
+          count: 0,
+          availableCount: 0,
+          capabilities: new Set()
+        });
+      }
+      
+      const entry = byClass.get(server.class)!;
+      entry.count++;
+      
+      // Check if server has available terminals
+      const hasAvailable = Object.values(server.terminals)
+        .some(t => !t.inUse);
+      if (hasAvailable) entry.availableCount++;
+      
+      // Aggregate capabilities
+      server.capabilities.forEach(c => entry.capabilities.add(c));
+    }
+    
+    return Array.from(byClass.entries()).map(([cls, info]) => ({
+      class: cls,
+      totalCount: info.count,
+      availableCount: info.availableCount,
+      capabilities: Array.from(info.capabilities)
+    }));
+  }
+}
+```
+
+### Connection Probing and Caching
+
+The Hostess works with a dedicated **Probe Server** to test connection methods and cache working paths:
+
+```typescript
+// Probe Server tests various connection methods
+class ProbeServer {
+  async probeRemoteHostess(remoteFqdn: string, remotePort: number) {
+    const methods = ['websocket', 'tcp', 'http', 'unix-socket'];
+    const workingMethods: ConnectionMethod[] = [];
+    
+    for (const method of methods) {
+      try {
+        const result = await this.testConnection(method, remoteFqdn, remotePort);
+        if (result.success) {
+          workingMethods.push({
+            type: method,
+            endpoint: result.endpoint,
+            latency: result.latency,
+            throughput: result.throughput
+          });
+        }
+      } catch (err) {
+        // Method doesn't work, skip it
+      }
+    }
+    
+    // Sort by latency (prefer faster connections)
+    workingMethods.sort((a, b) => a.latency - b.latency);
+    
+    return workingMethods;
+  }
+  
+  private async testConnection(method: string, host: string, port: number) {
+    const startTime = Date.now();
+    
+    switch (method) {
+      case 'websocket':
+        const ws = new WebSocket(`ws://${host}:${port}/probe`);
+        await new Promise((resolve, reject) => {
+          ws.on('open', resolve);
+          ws.on('error', reject);
+          setTimeout(() => reject(new Error('timeout')), 5000);
+        });
+        const latency = Date.now() - startTime;
+        ws.close();
+        return { 
+          success: true, 
+          endpoint: `ws://${host}:${port}`,
+          latency,
+          throughput: null 
+        };
+      
+      case 'tcp':
+        const socket = net.connect(port, host);
+        await new Promise((resolve, reject) => {
+          socket.on('connect', resolve);
+          socket.on('error', reject);
+          setTimeout(() => reject(new Error('timeout')), 5000);
+        });
+        const tcpLatency = Date.now() - startTime;
+        socket.end();
+        return { 
+          success: true, 
+          endpoint: `tcp://${host}:${port}`,
+          latency: tcpLatency,
+          throughput: null 
+        };
+      
+      // ... other methods
+    }
+  }
+}
+```
+
+### Caching Connection Methods in LLDP
+
+Once a Probe Server tests connection methods, the Hostess caches and advertises them:
+
+```typescript
+interface ConnectionMethod {
+  type: 'websocket' | 'tcp' | 'http' | 'unix-socket';
+  endpoint: string;
+  latency: number;           // Measured latency in ms
+  throughput?: number;       // Measured throughput in bytes/sec
+  testedAt: number;          // Timestamp when tested
+}
+
+class Hostess {
+  private connectionMethodCache: Map<string, ConnectionMethod[]> = new Map();
+  
+  async cacheConnectionMethods(remoteFqdn: string, methods: ConnectionMethod[]) {
+    this.connectionMethodCache.set(remoteFqdn, methods);
+  }
+  
+  async getConnectionMethods(remoteFqdn: string): Promise<ConnectionMethod[] | null> {
+    const cached = this.connectionMethodCache.get(remoteFqdn);
+    
+    // Return cached methods if they're recent (< 5 minutes old)
+    if (cached && cached[0].testedAt > Date.now() - 300000) {
+      return cached;
+    }
+    
+    // Otherwise, need to re-probe
+    return null;
+  }
+}
+```
+
+### Enhanced LLDP Advertisement with Connection Info
+
+LLDP advertisements now include tested connection methods:
+
+```typescript
+interface LLDPAdvertisement {
+  type: 'HOSTESS_ANNOUNCEMENT';
+  timestamp: number;
+  fqdn: string;
+  hostessId: string;
+  endpoint: string;                    // Primary HTTP endpoint
+  capabilities: CapabilityInfo[];      // What servers are available
+  connectionMethods: ConnectionMethod[]; // HOW to connect (cached from probing)
+}
+
+// Example advertisement
+{
+  type: 'HOSTESS_ANNOUNCEMENT',
+  timestamp: 1728677440000,
+  fqdn: 'machine-a.local',
+  hostessId: 'hostess-uuid-1234',
+  endpoint: 'http://machine-a.local:8080',
+  capabilities: [
+    {
+      class: '0x0002',           // GPU renderer
+      totalCount: 4,
+      availableCount: 3,
+      capabilities: ['gpu', 'h264', 'cuda']
+    },
+    {
+      class: '0x0001',           // PTY
+      totalCount: 2,
+      availableCount: 1,
+      capabilities: ['pty', 'vt100']
+    }
+  ],
+  connectionMethods: [
+    {
+      type: 'websocket',
+      endpoint: 'ws://machine-a.local:8080',
+      latency: 5,
+      testedAt: 1728677400000
+    },
+    {
+      type: 'tcp',
+      endpoint: 'tcp://machine-a.local:9090',
+      latency: 3,
+      testedAt: 1728677400000
+    },
+    {
+      type: 'http',
+      endpoint: 'http://machine-a.local:8080',
+      latency: 8,
+      testedAt: 1728677400000
+    }
+  ]
+}
+```
+
+### Optimized Connection Establishment
+
+When a remote Hostess wants to connect, it uses the cached connection methods:
+
+```typescript
+class RemoteConnectionManager {
+  async connectToRemoteHostess(advertisement: LLDPAdvertisement) {
+    // Try connection methods in order of latency (cached from LLDP)
+    for (const method of advertisement.connectionMethods) {
+      try {
+        const connection = await this.tryConnectionMethod(method);
+        if (connection) {
+          console.log(`Connected via ${method.type} (${method.latency}ms latency)`);
+          return connection;
+        }
+      } catch (err) {
+        // This method failed, try next one
+        continue;
+      }
+    }
+    
+    // If all cached methods fail, trigger new probe
+    console.log('All cached methods failed, triggering new probe...');
+    const probeResults = await this.probeServer.probeRemoteHostess(
+      advertisement.fqdn,
+      8080
+    );
+    
+    // Cache the new results
+    await this.hostess.cacheConnectionMethods(advertisement.fqdn, probeResults);
+    
+    // Try the new methods
+    for (const method of probeResults) {
+      try {
+        return await this.tryConnectionMethod(method);
+      } catch (err) {
+        continue;
+      }
+    }
+    
+    throw new Error('Unable to connect to remote Hostess');
+  }
+}
+```
+
+### Benefits of Reservations Interface
+
+1. ✅ **Resource Guarantees** - Servers can reserve capabilities before using them
+2. ✅ **Remote Discovery** - Hostesses advertise capabilities to each other
+3. ✅ **Optimized Connections** - Cached probe results avoid repeated connection testing
+4. ✅ **Transparent Cross-Machine Access** - Local servers can reserve remote capabilities
+5. ✅ **Automatic Failover** - If preferred method fails, try next cached method
+6. ✅ **Time-Bound Reservations** - Automatic cleanup via expiration
+7. ✅ **Priority Handling** - High-priority reservations can preempt low-priority ones
+
+### Restaurant Metaphor Summary
+
+```
+Hostess A (Mexican Restaurant):
+  "We have tacos, burritos, enchiladas (PTY, Audio servers)"
+  "We DON'T have seafood (GPU rendering)"
+  
+Hostess B (Seafood Restaurant):
+  "We have shrimp, lobster, fish (GPU, H264, CUDA)"
+  "We DON'T have Mexican food"
+
+Via LLDP Advertisement:
+  Hostess A: "Oh! Hostess B has seafood! Let me cache that info and their connection methods"
+  Hostess B: "Oh! Hostess A has Mexican food! Let me cache that too"
+
+When Local Customer at Restaurant A wants Shrimp:
+  Customer (StateManager): "I need shrimp scampi"
+  Hostess A: "We don't have seafood, but Restaurant B does! Let me make a reservation there for you"
+  Hostess A → calls Hostess B (using cached connection: WebSocket, 5ms latency)
+  Hostess B: "Yes! Table for 2 GPU servers ready. Here's the pipe to connect."
+  Customer: Gets shrimp scampi, doesn't know it came from another restaurant!
+
+Connection Optimization:
+  Probe Server (first visit): "Let me test all ways to connect..."
+    ✅ WebSocket: 5ms
+    ✅ TCP: 3ms
+    ❌ HTTP: too slow
+    ❌ Unix socket: not available (different machine)
+  
+  Hostess A (caches results): "Next time, try TCP first (3ms), then WebSocket (5ms)"
+  
+  Next Visit: Skip probing, use TCP immediately!
+```
+
 ## Summary
 
 The **Hostess/Registry Server** provides:
@@ -749,14 +1213,19 @@ The **Hostess/Registry Server** provides:
 5. ✅ **Compile-time manifests** - Static server configuration
 6. ✅ **LLDP-inspired discovery** - HTTP, shared memory, broadcast interfaces
 7. ✅ **Information mesh** - Multi-machine discovery without central config
-8. ✅ **Separation from StateManager** - Registry ≠ Topology
-9. ✅ **Microkernel philosophy** - Hostess is a server, not kernel code
+8. ✅ **Reservations interface** - Local walk-ins and remote LLDP reservations
+9. ✅ **Inter-hostess capability sharing** - Restaurants sharing menus across machines
+10. ✅ **Connection probing** - Probe server tests multiple connection methods
+11. ✅ **Connection method caching** - Cache and advertise working connection paths in LLDP
+12. ✅ **Optimized connection establishment** - Try cached methods first, avoid re-probing
+13. ✅ **Separation from StateManager** - Registry ≠ Topology
+14. ✅ **Microkernel philosophy** - Hostess is a server, not kernel code
 
-The Hostess knows **who is here**.  
+The Hostess knows **who is here** and **how to reach them**.  
 The StateManager knows **how they connect**.  
 The kernel provides **the pipes**.
 
-Three simple, composable servers that together enable sophisticated distributed systems.
+Four simple, composable servers (Kernel, Hostess, Probe, StateManager) that together enable sophisticated distributed systems.
 
 ## References
 
