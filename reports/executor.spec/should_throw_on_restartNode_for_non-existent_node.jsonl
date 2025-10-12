@@ -1,3 +1,3 @@
-{"ts":1760290663099,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"setup","evt":"case.begin"}
-{"ts":1760290663100,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"execution","evt":"test.run"}
-{"ts":1760290663101,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760291942220,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"setup","evt":"case.begin"}
+{"ts":1760291942221,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"execution","evt":"test.run"}
+{"ts":1760291942222,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}

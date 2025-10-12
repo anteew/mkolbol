@@ -1,3 +1,3 @@
-{"ts":1760290661147,"lvl":"info","case":"validator enforces directionality when set","phase":"setup","evt":"case.begin"}
-{"ts":1760290661148,"lvl":"info","case":"validator enforces directionality when set","phase":"execution","evt":"test.run"}
-{"ts":1760290661149,"lvl":"info","case":"validator enforces directionality when set","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
+{"ts":1760291940173,"lvl":"info","case":"validator enforces directionality when set","phase":"setup","evt":"case.begin"}
+{"ts":1760291940174,"lvl":"info","case":"validator enforces directionality when set","phase":"execution","evt":"test.run"}
+{"ts":1760291940175,"lvl":"info","case":"validator enforces directionality when set","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}

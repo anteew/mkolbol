@@ -1,3 +1,3 @@
-{"ts":1760290663101,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"setup","evt":"case.begin"}
-{"ts":1760290663102,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"execution","evt":"test.run"}
-{"ts":1760290663103,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"teardown","evt":"case.end","payload":{"duration":6,"status":"passed"}}
+{"ts":1760291942221,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"setup","evt":"case.begin"}
+{"ts":1760291942222,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"execution","evt":"test.run"}
+{"ts":1760291942223,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"teardown","evt":"case.end","payload":{"duration":8,"status":"passed"}}
