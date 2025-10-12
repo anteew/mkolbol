@@ -1,0 +1,47 @@
+diff --git a/README.md b/README.md
+index 5401143..8a1487f 100644
+--- a/README.md
++++ b/README.md
+@@ -138,6 +138,12 @@ npm run test:ci
+ 
+ **CI Note:** The `test:ci` script uses `--pool=threads` to avoid tinypool concurrency issues on Node 20 and 24. Tested on both LTS versions.
+ 
++**Auto-Debug Rerun:** For CI pipelines with fast triage, use:
++```bash
++npm run laminar:run || true
++```
++This runs tests normally first, then automatically reruns failures with `LAMINAR_DEBUG=1` to capture debug output. Failed test logs are written to `reports/<suite>/<case>.jsonl` for analysis.
++
+ ### Test Event Logging
+ 
+ The project includes structured test event logging in JSONL format:
+@@ -147,6 +153,29 @@ The project includes structured test event logging in JSONL format:
+ 
+ **Agent Integration**: When working with agents via ampcode.log, include pointers to `reports/summary.jsonl` and case files in task reports. Keep console output compact; rely on report files for detailed metrics and traces.
+ 
++### Debug Instrumentation
++
++Runtime-configurable debug output with near-zero overhead when disabled:
++
++```bash
++# Enable all debug output
++DEBUG=1 npm run dev
++
++# Enable specific modules
++MK_DEBUG_MODULES=kernel,pipes npm run dev
++
++# Set debug level (error, warn, info, debug, trace)
++MK_DEBUG_LEVEL=trace npm run dev
++
++# Combine options
++DEBUG=1 MK_DEBUG_MODULES=executor MK_DEBUG_LEVEL=debug npm run dev
++```
++
++**Implementation:**
++- [src/debug/config.ts](src/debug/config.ts) - Parse environment variables at startup
++- [src/debug/api.ts](src/debug/api.ts) - `debug.on(module)` and `debug.emit(module, event, payload, level)` API
++- **Laminar Integration:** When `LAMINAR_DEBUG=1` is set, debug events emit as `TestEventEnvelope` for structured logging
++
+ ### CLI Tools
+ 
+ #### logq - Query JSONL test logs

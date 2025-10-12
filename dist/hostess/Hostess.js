@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { buildServerIdentity } from '../types.js';
 import { createEvent } from '../logging/TestEvent.js';
 import { createLogger } from '../logging/logger.js';
+import { debug } from '../debug/api.js';
 export class Hostess {
     guestBook = new Map();
     interval;
@@ -55,6 +56,13 @@ export class Hostess {
             id: identity,
             payload: { fqdn: entry.fqdn, servername: entry.servername, uuid }
         }));
+        debug.emit('hostess', 'register', {
+            identity,
+            fqdn: entry.fqdn,
+            servername: entry.servername,
+            uuid,
+            terminals: entry.terminals.length
+        });
         return identity;
     }
     heartbeat(serverId) {
@@ -65,6 +73,7 @@ export class Hostess {
         this.logger?.(createEvent('hostess:heartbeat', 'hostess', {
             id: serverId
         }));
+        debug.emit('hostess', 'heartbeat', { serverId });
     }
     markInUse(serverId, terminalName, connectomeId) {
         const entry = this.guestBook.get(serverId);
@@ -78,6 +87,7 @@ export class Hostess {
             id: serverId,
             payload: { terminalName, connectomeId }
         }));
+        debug.emit('hostess', 'markInUse', { serverId, terminalName, connectomeId });
     }
     markAvailable(serverId, terminalName) {
         const entry = this.guestBook.get(serverId);

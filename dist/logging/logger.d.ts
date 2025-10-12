@@ -20,4 +20,6 @@ export declare class TestLogger {
     close(): void;
 }
 export declare function createLogger(suite: string, caseName: string): TestLogger;
+export declare function getGlobalDebugLogger(): TestLogger | undefined;
+export declare function initGlobalDebugLogger(): void;
 //# sourceMappingURL=logger.d.ts.map

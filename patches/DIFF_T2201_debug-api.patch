@@ -1,0 +1,182 @@
+diff --git a/README.md b/README.md
+index 5401143..5da7b2f 100644
+--- a/README.md
++++ b/README.md
+@@ -147,6 +147,29 @@ The project includes structured test event logging in JSONL format:
+ 
+ **Agent Integration**: When working with agents via ampcode.log, include pointers to `reports/summary.jsonl` and case files in task reports. Keep console output compact; rely on report files for detailed metrics and traces.
+ 
++### Debug Instrumentation
++
++Runtime-configurable debug output with near-zero overhead when disabled:
++
++```bash
++# Enable all debug output
++DEBUG=1 npm run dev
++
++# Enable specific modules
++MK_DEBUG_MODULES=kernel,pipes npm run dev
++
++# Set debug level (error, warn, info, debug, trace)
++MK_DEBUG_LEVEL=trace npm run dev
++
++# Combine options
++DEBUG=1 MK_DEBUG_MODULES=executor MK_DEBUG_LEVEL=debug npm run dev
++```
++
++**Implementation:**
++- [src/debug/config.ts](src/debug/config.ts) - Parse environment variables at startup
++- [src/debug/api.ts](src/debug/api.ts) - `debug.on(module)` and `debug.emit(module, event, payload, level)` API
++- **Laminar Integration:** When `LAMINAR_DEBUG=1` is set, debug events emit as `TestEventEnvelope` for structured logging
++
+ ### CLI Tools
+ 
+ #### logq - Query JSONL test logs
+diff --git a/src/debug/api.ts b/src/debug/api.ts
+new file mode 100644
+index 0000000..c754979
+--- /dev/null
++++ b/src/debug/api.ts
+@@ -0,0 +1,86 @@
++import { config, DebugLevel } from './config.js';
++import type { TestEventEnvelope } from '../logging/TestEvent.js';
++
++const LEVEL_VALUES: Record<DebugLevel, number> = {
++  error: 0,
++  warn: 1,
++  info: 2,
++  debug: 3,
++  trace: 4,
++};
++
++export interface DebugEvent {
++  module: string;
++  level: DebugLevel;
++  event: string;
++  payload?: unknown;
++}
++
++class Debug {
++  on(module: string): boolean {
++    if (!config.enabled) return false;
++    if (config.modules.size === 0) return true;
++    return config.modules.has(module) || config.modules.has('*');
++  }
++
++  shouldEmit(module: string, level: DebugLevel): boolean {
++    if (!this.on(module)) return false;
++    return LEVEL_VALUES[level] <= config.levelValue;
++  }
++
++  emit(
++    module: string,
++    event: string,
++    payload?: unknown,
++    level: DebugLevel = 'debug'
++  ): void {
++    if (!this.shouldEmit(module, level)) return;
++
++    const debugEvent: DebugEvent = {
++      module,
++      level,
++      event,
++      payload,
++    };
++
++    if (this.isLaminarPresent()) {
++      this.emitAsTestEvent(debugEvent);
++    } else {
++      this.emitToConsole(debugEvent);
++    }
++  }
++
++  private isLaminarPresent(): boolean {
++    return process.env.LAMINAR_DEBUG === '1' || process.env.LAMINAR_SUITE !== undefined;
++  }
++
++  private emitAsTestEvent(debugEvent: DebugEvent): void {
++    const envelope: TestEventEnvelope = {
++      ts: Date.now(),
++      lvl: this.mapLevelToLogLevel(debugEvent.level),
++      case: process.env.LAMINAR_CASE || 'debug',
++      evt: `debug.${debugEvent.module}.${debugEvent.event}`,
++      payload: debugEvent.payload,
++    };
++
++    console.log(JSON.stringify(envelope));
++  }
++
++  private emitToConsole(debugEvent: DebugEvent): void {
++    const timestamp = new Date().toISOString();
++    const prefix = `[${timestamp}] [${debugEvent.level.toUpperCase()}] [${debugEvent.module}]`;
++    const message = debugEvent.payload
++      ? `${prefix} ${debugEvent.event}: ${JSON.stringify(debugEvent.payload)}`
++      : `${prefix} ${debugEvent.event}`;
++
++    console.log(message);
++  }
++
++  private mapLevelToLogLevel(level: DebugLevel): 'debug' | 'info' | 'warn' | 'error' {
++    if (level === 'trace') return 'debug';
++    if (level === 'error' || level === 'warn' || level === 'info') return level;
++    return 'debug';
++  }
++}
++
++export const debug = new Debug();
+diff --git a/src/debug/config.ts b/src/debug/config.ts
+new file mode 100644
+index 0000000..5c00a66
+--- /dev/null
++++ b/src/debug/config.ts
+@@ -0,0 +1,50 @@
++export type DebugLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace';
++
++export interface DebugConfig {
++  enabled: boolean;
++  modules: Set<string>;
++  level: DebugLevel;
++  levelValue: number;
++}
++
++const LEVEL_VALUES: Record<DebugLevel, number> = {
++  error: 0,
++  warn: 1,
++  info: 2,
++  debug: 3,
++  trace: 4,
++};
++
++function parseModules(envVar: string | undefined): Set<string> {
++  if (!envVar || envVar.trim() === '') return new Set();
++  return new Set(
++    envVar
++      .split(',')
++      .map(m => m.trim())
++      .filter(m => m.length > 0)
++  );
++}
++
++function parseLevel(envVar: string | undefined): DebugLevel {
++  const level = (envVar?.toLowerCase() || 'info') as DebugLevel;
++  return LEVEL_VALUES[level] !== undefined ? level : 'info';
++}
++
++function createConfig(): DebugConfig {
++  const debugEnv = process.env.DEBUG;
++  const modulesEnv = process.env.MK_DEBUG_MODULES;
++  const levelEnv = process.env.MK_DEBUG_LEVEL;
++
++  const enabled = debugEnv === '1' || debugEnv === 'true' || !!modulesEnv;
++  const modules = parseModules(modulesEnv);
++  const level = parseLevel(levelEnv);
++
++  return Object.freeze({
++    enabled,
++    modules,
++    level,
++    levelValue: LEVEL_VALUES[level],
++  });
++}
++
++export const config: DebugConfig = createConfig();

@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { CapabilityQuery, GuestBookEntry, ServerManifest, buildServerIdentity } from '../types.js';
 import { TestEventEnvelope, createEvent } from '../logging/TestEvent.js';
 import { createLogger } from '../logging/logger.js';
+import { debug } from '../debug/api.js';
 
 interface HostessOptions {
   heartbeatIntervalMs?: number;
@@ -65,6 +66,13 @@ export class Hostess {
       id: identity,
       payload: { fqdn: entry.fqdn, servername: entry.servername, uuid }
     }));
+    debug.emit('hostess', 'register', {
+      identity,
+      fqdn: entry.fqdn,
+      servername: entry.servername,
+      uuid,
+      terminals: entry.terminals.length
+    });
     return identity;
   }
 
@@ -75,6 +83,7 @@ export class Hostess {
     this.logger?.(createEvent('hostess:heartbeat', 'hostess', {
       id: serverId
     }));
+    debug.emit('hostess', 'heartbeat', { serverId });
   }
 
   markInUse(serverId: string, terminalName: string, connectomeId: string): void {
@@ -87,6 +96,7 @@ export class Hostess {
       id: serverId,
       payload: { terminalName, connectomeId }
     }));
+    debug.emit('hostess', 'markInUse', { serverId, terminalName, connectomeId });
   }
 
   markAvailable(serverId: string, terminalName: string): void {

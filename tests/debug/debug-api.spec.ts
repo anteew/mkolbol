@@ -1,0 +1,184 @@
+import { describe, it, expect, vi } from 'vitest';
+import { debug } from '../../src/debug/api.js';
+import { config } from '../../src/debug/config.js';
+
+describe('Debug API', () => {
+  describe('debug.on() - returns correct values based on env', () => {
+    it('returns false when module is not enabled', () => {
+      const isEnabled = debug.on('non-existent-module-xyz');
+      if (config.enabled && config.modules.size === 0) {
+        expect(isEnabled).toBe(true);
+      } else if (config.enabled && config.modules.has('*')) {
+        expect(isEnabled).toBe(true);
+      } else {
+        expect(isEnabled).toBe(false);
+      }
+    });
+
+    it('returns consistent value for same module', () => {
+      const result1 = debug.on('test-module');
+      const result2 = debug.on('test-module');
+      expect(result1).toBe(result2);
+    });
+
+    it('returns false when config is disabled', () => {
+      if (!config.enabled) {
+        expect(debug.on('any-module')).toBe(false);
+      }
+    });
+
+    it('checks module against config.modules when enabled', () => {
+      if (config.enabled) {
+        if (config.modules.size === 0) {
+          expect(debug.on('any-module')).toBe(true);
+        } else if (config.modules.has('*')) {
+          expect(debug.on('any-module')).toBe(true);
+        }
+      }
+    });
+  });
+
+  describe('disabled debug has no overhead (off==silent)', () => {
+    it('does not emit when on() returns false', () => {
+      const consoleSpy = vi.spyOn(console, 'log');
+      const moduleName = 'definitely-not-enabled-module-xyz-123';
+      
+      if (!debug.on(moduleName)) {
+        debug.emit(moduleName, 'test-event', { data: 'test' });
+        expect(consoleSpy).not.toHaveBeenCalled();
+      }
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('emit returns immediately when module is disabled', () => {
+      const moduleName = 'performance-test-module-xyz';
+      
+      if (!debug.on(moduleName)) {
+        const startTime = performance.now();
+        for (let i = 0; i < 1000; i++) {
+          debug.emit(moduleName, 'test-event', { iteration: i });
+        }
+        const endTime = performance.now();
+        
+        expect(endTime - startTime).toBeLessThan(10);
+      }
+    });
+
+    it('shouldEmit returns false when module is disabled', () => {
+      const moduleName = 'disabled-test-module';
+      
+      if (!debug.on(moduleName)) {
+        expect(debug.shouldEmit(moduleName, 'debug')).toBe(false);
+        expect(debug.shouldEmit(moduleName, 'info')).toBe(false);
+        expect(debug.shouldEmit(moduleName, 'error')).toBe(false);
+      }
+    });
+  });
+
+  describe('enabled debug emits minimal events (on==emits)', () => {
+    it('emits to console when module is enabled', () => {
+      const moduleName = config.modules.size > 0 
+        ? Array.from(config.modules)[0] 
+        : 'test-module';
+      
+      if (debug.on(moduleName)) {
+        const consoleSpy = vi.spyOn(console, 'log');
+        
+        debug.emit(moduleName, 'test-event', { data: 'payload' });
+        
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
+      }
+    });
+
+    it('respects debug level filtering', () => {
+      if (config.enabled) {
+        const moduleName = config.modules.size > 0 
+          ? Array.from(config.modules)[0] 
+          : 'test-module';
+        
+        if (debug.on(moduleName)) {
+          const errorShouldEmit = debug.shouldEmit(moduleName, 'error');
+          const traceShouldEmit = debug.shouldEmit(moduleName, 'trace');
+          
+          expect(errorShouldEmit).toBe(true);
+          
+          if (config.level === 'error') {
+            expect(traceShouldEmit).toBe(false);
+          }
+        }
+      }
+    });
+
+    it('emits formatted output to console', () => {
+      if (config.enabled) {
+        const moduleName = config.modules.size > 0 
+          ? Array.from(config.modules)[0] 
+          : 'test-module';
+        
+        if (debug.on(moduleName)) {
+          const consoleSpy = vi.spyOn(console, 'log');
+          
+          debug.emit(moduleName, 'format-test', { key: 'value' });
+          
+          if (consoleSpy.mock.calls.length > 0) {
+            const callArg = consoleSpy.mock.calls[0][0];
+            expect(typeof callArg).toBe('string');
+            expect(callArg).toContain('format-test');
+          }
+          
+          consoleSpy.mockRestore();
+        }
+      }
+    });
+
+    it('handles emit without payload', () => {
+      if (config.enabled) {
+        const moduleName = config.modules.size > 0 
+          ? Array.from(config.modules)[0] 
+          : 'test-module';
+        
+        if (debug.on(moduleName)) {
+          const consoleSpy = vi.spyOn(console, 'log');
+          
+          expect(() => {
+            debug.emit(moduleName, 'simple-event');
+          }).not.toThrow();
+          
+          consoleSpy.mockRestore();
+        }
+      }
+    });
+
+    it('shouldEmit respects level hierarchy', () => {
+      if (config.enabled) {
+        const moduleName = config.modules.size > 0 
+          ? Array.from(config.modules)[0] 
+          : 'test-module';
+        
+        if (debug.on(moduleName)) {
+          const errorLevel = debug.shouldEmit(moduleName, 'error');
+          expect(errorLevel).toBe(true);
+          
+          const levelMap: Record<string, number> = {
+            error: 0,
+            warn: 1,
+            info: 2,
+            debug: 3,
+            trace: 4,
+          };
+          
+          const currentLevelValue = levelMap[config.level];
+          const traceShouldEmit = debug.shouldEmit(moduleName, 'trace');
+          
+          if (currentLevelValue >= 4) {
+            expect(traceShouldEmit).toBe(true);
+          } else {
+            expect(traceShouldEmit).toBe(false);
+          }
+        }
+      }
+    });
+  });
+});

@@ -1,0 +1,65 @@
+diff --git a/src/debug/api.ts b/src/debug/api.ts
+index c754979..6e5a8b1 100644
+--- a/src/debug/api.ts
++++ b/src/debug/api.ts
+@@ -1,5 +1,6 @@
+ import { config, DebugLevel } from './config.js';
+ import type { TestEventEnvelope } from '../logging/TestEvent.js';
++import { getGlobalDebugLogger, initGlobalDebugLogger } from '../logging/logger.js';
+ 
+ const LEVEL_VALUES: Record<DebugLevel, number> = {
+   error: 0,
+@@ -56,14 +57,23 @@ class Debug {
+   }
+ 
+   private emitAsTestEvent(debugEvent: DebugEvent): void {
+-    const envelope: TestEventEnvelope = {
+-      ts: Date.now(),
+-      lvl: this.mapLevelToLogLevel(debugEvent.level),
+-      case: process.env.LAMINAR_CASE || 'debug',
+-      evt: `debug.${debugEvent.module}.${debugEvent.event}`,
+-      payload: debugEvent.payload,
+-    };
++    initGlobalDebugLogger();
++    const logger = getGlobalDebugLogger();
+ 
+-    console.log(JSON.stringify(envelope));
++    if (logger) {
++      logger.emit(`debug.${debugEvent.module}.${debugEvent.event}`, {
++        lvl: this.mapLevelToLogLevel(debugEvent.level),
++        payload: debugEvent.payload,
++      });
++    } else {
++      const envelope: TestEventEnvelope = {
++        ts: Date.now(),
++        lvl: this.mapLevelToLogLevel(debugEvent.level),
++        case: process.env.LAMINAR_CASE || 'debug',
++        evt: `debug.${debugEvent.module}.${debugEvent.event}`,
++        payload: debugEvent.payload,
++      };
++      console.log(JSON.stringify(envelope));
++    }
+   }
+ 
+diff --git a/src/logging/logger.ts b/src/logging/logger.ts
+index b702218..c198319 100644
+--- a/src/logging/logger.ts
++++ b/src/logging/logger.ts
+@@ -64,3 +64,17 @@ export class TestLogger {
+ export function createLogger(suite: string, caseName: string): TestLogger {
+   return new TestLogger(suite, caseName);
+ }
++
++let globalDebugLogger: TestLogger | undefined;
++
++export function getGlobalDebugLogger(): TestLogger | undefined {
++  return globalDebugLogger;
++}
++
++export function initGlobalDebugLogger(): void {
++  if (process.env.LAMINAR_DEBUG === '1' && !globalDebugLogger) {
++    const suite = process.env.LAMINAR_SUITE || 'debug';
++    const caseName = process.env.LAMINAR_CASE || 'global';
++    globalDebugLogger = new TestLogger(suite, caseName);
++  }
++}
