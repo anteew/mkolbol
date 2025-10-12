@@ -37,6 +37,8 @@
     "laminar:run": "tsx scripts/laminar-run.ts",
     "laminar:digest": "tsx scripts/digest.ts",
     "ingest:go": "tsx scripts/ingest-go.ts",
+    "ingest:pytest": "tsx scripts/ingest-pytest.ts",
+    "ingest:junit": "tsx scripts/ingest-junit.ts",
     "dev": "node --enable-source-maps dist/examples/basic-topology.js",
     "dev:split": "node --enable-source-maps dist/examples/split-topology.js",
     "dev:merge": "node --enable-source-maps dist/examples/merge-topology.js",

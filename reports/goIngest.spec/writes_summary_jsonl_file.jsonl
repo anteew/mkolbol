@@ -1,3 +1,3 @@
-{"ts":1760297274554,"lvl":"info","case":"writes summary.jsonl file","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760297274555,"lvl":"info","case":"writes summary.jsonl file","phase":"execution","evt":"test.run"}
-{"ts":1760297274556,"lvl":"info","case":"writes summary.jsonl file","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760303318852,"lvl":"info","case":"writes summary.jsonl file","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760303318853,"lvl":"info","case":"writes summary.jsonl file","phase":"execution","evt":"test.run"}
+{"ts":1760303318854,"lvl":"info","case":"writes summary.jsonl file","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

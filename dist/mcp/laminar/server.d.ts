@@ -1,4 +1,4 @@
-import { DigestEvent, DigestOutput, DigestConfig, DigestRule } from '../../digest/generator.js';
+import { DigestEvent, DigestOutput, DigestConfig, DigestRule, SuspectEvent } from '../../digest/generator.js';
 export type Json = null | boolean | number | string | Json[] | {
     [k: string]: Json;
 };
@@ -115,6 +115,36 @@ export interface LogsCaseGetInput {
 export interface LogsCaseGetOutput {
     logs: string;
 }
+export interface DiffGetInput {
+    digest1Path: string;
+    digest2Path: string;
+    outputFormat?: 'json' | 'markdown';
+}
+export interface DiffGetOutput {
+    diff: {
+        addedEvents: DigestEvent[];
+        removedEvents: DigestEvent[];
+        changedSuspects: {
+            added: SuspectEvent[];
+            removed: SuspectEvent[];
+        };
+        summary: {
+            totalAddedEvents: number;
+            totalRemovedEvents: number;
+            totalChangedSuspects: number;
+        };
+    };
+    formatted?: string;
+}
+export interface ReproBundleInput {
+    caseName?: string;
+    format?: 'json' | 'markdown';
+}
+export interface ReproBundleOutput {
+    bundlePath?: string;
+    bundlePaths?: string[];
+    summary: string;
+}
 export interface ReproInput {
     caseName?: string;
 }
@@ -150,6 +180,8 @@ export declare class LaminarMcpServer {
     private validateQueryLogsInput;
     private validateGetDigestInput;
     private validateListFailuresInput;
+    private validateDiffGetInput;
+    private validateReproBundleInput;
     listResources(): McpResource[];
     listTools(): McpTool[];
     readResource(uri: string): Promise<string | null>;
@@ -172,6 +204,9 @@ export declare class LaminarMcpServer {
     private focusOverlaySet;
     private focusOverlayClear;
     private focusOverlayGet;
+    private diffGet;
+    private formatDiffAsMarkdown;
+    private reproBundle;
     start(): Promise<void>;
 }
 export declare function createLaminarServer(config?: McpServerConfig): Promise<LaminarMcpServer>;

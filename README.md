@@ -382,13 +382,103 @@ See [docs/testing/laminar.md](docs/testing/laminar.md#mcp-server-integration) fo
 
 Laminar can import test results from external languages and frameworks:
 
+#### Pytest (Python)
+
 ```bash
-# Import Go test results
+# Install pytest-json-report plugin
+pip install pytest-json-report
+
+# Generate and ingest pytest JSON report
+pytest --json-report --json-report-file=report.json
+lam ingest --pytest --from-file report.json
+
+# One-liner (pipe mode)
+lam ingest --pytest --cmd "pytest --json-report --json-report-file=/dev/stdout"
+
+# Direct script
+tsx scripts/ingest-pytest.ts --from-file pytest-report.json
+```
+
+**Features:**
+- Preserves test phases (setup/call/teardown) with individual durations
+- Captures stdout/stderr output from tests
+- Extracts error messages, stack traces, and crash details
+- Maps pytest markers and keywords to Laminar metadata
+- Supports all pytest outcomes (passed/failed/error/skipped/xfailed/xpassed)
+
+**Event Mapping:**
+- `nodeid` → `case.begin` (with line numbers and keywords)
+- `setup/call/teardown.outcome` → phase-specific events
+- `crash` + `traceback` → `test.error` with formatted stack traces
+- Total duration calculated from all phases (seconds → milliseconds)
+
+#### JUnit XML (Java, Jest, pytest, and more)
+
+```bash
+# Maven (Java)
+mvn test  # Auto-generates in target/surefire-reports/
+lam ingest --junit target/surefire-reports/TEST-*.xml
+
+# Gradle (Java)
+./gradlew test
+lam ingest --junit build/test-results/test/TEST-*.xml
+
+# Jest (JavaScript/TypeScript)
+npm install -D jest-junit
+jest --reporters=jest-junit
+lam ingest --junit junit.xml
+
+# pytest (Python - alternative to JSON)
+pytest --junit-xml=junit-report.xml
+lam ingest --junit junit-report.xml
+
+# Direct script
+tsx scripts/ingest-junit.ts junit-report.xml
+
+# From stdin
+cat test-output.xml | tsx scripts/ingest-junit.ts -
+```
+
+**Features:**
+- Universal format supported by Maven, Gradle, Jest, pytest, NUnit, xUnit, RSpec
+- Parses `<failure>`, `<error>`, and `<skipped>` elements
+- Extracts stack traces and error messages from XML content
+- Handles nested test suites automatically
+- Converts time attributes from seconds to milliseconds
+
+**Event Mapping:**
+- `<testcase>` → `case.begin` + `test.run` + `case.end`
+- `<failure>` → `test.error` (assertion failures)
+- `<error>` → `test.error` (exceptions)
+- `<skipped>` → `test.skip` (skipped tests)
+- `classname` → `location` field
+- `suite/testname` → unique case identifier
+
+#### Go Test JSON
+
+```bash
+# From file
 lam ingest --go --from-file go-test-output.json
+
+# From command
 lam ingest --go --cmd "go test -json ./..."
 ```
 
-Ingested tests integrate with all Laminar features (`logq`, `lam digest`, `lam show`). See [docs/testing/laminar.md](docs/testing/laminar.md#cross-language-test-ingest) for complete workflow examples and CI integration.
+**Complete Integration:**
+
+Ingested tests integrate seamlessly with all Laminar features:
+- Query with `logq` for precise event filtering
+- Generate digests with `lam digest` for failure analysis
+- Inspect details with `lam show --case <name>`
+- Track trends with `lam trends`
+- Create repro bundles with `lam repro --bundle`
+
+See [docs/testing/laminar.md](docs/testing/laminar.md#cross-language-test-ingestion) for:
+- Complete event lifecycle examples
+- CI/CD integration patterns (GitHub Actions, GitLab CI)
+- Multi-environment testing workflows
+- Historical trend tracking
+- Troubleshooting guides
 
 ### CLI Tools
 

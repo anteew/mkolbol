@@ -248,6 +248,491 @@ The `lam` CLI provides comprehensive test management and analysis capabilities.
 
 #### Integration
 - `lam ingest --go [--from-file <path> | --cmd "<command>"]` — ingest Go test results
+- `lam ingest --pytest [--from-file <path> | --cmd "<command>"]` — ingest pytest JSON results
+- `lam ingest --junit <file>` — ingest JUnit XML test results
+
+### lam ingest — Cross-Language Test Integration
+
+Converts test results from other frameworks into Laminar JSONL format.
+
+#### Pytest Integration
+
+Ingest pytest JSON reports (generated via `pytest-json-report` plugin):
+
+##### Installation & Setup
+
+```bash
+# Install pytest-json-report plugin
+pip install pytest-json-report
+
+# Or add to requirements.txt
+echo "pytest-json-report>=1.5.0" >> requirements-test.txt
+pip install -r requirements-test.txt
+```
+
+##### Generate pytest JSON report
+
+```bash
+# Generate report file
+pytest --json-report --json-report-file=report.json
+
+# With test selection
+pytest tests/unit/ --json-report --json-report-file=unit-tests.json
+
+# To stdout (for piping)
+pytest --json-report --json-report-file=/dev/stdout
+```
+
+##### Ingest into Laminar
+
+```bash
+# From file
+lam ingest --pytest --from-file report.json
+
+# From command (one-liner)
+lam ingest --pytest --cmd "pytest --json-report --json-report-file=/dev/stdout"
+
+# Alternative: Direct CLI
+tsx scripts/ingest-pytest.ts --from-file pytest-report.json
+```
+
+##### Pytest → Laminar Event Mapping
+
+The adapter converts pytest's JSON format into Laminar's structured JSONL events:
+
+| Pytest Field | Laminar Event | Phase | Level | Notes |
+|-------------|---------------|-------|-------|-------|
+| `nodeid` | `case.begin` | setup | info | Test identifier with file path |
+| `setup.outcome` | `test.setup.{outcome}` | setup | info/error | Setup phase result |
+| `setup.crash` | `test.error` | setup | error | Setup error details + stack |
+| `call` start | `test.run` | execution | info | Test execution begins |
+| `call.stdout` | `test.output` | execution | info | Captured stdout during test |
+| `call.stderr` | `test.stderr` | execution | warn | Captured stderr during test |
+| `call.outcome` | `test.call.{outcome}` | execution | info/error | Test call phase result |
+| `call.crash` | `test.error` | execution | error | Test failure details + stack |
+| `teardown.outcome` | `test.teardown.{outcome}` | teardown | info/error | Teardown phase result |
+| Test completion | `case.end` | teardown | info/error | Final status + total duration |
+
+##### Outcome Mapping
+
+Pytest outcomes are normalized to Laminar status values:
+
+| Pytest Outcome | Laminar Status | Description |
+|----------------|----------------|-------------|
+| `passed` | `pass` | Test passed successfully |
+| `failed` | `fail` | Assertion or test failure |
+| `error` | `error` | Setup/teardown error or exception |
+| `skipped` | `skip` | Test skipped via decorator or condition |
+| `xfailed` | `skip` | Expected failure (marked with `@pytest.mark.xfail`) |
+| `xpassed` | `skip` | Unexpected pass (xfail that passed) |
+
+##### Extracted Data
+
+The adapter extracts and preserves rich metadata:
+
+**Test Metadata:**
+- `nodeid` — Test identifier (e.g., `test_example.py::TestClass::test_method`)
+- `lineno` — Line number where test is defined
+- `keywords` — Pytest markers and tags (e.g., `["smoke", "unit"]`)
+
+**Duration (converted from seconds to milliseconds):**
+- `setup.duration` — Setup phase time
+- `call.duration` — Test execution time
+- `teardown.duration` — Teardown phase time
+- Total duration — Sum of all phases
+
+**Error Information:**
+- `crash.message` — Primary error message
+- `longrepr` — Full error representation (fallback)
+- `traceback[]` — Array of stack frames with file paths and line numbers
+- Stack trace formatting preserves Python file locations
+
+**Output Streams:**
+- `stdout` — Captured standard output
+- `stderr` — Captured standard error
+- Both streams are trimmed and attached to events
+
+##### Generated Event Lifecycle
+
+Every pytest test produces a predictable sequence of Laminar events:
+
+**1. Test Begin**
+```json
+{
+  "ts": 1678886400500,
+  "lvl": "info",
+  "case": "test_example.py::test_success",
+  "phase": "setup",
+  "evt": "case.begin",
+  "payload": {
+    "nodeid": "test_example.py::test_success",
+    "lineno": 5,
+    "keywords": ["test_success", "unit"]
+  }
+}
+```
+
+**2. Setup Phase**
+```json
+{
+  "ts": 1678886400501,
+  "lvl": "info",
+  "case": "test_example.py::test_success",
+  "phase": "setup",
+  "evt": "test.setup.passed",
+  "payload": {
+    "duration": 2,
+    "stdout": null,
+    "stderr": null
+  }
+}
+```
+
+**3. Test Run**
+```json
+{
+  "ts": 1678886400503,
+  "lvl": "info",
+  "case": "test_example.py::test_success",
+  "phase": "execution",
+  "evt": "test.run"
+}
+```
+
+**4. Test Output (if captured)**
+```json
+{
+  "ts": 1678886400504,
+  "lvl": "info",
+  "case": "test_example.py::test_success",
+  "phase": "execution",
+  "evt": "test.output",
+  "payload": {
+    "output": "Debug: Processing item 42"
+  }
+}
+```
+
+**5. Test Call Result**
+```json
+{
+  "ts": 1678886400505,
+  "lvl": "info",
+  "case": "test_example.py::test_success",
+  "phase": "execution",
+  "evt": "test.call.passed",
+  "payload": {
+    "duration": 15
+  }
+}
+```
+
+**6. Test Error (if failed)**
+```json
+{
+  "ts": 1678886400520,
+  "lvl": "error",
+  "case": "test_example.py::test_failure",
+  "phase": "execution",
+  "evt": "test.error",
+  "payload": {
+    "message": "AssertionError: Expected 42 but got 40",
+    "stack": "  at test_example.py:15\n    assert result == 42",
+    "crash": {
+      "path": "test_example.py",
+      "lineno": 15,
+      "message": "AssertionError: Expected 42 but got 40"
+    }
+  }
+}
+```
+
+**7. Teardown Phase**
+```json
+{
+  "ts": 1678886400521,
+  "lvl": "info",
+  "case": "test_example.py::test_success",
+  "phase": "teardown",
+  "evt": "test.teardown.passed",
+  "payload": {
+    "duration": 1,
+    "stdout": null,
+    "stderr": null
+  }
+}
+```
+
+**8. Test End**
+```json
+{
+  "ts": 1678886400522,
+  "lvl": "info",
+  "case": "test_example.py::test_success",
+  "phase": "teardown",
+  "evt": "case.end",
+  "payload": {
+    "duration": 18,
+    "status": "passed"
+  }
+}
+```
+
+##### Complete Workflow Examples
+
+**Example 1: Basic Ingestion**
+```bash
+# Run pytest with JSON report
+pytest --json-report --json-report-file=pytest-report.json
+
+# Ingest into Laminar
+lam ingest --pytest --from-file pytest-report.json
+
+# View summary
+lam summary
+
+# Analyze failures
+lam digest
+```
+
+**Example 2: Continuous Integration (GitHub Actions)**
+```yaml
+name: Python Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-test.txt
+          pip install pytest-json-report
+      
+      - name: Run pytest with JSON report
+        run: |
+          pytest --json-report --json-report-file=pytest-report.json
+        continue-on-error: true
+      
+      - name: Install Laminar tools
+        run: |
+          npm install -g laminar
+      
+      - name: Ingest pytest results
+        run: |
+          lam ingest --pytest --from-file pytest-report.json
+      
+      - name: Generate failure digests
+        run: |
+          lam digest
+      
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            reports/
+            pytest-report.json
+```
+
+**Example 3: Multi-Environment Testing**
+```bash
+#!/bin/bash
+# test-all-envs.sh - Run tests across Python versions
+
+for version in 3.9 3.10 3.11; do
+  echo "Testing with Python $version"
+  
+  # Run pytest with JSON output
+  docker run --rm -v $(pwd):/app python:$version \
+    bash -c "cd /app && pip install -r requirements-test.txt && \
+             pytest --json-report --json-report-file=pytest-py${version}.json"
+  
+  # Ingest each version's results
+  lam ingest --pytest --from-file pytest-py${version}.json
+done
+
+# Analyze aggregated results
+lam summary
+lam trends --top 10
+```
+
+**Example 4: Subset Testing**
+```bash
+# Test only unit tests
+pytest tests/unit/ --json-report --json-report-file=unit-report.json
+lam ingest --pytest --from-file unit-report.json
+
+# Test only integration tests
+pytest tests/integration/ --json-report --json-report-file=integration-report.json
+lam ingest --pytest --from-file integration-report.json
+
+# Compare failure rates
+lam summary
+```
+
+**Example 5: Pipe Mode (No Intermediate File)**
+```bash
+# One-liner: run pytest and ingest directly
+pytest --json-report --json-report-file=/dev/stdout | \
+  lam ingest --pytest --cmd "cat"
+
+# With test selection
+pytest -k "test_critical" --json-report --json-report-file=/dev/stdout | \
+  lam ingest --pytest --cmd "cat"
+```
+
+##### CI Integration Patterns
+
+**Pattern 1: Fail-Fast with Digests**
+```yaml
+# .github/workflows/test.yml
+- name: Run tests
+  run: pytest --json-report --json-report-file=pytest-report.json
+  
+- name: Ingest and analyze failures
+  if: failure()
+  run: |
+    lam ingest --pytest --from-file pytest-report.json
+    lam digest
+    lam repro --bundle
+    
+- name: Comment on PR with failures
+  if: failure()
+  run: |
+    # Upload digest markdown to PR comments
+    gh pr comment ${{ github.event.pull_request.number }} \
+      --body-file reports/*/digest.md
+```
+
+**Pattern 2: Historical Trend Tracking**
+```bash
+# In CI script - track failure trends over time
+lam ingest --pytest --from-file pytest-report.json
+
+# Append to history (for trend analysis)
+cat reports/summary.jsonl >> reports/history.jsonl
+
+# Analyze trends
+lam trends --since $(date -d "7 days ago" +%Y-%m-%d) --top 20
+
+# Alert on new failure patterns
+NEW_FAILURES=$(lam trends --since $(date -d "1 day ago" +%Y-%m-%d) --top 5)
+if [ -n "$NEW_FAILURES" ]; then
+  send_alert "New test failures detected: $NEW_FAILURES"
+fi
+```
+
+**Pattern 3: Parallel Test Execution**
+```yaml
+# Split tests and run in parallel, then aggregate
+strategy:
+  matrix:
+    shard: [1, 2, 3, 4]
+    
+steps:
+  - name: Run pytest shard
+    run: |
+      pytest --json-report --json-report-file=shard-${{ matrix.shard }}.json \
+             --shard-id=${{ matrix.shard }} --num-shards=4
+  
+  - name: Upload shard results
+    uses: actions/upload-artifact@v3
+    with:
+      name: pytest-shard-${{ matrix.shard }}
+      path: shard-${{ matrix.shard }}.json
+
+# Aggregate job (runs after all shards complete)
+aggregate:
+  needs: test
+  runs-on: ubuntu-latest
+  steps:
+    - name: Download all shards
+      uses: actions/download-artifact@v3
+    
+    - name: Ingest all results
+      run: |
+        for shard in pytest-shard-*/shard-*.json; do
+          lam ingest --pytest --from-file $shard
+        done
+    
+    - name: Generate combined digest
+      run: lam digest
+```
+
+**Pattern 4: Quality Gate Enforcement**
+```bash
+#!/bin/bash
+# quality-gate.sh - Enforce test quality standards
+
+# Run tests and ingest
+pytest --json-report --json-report-file=pytest-report.json
+lam ingest --pytest --from-file pytest-report.json
+
+# Parse summary for metrics
+TOTAL=$(jq -s 'length' reports/summary.jsonl)
+FAILURES=$(jq -s '[.[] | select(.status == "fail")] | length' reports/summary.jsonl)
+FAILURE_RATE=$(echo "scale=2; $FAILURES / $TOTAL * 100" | bc)
+
+# Quality gates
+if (( $(echo "$FAILURE_RATE > 5.0" | bc -l) )); then
+  echo "❌ Failure rate ${FAILURE_RATE}% exceeds 5% threshold"
+  exit 1
+fi
+
+# Check for new flaky tests
+if lam trends --since $(date -d "1 day ago" +%Y-%m-%d) | grep -q "flaky"; then
+  echo "⚠️  New flaky tests detected"
+  exit 1
+fi
+
+echo "✅ Quality gates passed"
+```
+
+##### Troubleshooting
+
+**Issue: Missing traceback information**
+- Pytest's JSON report may not include full tracebacks by default
+- Use `pytest --tb=long` to capture detailed traces
+- Combine with `--json-report-verbosity=2` for maximum detail
+
+**Issue: Large report files**
+- Pytest JSON can be large for test suites with many tests
+- Consider splitting by test directory or using sharding
+- Archive old reports after ingestion
+
+**Issue: Timestamp alignment**
+- Pytest JSON uses Unix epoch seconds (float)
+- Laminar converts to milliseconds (integer)
+- Minor drift (<1ms) is expected and safe
+
+**Issue: Skipped tests not appearing in Laminar**
+- Skipped tests ARE ingested with `status: skip`
+- Use `lam summary | grep skip` to verify
+- Check pytest's `--json-report-omit` setting isn't excluding skips
+
+#### Go Integration
+
+Ingest Go test JSON output (generated via `go test -json`):
+
+**Usage:**
+```bash
+# From file
+lam ingest --go --from-file go-test.json
+
+# From command
+lam ingest --go --cmd "go test -json ./..."
+```
+
+See `scripts/ingest-go.ts` for implementation details.
 
 ### lam trends — Failure Trend Analysis
 
@@ -360,6 +845,634 @@ Prints timestamped debug events to stdout:
 LAMINAR_DEBUG=1 npm test
 ```
 Writes debug events to `reports/<suite>/<case>.jsonl` alongside test events, using the same envelope schema.
+
+## Cross-Language Test Ingestion
+
+Laminar supports ingesting test results from multiple languages and frameworks through standardized adapters.
+
+#### JUnit XML Integration
+
+Convert JUnit XML output (used by Maven, Gradle, Jest, pytest, and many other tools) to Laminar JSONL format.
+
+##### Supported Sources
+
+JUnit XML is a widely-adopted test result format supported by many frameworks:
+
+| Platform | Tool | Command |
+|----------|------|---------|
+| **Java** | Maven Surefire | `mvn test` (auto-generates in `target/surefire-reports/`) |
+| **Java** | Gradle Test | `./gradlew test --tests '*'` (results in `build/test-results/`) |
+| **JavaScript/TypeScript** | Jest | `jest --reporters=jest-junit` |
+| **Python** | pytest | `pytest --junit-xml=junit-report.xml` |
+| **C#** | NUnit | `nunit3-console --result=junit-results.xml` |
+| **C#** | xUnit | `dotnet test --logger "junit;LogFilePath=junit.xml"` |
+| **Ruby** | RSpec | `rspec --format RspecJunitFormatter --out junit.xml` |
+| **Go** | go-junit-report | `go test -v 2>&1 | go-junit-report > junit.xml` |
+
+##### Installation & Setup
+
+**For Java (Maven):**
+```xml
+<!-- pom.xml - Surefire plugin (default in most projects) -->
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-surefire-plugin</artifactId>
+  <version>3.0.0</version>
+</plugin>
+```
+
+**For JavaScript/TypeScript (Jest):**
+```bash
+# Install jest-junit reporter
+npm install --save-dev jest-junit
+
+# Or add to package.json
+npm install -D jest-junit
+```
+
+```json
+// jest.config.js or package.json
+{
+  "reporters": [
+    "default",
+    ["jest-junit", {
+      "outputDirectory": "./test-results",
+      "outputName": "junit.xml"
+    }]
+  ]
+}
+```
+
+**For Python (pytest):**
+```bash
+# pytest has built-in JUnit XML support
+pytest --junit-xml=junit-report.xml
+
+# With custom output directory
+pytest --junit-xml=test-results/junit.xml
+```
+
+##### Generate JUnit XML Reports
+
+```bash
+# Maven
+mvn test
+# Output: target/surefire-reports/TEST-*.xml
+
+# Gradle
+./gradlew test
+# Output: build/test-results/test/TEST-*.xml
+
+# Jest
+jest --reporters=jest-junit
+# Output: junit.xml (or configured path)
+
+# pytest
+pytest --junit-xml=junit-report.xml
+# Output: junit-report.xml
+
+# From stdin (pipe)
+your-test-command | tee junit-output.xml
+```
+
+##### Ingest into Laminar
+
+```bash
+# From file
+lam ingest --junit junit-report.xml
+
+# Direct script invocation
+tsx scripts/ingest-junit.ts junit-report.xml
+
+# From stdin (pipe)
+cat junit-output.xml | tsx scripts/ingest-junit.ts -
+
+# Maven example (auto-find results)
+lam ingest --junit target/surefire-reports/TEST-*.xml
+
+# Jest example
+jest --reporters=jest-junit
+lam ingest --junit junit.xml
+```
+
+##### JUnit → Laminar Event Mapping
+
+The adapter converts JUnit XML elements into Laminar's structured JSONL events:
+
+| JUnit Element | Laminar Event | Phase | Level | Notes |
+|--------------|---------------|-------|-------|-------|
+| `<testcase>` start | `case.begin` | setup | info | Test identifier from suite + name |
+| `<testcase>` exec | `test.run` | execution | info | Test execution begins |
+| `<failure>` | `test.error` | execution | error | Assertion failure with stack trace |
+| `<error>` | `test.error` | execution | error | Exception/error with stack trace |
+| `<skipped>` | `test.skip` | execution | info | Test skipped with optional reason |
+| `<testcase>` end | `case.end` | teardown | info/error | Final status + duration |
+
+##### Attribute Mapping
+
+JUnit attributes are extracted and mapped to Laminar fields:
+
+| JUnit Attribute | Laminar Field | Transformation |
+|----------------|---------------|----------------|
+| `name` | Test name (part of case ID) | `suite/name` format |
+| `classname` | `location` field | Fully qualified class/file name |
+| `time` | `duration` (in payload) | Seconds → milliseconds (× 1000) |
+| `failure@message` | `payload.message` | Error message text |
+| `failure@type` | `payload.type` | Error/exception type |
+| `failure` content | `payload.stack` | Full stack trace |
+| `skipped@message` | `payload.message` | Skip reason |
+
+##### Status Mapping
+
+JUnit test outcomes are normalized to Laminar status values:
+
+| JUnit State | Laminar Status | Condition |
+|------------|----------------|-----------|
+| Pass | `pass` | No `<failure>`, `<error>`, or `<skipped>` child |
+| Fail | `fail` | Has `<failure>` child element |
+| Fail | `fail` | Has `<error>` child element |
+| Skip | `skip` | Has `<skipped>` child element |
+
+##### Generated Event Lifecycle
+
+Every JUnit test case produces a predictable sequence of Laminar events:
+
+**1. Test Begin**
+```json
+{
+  "ts": 1678886400000,
+  "lvl": "info",
+  "case": "math-tests/addition works",
+  "phase": "setup",
+  "evt": "case.begin",
+  "payload": {
+    "suite": "math-tests",
+    "classname": "com.example.MathTest",
+    "testName": "addition works"
+  }
+}
+```
+
+**2. Test Run**
+```json
+{
+  "ts": 1678886400001,
+  "lvl": "info",
+  "case": "math-tests/addition works",
+  "phase": "execution",
+  "evt": "test.run"
+}
+```
+
+**3. Test Error (if failed)**
+```json
+{
+  "ts": 1678886400010,
+  "lvl": "error",
+  "case": "math-tests/division fails",
+  "phase": "execution",
+  "evt": "test.error",
+  "payload": {
+    "message": "Expected 2 but got 3",
+    "type": "AssertionError",
+    "stack": "AssertionError: Expected 2 but got 3\n    at tests/math.spec.js:45:5\n    at Object.<anonymous> (tests/math.spec.js:44:3)"
+  }
+}
+```
+
+**4. Test Skip (if skipped)**
+```json
+{
+  "ts": 1678886400015,
+  "lvl": "info",
+  "case": "math-tests/experimental feature",
+  "phase": "execution",
+  "evt": "test.skip",
+  "payload": {
+    "message": "Feature not yet implemented"
+  }
+}
+```
+
+**5. Test End**
+```json
+{
+  "ts": 1678886400020,
+  "lvl": "info",
+  "case": "math-tests/addition works",
+  "phase": "teardown",
+  "evt": "case.end",
+  "payload": {
+    "duration": 5,
+    "status": "passed"
+  }
+}
+```
+
+##### Output Structure
+
+```
+reports/
+├── summary.jsonl                     # One-line summaries (all tests)
+└── <suite-name>/                     # Per-suite directories
+    ├── <test-name>.jsonl            # Event stream for each test
+    ├── <test-name>.jsonl
+    └── ...
+```
+
+**Example `summary.jsonl` entry:**
+```json
+{
+  "status": "pass",
+  "duration": 5,
+  "location": "com.example.MathTest",
+  "artifactURI": "reports/math-tests/addition_works.jsonl",
+  "testName": "math-tests/addition works"
+}
+```
+
+##### Complete Workflow Examples
+
+**Example 1: Maven Project**
+```bash
+# Run Maven tests
+mvn clean test
+
+# Find generated JUnit XML files
+find target/surefire-reports -name "TEST-*.xml"
+
+# Ingest into Laminar
+for report in target/surefire-reports/TEST-*.xml; do
+  lam ingest --junit "$report"
+done
+
+# Analyze results
+lam summary
+lam digest
+```
+
+**Example 2: Jest Testing**
+```bash
+# Configure Jest for JUnit output (jest.config.js)
+cat > jest.config.js << 'EOF'
+module.exports = {
+  reporters: [
+    'default',
+    ['jest-junit', {
+      outputDirectory: './test-results',
+      outputName: 'junit.xml',
+      ancestorSeparator: ' › ',
+      uniqueOutputName: 'false'
+    }]
+  ]
+};
+EOF
+
+# Run Jest tests
+npm test
+
+# Ingest into Laminar
+lam ingest --junit test-results/junit.xml
+
+# View failures
+lam summary | grep fail
+```
+
+**Example 3: pytest with JUnit XML**
+```bash
+# Run pytest with JUnit output
+pytest --junit-xml=junit-report.xml --tb=short
+
+# Ingest into Laminar
+lam ingest --junit junit-report.xml
+
+# Generate digests for failures
+lam digest
+
+# Get repro commands
+lam repro
+```
+
+**Example 4: Continuous Integration (GitLab CI)**
+```yaml
+# .gitlab-ci.yml
+test:
+  stage: test
+  script:
+    - mvn clean test
+  after_script:
+    - npm install -g laminar
+    - |
+      for report in target/surefire-reports/TEST-*.xml; do
+        lam ingest --junit "$report"
+      done
+    - lam digest
+    - lam summary
+  artifacts:
+    when: always
+    paths:
+      - target/surefire-reports/
+      - reports/
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+```
+
+**Example 5: GitHub Actions (Multi-Platform)**
+```yaml
+name: Cross-Platform Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        java: ['11', '17']
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+      
+      - name: Run tests
+        run: mvn test
+        continue-on-error: true
+      
+      - name: Install Laminar
+        run: npm install -g laminar
+      
+      - name: Ingest JUnit results
+        run: |
+          find target/surefire-reports -name "TEST-*.xml" -exec \
+            lam ingest --junit {} \;
+      
+      - name: Generate failure digests
+        if: failure()
+        run: lam digest
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.os }}-java${{ matrix.java }}
+          path: |
+            target/surefire-reports/
+            reports/
+```
+
+**Example 6: Gradle Project**
+```bash
+# Run Gradle tests
+./gradlew test
+
+# Ingest all JUnit XML results
+find build/test-results/test -name "TEST-*.xml" | while read report; do
+  lam ingest --junit "$report"
+done
+
+# Analyze trends
+lam trends --top 10
+```
+
+**Example 7: Aggregating Multi-Module Results**
+```bash
+#!/bin/bash
+# aggregate-tests.sh - Collect and ingest from multiple modules
+
+# Run tests for all modules
+mvn clean test -pl module1,module2,module3
+
+# Ingest all JUnit reports
+find . -path "*/target/surefire-reports/TEST-*.xml" | while read xml; do
+  echo "Ingesting: $xml"
+  lam ingest --junit "$xml"
+done
+
+# Generate consolidated digest
+lam digest
+
+# Check failure rate
+TOTAL=$(jq -s 'length' reports/summary.jsonl)
+FAILURES=$(jq -s '[.[] | select(.status == "fail")] | length' reports/summary.jsonl)
+echo "Results: $FAILURES failures out of $TOTAL tests"
+```
+
+##### CI Integration Patterns
+
+**Pattern 1: Fail-Fast with Immediate Analysis**
+```yaml
+# .github/workflows/test.yml
+- name: Run tests
+  run: mvn test
+  continue-on-error: true
+
+- name: Ingest and analyze
+  run: |
+    for xml in target/surefire-reports/TEST-*.xml; do
+      lam ingest --junit "$xml"
+    done
+    lam digest
+    
+- name: Fail if tests failed
+  run: |
+    if grep -q '"status":"fail"' reports/summary.jsonl; then
+      echo "::error::Tests failed - see reports/"
+      exit 1
+    fi
+```
+
+**Pattern 2: Historical Comparison**
+```bash
+# CI script: compare current run with baseline
+lam ingest --junit target/surefire-reports/TEST-*.xml
+
+# Download baseline from previous successful run
+aws s3 cp s3://ci-artifacts/baseline/summary.jsonl baseline-summary.jsonl
+
+# Compare failure counts
+CURRENT_FAILS=$(jq -s '[.[] | select(.status == "fail")] | length' reports/summary.jsonl)
+BASELINE_FAILS=$(jq -s '[.[] | select(.status == "fail")] | length' baseline-summary.jsonl)
+
+if [ "$CURRENT_FAILS" -gt "$BASELINE_FAILS" ]; then
+  echo "⚠️  New failures detected: $CURRENT_FAILS (baseline: $BASELINE_FAILS)"
+  exit 1
+fi
+```
+
+**Pattern 3: Test Stability Monitoring**
+```bash
+#!/bin/bash
+# stability-check.sh - Run tests multiple times and check for flakes
+
+RUNS=5
+for i in $(seq 1 $RUNS); do
+  echo "=== Run $i of $RUNS ==="
+  mvn test -DfailIfNoTests=false
+  
+  # Ingest with run identifier
+  for xml in target/surefire-reports/TEST-*.xml; do
+    lam ingest --junit "$xml"
+  done
+  
+  # Append to historical log
+  cat reports/summary.jsonl >> reports/history.jsonl
+done
+
+# Analyze for flaky tests
+lam trends --since $(date -d "1 hour ago" +%Y-%m-%d)
+```
+
+**Pattern 4: Matrix Testing with Aggregation**
+```yaml
+# .github/workflows/matrix-test.yml
+strategy:
+  matrix:
+    jdk: [11, 17, 21]
+    os: [ubuntu, macos, windows]
+
+steps:
+  - name: Run tests
+    run: mvn test
+  
+  - name: Upload JUnit XML
+    uses: actions/upload-artifact@v3
+    with:
+      name: junit-${{ matrix.os }}-jdk${{ matrix.jdk }}
+      path: target/surefire-reports/TEST-*.xml
+
+# Aggregation job
+aggregate:
+  needs: test
+  runs-on: ubuntu-latest
+  steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Ingest all reports
+      run: |
+        find junit-* -name "TEST-*.xml" | while read xml; do
+          lam ingest --junit "$xml"
+        done
+    
+    - name: Generate combined analysis
+      run: |
+        lam summary
+        lam digest
+        lam trends
+```
+
+##### Example JUnit XML
+
+**Simple passing tests:**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="math-tests" tests="2" failures="0" errors="0" skipped="0" time="0.015">
+    <testcase classname="com.example.MathTest" name="addition works" time="0.007"/>
+    <testcase classname="com.example.MathTest" name="multiplies correctly" time="0.008"/>
+  </testsuite>
+</testsuites>
+```
+
+**With failures and errors:**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="math-tests" tests="3" failures="1" errors="1" skipped="0" time="0.045">
+    <testcase classname="math-tests" name="addition works" time="0.005"/>
+    
+    <testcase classname="math-tests" name="division fails" time="0.012">
+      <failure message="Expected 2 but got 3" type="AssertionError">
+AssertionError: Expected 2 but got 3
+    at tests/math.spec.js:45:5
+    at Object.&lt;anonymous&gt; (tests/math.spec.js:44:3)
+      </failure>
+    </testcase>
+    
+    <testcase classname="math-tests" name="throws on invalid input" time="0.028">
+      <error message="Unexpected error" type="TypeError">
+TypeError: Unexpected error
+    at calculator.divide (src/calc.js:12:11)
+    at tests/math.spec.js:52:7
+      </error>
+    </testcase>
+  </testsuite>
+</testsuites>
+```
+
+**With skipped tests:**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="feature-tests" tests="4" failures="0" errors="0" skipped="2" time="0.030">
+    <testcase classname="feature-tests" name="basic feature works" time="0.010"/>
+    <testcase classname="feature-tests" name="advanced feature works" time="0.015"/>
+    
+    <testcase classname="feature-tests" name="experimental feature" time="0.000">
+      <skipped message="Feature not yet implemented"/>
+    </testcase>
+    
+    <testcase classname="feature-tests" name="deprecated test" time="0.000">
+      <skipped/>
+    </testcase>
+  </testsuite>
+</testsuites>
+```
+
+##### Troubleshooting
+
+**Issue: Missing test details in JUnit XML**
+- Some test frameworks produce minimal JUnit XML
+- Check framework documentation for verbosity settings
+- Maven Surefire: use `-X` for debug output
+- Gradle: use `--info` or `--debug` flags
+
+**Issue: XML parsing errors**
+- Ensure XML is well-formed (proper encoding, closed tags)
+- Check for special characters in test names (escape with entities)
+- Large stack traces may need CDATA wrapping
+
+**Issue: Nested test suites**
+- JUnit XML spec allows nested `<testsuite>` elements
+- Laminar ingest-junit handles nested suites automatically
+- Suite hierarchy is flattened: `parent-suite/child-suite/test-name`
+
+**Issue: Timestamps**
+- JUnit XML `time` attribute is in seconds (decimal)
+- Laminar converts to milliseconds for consistency
+- Precision: JUnit supports microsecond precision, Laminar uses milliseconds
+
+**Issue: Multiple XML files**
+- Maven/Gradle generate one XML file per test class
+- Use shell loops or globs to ingest all files
+- Example: `find target/surefire-reports -name "TEST-*.xml" -exec lam ingest --junit {} \;`
+
+**Issue: Duplicate test names**
+- Ensure test names are unique within a suite
+- Laminar uses `suite/testname` as the case ID
+- Duplicate IDs will overwrite previous test data
+```
+
+**Generated Laminar Events:**
+```jsonl
+{"ts":1760290661027,"lvl":"info","case":"math-tests/addition works","phase":"setup","evt":"case.begin","payload":{"suite":"math-tests","classname":"math-tests","testName":"addition works"}}
+{"ts":1760290661028,"lvl":"info","case":"math-tests/addition works","phase":"execution","evt":"test.run"}
+{"ts":1760290661032,"lvl":"info","case":"math-tests/addition works","phase":"teardown","evt":"case.end","payload":{"duration":5,"status":"passed"}}
+{"ts":1760290661042,"lvl":"info","case":"math-tests/division fails","phase":"setup","evt":"case.begin","payload":{"suite":"math-tests","classname":"math-tests","testName":"division fails"}}
+{"ts":1760290661043,"lvl":"info","case":"math-tests/division fails","phase":"execution","evt":"test.run"}
+{"ts":1760290661052,"lvl":"error","case":"math-tests/division fails","phase":"execution","evt":"test.error","payload":{"message":"Expected 2 but got 3","type":"AssertionError","stack":"AssertionError: Expected 2 but got 3\n    at tests/math.spec.js:45:5"}}
+{"ts":1760290661054,"lvl":"error","case":"math-tests/division fails","phase":"teardown","evt":"case.end","payload":{"duration":12,"status":"failed"}}
+```
+
+### Go Test Adapter
+
+Ingest Go test JSON output (see `lam ingest --go` above).
 
 ## Test Types
 - Unit: adapters and small modules
