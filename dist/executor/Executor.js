@@ -12,11 +12,13 @@ export class Executor {
     config;
     modules = new Map();
     moduleRegistry;
-    constructor(kernel, hostess, stateManager) {
+    logger;
+    constructor(kernel, hostess, stateManager, logger) {
         this.kernel = kernel;
         this.hostess = hostess;
         this.stateManager = stateManager;
         this.moduleRegistry = new ModuleRegistry();
+        this.logger = logger;
     }
     load(config) {
         this.config = config;
@@ -43,6 +45,11 @@ export class Executor {
         }
         for (const conn of this.config.connections) {
             this.stateManager.connect(conn.from, conn.to);
+            this.logger?.emit('edge.connect', {
+                lvl: 'debug',
+                id: `${conn.from}->${conn.to}`,
+                payload: { from: conn.from, to: conn.to }
+            });
         }
         for (const instance of this.modules.values()) {
             if (typeof instance.module.start === 'function') {
@@ -182,6 +189,12 @@ export class Executor {
             const handler = (msg) => {
                 if (msg && msg.type === 'worker.ready') {
                     console.log(`[Executor] Worker ready: ${nodeConfig.id}`);
+                    this.logger?.emit('worker.ready', {
+                        lvl: 'info',
+                        id: nodeConfig.id,
+                        path: modulePath,
+                        payload: { module: nodeConfig.module }
+                    });
                     topic.off('data', handler);
                     resolve();
                 }
@@ -217,6 +230,12 @@ export class Executor {
         });
         worker.on('exit', (code) => {
             console.log(`[Executor] Worker ${nodeConfig.id} exited with code ${code}`);
+            this.logger?.emit('worker.exit', {
+                lvl: 'info',
+                id: nodeConfig.id,
+                path: modulePath,
+                payload: { module: nodeConfig.module, exitCode: code }
+            });
         });
     }
     getModulePath(moduleName) {

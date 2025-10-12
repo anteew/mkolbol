@@ -4,6 +4,7 @@ import { StateManager } from '../state/StateManager.js';
 import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
 import type { TopologyConfig } from '../config/schema.js';
 import type { ExternalServerManifest } from '../types.js';
+import type { TestLogger } from '../logging/logger.js';
 export declare class Executor {
     private kernel;
     private hostess;
@@ -11,7 +12,8 @@ export declare class Executor {
     private config?;
     private modules;
     private moduleRegistry;
-    constructor(kernel: Kernel, hostess: Hostess, stateManager: StateManager);
+    private logger?;
+    constructor(kernel: Kernel, hostess: Hostess, stateManager: StateManager, logger?: TestLogger);
     load(config: TopologyConfig): void;
     up(): Promise<void>;
     down(): Promise<void>;

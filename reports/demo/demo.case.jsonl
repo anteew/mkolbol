@@ -1,0 +1,4 @@
+{"ts":1760278402607,"lvl":"info","case":"demo.case","phase":"setup","evt":"case.begin"}
+{"ts":1760278402608,"lvl":"info","case":"demo.case","phase":"execution","evt":"test.step","payload":{"step":1,"action":"initialize"}}
+{"ts":1760278402608,"lvl":"info","case":"demo.case","phase":"verification","evt":"test.assertion","payload":{"expected":true,"actual":true,"passed":true}}
+{"ts":1760278402608,"lvl":"info","case":"demo.case","phase":"teardown","evt":"case.end","payload":{"duration":42,"status":"passed"}}

@@ -1,0 +1,387 @@
+diff --git a/README.md b/README.md
+index f3126a8..1c9d042 100644
+--- a/README.md
++++ b/README.md
+@@ -134,6 +134,13 @@ npm test
+ npm run test:watch
+ ```
+ 
++### Test Event Logging
++
++The project includes structured test event logging in JSONL format:
++- **Schema:** [src/logging/TestEvent.ts](src/logging/TestEvent.ts) defines envelope with ts, lvl, case, phase, evt, id, corr, path, payload
++- **Logger:** [src/logging/logger.ts](src/logging/logger.ts) provides `beginCase()`, `endCase()`, `emit()` helpers
++- **Output:** Events written to `reports/<suite>/<case>.jsonl` for test analysis and reporting
++
+ ### Sprint 1 Quickstart (Local, In-Process)
+ 
+ ```bash
+diff --git a/dist/logging/TestEvent.d.ts b/dist/logging/TestEvent.d.ts
+new file mode 100644
+index 0000000..e538a6d
+--- /dev/null
++++ b/dist/logging/TestEvent.d.ts
+@@ -0,0 +1,21 @@
++export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
++export interface TestEventEnvelope<T = unknown> {
++    ts: number;
++    lvl: LogLevel;
++    case: string;
++    phase?: string;
++    evt: string;
++    id?: string;
++    corr?: string;
++    path?: string;
++    payload?: T;
++}
++export declare function createEvent<T = unknown>(evt: string, caseName: string, options?: {
++    lvl?: LogLevel;
++    phase?: string;
++    id?: string;
++    corr?: string;
++    path?: string;
++    payload?: T;
++}): TestEventEnvelope<T>;
++//# sourceMappingURL=TestEvent.d.ts.map
+\ No newline at end of file
+diff --git a/dist/logging/TestEvent.d.ts.map b/dist/logging/TestEvent.d.ts.map
+new file mode 100644
+index 0000000..997bdcd
+--- /dev/null
++++ b/dist/logging/TestEvent.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"TestEvent.d.ts","sourceRoot":"","sources":["../../src/logging/TestEvent.ts"],"names":[],"mappings":"AAAA,MAAM,MAAM,QAAQ,GAAG,OAAO,GAAG,MAAM,GAAG,MAAM,GAAG,OAAO,CAAC;AAE3D,MAAM,WAAW,iBAAiB,CAAC,CAAC,GAAG,OAAO;IAC5C,EAAE,EAAE,MAAM,CAAC;IACX,GAAG,EAAE,QAAQ,CAAC;IACd,IAAI,EAAE,MAAM,CAAC;IACb,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,GAAG,EAAE,MAAM,CAAC;IACZ,EAAE,CAAC,EAAE,MAAM,CAAC;IACZ,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,OAAO,CAAC,EAAE,CAAC,CAAC;CACb;AAED,wBAAgB,WAAW,CAAC,CAAC,GAAG,OAAO,EACrC,GAAG,EAAE,MAAM,EACX,QAAQ,EAAE,MAAM,EAChB,OAAO,GAAE;IACP,GAAG,CAAC,EAAE,QAAQ,CAAC;IACf,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,EAAE,CAAC,EAAE,MAAM,CAAC;IACZ,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,OAAO,CAAC,EAAE,CAAC,CAAC;CACR,GACL,iBAAiB,CAAC,CAAC,CAAC,CAYtB"}
+\ No newline at end of file
+diff --git a/dist/logging/TestEvent.js b/dist/logging/TestEvent.js
+new file mode 100644
+index 0000000..fc51d4f
+--- /dev/null
++++ b/dist/logging/TestEvent.js
+@@ -0,0 +1,14 @@
++export function createEvent(evt, caseName, options = {}) {
++    return {
++        ts: Date.now(),
++        lvl: options.lvl || 'info',
++        case: caseName,
++        phase: options.phase,
++        evt,
++        id: options.id,
++        corr: options.corr,
++        path: options.path,
++        payload: options.payload,
++    };
++}
++//# sourceMappingURL=TestEvent.js.map
+\ No newline at end of file
+diff --git a/dist/logging/TestEvent.js.map b/dist/logging/TestEvent.js.map
+new file mode 100644
+index 0000000..01ee3ae
+--- /dev/null
++++ b/dist/logging/TestEvent.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"TestEvent.js","sourceRoot":"","sources":["../../src/logging/TestEvent.ts"],"names":[],"mappings":"AAcA,MAAM,UAAU,WAAW,CACzB,GAAW,EACX,QAAgB,EAChB,UAOI,EAAE;IAEN,OAAO;QACL,EAAE,EAAE,IAAI,CAAC,GAAG,EAAE;QACd,GAAG,EAAE,OAAO,CAAC,GAAG,IAAI,MAAM;QAC1B,IAAI,EAAE,QAAQ;QACd,KAAK,EAAE,OAAO,CAAC,KAAK;QACpB,GAAG;QACH,EAAE,EAAE,OAAO,CAAC,EAAE;QACd,IAAI,EAAE,OAAO,CAAC,IAAI;QAClB,IAAI,EAAE,OAAO,CAAC,IAAI;QAClB,OAAO,EAAE,OAAO,CAAC,OAAO;KACzB,CAAC;AACJ,CAAC"}
+\ No newline at end of file
+diff --git a/dist/logging/logger.d.ts b/dist/logging/logger.d.ts
+new file mode 100644
+index 0000000..24b8b40
+--- /dev/null
++++ b/dist/logging/logger.d.ts
+@@ -0,0 +1,23 @@
++import { LogLevel } from './TestEvent.js';
++export declare class TestLogger {
++    private suite;
++    private caseName;
++    private outputPath;
++    private stream?;
++    constructor(suite: string, caseName: string);
++    private ensureStream;
++    beginCase(phase?: string): void;
++    endCase(phase?: string, payload?: unknown): void;
++    emit<T = unknown>(evt: string, options?: {
++        lvl?: LogLevel;
++        phase?: string;
++        id?: string;
++        corr?: string;
++        path?: string;
++        payload?: T;
++    }): void;
++    private writeEvent;
++    close(): void;
++}
++export declare function createLogger(suite: string, caseName: string): TestLogger;
++//# sourceMappingURL=logger.d.ts.map
+\ No newline at end of file
+diff --git a/dist/logging/logger.d.ts.map b/dist/logging/logger.d.ts.map
+new file mode 100644
+index 0000000..29ecef2
+--- /dev/null
++++ b/dist/logging/logger.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"logger.d.ts","sourceRoot":"","sources":["../../src/logging/logger.ts"],"names":[],"mappings":"AAEA,OAAO,EAAqB,QAAQ,EAAe,MAAM,gBAAgB,CAAC;AAE1E,qBAAa,UAAU;IACrB,OAAO,CAAC,KAAK,CAAS;IACtB,OAAO,CAAC,QAAQ,CAAS;IACzB,OAAO,CAAC,UAAU,CAAS;IAC3B,OAAO,CAAC,MAAM,CAAC,CAAiB;gBAEpB,KAAK,EAAE,MAAM,EAAE,QAAQ,EAAE,MAAM;IAM3C,OAAO,CAAC,YAAY;IASpB,SAAS,CAAC,KAAK,CAAC,EAAE,MAAM,GAAG,IAAI;IAK/B,OAAO,CAAC,KAAK,CAAC,EAAE,MAAM,EAAE,OAAO,CAAC,EAAE,OAAO,GAAG,IAAI;IAKhD,IAAI,CAAC,CAAC,GAAG,OAAO,EACd,GAAG,EAAE,MAAM,EACX,OAAO,GAAE;QACP,GAAG,CAAC,EAAE,QAAQ,CAAC;QACf,KAAK,CAAC,EAAE,MAAM,CAAC;QACf,EAAE,CAAC,EAAE,MAAM,CAAC;QACZ,IAAI,CAAC,EAAE,MAAM,CAAC;QACd,IAAI,CAAC,EAAE,MAAM,CAAC;QACd,OAAO,CAAC,EAAE,CAAC,CAAC;KACR,GACL,IAAI;IAKP,OAAO,CAAC,UAAU;IAKlB,KAAK,IAAI,IAAI;CAMd;AAED,wBAAgB,YAAY,CAAC,KAAK,EAAE,MAAM,EAAE,QAAQ,EAAE,MAAM,GAAG,UAAU,CAExE"}
+\ No newline at end of file
+diff --git a/dist/logging/logger.js b/dist/logging/logger.js
+new file mode 100644
+index 0000000..b1e58dc
+--- /dev/null
++++ b/dist/logging/logger.js
+@@ -0,0 +1,48 @@
++import * as fs from 'fs';
++import * as path from 'path';
++import { createEvent } from './TestEvent.js';
++export class TestLogger {
++    suite;
++    caseName;
++    outputPath;
++    stream;
++    constructor(suite, caseName) {
++        this.suite = suite;
++        this.caseName = caseName;
++        this.outputPath = path.join('reports', suite, `${caseName}.jsonl`);
++    }
++    ensureStream() {
++        if (!this.stream) {
++            const dir = path.dirname(this.outputPath);
++            fs.mkdirSync(dir, { recursive: true });
++            this.stream = fs.createWriteStream(this.outputPath, { flags: 'a' });
++        }
++        return this.stream;
++    }
++    beginCase(phase) {
++        const event = createEvent('case.begin', this.caseName, { phase });
++        this.writeEvent(event);
++    }
++    endCase(phase, payload) {
++        const event = createEvent('case.end', this.caseName, { phase, payload });
++        this.writeEvent(event);
++    }
++    emit(evt, options = {}) {
++        const event = createEvent(evt, this.caseName, options);
++        this.writeEvent(event);
++    }
++    writeEvent(event) {
++        const stream = this.ensureStream();
++        stream.write(JSON.stringify(event) + '\n');
++    }
++    close() {
++        if (this.stream) {
++            this.stream.end();
++            this.stream = undefined;
++        }
++    }
++}
++export function createLogger(suite, caseName) {
++    return new TestLogger(suite, caseName);
++}
++//# sourceMappingURL=logger.js.map
+\ No newline at end of file
+diff --git a/dist/logging/logger.js.map b/dist/logging/logger.js.map
+new file mode 100644
+index 0000000..8a83c8f
+--- /dev/null
++++ b/dist/logging/logger.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"logger.js","sourceRoot":"","sources":["../../src/logging/logger.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,MAAM,IAAI,CAAC;AACzB,OAAO,KAAK,IAAI,MAAM,MAAM,CAAC;AAC7B,OAAO,EAA+B,WAAW,EAAE,MAAM,gBAAgB,CAAC;AAE1E,MAAM,OAAO,UAAU;IACb,KAAK,CAAS;IACd,QAAQ,CAAS;IACjB,UAAU,CAAS;IACnB,MAAM,CAAkB;IAEhC,YAAY,KAAa,EAAE,QAAgB;QACzC,IAAI,CAAC,KAAK,GAAG,KAAK,CAAC;QACnB,IAAI,CAAC,QAAQ,GAAG,QAAQ,CAAC;QACzB,IAAI,CAAC,UAAU,GAAG,IAAI,CAAC,IAAI,CAAC,SAAS,EAAE,KAAK,EAAE,GAAG,QAAQ,QAAQ,CAAC,CAAC;IACrE,CAAC;IAEO,YAAY;QAClB,IAAI,CAAC,IAAI,CAAC,MAAM,EAAE,CAAC;YACjB,MAAM,GAAG,GAAG,IAAI,CAAC,OAAO,CAAC,IAAI,CAAC,UAAU,CAAC,CAAC;YAC1C,EAAE,CAAC,SAAS,CAAC,GAAG,EAAE,EAAE,SAAS,EAAE,IAAI,EAAE,CAAC,CAAC;YACvC,IAAI,CAAC,MAAM,GAAG,EAAE,CAAC,iBAAiB,CAAC,IAAI,CAAC,UAAU,EAAE,EAAE,KAAK,EAAE,GAAG,EAAE,CAAC,CAAC;QACtE,CAAC;QACD,OAAO,IAAI,CAAC,MAAM,CAAC;IACrB,CAAC;IAED,SAAS,CAAC,KAAc;QACtB,MAAM,KAAK,GAAG,WAAW,CAAC,YAAY,EAAE,IAAI,CAAC,QAAQ,EAAE,EAAE,KAAK,EAAE,CAAC,CAAC;QAClE,IAAI,CAAC,UAAU,CAAC,KAAK,CAAC,CAAC;IACzB,CAAC;IAED,OAAO,CAAC,KAAc,EAAE,OAAiB;QACvC,MAAM,KAAK,GAAG,WAAW,CAAC,UAAU,EAAE,IAAI,CAAC,QAAQ,EAAE,EAAE,KAAK,EAAE,OAAO,EAAE,CAAC,CAAC;QACzE,IAAI,CAAC,UAAU,CAAC,KAAK,CAAC,CAAC;IACzB,CAAC;IAED,IAAI,CACF,GAAW,EACX,UAOI,EAAE;QAEN,MAAM,KAAK,GAAG,WAAW,CAAC,GAAG,EAAE,IAAI,CAAC,QAAQ,EAAE,OAAO,CAAC,CAAC;QACvD,IAAI,CAAC,UAAU,CAAC,KAAK,CAAC,CAAC;IACzB,CAAC;IAEO,UAAU,CAAC,KAAwB;QACzC,MAAM,MAAM,GAAG,IAAI,CAAC,YAAY,EAAE,CAAC;QACnC,MAAM,CAAC,KAAK,CAAC,IAAI,CAAC,SAAS,CAAC,KAAK,CAAC,GAAG,IAAI,CAAC,CAAC;IAC7C,CAAC;IAED,KAAK;QACH,IAAI,IAAI,CAAC,MAAM,EAAE,CAAC;YAChB,IAAI,CAAC,MAAM,CAAC,GAAG,EAAE,CAAC;YAClB,IAAI,CAAC,MAAM,GAAG,SAAS,CAAC;QAC1B,CAAC;IACH,CAAC;CACF;AAED,MAAM,UAAU,YAAY,CAAC,KAAa,EAAE,QAAgB;IAC1D,OAAO,IAAI,UAAU,CAAC,KAAK,EAAE,QAAQ,CAAC,CAAC;AACzC,CAAC"}
+\ No newline at end of file
+diff --git a/dist/logging/smoke-test.d.ts b/dist/logging/smoke-test.d.ts
+new file mode 100644
+index 0000000..c17f220
+--- /dev/null
++++ b/dist/logging/smoke-test.d.ts
+@@ -0,0 +1,2 @@
++export {};
++//# sourceMappingURL=smoke-test.d.ts.map
+\ No newline at end of file
+diff --git a/dist/logging/smoke-test.d.ts.map b/dist/logging/smoke-test.d.ts.map
+new file mode 100644
+index 0000000..0770852
+--- /dev/null
++++ b/dist/logging/smoke-test.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"smoke-test.d.ts","sourceRoot":"","sources":["../../src/logging/smoke-test.ts"],"names":[],"mappings":""}
+\ No newline at end of file
+diff --git a/dist/logging/smoke-test.js b/dist/logging/smoke-test.js
+new file mode 100644
+index 0000000..fb44013
+--- /dev/null
++++ b/dist/logging/smoke-test.js
+@@ -0,0 +1,17 @@
++import { createLogger } from './logger.js';
++const logger = createLogger('demo', 'demo.case');
++logger.beginCase('setup');
++logger.emit('test.step', {
++    lvl: 'info',
++    phase: 'execution',
++    payload: { step: 1, action: 'initialize' }
++});
++logger.emit('test.assertion', {
++    lvl: 'info',
++    phase: 'verification',
++    payload: { expected: true, actual: true, passed: true }
++});
++logger.endCase('teardown', { duration: 42, status: 'passed' });
++logger.close();
++console.log('Smoke test complete. Check reports/demo/demo.case.jsonl');
++//# sourceMappingURL=smoke-test.js.map
+\ No newline at end of file
+diff --git a/dist/logging/smoke-test.js.map b/dist/logging/smoke-test.js.map
+new file mode 100644
+index 0000000..6773b1b
+--- /dev/null
++++ b/dist/logging/smoke-test.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"smoke-test.js","sourceRoot":"","sources":["../../src/logging/smoke-test.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,aAAa,CAAC;AAE3C,MAAM,MAAM,GAAG,YAAY,CAAC,MAAM,EAAE,WAAW,CAAC,CAAC;AAEjD,MAAM,CAAC,SAAS,CAAC,OAAO,CAAC,CAAC;AAC1B,MAAM,CAAC,IAAI,CAAC,WAAW,EAAE;IACvB,GAAG,EAAE,MAAM;IACX,KAAK,EAAE,WAAW;IAClB,OAAO,EAAE,EAAE,IAAI,EAAE,CAAC,EAAE,MAAM,EAAE,YAAY,EAAE;CAC3C,CAAC,CAAC;AACH,MAAM,CAAC,IAAI,CAAC,gBAAgB,EAAE;IAC5B,GAAG,EAAE,MAAM;IACX,KAAK,EAAE,cAAc;IACrB,OAAO,EAAE,EAAE,QAAQ,EAAE,IAAI,EAAE,MAAM,EAAE,IAAI,EAAE,MAAM,EAAE,IAAI,EAAE;CACxD,CAAC,CAAC;AACH,MAAM,CAAC,OAAO,CAAC,UAAU,EAAE,EAAE,QAAQ,EAAE,EAAE,EAAE,MAAM,EAAE,QAAQ,EAAE,CAAC,CAAC;AAC/D,MAAM,CAAC,KAAK,EAAE,CAAC;AAEf,OAAO,CAAC,GAAG,CAAC,yDAAyD,CAAC,CAAC"}
+\ No newline at end of file
+diff --git a/patches/DIFF_T2001_logging-schema.patch b/patches/DIFF_T2001_logging-schema.patch
+new file mode 100644
+index 0000000..e69de29
+diff --git a/reports/demo/demo.case.jsonl b/reports/demo/demo.case.jsonl
+new file mode 100644
+index 0000000..4fe17df
+--- /dev/null
++++ b/reports/demo/demo.case.jsonl
+@@ -0,0 +1,4 @@
++{"ts":1760278402607,"lvl":"info","case":"demo.case","phase":"setup","evt":"case.begin"}
++{"ts":1760278402608,"lvl":"info","case":"demo.case","phase":"execution","evt":"test.step","payload":{"step":1,"action":"initialize"}}
++{"ts":1760278402608,"lvl":"info","case":"demo.case","phase":"verification","evt":"test.assertion","payload":{"expected":true,"actual":true,"passed":true}}
++{"ts":1760278402608,"lvl":"info","case":"demo.case","phase":"teardown","evt":"case.end","payload":{"duration":42,"status":"passed"}}
+diff --git a/src/logging/TestEvent.ts b/src/logging/TestEvent.ts
+new file mode 100644
+index 0000000..0f7bf48
+--- /dev/null
++++ b/src/logging/TestEvent.ts
+@@ -0,0 +1,38 @@
++export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
++
++export interface TestEventEnvelope<T = unknown> {
++  ts: number;
++  lvl: LogLevel;
++  case: string;
++  phase?: string;
++  evt: string;
++  id?: string;
++  corr?: string;
++  path?: string;
++  payload?: T;
++}
++
++export function createEvent<T = unknown>(
++  evt: string,
++  caseName: string,
++  options: {
++    lvl?: LogLevel;
++    phase?: string;
++    id?: string;
++    corr?: string;
++    path?: string;
++    payload?: T;
++  } = {}
++): TestEventEnvelope<T> {
++  return {
++    ts: Date.now(),
++    lvl: options.lvl || 'info',
++    case: caseName,
++    phase: options.phase,
++    evt,
++    id: options.id,
++    corr: options.corr,
++    path: options.path,
++    payload: options.payload,
++  };
++}
+diff --git a/src/logging/logger.ts b/src/logging/logger.ts
+new file mode 100644
+index 0000000..b702218
+--- /dev/null
++++ b/src/logging/logger.ts
+@@ -0,0 +1,66 @@
++import * as fs from 'fs';
++import * as path from 'path';
++import { TestEventEnvelope, LogLevel, createEvent } from './TestEvent.js';
++
++export class TestLogger {
++  private suite: string;
++  private caseName: string;
++  private outputPath: string;
++  private stream?: fs.WriteStream;
++
++  constructor(suite: string, caseName: string) {
++    this.suite = suite;
++    this.caseName = caseName;
++    this.outputPath = path.join('reports', suite, `${caseName}.jsonl`);
++  }
++
++  private ensureStream(): fs.WriteStream {
++    if (!this.stream) {
++      const dir = path.dirname(this.outputPath);
++      fs.mkdirSync(dir, { recursive: true });
++      this.stream = fs.createWriteStream(this.outputPath, { flags: 'a' });
++    }
++    return this.stream;
++  }
++
++  beginCase(phase?: string): void {
++    const event = createEvent('case.begin', this.caseName, { phase });
++    this.writeEvent(event);
++  }
++
++  endCase(phase?: string, payload?: unknown): void {
++    const event = createEvent('case.end', this.caseName, { phase, payload });
++    this.writeEvent(event);
++  }
++
++  emit<T = unknown>(
++    evt: string,
++    options: {
++      lvl?: LogLevel;
++      phase?: string;
++      id?: string;
++      corr?: string;
++      path?: string;
++      payload?: T;
++    } = {}
++  ): void {
++    const event = createEvent(evt, this.caseName, options);
++    this.writeEvent(event);
++  }
++
++  private writeEvent(event: TestEventEnvelope): void {
++    const stream = this.ensureStream();
++    stream.write(JSON.stringify(event) + '\n');
++  }
++
++  close(): void {
++    if (this.stream) {
++      this.stream.end();
++      this.stream = undefined;
++    }
++  }
++}
++
++export function createLogger(suite: string, caseName: string): TestLogger {
++  return new TestLogger(suite, caseName);
++}
+diff --git a/src/logging/smoke-test.ts b/src/logging/smoke-test.ts
+new file mode 100644
+index 0000000..9fdfe6f
+--- /dev/null
++++ b/src/logging/smoke-test.ts
+@@ -0,0 +1,19 @@
++import { createLogger } from './logger.js';
++
++const logger = createLogger('demo', 'demo.case');
++
++logger.beginCase('setup');
++logger.emit('test.step', {
++  lvl: 'info',
++  phase: 'execution',
++  payload: { step: 1, action: 'initialize' }
++});
++logger.emit('test.assertion', {
++  lvl: 'info',
++  phase: 'verification',
++  payload: { expected: true, actual: true, passed: true }
++});
++logger.endCase('teardown', { duration: 42, status: 'passed' });
++logger.close();
++
++console.log('Smoke test complete. Check reports/demo/demo.case.jsonl');

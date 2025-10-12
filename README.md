@@ -132,6 +132,50 @@ The repository previously contained an MCP (Model Context Protocol) based microk
 npm test
 # or  
 npm run test:watch
+# For CI environments (Node 20/24)
+npm run test:ci
+```
+
+**CI Note:** The `test:ci` script uses `--pool=threads` to avoid tinypool concurrency issues on Node 20 and 24. Tested on both LTS versions.
+
+### Test Event Logging
+
+The project includes structured test event logging in JSONL format:
+- **Schema:** [src/logging/TestEvent.ts](src/logging/TestEvent.ts) defines envelope with ts, lvl, case, phase, evt, id, corr, path, payload
+- **Logger:** [src/logging/logger.ts](src/logging/logger.ts) provides `beginCase()`, `endCase()`, `emit()` helpers
+- **Output:** Events written to `reports/<suite>/<case>.jsonl` for test analysis and reporting
+
+**Agent Integration**: When working with agents via ampcode.log, include pointers to `reports/summary.jsonl` and case files in task reports. Keep console output compact; rely on report files for detailed metrics and traces.
+
+### CLI Tools
+
+#### logq - Query JSONL test logs
+
+```bash
+# Filter by case name
+npm run logq -- case=demo.case reports/demo/demo.case.jsonl
+
+# Filter by event type with regex
+npm run logq -- evt=/case.*/ reports/demo/demo.case.jsonl
+
+# Show context around a correlation ID
+npm run logq -- --around corr=abc123 --window 3 reports/demo/demo.case.jsonl
+
+# Output raw JSONL
+npm run logq -- --raw evt=case.begin reports/demo/demo.case.jsonl
+
+# Show help
+npm run logq -- --help
+```
+
+#### repro - Find and reproduce test failures
+
+```bash
+# Analyze failures from last test run
+npm run repro
+
+# Example output provides vitest commands to rerun failing tests
+# and logq commands to inspect their JSONL logs
 ```
 
 ### Sprint 1 Quickstart (Local, In-Process)

@@ -1,0 +1,810 @@
+diff --git a/README.md b/README.md
+index f3126a8..5c19837 100644
+--- a/README.md
++++ b/README.md
+@@ -132,8 +132,19 @@ The repository previously contained an MCP (Model Context Protocol) based microk
+ npm test
+ # or  
+ npm run test:watch
++# For CI environments (Node 20/24)
++npm run test:ci
+ ```
+ 
++**CI Note:** The `test:ci` script uses `--pool=threads` to avoid tinypool concurrency issues on Node 20 and 24. Tested on both LTS versions.
++
++### Test Event Logging
++
++The project includes structured test event logging in JSONL format:
++- **Schema:** [src/logging/TestEvent.ts](src/logging/TestEvent.ts) defines envelope with ts, lvl, case, phase, evt, id, corr, path, payload
++- **Logger:** [src/logging/logger.ts](src/logging/logger.ts) provides `beginCase()`, `endCase()`, `emit()` helpers
++- **Output:** Events written to `reports/<suite>/<case>.jsonl` for test analysis and reporting
++
+ ### Sprint 1 Quickstart (Local, In-Process)
+ 
+ ```bash
+diff --git a/dist/control/ControlBus.d.ts b/dist/control/ControlBus.d.ts
+index 3b5a6b0..66779e9 100644
+--- a/dist/control/ControlBus.d.ts
++++ b/dist/control/ControlBus.d.ts
+@@ -1,8 +1,12 @@
+ import { BusAdapter } from './BusAdapter.js';
++import { TestEventEnvelope } from '../logging/TestEvent.js';
+ export type ControlMessage = Record<string, any>;
++export type ControlBusEventLogger = (evt: TestEventEnvelope) => void;
+ export declare class ControlBus {
+     private adapter;
++    private eventLogger?;
+     constructor(adapter?: BusAdapter);
++    setEventLogger(logger: ControlBusEventLogger | undefined): void;
+     publish(topic: string, msg: ControlMessage): void;
+     subscribe(topic: string, handler: (msg: ControlMessage) => void): () => void;
+ }
+diff --git a/dist/control/ControlBus.d.ts.map b/dist/control/ControlBus.d.ts.map
+index 9c841cd..ab78da9 100644
+--- a/dist/control/ControlBus.d.ts.map
++++ b/dist/control/ControlBus.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"ControlBus.d.ts","sourceRoot":"","sources":["../../src/control/ControlBus.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,UAAU,EAAE,MAAM,iBAAiB,CAAC;AAG7C,MAAM,MAAM,cAAc,GAAG,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;AAEjD,qBAAa,UAAU;IACrB,OAAO,CAAC,OAAO,CAAa;gBAEhB,OAAO,CAAC,EAAE,UAAU;IAIhC,OAAO,CAAC,KAAK,EAAE,MAAM,EAAE,GAAG,EAAE,cAAc,GAAG,IAAI;IAIjD,SAAS,CAAC,KAAK,EAAE,MAAM,EAAE,OAAO,EAAE,CAAC,GAAG,EAAE,cAAc,KAAK,IAAI,GAAG,MAAM,IAAI;CAM7E"}
+\ No newline at end of file
++{"version":3,"file":"ControlBus.d.ts","sourceRoot":"","sources":["../../src/control/ControlBus.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,UAAU,EAAE,MAAM,iBAAiB,CAAC;AAE7C,OAAO,EAAE,iBAAiB,EAAE,MAAM,yBAAyB,CAAC;AAE5D,MAAM,MAAM,cAAc,GAAG,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;AAEjD,MAAM,MAAM,qBAAqB,GAAG,CAAC,GAAG,EAAE,iBAAiB,KAAK,IAAI,CAAC;AAErE,qBAAa,UAAU;IACrB,OAAO,CAAC,OAAO,CAAa;IAC5B,OAAO,CAAC,WAAW,CAAC,CAAwB;gBAEhC,OAAO,CAAC,EAAE,UAAU;IAIhC,cAAc,CAAC,MAAM,EAAE,qBAAqB,GAAG,SAAS,GAAG,IAAI;IAI/D,OAAO,CAAC,KAAK,EAAE,MAAM,EAAE,GAAG,EAAE,cAAc,GAAG,IAAI;IAcjD,SAAS,CAAC,KAAK,EAAE,MAAM,EAAE,OAAO,EAAE,CAAC,GAAG,EAAE,cAAc,KAAK,IAAI,GAAG,MAAM,IAAI;CAkB7E"}
+\ No newline at end of file
+diff --git a/dist/control/ControlBus.js b/dist/control/ControlBus.js
+index ede18f7..fc412a9 100644
+--- a/dist/control/ControlBus.js
++++ b/dist/control/ControlBus.js
+@@ -1,15 +1,41 @@
+ import { InProcBusAdapter } from './adapters/InProcBusAdapter.js';
+ export class ControlBus {
+     adapter;
++    eventLogger;
+     constructor(adapter) {
+         this.adapter = adapter ?? new InProcBusAdapter();
+     }
++    setEventLogger(logger) {
++        this.eventLogger = logger;
++    }
+     publish(topic, msg) {
+         this.adapter.topic(topic).write(msg);
++        if (this.eventLogger) {
++            const payloadSize = JSON.stringify(msg).length;
++            this.eventLogger({
++                ts: Date.now(),
++                lvl: 'debug',
++                case: 'control-bus',
++                evt: 'publish',
++                payload: { topic, payloadSize },
++            });
++        }
+     }
+     subscribe(topic, handler) {
+         const t = this.adapter.topic(topic);
+-        const onData = (m) => handler(m);
++        const onData = (m) => {
++            if (this.eventLogger) {
++                const payloadSize = JSON.stringify(m).length;
++                this.eventLogger({
++                    ts: Date.now(),
++                    lvl: 'debug',
++                    case: 'control-bus',
++                    evt: 'subscribe',
++                    payload: { topic, payloadSize },
++                });
++            }
++            handler(m);
++        };
+         t.on('data', onData);
+         return () => t.off('data', onData);
+     }
+diff --git a/dist/control/ControlBus.js.map b/dist/control/ControlBus.js.map
+index 43a30d5..ead8b75 100644
+--- a/dist/control/ControlBus.js.map
++++ b/dist/control/ControlBus.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"ControlBus.js","sourceRoot":"","sources":["../../src/control/ControlBus.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,gBAAgB,EAAE,MAAM,gCAAgC,CAAC;AAIlE,MAAM,OAAO,UAAU;IACb,OAAO,CAAa;IAE5B,YAAY,OAAoB;QAC9B,IAAI,CAAC,OAAO,GAAG,OAAO,IAAI,IAAI,gBAAgB,EAAE,CAAC;IACnD,CAAC;IAED,OAAO,CAAC,KAAa,EAAE,GAAmB;QACxC,IAAI,CAAC,OAAO,CAAC,KAAK,CAAC,KAAK,CAAC,CAAC,KAAK,CAAC,GAAG,CAAC,CAAC;IACvC,CAAC;IAED,SAAS,CAAC,KAAa,EAAE,OAAsC;QAC7D,MAAM,CAAC,GAAG,IAAI,CAAC,OAAO,CAAC,KAAK,CAAC,KAAK,CAAC,CAAC;QACpC,MAAM,MAAM,GAAG,CAAC,CAAM,EAAE,EAAE,CAAC,OAAO,CAAC,CAAmB,CAAC,CAAC;QACxD,CAAC,CAAC,EAAE,CAAC,MAAM,EAAE,MAAM,CAAC,CAAC;QACrB,OAAO,GAAG,EAAE,CAAC,CAAC,CAAC,GAAG,CAAC,MAAM,EAAE,MAAM,CAAC,CAAC;IACrC,CAAC;CACF"}
+\ No newline at end of file
++{"version":3,"file":"ControlBus.js","sourceRoot":"","sources":["../../src/control/ControlBus.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,gBAAgB,EAAE,MAAM,gCAAgC,CAAC;AAOlE,MAAM,OAAO,UAAU;IACb,OAAO,CAAa;IACpB,WAAW,CAAyB;IAE5C,YAAY,OAAoB;QAC9B,IAAI,CAAC,OAAO,GAAG,OAAO,IAAI,IAAI,gBAAgB,EAAE,CAAC;IACnD,CAAC;IAED,cAAc,CAAC,MAAyC;QACtD,IAAI,CAAC,WAAW,GAAG,MAAM,CAAC;IAC5B,CAAC;IAED,OAAO,CAAC,KAAa,EAAE,GAAmB;QACxC,IAAI,CAAC,OAAO,CAAC,KAAK,CAAC,KAAK,CAAC,CAAC,KAAK,CAAC,GAAG,CAAC,CAAC;QACrC,IAAI,IAAI,CAAC,WAAW,EAAE,CAAC;YACrB,MAAM,WAAW,GAAG,IAAI,CAAC,SAAS,CAAC,GAAG,CAAC,CAAC,MAAM,CAAC;YAC/C,IAAI,CAAC,WAAW,CAAC;gBACf,EAAE,EAAE,IAAI,CAAC,GAAG,EAAE;gBACd,GAAG,EAAE,OAAO;gBACZ,IAAI,EAAE,aAAa;gBACnB,GAAG,EAAE,SAAS;gBACd,OAAO,EAAE,EAAE,KAAK,EAAE,WAAW,EAAE;aAChC,CAAC,CAAC;QACL,CAAC;IACH,CAAC;IAED,SAAS,CAAC,KAAa,EAAE,OAAsC;QAC7D,MAAM,CAAC,GAAG,IAAI,CAAC,OAAO,CAAC,KAAK,CAAC,KAAK,CAAC,CAAC;QACpC,MAAM,MAAM,GAAG,CAAC,CAAM,EAAE,EAAE;YACxB,IAAI,IAAI,CAAC,WAAW,EAAE,CAAC;gBACrB,MAAM,WAAW,GAAG,IAAI,CAAC,SAAS,CAAC,CAAC,CAAC,CAAC,MAAM,CAAC;gBAC7C,IAAI,CAAC,WAAW,CAAC;oBACf,EAAE,EAAE,IAAI,CAAC,GAAG,EAAE;oBACd,GAAG,EAAE,OAAO;oBACZ,IAAI,EAAE,aAAa;oBACnB,GAAG,EAAE,WAAW;oBAChB,OAAO,EAAE,EAAE,KAAK,EAAE,WAAW,EAAE;iBAChC,CAAC,CAAC;YACL,CAAC;YACD,OAAO,CAAC,CAAmB,CAAC,CAAC;QAC/B,CAAC,CAAC;QACF,CAAC,CAAC,EAAE,CAAC,MAAM,EAAE,MAAM,CAAC,CAAC;QACrB,OAAO,GAAG,EAAE,CAAC,CAAC,CAAC,GAAG,CAAC,MAAM,EAAE,MAAM,CAAC,CAAC;IACrC,CAAC;CACF"}
+\ No newline at end of file
+diff --git a/dist/controller/TopologyController.d.ts b/dist/controller/TopologyController.d.ts
+index f7849e1..5a01f5f 100644
+--- a/dist/controller/TopologyController.d.ts
++++ b/dist/controller/TopologyController.d.ts
+@@ -1,9 +1,11 @@
+ import { Kernel } from '../kernel/Kernel.js';
+ import { StateManager } from '../state/StateManager.js';
+ import { ControlBus } from '../control/ControlBus.js';
++import { TestEventEnvelope } from '../logging/TestEvent.js';
+ export interface TopologyControllerOptions {
+     commandsTopic?: string;
+     eventsTopic?: string;
++    loggerHook?: (evt: TestEventEnvelope) => void;
+ }
+ export declare class TopologyController {
+     private kernel;
+@@ -12,6 +14,7 @@ export declare class TopologyController {
+     private unsub?;
+     private readonly commandsTopic;
+     private readonly eventsTopic;
++    private readonly loggerHook?;
+     constructor(kernel: Kernel, state: StateManager, bus: ControlBus, opts?: TopologyControllerOptions);
+     start(): void;
+     stop(): void;
+diff --git a/dist/controller/TopologyController.d.ts.map b/dist/controller/TopologyController.d.ts.map
+index e39ee03..cb9ab86 100644
+--- a/dist/controller/TopologyController.d.ts.map
++++ b/dist/controller/TopologyController.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"TopologyController.d.ts","sourceRoot":"","sources":["../../src/controller/TopologyController.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,qBAAqB,CAAC;AAC7C,OAAO,EAAE,YAAY,EAAE,MAAM,0BAA0B,CAAC;AACxD,OAAO,EAAE,UAAU,EAAE,MAAM,0BAA0B,CAAC;AAetD,MAAM,WAAW,yBAAyB;IACxC,aAAa,CAAC,EAAE,MAAM,CAAC;IACvB,WAAW,CAAC,EAAE,MAAM,CAAC;CACtB;AAED,qBAAa,kBAAkB;IAM3B,OAAO,CAAC,MAAM;IACd,OAAO,CAAC,KAAK;IACb,OAAO,CAAC,GAAG;IAPb,OAAO,CAAC,KAAK,CAAC,CAAa;IAC3B,OAAO,CAAC,QAAQ,CAAC,aAAa,CAAS;IACvC,OAAO,CAAC,QAAQ,CAAC,WAAW,CAAS;gBAG3B,MAAM,EAAE,MAAM,EACd,KAAK,EAAE,YAAY,EACnB,GAAG,EAAE,UAAU,EACvB,IAAI,GAAE,yBAA8B;IAMtC,KAAK,IAAI,IAAI;IASb,IAAI,IAAI,IAAI;IAKZ,OAAO,CAAC,GAAG;IAKX,OAAO,CAAC,GAAG;IAKX,OAAO,CAAC,aAAa;CAqCtB"}
+\ No newline at end of file
++{"version":3,"file":"TopologyController.d.ts","sourceRoot":"","sources":["../../src/controller/TopologyController.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,qBAAqB,CAAC;AAC7C,OAAO,EAAE,YAAY,EAAE,MAAM,0BAA0B,CAAC;AACxD,OAAO,EAAE,UAAU,EAAE,MAAM,0BAA0B,CAAC;AACtD,OAAO,EAAE,iBAAiB,EAAE,MAAM,yBAAyB,CAAC;AAe5D,MAAM,WAAW,yBAAyB;IACxC,aAAa,CAAC,EAAE,MAAM,CAAC;IACvB,WAAW,CAAC,EAAE,MAAM,CAAC;IACrB,UAAU,CAAC,EAAE,CAAC,GAAG,EAAE,iBAAiB,KAAK,IAAI,CAAC;CAC/C;AAED,qBAAa,kBAAkB;IAO3B,OAAO,CAAC,MAAM;IACd,OAAO,CAAC,KAAK;IACb,OAAO,CAAC,GAAG;IARb,OAAO,CAAC,KAAK,CAAC,CAAa;IAC3B,OAAO,CAAC,QAAQ,CAAC,aAAa,CAAS;IACvC,OAAO,CAAC,QAAQ,CAAC,WAAW,CAAS;IACrC,OAAO,CAAC,QAAQ,CAAC,UAAU,CAAC,CAAmC;gBAGrD,MAAM,EAAE,MAAM,EACd,KAAK,EAAE,YAAY,EACnB,GAAG,EAAE,UAAU,EACvB,IAAI,GAAE,yBAA8B;IAOtC,KAAK,IAAI,IAAI;IASb,IAAI,IAAI,IAAI;IAKZ,OAAO,CAAC,GAAG;IAKX,OAAO,CAAC,GAAG;IAKX,OAAO,CAAC,aAAa;CAsGtB"}
+\ No newline at end of file
+diff --git a/dist/controller/TopologyController.js b/dist/controller/TopologyController.js
+index e2f2477..6eb16ab 100644
+--- a/dist/controller/TopologyController.js
++++ b/dist/controller/TopologyController.js
+@@ -5,12 +5,14 @@ export class TopologyController {
+     unsub;
+     commandsTopic;
+     eventsTopic;
++    loggerHook;
+     constructor(kernel, state, bus, opts = {}) {
+         this.kernel = kernel;
+         this.state = state;
+         this.bus = bus;
+         this.commandsTopic = opts.commandsTopic ?? 'topology.commands';
+         this.eventsTopic = opts.eventsTopic ?? 'topology.events';
++        this.loggerHook = opts.loggerHook;
+     }
+     start() {
+         if (this.unsub)
+@@ -37,39 +39,104 @@ export class TopologyController {
+     handleCommand(frame) {
+         try {
+             const { type, payload, id } = frame;
++            this.loggerHook?.({
++                ts: Date.now(),
++                lvl: 'debug',
++                case: 'topology-controller',
++                evt: 'cmd-received',
++                id,
++                corr: frame.correlationId,
++                payload: { type, payload }
++            });
+             switch (type) {
+                 case 'declare-node': {
+                     this.state.addNode(payload);
+                     this.ack(id);
++                    this.loggerHook?.({
++                        ts: Date.now(),
++                        lvl: 'debug',
++                        case: 'topology-controller',
++                        evt: 'cmd-applied',
++                        id,
++                        payload: { type, node: payload }
++                    });
+                     break;
+                 }
+                 case 'connect': {
+                     this.state.connect(payload.from, payload.to);
+                     this.ack(id);
++                    this.loggerHook?.({
++                        ts: Date.now(),
++                        lvl: 'debug',
++                        case: 'topology-controller',
++                        evt: 'cmd-applied',
++                        id,
++                        payload: { type, from: payload.from, to: payload.to }
++                    });
+                     break;
+                 }
+                 case 'split': {
+                     this.state.split(payload.source, payload.destinations);
+                     this.ack(id);
++                    this.loggerHook?.({
++                        ts: Date.now(),
++                        lvl: 'debug',
++                        case: 'topology-controller',
++                        evt: 'cmd-applied',
++                        id,
++                        payload: { type, source: payload.source, destinations: payload.destinations }
++                    });
+                     break;
+                 }
+                 case 'merge': {
+                     this.state.merge(payload.sources, payload.destination);
+                     this.ack(id);
++                    this.loggerHook?.({
++                        ts: Date.now(),
++                        lvl: 'debug',
++                        case: 'topology-controller',
++                        evt: 'cmd-applied',
++                        id,
++                        payload: { type, sources: payload.sources, destination: payload.destination }
++                    });
+                     break;
+                 }
+                 case 'snapshot': {
+                     const topo = this.state.getTopology();
+                     this.bus.publish(this.eventsTopic, { kind: 'event', type: 'topology.snapshot', ts: Date.now(), correlationId: id, payload: topo });
++                    this.loggerHook?.({
++                        ts: Date.now(),
++                        lvl: 'debug',
++                        case: 'topology-controller',
++                        evt: 'snapshot',
++                        id,
++                        payload: topo
++                    });
+                     break;
+                 }
+                 default: {
+                     this.err(id, `Unknown command type: ${type}`);
++                    this.loggerHook?.({
++                        ts: Date.now(),
++                        lvl: 'error',
++                        case: 'topology-controller',
++                        evt: 'error',
++                        id,
++                        payload: { message: `Unknown command type: ${type}` }
++                    });
+                 }
+             }
+         }
+         catch (e) {
+             this.err(frame.id, e?.message ?? String(e));
++            this.loggerHook?.({
++                ts: Date.now(),
++                lvl: 'error',
++                case: 'topology-controller',
++                evt: 'error',
++                id: frame.id,
++                payload: { message: e?.message ?? String(e) }
++            });
+         }
+     }
+ }
+diff --git a/dist/controller/TopologyController.js.map b/dist/controller/TopologyController.js.map
+index 3aba245..315b8d2 100644
+--- a/dist/controller/TopologyController.js.map
++++ b/dist/controller/TopologyController.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"TopologyController.js","sourceRoot":"","sources":["../../src/controller/TopologyController.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"TopologyController.js","sourceRoot":"","sources":["../../src/controller/TopologyController.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/executor/Executor.d.ts b/dist/executor/Executor.d.ts
+index 2f55755..47d1130 100644
+--- a/dist/executor/Executor.d.ts
++++ b/dist/executor/Executor.d.ts
+@@ -4,6 +4,7 @@ import { StateManager } from '../state/StateManager.js';
+ import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
+ import type { TopologyConfig } from '../config/schema.js';
+ import type { ExternalServerManifest } from '../types.js';
++import type { TestLogger } from '../logging/logger.js';
+ export declare class Executor {
+     private kernel;
+     private hostess;
+@@ -11,7 +12,8 @@ export declare class Executor {
+     private config?;
+     private modules;
+     private moduleRegistry;
+-    constructor(kernel: Kernel, hostess: Hostess, stateManager: StateManager);
++    private logger?;
++    constructor(kernel: Kernel, hostess: Hostess, stateManager: StateManager, logger?: TestLogger);
+     load(config: TopologyConfig): void;
+     up(): Promise<void>;
+     down(): Promise<void>;
+diff --git a/dist/executor/Executor.d.ts.map b/dist/executor/Executor.d.ts.map
+index 0123cd9..472a5c2 100644
+--- a/dist/executor/Executor.d.ts.map
++++ b/dist/executor/Executor.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"Executor.d.ts","sourceRoot":"","sources":["../../src/executor/Executor.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,qBAAqB,CAAC;AAC7C,OAAO,EAAE,OAAO,EAAE,MAAM,uBAAuB,CAAC;AAChD,OAAO,EAAE,YAAY,EAAE,MAAM,0BAA0B,CAAC;AAExD,OAAO,EAAE,qBAAqB,EAAE,MAAM,sCAAsC,CAAC;AAC7E,OAAO,KAAK,EAAE,cAAc,EAAc,MAAM,qBAAqB,CAAC;AACtE,OAAO,KAAK,EAAkB,sBAAsB,EAAE,MAAM,aAAa,CAAC;AAe1E,qBAAa,QAAQ;IAMjB,OAAO,CAAC,MAAM;IACd,OAAO,CAAC,OAAO;IACf,OAAO,CAAC,YAAY;IAPtB,OAAO,CAAC,MAAM,CAAC,CAAiB;IAChC,OAAO,CAAC,OAAO,CAAqC;IACpD,OAAO,CAAC,cAAc,CAAiB;gBAG7B,MAAM,EAAE,MAAM,EACd,OAAO,EAAE,OAAO,EAChB,YAAY,EAAE,YAAY;IAKpC,IAAI,CAAC,MAAM,EAAE,cAAc,GAAG,IAAI;IAI5B,EAAE,IAAI,OAAO,CAAC,IAAI,CAAC;IAmCnB,IAAI,IAAI,OAAO,CAAC,IAAI,CAAC;IAarB,WAAW,CAAC,EAAE,EAAE,MAAM,GAAG,OAAO,CAAC,IAAI,CAAC;IAkB5C,cAAc,CAAC,IAAI,EAAE,MAAM,EAAE,WAAW,EAAE,GAAG,GAAG,IAAI;IAI9C,oBAAoB,CAAC,QAAQ,EAAE,sBAAsB,GAAG,OAAO,CAAC,qBAAqB,CAAC;YAmB9E,eAAe;YAUf,qBAAqB;YA2CrB,qBAAqB;IA6FnC,OAAO,CAAC,aAAa;IAarB,OAAO,CAAC,wBAAwB;IAWhC,OAAO,CAAC,6BAA6B;IAWrC,OAAO,CAAC,WAAW;IAOnB,OAAO,CAAC,aAAa;CAMtB"}
+\ No newline at end of file
++{"version":3,"file":"Executor.d.ts","sourceRoot":"","sources":["../../src/executor/Executor.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,qBAAqB,CAAC;AAC7C,OAAO,EAAE,OAAO,EAAE,MAAM,uBAAuB,CAAC;AAChD,OAAO,EAAE,YAAY,EAAE,MAAM,0BAA0B,CAAC;AAExD,OAAO,EAAE,qBAAqB,EAAE,MAAM,sCAAsC,CAAC;AAC7E,OAAO,KAAK,EAAE,cAAc,EAAc,MAAM,qBAAqB,CAAC;AACtE,OAAO,KAAK,EAAkB,sBAAsB,EAAE,MAAM,aAAa,CAAC;AAI1E,OAAO,KAAK,EAAE,UAAU,EAAE,MAAM,sBAAsB,CAAC;AAYvD,qBAAa,QAAQ;IAOjB,OAAO,CAAC,MAAM;IACd,OAAO,CAAC,OAAO;IACf,OAAO,CAAC,YAAY;IARtB,OAAO,CAAC,MAAM,CAAC,CAAiB;IAChC,OAAO,CAAC,OAAO,CAAqC;IACpD,OAAO,CAAC,cAAc,CAAiB;IACvC,OAAO,CAAC,MAAM,CAAC,CAAa;gBAGlB,MAAM,EAAE,MAAM,EACd,OAAO,EAAE,OAAO,EAChB,YAAY,EAAE,YAAY,EAClC,MAAM,CAAC,EAAE,UAAU;IAMrB,IAAI,CAAC,MAAM,EAAE,cAAc,GAAG,IAAI;IAI5B,EAAE,IAAI,OAAO,CAAC,IAAI,CAAC;IAwCnB,IAAI,IAAI,OAAO,CAAC,IAAI,CAAC;IAarB,WAAW,CAAC,EAAE,EAAE,MAAM,GAAG,OAAO,CAAC,IAAI,CAAC;IAkB5C,cAAc,CAAC,IAAI,EAAE,MAAM,EAAE,WAAW,EAAE,GAAG,GAAG,IAAI;IAI9C,oBAAoB,CAAC,QAAQ,EAAE,sBAAsB,GAAG,OAAO,CAAC,qBAAqB,CAAC;YAmB9E,eAAe;YAUf,qBAAqB;YA2CrB,qBAAqB;IAyGnC,OAAO,CAAC,aAAa;IAarB,OAAO,CAAC,wBAAwB;IAWhC,OAAO,CAAC,6BAA6B;IAWrC,OAAO,CAAC,WAAW;IAOnB,OAAO,CAAC,aAAa;CAMtB"}
+\ No newline at end of file
+diff --git a/dist/executor/Executor.js b/dist/executor/Executor.js
+index 205ae33..e70efb4 100644
+--- a/dist/executor/Executor.js
++++ b/dist/executor/Executor.js
+@@ -12,11 +12,13 @@ export class Executor {
+     config;
+     modules = new Map();
+     moduleRegistry;
+-    constructor(kernel, hostess, stateManager) {
++    logger;
++    constructor(kernel, hostess, stateManager, logger) {
+         this.kernel = kernel;
+         this.hostess = hostess;
+         this.stateManager = stateManager;
+         this.moduleRegistry = new ModuleRegistry();
++        this.logger = logger;
+     }
+     load(config) {
+         this.config = config;
+@@ -43,6 +45,11 @@ export class Executor {
+         }
+         for (const conn of this.config.connections) {
+             this.stateManager.connect(conn.from, conn.to);
++            this.logger?.emit('edge.connect', {
++                lvl: 'debug',
++                id: `${conn.from}->${conn.to}`,
++                payload: { from: conn.from, to: conn.to }
++            });
+         }
+         for (const instance of this.modules.values()) {
+             if (typeof instance.module.start === 'function') {
+@@ -182,6 +189,12 @@ export class Executor {
+             const handler = (msg) => {
+                 if (msg && msg.type === 'worker.ready') {
+                     console.log(`[Executor] Worker ready: ${nodeConfig.id}`);
++                    this.logger?.emit('worker.ready', {
++                        lvl: 'info',
++                        id: nodeConfig.id,
++                        path: modulePath,
++                        payload: { module: nodeConfig.module }
++                    });
+                     topic.off('data', handler);
+                     resolve();
+                 }
+@@ -217,6 +230,12 @@ export class Executor {
+         });
+         worker.on('exit', (code) => {
+             console.log(`[Executor] Worker ${nodeConfig.id} exited with code ${code}`);
++            this.logger?.emit('worker.exit', {
++                lvl: 'info',
++                id: nodeConfig.id,
++                path: modulePath,
++                payload: { module: nodeConfig.module, exitCode: code }
++            });
+         });
+     }
+     getModulePath(moduleName) {
+diff --git a/dist/executor/Executor.js.map b/dist/executor/Executor.js.map
+index 2421f8d..761b3e0 100644
+--- a/dist/executor/Executor.js.map
++++ b/dist/executor/Executor.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"Executor.js","sourceRoot":"","sources":["../../src/executor/Executor.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"Executor.js","sourceRoot":"","sources":["../../src/executor/Executor.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/hostess/Hostess.d.ts b/dist/hostess/Hostess.d.ts
+index 2942d24..7733cb6 100644
+--- a/dist/hostess/Hostess.d.ts
++++ b/dist/hostess/Hostess.d.ts
+@@ -1,13 +1,16 @@
+ import { CapabilityQuery, GuestBookEntry, ServerManifest } from '../types.js';
++import { TestEventEnvelope } from '../logging/TestEvent.js';
+ interface HostessOptions {
+     heartbeatIntervalMs?: number;
+     evictionThresholdMs?: number;
++    logger?: (evt: TestEventEnvelope) => void;
+ }
+ export declare class Hostess {
+     private guestBook;
+     private interval?;
+     private readonly heartbeatIntervalMs;
+     private readonly evictionThresholdMs;
++    private readonly logger?;
+     constructor(opts?: HostessOptions);
+     register(entry: ServerManifest): string;
+     heartbeat(serverId: string): void;
+diff --git a/dist/hostess/Hostess.d.ts.map b/dist/hostess/Hostess.d.ts.map
+index 98b64b4..c510b74 100644
+--- a/dist/hostess/Hostess.d.ts.map
++++ b/dist/hostess/Hostess.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"Hostess.d.ts","sourceRoot":"","sources":["../../src/hostess/Hostess.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,eAAe,EAAE,cAAc,EAAE,cAAc,EAAuB,MAAM,aAAa,CAAC;AAEnG,UAAU,cAAc;IACtB,mBAAmB,CAAC,EAAE,MAAM,CAAC;IAC7B,mBAAmB,CAAC,EAAE,MAAM,CAAC;CAC9B;AAED,qBAAa,OAAO;IAClB,OAAO,CAAC,SAAS,CAAqC;IACtD,OAAO,CAAC,QAAQ,CAAC,CAAiB;IAClC,OAAO,CAAC,QAAQ,CAAC,mBAAmB,CAAS;IAC7C,OAAO,CAAC,QAAQ,CAAC,mBAAmB,CAAS;gBAEjC,IAAI,GAAE,cAAmB;IAKrC,QAAQ,CAAC,KAAK,EAAE,cAAc,GAAG,MAAM;IAoCvC,SAAS,CAAC,QAAQ,EAAE,MAAM,GAAG,IAAI;IAMjC,SAAS,CAAC,QAAQ,EAAE,MAAM,EAAE,YAAY,EAAE,MAAM,EAAE,YAAY,EAAE,MAAM,GAAG,IAAI;IAQ7E,aAAa,CAAC,QAAQ,EAAE,MAAM,EAAE,YAAY,EAAE,MAAM,GAAG,IAAI;IAQ3D,KAAK,CAAC,MAAM,GAAE,eAAoB,GAAG,cAAc,EAAE;IA0BrD,IAAI,IAAI,cAAc,EAAE;IAIxB,iBAAiB,IAAI,IAAI;IAczB,gBAAgB,IAAI,IAAI;IAOxB,OAAO,CAAC,MAAM;IAId,OAAO,CAAC,gBAAgB;CAGzB"}
+\ No newline at end of file
++{"version":3,"file":"Hostess.d.ts","sourceRoot":"","sources":["../../src/hostess/Hostess.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,eAAe,EAAE,cAAc,EAAE,cAAc,EAAuB,MAAM,aAAa,CAAC;AACnG,OAAO,EAAE,iBAAiB,EAAe,MAAM,yBAAyB,CAAC;AAEzE,UAAU,cAAc;IACtB,mBAAmB,CAAC,EAAE,MAAM,CAAC;IAC7B,mBAAmB,CAAC,EAAE,MAAM,CAAC;IAC7B,MAAM,CAAC,EAAE,CAAC,GAAG,EAAE,iBAAiB,KAAK,IAAI,CAAC;CAC3C;AAED,qBAAa,OAAO;IAClB,OAAO,CAAC,SAAS,CAAqC;IACtD,OAAO,CAAC,QAAQ,CAAC,CAAiB;IAClC,OAAO,CAAC,QAAQ,CAAC,mBAAmB,CAAS;IAC7C,OAAO,CAAC,QAAQ,CAAC,mBAAmB,CAAS;IAC7C,OAAO,CAAC,QAAQ,CAAC,MAAM,CAAC,CAAmC;gBAE/C,IAAI,GAAE,cAAmB;IAMrC,QAAQ,CAAC,KAAK,EAAE,cAAc,GAAG,MAAM;IAwCvC,SAAS,CAAC,QAAQ,EAAE,MAAM,GAAG,IAAI;IASjC,SAAS,CAAC,QAAQ,EAAE,MAAM,EAAE,YAAY,EAAE,MAAM,EAAE,YAAY,EAAE,MAAM,GAAG,IAAI;IAY7E,aAAa,CAAC,QAAQ,EAAE,MAAM,EAAE,YAAY,EAAE,MAAM,GAAG,IAAI;IAQ3D,KAAK,CAAC,MAAM,GAAE,eAAoB,GAAG,cAAc,EAAE;IA0BrD,IAAI,IAAI,cAAc,EAAE;IAIxB,iBAAiB,IAAI,IAAI;IAczB,gBAAgB,IAAI,IAAI;IAOxB,OAAO,CAAC,MAAM;IAId,OAAO,CAAC,gBAAgB;CAGzB"}
+\ No newline at end of file
+diff --git a/dist/hostess/Hostess.js b/dist/hostess/Hostess.js
+index b3f350e..3f08c9a 100644
+--- a/dist/hostess/Hostess.js
++++ b/dist/hostess/Hostess.js
+@@ -1,13 +1,16 @@
+ import crypto from 'node:crypto';
+ import { buildServerIdentity } from '../types.js';
++import { createEvent } from '../logging/TestEvent.js';
+ export class Hostess {
+     guestBook = new Map();
+     interval;
+     heartbeatIntervalMs;
+     evictionThresholdMs;
++    logger;
+     constructor(opts = {}) {
+         this.heartbeatIntervalMs = opts.heartbeatIntervalMs ?? 5000;
+         this.evictionThresholdMs = opts.evictionThresholdMs ?? 20000;
++        this.logger = opts.logger;
+     }
+     register(entry) {
+         const uuid = entry.uuid ?? crypto.randomUUID();
+@@ -41,6 +44,10 @@ export class Hostess {
+             available: this.computeAvailable(inUse)
+         };
+         this.guestBook.set(identity, gbe);
++        this.logger?.(createEvent('hostess:register', 'hostess', {
++            id: identity,
++            payload: { fqdn: entry.fqdn, servername: entry.servername, uuid }
++        }));
+         return identity;
+     }
+     heartbeat(serverId) {
+@@ -48,6 +55,9 @@ export class Hostess {
+         if (!entry)
+             return;
+         entry.lastHeartbeat = Date.now();
++        this.logger?.(createEvent('hostess:heartbeat', 'hostess', {
++            id: serverId
++        }));
+     }
+     markInUse(serverId, terminalName, connectomeId) {
+         const entry = this.guestBook.get(serverId);
+@@ -57,6 +67,10 @@ export class Hostess {
+             return;
+         entry.inUse[terminalName] = connectomeId;
+         entry.available = this.computeAvailable(entry.inUse) && this.isLive(entry);
++        this.logger?.(createEvent('hostess:markInUse', 'hostess', {
++            id: serverId,
++            payload: { terminalName, connectomeId }
++        }));
+     }
+     markAvailable(serverId, terminalName) {
+         const entry = this.guestBook.get(serverId);
+diff --git a/dist/hostess/Hostess.js.map b/dist/hostess/Hostess.js.map
+index 55c3c81..cc43edc 100644
+--- a/dist/hostess/Hostess.js.map
++++ b/dist/hostess/Hostess.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"Hostess.js","sourceRoot":"","sources":["../../src/hostess/Hostess.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"Hostess.js","sourceRoot":"","sources":["../../src/hostess/Hostess.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/package.json b/package.json
+index 10b093f..502ce67 100644
+--- a/package.json
++++ b/package.json
+@@ -28,6 +28,7 @@
+     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
+     "build": "tsc -p tsconfig.json",
+     "test": "vitest run",
++    "test:ci": "vitest run --pool=threads --reporter=./dist/test/reporter/jsonlReporter.js",
+     "test:watch": "vitest",
+     "dev": "node --enable-source-maps dist/examples/basic-topology.js",
+     "dev:split": "node --enable-source-maps dist/examples/split-topology.js",
+diff --git a/src/control/ControlBus.ts b/src/control/ControlBus.ts
+index 97b4b3c..9db2de8 100644
+--- a/src/control/ControlBus.ts
++++ b/src/control/ControlBus.ts
+@@ -1,22 +1,52 @@
+ import { BusAdapter } from './BusAdapter.js';
+ import { InProcBusAdapter } from './adapters/InProcBusAdapter.js';
++import { TestEventEnvelope } from '../logging/TestEvent.js';
+ 
+ export type ControlMessage = Record<string, any>;
+ 
++export type ControlBusEventLogger = (evt: TestEventEnvelope) => void;
++
+ export class ControlBus {
+   private adapter: BusAdapter;
++  private eventLogger?: ControlBusEventLogger;
+ 
+   constructor(adapter?: BusAdapter) {
+     this.adapter = adapter ?? new InProcBusAdapter();
+   }
+ 
++  setEventLogger(logger: ControlBusEventLogger | undefined): void {
++    this.eventLogger = logger;
++  }
++
+   publish(topic: string, msg: ControlMessage): void {
+     this.adapter.topic(topic).write(msg);
++    if (this.eventLogger) {
++      const payloadSize = JSON.stringify(msg).length;
++      this.eventLogger({
++        ts: Date.now(),
++        lvl: 'debug',
++        case: 'control-bus',
++        evt: 'publish',
++        payload: { topic, payloadSize },
++      });
++    }
+   }
+ 
+   subscribe(topic: string, handler: (msg: ControlMessage) => void): () => void {
+     const t = this.adapter.topic(topic);
+-    const onData = (m: any) => handler(m as ControlMessage);
++    const onData = (m: any) => {
++      if (this.eventLogger) {
++        const payloadSize = JSON.stringify(m).length;
++        this.eventLogger({
++          ts: Date.now(),
++          lvl: 'debug',
++          case: 'control-bus',
++          evt: 'subscribe',
++          payload: { topic, payloadSize },
++        });
++      }
++      handler(m as ControlMessage);
++    };
+     t.on('data', onData);
+     return () => t.off('data', onData);
+   }
+diff --git a/src/controller/TopologyController.ts b/src/controller/TopologyController.ts
+index 5b54a75..331a3b9 100644
+--- a/src/controller/TopologyController.ts
++++ b/src/controller/TopologyController.ts
+@@ -1,6 +1,7 @@
+ import { Kernel } from '../kernel/Kernel.js';
+ import { StateManager } from '../state/StateManager.js';
+ import { ControlBus } from '../control/ControlBus.js';
++import { TestEventEnvelope } from '../logging/TestEvent.js';
+ 
+ type FrameKind = 'cmd' | 'event' | 'ack' | 'err';
+ 
+@@ -18,12 +19,14 @@ interface FrameBase {
+ export interface TopologyControllerOptions {
+   commandsTopic?: string;
+   eventsTopic?: string;
++  loggerHook?: (evt: TestEventEnvelope) => void;
+ }
+ 
+ export class TopologyController {
+   private unsub?: () => void;
+   private readonly commandsTopic: string;
+   private readonly eventsTopic: string;
++  private readonly loggerHook?: (evt: TestEventEnvelope) => void;
+ 
+   constructor(
+     private kernel: Kernel,
+@@ -33,6 +36,7 @@ export class TopologyController {
+   ) {
+     this.commandsTopic = opts.commandsTopic ?? 'topology.commands';
+     this.eventsTopic = opts.eventsTopic ?? 'topology.events';
++    this.loggerHook = opts.loggerHook;
+   }
+ 
+   start(): void {
+@@ -62,38 +66,103 @@ export class TopologyController {
+   private handleCommand(frame: FrameBase) {
+     try {
+       const { type, payload, id } = frame;
++      this.loggerHook?.({
++        ts: Date.now(),
++        lvl: 'debug',
++        case: 'topology-controller',
++        evt: 'cmd-received',
++        id,
++        corr: frame.correlationId,
++        payload: { type, payload }
++      });
+       switch (type) {
+         case 'declare-node': {
+           this.state.addNode(payload);
+           this.ack(id);
++          this.loggerHook?.({
++            ts: Date.now(),
++            lvl: 'debug',
++            case: 'topology-controller',
++            evt: 'cmd-applied',
++            id,
++            payload: { type, node: payload }
++          });
+           break;
+         }
+         case 'connect': {
+           this.state.connect(payload.from, payload.to);
+           this.ack(id);
++          this.loggerHook?.({
++            ts: Date.now(),
++            lvl: 'debug',
++            case: 'topology-controller',
++            evt: 'cmd-applied',
++            id,
++            payload: { type, from: payload.from, to: payload.to }
++          });
+           break;
+         }
+         case 'split': {
+           this.state.split(payload.source, payload.destinations);
+           this.ack(id);
++          this.loggerHook?.({
++            ts: Date.now(),
++            lvl: 'debug',
++            case: 'topology-controller',
++            evt: 'cmd-applied',
++            id,
++            payload: { type, source: payload.source, destinations: payload.destinations }
++          });
+           break;
+         }
+         case 'merge': {
+           this.state.merge(payload.sources, payload.destination);
+           this.ack(id);
++          this.loggerHook?.({
++            ts: Date.now(),
++            lvl: 'debug',
++            case: 'topology-controller',
++            evt: 'cmd-applied',
++            id,
++            payload: { type, sources: payload.sources, destination: payload.destination }
++          });
+           break;
+         }
+         case 'snapshot': {
+           const topo = this.state.getTopology();
+           this.bus.publish(this.eventsTopic, { kind: 'event', type: 'topology.snapshot', ts: Date.now(), correlationId: id, payload: topo });
++          this.loggerHook?.({
++            ts: Date.now(),
++            lvl: 'debug',
++            case: 'topology-controller',
++            evt: 'snapshot',
++            id,
++            payload: topo
++          });
+           break;
+         }
+         default: {
+           this.err(id, `Unknown command type: ${type}`);
++          this.loggerHook?.({
++            ts: Date.now(),
++            lvl: 'error',
++            case: 'topology-controller',
++            evt: 'error',
++            id,
++            payload: { message: `Unknown command type: ${type}` }
++          });
+         }
+       }
+     } catch (e: any) {
+       this.err(frame.id, e?.message ?? String(e));
++      this.loggerHook?.({
++        ts: Date.now(),
++        lvl: 'error',
++        case: 'topology-controller',
++        evt: 'error',
++        id: frame.id,
++        payload: { message: e?.message ?? String(e) }
++      });
+     }
+   }
+ }
+diff --git a/src/executor/Executor.ts b/src/executor/Executor.ts
+index 04b0eaf..ce714cd 100644
+--- a/src/executor/Executor.ts
++++ b/src/executor/Executor.ts
+@@ -8,6 +8,7 @@ import type { ServerManifest, ExternalServerManifest } from '../types.js';
+ import { Worker, MessageChannel } from 'node:worker_threads';
+ import { fileURLToPath } from 'node:url';
+ import { dirname, join } from 'node:path';
++import type { TestLogger } from '../logging/logger.js';
+ 
+ const __filename = fileURLToPath(import.meta.url);
+ const __dirname = dirname(__filename);
+@@ -23,13 +24,16 @@ export class Executor {
+   private config?: TopologyConfig;
+   private modules = new Map<string, ModuleInstance>();
+   private moduleRegistry: ModuleRegistry;
++  private logger?: TestLogger;
+ 
+   constructor(
+     private kernel: Kernel,
+     private hostess: Hostess,
+-    private stateManager: StateManager
++    private stateManager: StateManager,
++    logger?: TestLogger
+   ) {
+     this.moduleRegistry = new ModuleRegistry();
++    this.logger = logger;
+   }
+ 
+   load(config: TopologyConfig): void {
+@@ -62,6 +66,11 @@ export class Executor {
+ 
+     for (const conn of this.config.connections) {
+       this.stateManager.connect(conn.from, conn.to);
++      this.logger?.emit('edge.connect', {
++        lvl: 'debug',
++        id: `${conn.from}->${conn.to}`,
++        payload: { from: conn.from, to: conn.to }
++      });
+     }
+ 
+     for (const instance of this.modules.values()) {
+@@ -228,6 +237,12 @@ export class Executor {
+       const handler = (msg: any) => {
+         if (msg && msg.type === 'worker.ready') {
+           console.log(`[Executor] Worker ready: ${nodeConfig.id}`);
++          this.logger?.emit('worker.ready', {
++            lvl: 'info',
++            id: nodeConfig.id,
++            path: modulePath,
++            payload: { module: nodeConfig.module }
++          });
+           topic.off('data', handler);
+           resolve();
+         }
+@@ -268,6 +283,12 @@ export class Executor {
+ 
+     worker.on('exit', (code) => {
+       console.log(`[Executor] Worker ${nodeConfig.id} exited with code ${code}`);
++      this.logger?.emit('worker.exit', {
++        lvl: 'info',
++        id: nodeConfig.id,
++        path: modulePath,
++        payload: { module: nodeConfig.module, exitCode: code }
++      });
+     });
+   }
+ 
+diff --git a/src/hostess/Hostess.ts b/src/hostess/Hostess.ts
+index fd9f4e0..7c5e9b2 100644
+--- a/src/hostess/Hostess.ts
++++ b/src/hostess/Hostess.ts
+@@ -1,9 +1,11 @@
+ import crypto from 'node:crypto';
+ import { CapabilityQuery, GuestBookEntry, ServerManifest, buildServerIdentity } from '../types.js';
++import { TestEventEnvelope, createEvent } from '../logging/TestEvent.js';
+ 
+ interface HostessOptions {
+   heartbeatIntervalMs?: number;
+   evictionThresholdMs?: number;
++  logger?: (evt: TestEventEnvelope) => void;
+ }
+ 
+ export class Hostess {
+@@ -11,10 +13,12 @@ export class Hostess {
+   private interval?: NodeJS.Timeout;
+   private readonly heartbeatIntervalMs: number;
+   private readonly evictionThresholdMs: number;
++  private readonly logger?: (evt: TestEventEnvelope) => void;
+ 
+   constructor(opts: HostessOptions = {}) {
+     this.heartbeatIntervalMs = opts.heartbeatIntervalMs ?? 5000;
+     this.evictionThresholdMs = opts.evictionThresholdMs ?? 20000;
++    this.logger = opts.logger;
+   }
+ 
+   register(entry: ServerManifest): string {
+@@ -50,6 +54,10 @@ export class Hostess {
+     };
+ 
+     this.guestBook.set(identity, gbe);
++    this.logger?.(createEvent('hostess:register', 'hostess', {
++      id: identity,
++      payload: { fqdn: entry.fqdn, servername: entry.servername, uuid }
++    }));
+     return identity;
+   }
+ 
+@@ -57,6 +65,9 @@ export class Hostess {
+     const entry = this.guestBook.get(serverId);
+     if (!entry) return;
+     entry.lastHeartbeat = Date.now();
++    this.logger?.(createEvent('hostess:heartbeat', 'hostess', {
++      id: serverId
++    }));
+   }
+ 
+   markInUse(serverId: string, terminalName: string, connectomeId: string): void {
+@@ -65,6 +76,10 @@ export class Hostess {
+     if (!(terminalName in entry.inUse)) return;
+     entry.inUse[terminalName] = connectomeId;
+     entry.available = this.computeAvailable(entry.inUse) && this.isLive(entry);
++    this.logger?.(createEvent('hostess:markInUse', 'hostess', {
++      id: serverId,
++      payload: { terminalName, connectomeId }
++    }));
+   }
+ 
+   markAvailable(serverId: string, terminalName: string): void {
+diff --git a/vitest.config.ts b/vitest.config.ts
+index 98339dc..ba94214 100644
+--- a/vitest.config.ts
++++ b/vitest.config.ts
+@@ -8,5 +8,6 @@ export default defineConfig({
+         singleFork: false,
+       },
+     },
++    reporters: ['./dist/test/reporter/jsonlReporter.js'],
+   },
+ });

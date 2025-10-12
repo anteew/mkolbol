@@ -2,40 +2,29 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "W-A", "parallel": false, "tasks": ["T2001", "T2002"] },
-    { "id": "W-B", "parallel": true,  "depends_on": ["W-A"], "tasks": ["T2003", "T2004A", "T2004B", "T2004C", "T2004D"] },
-    { "id": "W-C", "parallel": true,  "depends_on": ["W-A"], "tasks": ["T2005", "T2006"] },
-    { "id": "W-D", "parallel": false, "depends_on": ["W-B", "W-C"], "tasks": ["T2007"] },
-    { "id": "W-E", "parallel": true,  "depends_on": ["W-D"], "tasks": ["T2008", "T2009"] }
+    { "id": "CI-A", "parallel": false, "tasks": ["T2101", "T2102"] },
+    { "id": "CI-B", "parallel": true,  "depends_on": ["CI-A"], "tasks": ["T2103", "T2104"] }
   ],
   "tasks": [
-    { "id": "T2001",  "agent": "worker-1",  "title": "Event schema + test logger (JSONL)", "allowedFiles": ["src/logging/**", "reports/**"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2001_logging-schema.patch"] },
-    { "id": "T2002",  "agent": "worker-2",  "title": "Vitest reporter (compact + JSONL summary)", "allowedFiles": ["vitest.config.ts", "src/test/reporter/**"], "verify": ["npm test || true"], "deliverables": ["patches/DIFF_T2002_vitest-reporter.patch"] },
-    { "id": "T2003",  "agent": "worker-3",  "title": "logq CLI (filter/slice JSONL)", "allowedFiles": ["scripts/logq.ts", "package.json"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2003_logq-cli.patch"] },
-    { "id": "T2004A", "agent": "worker-4",  "title": "Instrumentation: TopologyController events", "allowedFiles": ["src/controller/TopologyController.ts"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2004A_controller-instrument.patch"] },
-    { "id": "T2004B", "agent": "worker-5",  "title": "Instrumentation: Executor events", "allowedFiles": ["src/executor/Executor.ts"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2004B_executor-instrument.patch"] },
-    { "id": "T2004C", "agent": "worker-6",  "title": "Instrumentation: Hostess events", "allowedFiles": ["src/hostess/Hostess.ts"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2004C_hostess-instrument.patch"] },
-    { "id": "T2004D", "agent": "worker-7",  "title": "Instrumentation: ControlBus publish/subscribe (test mode)", "allowedFiles": ["src/control/ControlBus.ts"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2004D_controlbus-instrument.patch"] },
-    { "id": "T2005",  "agent": "worker-8",  "title": "Golden transcript harness (snapshots + masks)", "allowedFiles": ["src/test/golden/**", "tests/**"], "verify": ["npm test || true"], "deliverables": ["patches/DIFF_T2005_golden-harness.patch"] },
-    { "id": "T2006",  "agent": "worker-9",  "title": "Property-based test harness (seeded)", "allowedFiles": ["tests/**", "package.json"], "verify": ["npm test || true"], "deliverables": ["patches/DIFF_T2006_property-tests.patch"] },
-    { "id": "T2007",  "agent": "worker-10", "title": "CI runner flags + Node matrix + scripts", "allowedFiles": ["package.json", "vitest.config.ts"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2007_ci-runner.patch"] },
-    { "id": "T2008",  "agent": "worker-11", "title": "Repro script generator from summary.jsonl", "allowedFiles": ["scripts/repro.ts", "package.json"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2008_repro-script.patch"] },
-    { "id": "T2009",  "agent": "worker-12", "title": "Amp integration: reporting pointers to reports/", "allowedFiles": ["agent_template/AMPCODE_TEMPLATE.md", "README.md", "VEGA/ampcode.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2009_amp-integration-docs.patch"] }
+    { "id": "T2101", "agent": "susan-1", "title": "Split CI scripts: test:ci (threads, exclude PTY) + test:pty (single-thread)", "allowedFiles": ["package.json", "vitest.config.ts"], "verify": ["npm run build", "npm run test:ci || true", "npm run test:pty || true"], "deliverables": ["patches/DIFF_T2101_ci-scripts-split.patch"] },
+    { "id": "T2102", "agent": "susan-2", "title": "Tag/audit PTY tests to wrappers group", "allowedFiles": ["tests/**"], "verify": ["npm run test:pty || true"], "deliverables": ["patches/DIFF_T2102_tag-pty-tests.patch"] },
+    { "id": "T2103", "agent": "susan-3", "title": "Docs: Laminar CI notes (why PTY runs single-thread)", "allowedFiles": ["docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2103_laminar-ci-docs.patch"] },
+    { "id": "T2104", "agent": "susan-4", "title": "Optional: add ts-node or compile scripts (logq/repro)", "allowedFiles": ["package.json", "scripts/**", "README.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2104_cli-runtime.patch"] }
   ]
 }
 ```
 
-# Ampcode — Subagent Sprint Plan (Laminar: Test Infrastructure Phase 1)
+# Ampcode — Subagent Sprint Plan (Laminar CI Stability: PTY split)
 
 **Architect**: VEGA  
-**Sprint/Batch**: SB-TEST-INFRA-P1 (Brand: Laminar)  
+**Sprint/Batch**: SB-CI-STABILIZE-PTY (Brand: Laminar)  
 **Reporting**: Results go to `ampcode.log`
 
 ---
 
 ## Context & Scope
 
-**Goal**: Brand and deliver Laminar — a structured, deterministic, agent‑friendly test system with compact summaries and deep JSONL artifacts. Phase 1 introduces event schema + logger, a Vitest reporter, a `logq` CLI, instrumentation hooks (Controller/Executor/Hostess/ControlBus), a golden transcript harness, property‑based tests, CI runner flags, and a repro script generator.
+**Goal**: Ensure CI runs reliably by splitting PTY-heavy tests into a single-threaded lane while keeping the rest threaded. Add scripts (test:ci, test:pty), tag/audit PTY tests, document the reason in Laminar docs, and optionally make logq/repro runnable without ts-node.
 
 **Constraints**:
 

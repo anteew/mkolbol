@@ -7,6 +7,15 @@ import { LoggerRenderer } from '../../src/renderers/LoggerRenderer.js';
 import type { ExternalServerManifest } from '../../src/types.js';
 import * as fs from 'fs';
 
+/**
+ * PTY Test Group: Integration Tests
+ * 
+ * These tests use PTY (pseudoterminal) and require single-fork execution.
+ * Run via: npm run test:pty
+ * 
+ * Rationale: Tests PTY output splitting across multiple renderers, which
+ * requires an actual PTY session with real process interaction.
+ */
 describe('Multi-Modal Output Integration', () => {
   let kernel: Kernel;
   let hostess: Hostess;

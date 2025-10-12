@@ -4,6 +4,15 @@ import { Hostess } from '../../src/hostess/Hostess.js';
 import { PTYServerWrapper } from '../../src/wrappers/PTYServerWrapper.js';
 import type { ExternalServerManifest } from '../../src/types.js';
 
+/**
+ * PTY Test Group: Wrapper Tests
+ * 
+ * These tests use PTY (pseudoterminal) and require single-fork execution.
+ * Run via: npm run test:pty
+ * 
+ * Rationale: PTY tests spawn actual terminal processes and interact with them,
+ * requiring isolated execution environment to prevent interference.
+ */
 describe('PTYServerWrapper', () => {
   let kernel: Kernel;
   let hostess: Hostess;

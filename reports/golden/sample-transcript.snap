@@ -1,0 +1,4 @@
+[<TIMESTAMP>] Process started with ID: <UUID>
+[<TIMESTAMP>] Connection established at <TIMESTAMP_MS>
+[<TIMESTAMP>] User input: hello world
+[<TIMESTAMP>] Response: Hello, World!

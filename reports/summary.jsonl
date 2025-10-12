@@ -1,0 +1,9 @@
+{"status":"pass","duration":109,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_spawn_PTY_process.jsonl"}
+{"status":"pass","duration":407,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_pipe_data_bidirectionally.jsonl"}
+{"status":"pass","duration":107,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_handle_resize.jsonl"}
+{"status":"pass","duration":204,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_send_signals.jsonl"}
+{"status":"pass","duration":304,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_handle_process_exit.jsonl"}
+{"status":"pass","duration":104,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_register_PTY_server_with_Hostess.jsonl"}
+{"status":"pass","duration":405,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_work_with_basic_shell__bash_.jsonl"}
+{"status":"pass","duration":505,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_handle_interactive_commands.jsonl"}
+{"status":"pass","duration":609,"location":"/srv/repos0/mkolbol/tests/integration/multiModalOutput.spec.ts:0","artifactURI":"reports/multiModalOutput.spec/should_split_PTY_output_to_2__renderers.jsonl"}

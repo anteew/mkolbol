@@ -8,5 +8,6 @@ export default defineConfig({
         singleFork: false,
       },
     },
+    reporters: ['./dist/test/reporter/jsonlReporter.js'],
   },
 });

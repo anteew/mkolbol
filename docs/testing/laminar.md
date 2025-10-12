@@ -56,8 +56,49 @@ These hooks are no‑ops in production code paths unless a logger is attached du
 - Golden transcripts (snapshots + masks)
 
 ## CI & Local
-- `npm test` produces summary + artifacts under `reports/`
-- `npm run test:ci` uses Node matrix and reliable pool flags
+
+### Test Execution Split
+CI runs tests in two separate jobs to handle PTY isolation requirements:
+
+1. **`test:ci`** — All tests except PTY tests
+   - Uses `--pool=threads` (tinypool worker threads)
+   - Excludes: `ptyServerWrapper.spec.ts`, `multiModalOutput.spec.ts`
+   - Parallel execution for speed
+
+2. **`test:pty`** — PTY tests only
+   - Uses `--pool=forks --poolOptions.forks.singleFork=true`
+   - Includes: `ptyServerWrapper.spec.ts`, `multiModalOutput.spec.ts`
+   - Single-threaded execution (one fork, no parallelism)
+
+### Why PTY Tests Run Single-Threaded
+
+**Problem**: PTY (pseudo-terminal) tests using `node-pty` have race conditions when run in parallel with tinypool worker threads:
+- Signal handling interference (SIGWINCH, SIGHUP, SIGCHLD)
+- File descriptor conflicts on `/dev/ptmx`
+- Timing issues in terminal session cleanup
+
+**Solution**: PTY tests run in a single fork to ensure complete isolation:
+- No concurrent PTY sessions
+- Clean signal handling per test
+- Deterministic teardown order
+
+### Adding New Tests
+
+**For regular tests** (adapters, topology, workers):
+- Add to `tests/` directory
+- No special configuration needed
+- Runs in `test:ci` by default
+
+**For PTY tests**:
+1. Add test file to `tests/wrappers/` or `tests/integration/`
+2. Update `test:ci` exclude pattern: `--exclude='**/{ptyServerWrapper,multiModalOutput,yourNewPtyTest}.spec.ts'`
+3. Update `test:pty` file list: add explicit path to your new test
+4. Document why the test needs PTY isolation
+
+**Local Development**:
+- `npm test` — runs all tests (may have PTY race conditions)
+- `npm run test:ci` — test the CI-safe subset
+- `npm run test:pty` — test only PTY tests (slow, sequential)
 - Repro: `node scripts/repro.ts` prints exact filters and `logq` slices
 
 ## Branding Notes

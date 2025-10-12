@@ -1,0 +1,40 @@
+diff --git a/tests/integration/multiModalOutput.spec.ts b/tests/integration/multiModalOutput.spec.ts
+index bd1e1c4..3f9df28 100644
+--- a/tests/integration/multiModalOutput.spec.ts
++++ b/tests/integration/multiModalOutput.spec.ts
+@@ -7,6 +7,15 @@ import { LoggerRenderer } from '../../src/renderers/LoggerRenderer.js';
+ import type { ExternalServerManifest } from '../../src/types.js';
+ import * as fs from 'fs';
+ 
++/**
++ * PTY Test Group: Integration Tests
++ * 
++ * These tests use PTY (pseudoterminal) and require single-fork execution.
++ * Run via: npm run test:pty
++ * 
++ * Rationale: Tests PTY output splitting across multiple renderers, which
++ * requires an actual PTY session with real process interaction.
++ */
+ describe('Multi-Modal Output Integration', () => {
+   let kernel: Kernel;
+   let hostess: Hostess;
+diff --git a/tests/wrappers/ptyServerWrapper.spec.ts b/tests/wrappers/ptyServerWrapper.spec.ts
+index ceb1a74..993ca71 100644
+--- a/tests/wrappers/ptyServerWrapper.spec.ts
++++ b/tests/wrappers/ptyServerWrapper.spec.ts
+@@ -4,6 +4,15 @@ import { Hostess } from '../../src/hostess/Hostess.js';
+ import { PTYServerWrapper } from '../../src/wrappers/PTYServerWrapper.js';
+ import type { ExternalServerManifest } from '../../src/types.js';
+ 
++/**
++ * PTY Test Group: Wrapper Tests
++ * 
++ * These tests use PTY (pseudoterminal) and require single-fork execution.
++ * Run via: npm run test:pty
++ * 
++ * Rationale: PTY tests spawn actual terminal processes and interact with them,
++ * requiring isolated execution environment to prevent interference.
++ */
+ describe('PTYServerWrapper', () => {
+   let kernel: Kernel;
+   let hostess: Hostess;
