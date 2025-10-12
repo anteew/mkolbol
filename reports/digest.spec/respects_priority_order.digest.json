@@ -1,0 +1,16 @@
+{
+  "case": "respects_priority_order",
+  "status": "fail",
+  "duration": 1,
+  "location": "/srv/repos0/mkolbol/tests/digest/digest.spec.ts:0",
+  "error": "Cannot read properties of null (reading 'events')",
+  "summary": {
+    "totalEvents": 0,
+    "includedEvents": 0,
+    "redactedFields": 0,
+    "budgetUsed": 2,
+    "budgetLimit": 10240
+  },
+  "suspects": [],
+  "events": []
+}

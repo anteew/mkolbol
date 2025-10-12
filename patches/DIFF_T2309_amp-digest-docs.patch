@@ -1,0 +1,31 @@
+diff --git a/README.md b/README.md
+index 8a1487f..4546d3b 100644
+--- a/README.md
++++ b/README.md
+@@ -151,7 +151,7 @@ The project includes structured test event logging in JSONL format:
+ - **Logger:** [src/logging/logger.ts](src/logging/logger.ts) provides `beginCase()`, `endCase()`, `emit()` helpers
+ - **Output:** Events written to `reports/<suite>/<case>.jsonl` for test analysis and reporting
+ 
+-**Agent Integration**: When working with agents via ampcode.log, include pointers to `reports/summary.jsonl` and case files in task reports. Keep console output compact; rely on report files for detailed metrics and traces.
++**Agent Integration**: When working with agents via ampcode.log, include pointers to `reports/summary.jsonl` and case files in task reports. If digests were created or updated, also include pointers to relevant digest files in `docs/digests/`. Keep console output compact; rely on report files and digests for detailed metrics, traces, and learnings.
+ 
+ ### Debug Instrumentation
+ 
+diff --git a/agent_template/AMPCODE_TEMPLATE.md b/agent_template/AMPCODE_TEMPLATE.md
+index c3655fc..8059035 100644
+--- a/agent_template/AMPCODE_TEMPLATE.md
++++ b/agent_template/AMPCODE_TEMPLATE.md
+@@ -157,10 +157,12 @@ At completion, aggregate to `ampcode.log` with:
+ 
+ **Reports**: See `reports/summary.jsonl` and case files in `reports/` for detailed metrics and traces
+ 
++**Digests**: See `docs/digests/[DIGEST_FILE].md` for aggregated learnings and patterns (if applicable)
++
+ **Notes**: [blockers, follow-ups, or architect attention needed]
+ ```
+ 
+-**Note on Report Pointers**: Always include a **Reports** line pointing to `reports/summary.jsonl` and any case-specific files generated during testing. Keep console output compact; rely on report files for depth.
++**Note on Report Pointers**: Always include a **Reports** line pointing to `reports/summary.jsonl` and any case-specific files generated during testing. If digests were created or updated during the task, include a **Digests** line pointing to relevant digest files in `docs/digests/`. Keep console output compact; rely on report files and digests for depth.
+ 
+ ---
+ 

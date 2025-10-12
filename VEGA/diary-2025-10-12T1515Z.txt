@@ -1,0 +1,20 @@
+Diary — 2025-10-12T15:15Z
+
+Context
+- Two streams: (1) mkolbol kernel stays minimal; (2) Laminar becomes my agent‑first test observability system.
+- Laminar v002 shipped (auto‑debug rerun, CI split), SB‑MK‑DEBUG‑P1 landed (debug API + hooks). Laminar v003 (digest rules) is queued in ampcode.md.
+
+Rehydrate plan
+1) Read ampcode.md and Susan’s ampcode.log; verify digest rules features (rules schema, generator, CLI, integration).
+2) Run: `npm run lam -- run --lane auto` then `npm run lam -- summary`. If any cases failed, open slices with `npm run lam -- show --case <suite/case> --around assert.fail --window 50`.
+3) Review digests under `reports/<suite>/<case>.digest.{json,md}` and propose the next slice rules.
+
+Next pushes (Laminar)
+- v003: rules + digest + CLI; auto‑generate on fail. (In flight.)
+- v004: Laminar MCP skeleton (tools: run, digest.generate, rules.get/set, logs.case.get, query, repro)
+- v005: Go ingest shim (go test -json → JSONL); cross‑lang doc.
+- v006+: rule scoring refinements; redaction presets; digest budget tuning; agent‑facing API polish.
+
+Vibe
+- Agent‑first. Ruthless about signal‑to‑token ratio. Prefer tiny, link‑rich digests over long logs. Everything deterministic.
+- Danny is fired up (and can’t sleep) — we’re going to make Laminar a “Kleenex” brand for agent‑friendly testing.

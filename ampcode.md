@@ -2,14 +2,16 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "CI-A", "parallel": false, "tasks": ["T2101", "T2102"] },
-    { "id": "CI-B", "parallel": true,  "depends_on": ["CI-A"], "tasks": ["T2103", "T2104"] }
+    { "id": "CORE-A", "parallel": true,  "tasks": ["T2501", "T2502"] },
+    { "id": "CORE-B", "parallel": true,  "depends_on": ["CORE-A"], "tasks": ["T2503"] },
+    { "id": "CORE-C", "parallel": false, "depends_on": ["CORE-B"], "tasks": ["T2504", "T2505"] }
   ],
   "tasks": [
-    { "id": "T2101", "agent": "susan-1", "title": "Split CI scripts: test:ci (threads, exclude PTY) + test:pty (single-thread)", "allowedFiles": ["package.json", "vitest.config.ts"], "verify": ["npm run build", "npm run test:ci || true", "npm run test:pty || true"], "deliverables": ["patches/DIFF_T2101_ci-scripts-split.patch"] },
-    { "id": "T2102", "agent": "susan-2", "title": "Tag/audit PTY tests to wrappers group", "allowedFiles": ["tests/**"], "verify": ["npm run test:pty || true"], "deliverables": ["patches/DIFF_T2102_tag-pty-tests.patch"] },
-    { "id": "T2103", "agent": "susan-3", "title": "Docs: Laminar CI notes (why PTY runs single-thread)", "allowedFiles": ["docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2103_laminar-ci-docs.patch"] },
-    { "id": "T2104", "agent": "susan-4", "title": "Optional: add ts-node or compile scripts (logq/repro)", "allowedFiles": ["package.json", "scripts/**", "README.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2104_cli-runtime.patch"] }
+    { "id": "T2501", "agent": "susan-1", "title": "Reporter: always-on per-case JSONL writer", "allowedFiles": ["src/test/reporter/jsonlReporter.ts"], "verify": ["npm run build", "npm run test:ci || true"], "deliverables": ["patches/DIFF_T2501_reporter-per-case-jsonl.patch"] },
+    { "id": "T2502", "agent": "susan-2", "title": "Reporter: artifact index manifest (reports/index.json)", "allowedFiles": ["src/test/reporter/jsonlReporter.ts"], "verify": ["npm run build", "node -e \"require('fs').existsSync('reports/index.json')?0:process.exit(1)\""], "deliverables": ["patches/DIFF_T2502_reporter-index-manifest.patch"] },
+    { "id": "T2503", "agent": "susan-3", "title": "CLI: summary/show consume index.json; print digest links", "allowedFiles": ["scripts/lam.ts"], "verify": ["npm run lam -- summary", "npm run lam -- show --case kernel.spec/connect_moves_data_1_1 --around evt=case.begin --window 3 || true"], "deliverables": ["patches/DIFF_T2503_cli-index-consumers.patch"] },
+    { "id": "T2504", "agent": "susan-4", "title": "Tests: ensure per-case JSONL + index exist and are valid", "allowedFiles": ["tests/laminar/coreReporter.spec.ts", "reports/**"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T2504_tests-core-reporter.patch"] },
+    { "id": "T2505", "agent": "susan-5", "title": "Docs: artifact guarantees + index manifest spec", "allowedFiles": ["docs/testing/laminar.md", "README.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2505_docs-core-reporter.patch"] }
   ]
 }
 ```

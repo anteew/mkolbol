@@ -151,7 +151,7 @@ The project includes structured test event logging in JSONL format:
 - **Logger:** [src/logging/logger.ts](src/logging/logger.ts) provides `beginCase()`, `endCase()`, `emit()` helpers
 - **Output:** Events written to `reports/<suite>/<case>.jsonl` for test analysis and reporting
 
-**Agent Integration**: When working with agents via ampcode.log, include pointers to `reports/summary.jsonl` and case files in task reports. Keep console output compact; rely on report files for detailed metrics and traces.
+**Agent Integration**: When working with agents via ampcode.log, include pointers to `reports/summary.jsonl` and case files in task reports. If digests were created or updated, also include pointers to relevant digest files in `docs/digests/`. Keep console output compact; rely on report files and digests for detailed metrics, traces, and learnings.
 
 ### Debug Instrumentation
 
@@ -175,6 +175,58 @@ DEBUG=1 MK_DEBUG_MODULES=executor MK_DEBUG_LEVEL=debug npm run dev
 - [src/debug/config.ts](src/debug/config.ts) - Parse environment variables at startup
 - [src/debug/api.ts](src/debug/api.ts) - `debug.on(module)` and `debug.emit(module, event, payload, level)` API
 - **Laminar Integration:** When `LAMINAR_DEBUG=1` is set, debug events emit as `TestEventEnvelope` for structured logging
+
+### MCP Server for Laminar
+
+The project includes an MCP (Model Context Protocol) server for exposing Laminar test logs and digests:
+
+**Location:** [src/mcp/laminar/server.ts](src/mcp/laminar/server.ts)
+
+**Features:**
+- **Resources:** Exposes `summary.jsonl` and digest files as MCP resources
+- **Tools:** Provides `query_logs`, `get_digest`, and `list_failures` tools
+- **Protocol:** Standard MCP protocol for AI agent integration
+
+**Usage:**
+
+```typescript
+import { createLaminarServer } from './src/mcp/laminar/server.js';
+
+const server = await createLaminarServer({
+  reportsDir: 'reports',
+  summaryFile: 'reports/summary.jsonl'
+});
+
+// List available resources
+const resources = server.listResources();
+
+// Read a resource
+const summary = await server.readResource('laminar://summary');
+
+// Call a tool
+const failures = await server.callTool('list_failures', {});
+```
+
+**Resources:**
+- `laminar://summary` - Test summary JSONL file
+- `laminar://digest/{caseName}` - Digest JSON for specific failed test
+
+**Tools:**
+- `query_logs` - Query test event logs with filters (caseName, level, event, limit)
+- `get_digest` - Get digest for a specific failed test case
+- `list_failures` - List all failed test cases from summary
+
+### Cross-Language Test Ingest
+
+Laminar can import test results from external languages and frameworks:
+
+```bash
+# Import Go test results
+lam ingest --go --from-file go-test-output.json
+lam ingest --go --cmd "go test -json ./..."
+```
+
+Ingested tests integrate with all Laminar features (`logq`, `lam digest`, `lam show`). See [docs/testing/laminar.md](docs/testing/laminar.md#cross-language-test-ingest) for complete workflow examples and CI integration.
 
 ### CLI Tools
 

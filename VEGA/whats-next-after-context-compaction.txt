@@ -13,3 +13,9 @@ If stalled
 - Add or update a tiny test/demo instead of speculating.
 - Write a one-sentence WHY at hot edges or in the PR.
 - Prefer small PR-sized diffs; wire tests before changing semantics.
+
+Laminar-focused rehydration (v003 track)
+- Run: `npm run lam -- summary` to see last run.
+- If failures: `npm run lam -- run --lane auto` then `npm run lam -- show --case <suite/case> --around assert.fail --window 50`.
+- Open ampcode.md and execute SB-LAM-DIGEST-P1 waves (rules schema, digest generator, CLI, tests, docs).
+- Keep kernel changes minimal; all debug/observability via Laminar + instrumentation hooks.

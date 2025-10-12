@@ -1,0 +1,365 @@
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index e2486c4..dc61804 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -125,5 +125,194 @@ CI runs tests in two separate jobs to handle PTY isolation requirements:
+ - `npm run test:pty` — test only PTY tests (slow, sequential)
+ - Repro: `node scripts/repro.ts` prints exact filters and `logq` slices
+ 
++## CLI (Humans)
++
++Laminar ships a tiny CLI to mirror what agents do:
++
++Commands:
++- `npm run lam -- run --lane auto|ci|pty [--filter <pattern>]`
++- `npm run lam -- summary`
++- `npm run lam -- show --case <suite/case> [--around <pattern>] [--window <n>]`
++- `npm run lam -- rules get`
++- `npm run lam -- rules set --file <path> | --inline '<json>'`
++
++Examples:
++- `npm run lam -- run --lane auto`
++- `npm run lam -- summary`
++- `npm run lam -- show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 50`
++- `npm run lam -- rules get`
++- `npm run lam -- rules set --inline '{"budget":{"kb":2}}'`
++
++## Digest Rules Configuration
++
++Digest rules control how test artifacts are aggregated, filtered, and prioritized. Rules use a match/action pattern to transform event streams into compact, token-efficient summaries.
++
++### Schema
++
++See [laminar.schema.json](laminar.schema.json) for the complete JSON Schema definition.
++
++### Configuration Structure
++
++```jsonc
++{
++  // Size limits for digest output
++  "budget": {
++    "kb": 50,           // max digest size in kilobytes
++    "events": 1000,     // max number of events
++    "cases": 100        // max number of test cases
++  },
++  
++  // Ordered list of match/action rules
++  "rules": [
++    {
++      "name": "include-failures",      // optional human-readable name
++      "enabled": true,                 // toggle to disable rule
++      "match": {
++        "lvl": "error"                 // match error-level events
++      },
++      "action": {
++        "type": "include"              // always include in digest
++      }
++    }
++  ],
++  
++  // Default behavior for unmatched events
++  "defaults": {
++    "action": "exclude",               // exclude events by default
++    "priority": 5                      // default priority level (0-10)
++  }
++}
++```
++
++### Match Patterns
++
++Match patterns support the following fields:
++
++- **`evt`**: Event type pattern (supports `*` wildcard, e.g., `"worker.*"`)
++- **`phase`**: Test phase (`"arrange"` | `"act"` | `"assert"` | `"teardown"`)
++- **`lvl`**: Log level (`"info"` | `"warn"` | `"error"`)
++- **`case`**: Test case pattern (supports `*` wildcard, e.g., `"topology.*"`)
++- **`path`**: File path pattern (supports `*` wildcard, e.g., `"tests/worker/*.spec.ts"`)
++
++All fields are optional, but at least one must be specified. Multiple fields are AND-ed together.
++
++### Action Types
++
++#### `include`
++Always include matching events in the digest (no additional fields required).
++
++```json
++{
++  "match": { "lvl": "error" },
++  "action": { "type": "include" }
++}
++```
++
++#### `slice`
++Include matching event plus surrounding context window.
++
++```json
++{
++  "match": { "evt": "assert.fail" },
++  "action": {
++    "type": "slice",
++    "window": 25  // ±25 events around match
++  }
++}
++```
++
++#### `redact`
++Redact specific fields from matching events (useful for sensitive data).
++
++```json
++{
++  "match": { "evt": "auth.*" },
++  "action": {
++    "type": "redact",
++    "fields": ["payload.token", "payload.secret"]
++  }
++}
++```
++
++#### `priority`
++Assign priority level to matching events (0-10, higher = more important). When budget limits are reached, lower-priority events are dropped first.
++
++```json
++{
++  "match": { "phase": "assert" },
++  "action": {
++    "type": "priority",
++    "level": 9  // high priority for assertions
++  }
++}
++```
++
++### Complete Example
++
++```json
++{
++  "budget": {
++    "kb": 100,
++    "events": 2000
++  },
++  "rules": [
++    {
++      "name": "critical-failures",
++      "match": { "lvl": "error" },
++      "action": { "type": "priority", "level": 10 }
++    },
++    {
++      "name": "assertion-context",
++      "match": { "evt": "assert.*" },
++      "action": { "type": "slice", "window": 50 }
++    },
++    {
++      "name": "redact-secrets",
++      "match": { "evt": "*.auth" },
++      "action": { "type": "redact", "fields": ["payload.token"] }
++    },
++    {
++      "name": "worker-lifecycle",
++      "match": { "evt": "worker.*", "phase": "act" },
++      "action": { "type": "include" }
++    },
++    {
++      "name": "skip-verbose-arrange",
++      "enabled": false,
++      "match": { "phase": "arrange", "evt": "topology.*" },
++      "action": { "type": "priority", "level": 2 }
++    }
++  ],
++  "defaults": {
++    "action": "include",
++    "priority": 5
++  }
++}
++```
++
++### Usage
++
++**Get current rules:**
++```bash
++npm run lam -- rules get
++```
++
++**Set rules from file:**
++```bash
++npm run lam -- rules set --file laminar.config.json
++```
++
++**Set rules inline:**
++```bash
++npm run lam -- rules set --inline '{"budget":{"kb":50},"rules":[{"match":{"lvl":"error"},"action":{"type":"include"}}]}'
++```
++
++### Rule Evaluation
++
++1. Rules are evaluated in order (first match wins)
++2. If no rule matches, default action is applied
++3. Priority-based pruning happens after all rules are evaluated
++4. Budget limits are enforced as final step
++
+ ## Branding Notes
+ Laminar fits the project’s physical‑manifold metaphor: smooth, predictable flow with clear gauges and valves for control.
+diff --git a/docs/testing/laminar.schema.json b/docs/testing/laminar.schema.json
+new file mode 100644
+index 0000000..6c85f78
+--- /dev/null
++++ b/docs/testing/laminar.schema.json
+@@ -0,0 +1,160 @@
++{
++  "$schema": "http://json-schema.org/draft-07/schema#",
++  "$id": "https://github.com/anteew/mkolbol/docs/testing/laminar.schema.json",
++  "title": "Laminar Digest Rules Configuration",
++  "description": "Schema for digest rules configuration controlling test artifact aggregation and filtering",
++  "type": "object",
++  "properties": {
++    "budget": {
++      "description": "Size limits for digest output",
++      "type": "object",
++      "properties": {
++        "kb": {
++          "description": "Maximum digest size in kilobytes",
++          "type": "number",
++          "minimum": 0,
++          "exclusiveMinimum": true
++        },
++        "events": {
++          "description": "Maximum number of events to include",
++          "type": "integer",
++          "minimum": 1
++        },
++        "cases": {
++          "description": "Maximum number of test cases to include",
++          "type": "integer",
++          "minimum": 1
++        }
++      },
++      "additionalProperties": false
++    },
++    "rules": {
++      "description": "Ordered list of match/action rules for filtering and transforming events",
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": ["match", "action"],
++        "properties": {
++          "match": {
++            "description": "Pattern to match against events",
++            "type": "object",
++            "properties": {
++              "evt": {
++                "description": "Event type pattern (supports wildcards: *)",
++                "type": "string"
++              },
++              "phase": {
++                "description": "Test phase to match",
++                "type": "string",
++                "enum": ["arrange", "act", "assert", "teardown"]
++              },
++              "lvl": {
++                "description": "Log level to match",
++                "type": "string",
++                "enum": ["info", "warn", "error"]
++              },
++              "case": {
++                "description": "Test case pattern (supports wildcards: *)",
++                "type": "string"
++              },
++              "path": {
++                "description": "File path pattern (supports wildcards: *)",
++                "type": "string"
++              }
++            },
++            "additionalProperties": false,
++            "minProperties": 1
++          },
++          "action": {
++            "description": "Action to take when match succeeds",
++            "type": "object",
++            "required": ["type"],
++            "properties": {
++              "type": {
++                "description": "Action type",
++                "type": "string",
++                "enum": ["include", "slice", "redact", "priority"]
++              },
++              "window": {
++                "description": "Number of events before/after match (for slice action)",
++                "type": "integer",
++                "minimum": 0
++              },
++              "fields": {
++                "description": "Fields to redact (for redact action)",
++                "type": "array",
++                "items": {
++                  "type": "string"
++                },
++                "minItems": 1
++              },
++              "level": {
++                "description": "Priority level (for priority action): higher = more important",
++                "type": "integer",
++                "minimum": 0,
++                "maximum": 10
++              }
++            },
++            "additionalProperties": false,
++            "allOf": [
++              {
++                "if": {
++                  "properties": { "type": { "const": "slice" } }
++                },
++                "then": {
++                  "required": ["window"]
++                }
++              },
++              {
++                "if": {
++                  "properties": { "type": { "const": "redact" } }
++                },
++                "then": {
++                  "required": ["fields"]
++                }
++              },
++              {
++                "if": {
++                  "properties": { "type": { "const": "priority" } }
++                },
++                "then": {
++                  "required": ["level"]
++                }
++              }
++            ]
++          },
++          "name": {
++            "description": "Optional human-readable rule name",
++            "type": "string"
++          },
++          "enabled": {
++            "description": "Toggle to enable/disable this rule",
++            "type": "boolean",
++            "default": true
++          }
++        },
++        "additionalProperties": false
++      }
++    },
++    "defaults": {
++      "description": "Default behavior when no rules match",
++      "type": "object",
++      "properties": {
++        "action": {
++          "description": "Default action for unmatched events",
++          "type": "string",
++          "enum": ["include", "exclude"]
++        },
++        "priority": {
++          "description": "Default priority level for events",
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 10,
++          "default": 5
++        }
++      },
++      "additionalProperties": false
++    }
++  },
++  "additionalProperties": false
++}
