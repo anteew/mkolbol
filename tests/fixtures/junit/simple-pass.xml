@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="basic-tests" tests="2" failures="0" errors="0" skipped="0" time="0.015">
+    <testcase classname="basic-tests" name="adds two numbers" time="0.007"/>
+    <testcase classname="basic-tests" name="multiplies correctly" time="0.008"/>
+  </testsuite>
+</testsuites>

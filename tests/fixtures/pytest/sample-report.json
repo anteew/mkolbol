@@ -1,0 +1,136 @@
+{
+  "created": 1678886400.123456,
+  "duration": 1.56789,
+  "exitcode": 1,
+  "root": "/path/to/project",
+  "environment": {
+    "Python": "3.9.12",
+    "Platform": "Linux-5.15.0-67-generic-x86_64",
+    "Packages": {
+      "pytest": "7.2.5",
+      "pytest-json-report": "1.5.0"
+    }
+  },
+  "summary": {
+    "collected": 5,
+    "passed": 2,
+    "failed": 1,
+    "error": 1,
+    "skipped": 1,
+    "total": 5
+  },
+  "tests": [
+    {
+      "nodeid": "test_example.py::test_success",
+      "lineno": 5,
+      "keywords": ["test_success", "test_example.py"],
+      "outcome": "passed",
+      "setup": {
+        "duration": 0.0001,
+        "outcome": "passed"
+      },
+      "call": {
+        "duration": 0.0005,
+        "outcome": "passed",
+        "stdout": "This test passed successfully.\n"
+      },
+      "teardown": {
+        "duration": 0.00005,
+        "outcome": "passed"
+      }
+    },
+    {
+      "nodeid": "test_example.py::test_failure",
+      "lineno": 10,
+      "keywords": ["test_failure", "test_example.py"],
+      "outcome": "failed",
+      "setup": {
+        "duration": 0.00015,
+        "outcome": "passed"
+      },
+      "call": {
+        "duration": 0.0008,
+        "outcome": "failed",
+        "crash": {
+          "path": "test_example.py",
+          "lineno": 12,
+          "message": "AssertionError: assert 1 == 2"
+        },
+        "traceback": [
+          {
+            "path": "test_example.py",
+            "lineno": 12,
+            "message": "def test_failure():"
+          },
+          {
+            "path": "test_example.py",
+            "lineno": 13,
+            "message": "    assert 1 == 2"
+          }
+        ],
+        "stdout": "About to fail...\n",
+        "longrepr": "def test_failure():\n    assert 1 == 2\nE   AssertionError: assert 1 == 2"
+      },
+      "teardown": {
+        "duration": 0.00008,
+        "outcome": "passed"
+      }
+    },
+    {
+      "nodeid": "test_example.py::test_error_during_setup",
+      "lineno": 18,
+      "keywords": ["test_error_during_setup", "test_example.py"],
+      "outcome": "error",
+      "setup": {
+        "duration": 0.0002,
+        "outcome": "error",
+        "crash": {
+          "path": "test_example.py",
+          "lineno": 20,
+          "message": "NameError: name 'non_existent_variable' is not defined"
+        },
+        "traceback": [
+          {
+            "path": "test_example.py",
+            "lineno": 20,
+            "message": "non_existent_variable"
+          }
+        ],
+        "longrepr": "NameError: name 'non_existent_variable' is not defined"
+      },
+      "call": null,
+      "teardown": null
+    },
+    {
+      "nodeid": "test_example.py::test_skipped_test",
+      "lineno": 25,
+      "keywords": ["test_skipped_test", "test_example.py", "skip"],
+      "outcome": "skipped",
+      "setup": {
+        "duration": 0.0001,
+        "outcome": "skipped",
+        "longrepr": "Skipped: This test is intentionally skipped."
+      },
+      "call": null,
+      "teardown": null
+    },
+    {
+      "nodeid": "test_calculations.py::test_addition",
+      "lineno": 3,
+      "keywords": ["test_addition", "test_calculations.py"],
+      "outcome": "passed",
+      "setup": {
+        "duration": 0.00008,
+        "outcome": "passed"
+      },
+      "call": {
+        "duration": 0.0003,
+        "outcome": "passed"
+      },
+      "teardown": {
+        "duration": 0.00004,
+        "outcome": "passed"
+      }
+    }
+  ]
+}

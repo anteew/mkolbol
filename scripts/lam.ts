@@ -2,6 +2,8 @@
 import { spawnSync, execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import { ingestGoTest } from './ingest-go.js';
+import { ingestPytestJSON } from './ingest-pytest.js';
+import { ingestJUnit } from './ingest-junit.js';
 import { DigestDiffEngine } from '../src/digest/diff.js';
 import { bundleRepro } from './repro-bundle.js';
 
@@ -21,6 +23,8 @@ Usage:
   lam diff <digest1> <digest2> [--output <path>] [--format json|markdown]
   lam repro --bundle [--case <case-name>]
   lam ingest --go [--from-file <path> | --cmd "<command>"]
+  lam ingest --py|--pytest [--from-file <path> | --cmd "<command>"]
+  lam ingest --junit [--from-file <path> | --cmd "<command>"]
   lam rules get
   lam rules set --file <path> | --inline '<json>'
   lam trends [--since <timestamp>] [--until <timestamp>] [--top <n>]
@@ -37,6 +41,10 @@ Examples:
   lam repro --bundle --case kernel.spec/connect_moves_data_1_1
   lam ingest --go --from-file go-test-output.json
   lam ingest --go --cmd "go test -json ./..."
+  lam ingest --py --from-file pytest-report.json
+  lam ingest --pytest --cmd "pytest --json-report --json-report-file=/dev/stdout"
+  lam ingest --junit --from-file junit-results.xml
+  lam ingest --junit --cmd "mvn test"
   lam rules get
   lam rules set --inline '{"budget":{"kb":2}}'
   lam trends --top 10 --since 2025-10-01
@@ -280,8 +288,22 @@ async function main() {
     }
     case 'ingest': {
       const go = args.get('go');
-      if (!go) {
-        console.error('lam ingest --go [--from-file <path> | --cmd "<command>"]');
+      const py = args.get('py');
+      const pytest = args.get('pytest');
+      const junit = args.get('junit');
+      
+      const formats = [go, py, pytest, junit].filter(Boolean);
+      
+      if (formats.length === 0) {
+        console.error('lam ingest requires a format flag: --go, --py, --pytest, or --junit');
+        console.error('  lam ingest --go [--from-file <path> | --cmd "<command>"]');
+        console.error('  lam ingest --py|--pytest [--from-file <path> | --cmd "<command>"]');
+        console.error('  lam ingest --junit [--from-file <path> | --cmd "<command>"]');
+        process.exit(1);
+      }
+      
+      if (formats.length > 1) {
+        console.error('lam ingest: use only one format flag at a time');
         process.exit(1);
       }
       
@@ -289,12 +311,12 @@ async function main() {
       const cmd = args.get('cmd') as string | undefined;
       
       if (!fromFile && !cmd) {
-        console.error('lam ingest --go requires --from-file <path> or --cmd "<command>"');
+        console.error('lam ingest requires --from-file <path> or --cmd "<command>"');
         process.exit(1);
       }
       
       if (fromFile && cmd) {
-        console.error('lam ingest --go: use either --from-file or --cmd, not both');
+        console.error('lam ingest: use either --from-file or --cmd, not both');
         process.exit(1);
       }
       
@@ -318,7 +340,13 @@ async function main() {
         }
       }
       
-      ingestGoTest(input);
+      if (go) {
+        ingestGoTest(input);
+      } else if (py || pytest) {
+        ingestPytestJSON(input);
+      } else if (junit) {
+        ingestJUnit(input);
+      }
       break;
     }
     case 'rules': {

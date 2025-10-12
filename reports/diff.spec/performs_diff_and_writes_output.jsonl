@@ -1,3 +1,3 @@
-{"ts":1760301597487,"lvl":"info","case":"performs diff and writes output","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760301597488,"lvl":"info","case":"performs diff and writes output","phase":"execution","evt":"test.run"}
-{"ts":1760301597489,"lvl":"info","case":"performs diff and writes output","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760303318826,"lvl":"info","case":"performs diff and writes output","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760303318827,"lvl":"info","case":"performs diff and writes output","phase":"execution","evt":"test.run"}
+{"ts":1760303318828,"lvl":"info","case":"performs diff and writes output","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

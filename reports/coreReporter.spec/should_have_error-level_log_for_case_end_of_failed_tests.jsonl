@@ -1,3 +1,3 @@
-{"ts":1760297274574,"lvl":"info","case":"should have error-level log for case.end of failed tests","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760297274575,"lvl":"info","case":"should have error-level log for case.end of failed tests","phase":"execution","evt":"test.run"}
-{"ts":1760297274576,"lvl":"info","case":"should have error-level log for case.end of failed tests","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760303318868,"lvl":"info","case":"should have error-level log for case.end of failed tests","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760303318869,"lvl":"info","case":"should have error-level log for case.end of failed tests","phase":"execution","evt":"test.run"}
+{"ts":1760303318870,"lvl":"info","case":"should have error-level log for case.end of failed tests","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

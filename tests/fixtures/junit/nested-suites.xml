@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="unit-tests" tests="2" failures="0" errors="0" skipped="0" time="0.015">
+    <testcase classname="unit-tests.utils" name="formatDate returns ISO string" time="0.007"/>
+    <testcase classname="unit-tests.helpers" name="clamp restricts value" time="0.008"/>
+  </testsuite>
+  <testsuite name="integration-tests" tests="3" failures="1" errors="0" skipped="0" time="0.125">
+    <testcase classname="integration-tests.database" name="connects to DB" time="0.045"/>
+    <testcase classname="integration-tests.database" name="queries users table" time="0.050">
+      <failure message="Connection timeout" type="Error">
+Error: Connection timeout
+    at Database.query (src/db.js:23:15)
+    at tests/integration/db.spec.js:89:12
+      </failure>
+    </testcase>
+    <testcase classname="integration-tests.api" name="fetches external data" time="0.030"/>
+  </testsuite>
+</testsuites>

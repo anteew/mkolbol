@@ -1,0 +1,798 @@
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index e84dea0..e1dcd1a 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -248,6 +248,87 @@ The `lam` CLI provides comprehensive test management and analysis capabilities.
+ 
+ #### Integration
+ - `lam ingest --go [--from-file <path> | --cmd "<command>"]` — ingest Go test results
++- `lam ingest --pytest [--from-file <path> | --cmd "<command>"]` — ingest pytest JSON results
++- `lam ingest --junit <file>` — ingest JUnit XML test results
++
++### lam ingest — Cross-Language Test Integration
++
++Converts test results from other frameworks into Laminar JSONL format.
++
++#### Pytest Integration
++
++Ingest pytest JSON reports (generated via `pytest-json-report` plugin):
++
++**Installation:**
++```bash
++pip install pytest-json-report
++```
++
++**Generate pytest JSON report:**
++```bash
++pytest --json-report --json-report-file=report.json
++```
++
++**Ingest into Laminar:**
++```bash
++# From file
++lam ingest --pytest --from-file report.json
++
++# From command
++lam ingest --pytest --cmd "pytest --json-report --json-report-file=/dev/stdout"
++```
++
++**Mapping:**
++- `outcome: passed` → `status: pass`
++- `outcome: failed` → `status: fail`
++- `outcome: error` → `status: error`
++- `outcome: skipped/xfailed/xpassed` → `status: skip`
++
++**Extracted data:**
++- Test names from `nodeid` field
++- Durations from `setup`, `call`, `teardown` stages (converted from seconds to milliseconds)
++- Error messages from `crash.message` or `longrepr`
++- Stack traces from `traceback` array
++- Standard output/error from `stdout`/`stderr` fields
++
++**Generated events:**
++- `case.begin` — test start (with keywords, line numbers)
++- `test.setup.{outcome}` — setup phase result
++- `test.run` — test execution start
++- `test.output` — captured stdout during test
++- `test.stderr` — captured stderr during test
++- `test.call.{outcome}` — test call phase result
++- `test.error` — error details (message + stack trace)
++- `test.teardown.{outcome}` — teardown phase result
++- `case.end` — test completion (with duration, status)
++
++**Example workflow:**
++```bash
++# Run pytest with JSON report
++pytest --json-report --json-report-file=pytest-report.json
++
++# Ingest into Laminar
++lam ingest --pytest --from-file pytest-report.json
++
++# Analyze failures
++lam summary
++lam digest
++```
++
++#### Go Integration
++
++Ingest Go test JSON output (generated via `go test -json`):
++
++**Usage:**
++```bash
++# From file
++lam ingest --go --from-file go-test.json
++
++# From command
++lam ingest --go --cmd "go test -json ./..."
++```
++
++See `scripts/ingest-go.ts` for implementation details.
+ 
+ ### lam trends — Failure Trend Analysis
+ 
+@@ -361,6 +442,83 @@ LAMINAR_DEBUG=1 npm test
+ ```
+ Writes debug events to `reports/<suite>/<case>.jsonl` alongside test events, using the same envelope schema.
+ 
++## Cross-Language Test Ingestion
++
++Laminar supports ingesting test results from multiple languages and frameworks through standardized adapters.
++
++### JUnit XML Adapter
++
++Convert JUnit XML output (used by Maven, Gradle, Jest, pytest, and many other tools) to Laminar JSONL format.
++
++**Supported Sources:**
++- Java (Maven Surefire, Gradle Test)
++- JavaScript/TypeScript (Jest with `jest-junit` reporter)
++- Python (pytest with `--junit-xml`)
++- C# (NUnit, xUnit with JUnit output)
++- Any tool that produces JUnit XML format
++
++**Usage:**
++```bash
++# From file
++npm run ingest:junit tests/results/junit.xml
++
++# From stdin (pipeline)
++cat test-output.xml | npm run ingest:junit -
++
++# Jest example
++jest --reporters=jest-junit
++npm run ingest:junit junit.xml
++```
++
++**Output Structure:**
++- `reports/<suite>/<test>.jsonl` — Per-test event streams
++- `reports/summary.jsonl` — Test summaries with status/duration/location
++
++**JUnit → Laminar Mapping:**
++- `<testcase>` → Laminar test case
++- `<failure>` → `test.error` event with `lvl: 'error'`
++- `<error>` → `test.error` event with stack trace
++- `<skipped>` → `test.skip` event
++- `time` attribute → `duration` in milliseconds
++- `classname` → `location` field
++
++**Event Lifecycle:**
++1. `case.begin` (phase: setup) — Test starts
++2. `test.run` (phase: execution) — Test executing
++3. `test.error` (if failed/error) — Failure details with stack
++4. `test.skip` (if skipped) — Skip reason
++5. `case.end` (phase: teardown) — Test completes with status
++
++**Example JUnit XML:**
++```xml
++<testsuites>
++  <testsuite name="math-tests" tests="2" failures="1" time="0.045">
++    <testcase classname="math-tests" name="addition works" time="0.005"/>
++    <testcase classname="math-tests" name="division fails" time="0.012">
++      <failure message="Expected 2 but got 3" type="AssertionError">
++AssertionError: Expected 2 but got 3
++    at tests/math.spec.js:45:5
++      </failure>
++    </testcase>
++  </testsuite>
++</testsuites>
++```
++
++**Generated Laminar Events:**
++```jsonl
++{"ts":1760290661027,"lvl":"info","case":"math-tests/addition works","phase":"setup","evt":"case.begin","payload":{"suite":"math-tests","classname":"math-tests","testName":"addition works"}}
++{"ts":1760290661028,"lvl":"info","case":"math-tests/addition works","phase":"execution","evt":"test.run"}
++{"ts":1760290661032,"lvl":"info","case":"math-tests/addition works","phase":"teardown","evt":"case.end","payload":{"duration":5,"status":"passed"}}
++{"ts":1760290661042,"lvl":"info","case":"math-tests/division fails","phase":"setup","evt":"case.begin","payload":{"suite":"math-tests","classname":"math-tests","testName":"division fails"}}
++{"ts":1760290661043,"lvl":"info","case":"math-tests/division fails","phase":"execution","evt":"test.run"}
++{"ts":1760290661052,"lvl":"error","case":"math-tests/division fails","phase":"execution","evt":"test.error","payload":{"message":"Expected 2 but got 3","type":"AssertionError","stack":"AssertionError: Expected 2 but got 3\n    at tests/math.spec.js:45:5"}}
++{"ts":1760290661054,"lvl":"error","case":"math-tests/division fails","phase":"teardown","evt":"case.end","payload":{"duration":12,"status":"failed"}}
++```
++
++### Go Test Adapter
++
++Ingest Go test JSON output (see `lam ingest --go` above).
++
+ ## Test Types
+ - Unit: adapters and small modules
+ - Component: module + adapters (inproc/worker/process)
+diff --git a/package.json b/package.json
+index 4bddf21..5776b82 100644
+--- a/package.json
++++ b/package.json
+@@ -37,6 +37,8 @@
+     "laminar:run": "tsx scripts/laminar-run.ts",
+     "laminar:digest": "tsx scripts/digest.ts",
+     "ingest:go": "tsx scripts/ingest-go.ts",
++    "ingest:pytest": "tsx scripts/ingest-pytest.ts",
++    "ingest:junit": "tsx scripts/ingest-junit.ts",
+     "dev": "node --enable-source-maps dist/examples/basic-topology.js",
+     "dev:split": "node --enable-source-maps dist/examples/split-topology.js",
+     "dev:merge": "node --enable-source-maps dist/examples/merge-topology.js",
+diff --git a/scripts/ingest-pytest.ts b/scripts/ingest-pytest.ts
+new file mode 100644
+index 0000000..6c56474
+--- /dev/null
++++ b/scripts/ingest-pytest.ts
+@@ -0,0 +1,347 @@
++import * as fs from 'node:fs';
++import * as path from 'node:path';
++
++export interface PytestStage {
++  duration?: number;
++  outcome: string;
++  crash?: {
++    path?: string;
++    lineno?: number;
++    message?: string;
++  };
++  traceback?: Array<{
++    path?: string;
++    lineno?: number;
++    message?: string;
++  }>;
++  stdout?: string;
++  stderr?: string;
++  longrepr?: string;
++}
++
++export interface PytestTest {
++  nodeid: string;
++  lineno?: number;
++  keywords?: string[];
++  outcome: string;
++  setup?: PytestStage | null;
++  call?: PytestStage | null;
++  teardown?: PytestStage | null;
++  metadata?: any;
++}
++
++export interface PytestReport {
++  created?: number;
++  duration?: number;
++  exitcode?: number;
++  root?: string;
++  environment?: any;
++  summary?: {
++    collected?: number;
++    total?: number;
++    passed?: number;
++    failed?: number;
++    error?: number;
++    skipped?: number;
++    xfailed?: number;
++    xpassed?: number;
++    [key: string]: any;
++  };
++  tests?: PytestTest[];
++  warnings?: any[];
++}
++
++export interface LaminarTestEvent {
++  ts: number;
++  lvl: string;
++  case?: string;
++  phase?: string;
++  evt: string;
++  payload?: any;
++}
++
++export function parsePytestJSON(input: string): PytestReport {
++  try {
++    return JSON.parse(input) as PytestReport;
++  } catch (error) {
++    throw new Error(`Failed to parse pytest JSON: ${error}`);
++  }
++}
++
++function mapOutcomeToStatus(outcome: string): string {
++  switch (outcome) {
++    case 'passed':
++      return 'pass';
++    case 'failed':
++      return 'fail';
++    case 'error':
++      return 'error';
++    case 'skipped':
++    case 'xfailed':
++    case 'xpassed':
++      return 'skip';
++    default:
++      return outcome;
++  }
++}
++
++function extractErrorMessage(stage?: PytestStage | null): string | undefined {
++  if (!stage) return undefined;
++  if (stage.crash?.message) return stage.crash.message;
++  if (stage.longrepr) return stage.longrepr;
++  return undefined;
++}
++
++function extractStackTrace(stage?: PytestStage | null): string | undefined {
++  if (!stage?.traceback || stage.traceback.length === 0) return undefined;
++  
++  return stage.traceback
++    .map(entry => {
++      const location = entry.path && entry.lineno 
++        ? `  at ${entry.path}:${entry.lineno}` 
++        : entry.path 
++          ? `  at ${entry.path}` 
++          : '';
++      const message = entry.message ? `\n    ${entry.message}` : '';
++      return `${location}${message}`;
++    })
++    .filter(line => line.trim())
++    .join('\n');
++}
++
++export function convertToLaminar(report: PytestReport): {
++  events: LaminarTestEvent[];
++  summary: Array<{ status: string; duration: number; location: string; artifactURI: string }>;
++} {
++  const laminarEvents: LaminarTestEvent[] = [];
++  const summary: Array<{ status: string; duration: number; location: string; artifactURI: string }> = [];
++  
++  const baseTs = report.created ? Math.floor(report.created * 1000) : Date.now();
++  
++  if (!report.tests || report.tests.length === 0) {
++    return { events: laminarEvents, summary };
++  }
++
++  let currentTs = baseTs;
++
++  for (const test of report.tests) {
++    const caseId = test.nodeid;
++    const location = test.lineno ? `${test.nodeid}:${test.lineno}` : test.nodeid;
++    
++    const testStartTs = currentTs;
++    laminarEvents.push({
++      ts: currentTs,
++      lvl: 'info',
++      case: caseId,
++      phase: 'setup',
++      evt: 'case.begin',
++      payload: { nodeid: test.nodeid, lineno: test.lineno, keywords: test.keywords }
++    });
++    currentTs += 1;
++
++    if (test.setup) {
++      const setupDuration = Math.round((test.setup.duration || 0) * 1000);
++      laminarEvents.push({
++        ts: currentTs,
++        lvl: test.setup.outcome === 'error' || test.setup.outcome === 'failed' ? 'error' : 'info',
++        case: caseId,
++        phase: 'setup',
++        evt: `test.setup.${test.setup.outcome}`,
++        payload: { 
++          duration: setupDuration,
++          stdout: test.setup.stdout,
++          stderr: test.setup.stderr
++        }
++      });
++      currentTs += setupDuration || 1;
++
++      if ((test.setup.outcome === 'error' || test.setup.outcome === 'failed') && test.setup.crash) {
++        const errorMessage = extractErrorMessage(test.setup);
++        const stackTrace = extractStackTrace(test.setup);
++        
++        laminarEvents.push({
++          ts: currentTs,
++          lvl: 'error',
++          case: caseId,
++          phase: 'setup',
++          evt: 'test.error',
++          payload: {
++            message: errorMessage,
++            stack: stackTrace,
++            crash: test.setup.crash
++          }
++        });
++        currentTs += 1;
++      }
++    }
++
++    if (test.call) {
++      const callDuration = Math.round((test.call.duration || 0) * 1000);
++      laminarEvents.push({
++        ts: currentTs,
++        lvl: 'info',
++        case: caseId,
++        phase: 'execution',
++        evt: 'test.run'
++      });
++      currentTs += 1;
++
++      if (test.call.stdout) {
++        laminarEvents.push({
++          ts: currentTs,
++          lvl: 'info',
++          case: caseId,
++          phase: 'execution',
++          evt: 'test.output',
++          payload: { output: test.call.stdout.trim() }
++        });
++        currentTs += 1;
++      }
++
++      if (test.call.stderr) {
++        laminarEvents.push({
++          ts: currentTs,
++          lvl: 'warn',
++          case: caseId,
++          phase: 'execution',
++          evt: 'test.stderr',
++          payload: { output: test.call.stderr.trim() }
++        });
++        currentTs += 1;
++      }
++
++      laminarEvents.push({
++        ts: currentTs,
++        lvl: test.call.outcome === 'failed' || test.call.outcome === 'error' ? 'error' : 'info',
++        case: caseId,
++        phase: 'execution',
++        evt: `test.call.${test.call.outcome}`,
++        payload: { duration: callDuration }
++      });
++      currentTs += callDuration || 1;
++
++      if ((test.call.outcome === 'failed' || test.call.outcome === 'error') && test.call.crash) {
++        const errorMessage = extractErrorMessage(test.call);
++        const stackTrace = extractStackTrace(test.call);
++        
++        laminarEvents.push({
++          ts: currentTs,
++          lvl: 'error',
++          case: caseId,
++          phase: 'execution',
++          evt: 'test.error',
++          payload: {
++            message: errorMessage,
++            stack: stackTrace,
++            crash: test.call.crash
++          }
++        });
++        currentTs += 1;
++      }
++    }
++
++    if (test.teardown) {
++      const teardownDuration = Math.round((test.teardown.duration || 0) * 1000);
++      laminarEvents.push({
++        ts: currentTs,
++        lvl: test.teardown.outcome === 'error' || test.teardown.outcome === 'failed' ? 'error' : 'info',
++        case: caseId,
++        phase: 'teardown',
++        evt: `test.teardown.${test.teardown.outcome}`,
++        payload: { 
++          duration: teardownDuration,
++          stdout: test.teardown.stdout,
++          stderr: test.teardown.stderr
++        }
++      });
++      currentTs += teardownDuration || 1;
++    }
++
++    const totalDuration = Math.round(
++      ((test.setup?.duration || 0) + 
++       (test.call?.duration || 0) + 
++       (test.teardown?.duration || 0)) * 1000
++    );
++
++    const finalOutcome = mapOutcomeToStatus(test.outcome);
++    laminarEvents.push({
++      ts: currentTs,
++      lvl: finalOutcome === 'fail' || finalOutcome === 'error' ? 'error' : 'info',
++      case: caseId,
++      phase: 'teardown',
++      evt: 'case.end',
++      payload: {
++        duration: totalDuration,
++        status: test.outcome === 'passed' ? 'passed' : 'failed'
++      }
++    });
++    currentTs += 1;
++
++    const artifactURI = `reports/${caseId.replace(/[/:]/g, '.')}.jsonl`;
++    summary.push({
++      status: finalOutcome,
++      duration: totalDuration,
++      location,
++      artifactURI
++    });
++  }
++
++  return { events: laminarEvents, summary };
++}
++
++export function writeOutput(
++  laminarEvents: LaminarTestEvent[],
++  summary: Array<{ status: string; duration: number; location: string; artifactURI: string }>
++): void {
++  fs.mkdirSync('reports', { recursive: true });
++
++  const caseGroups = new Map<string, LaminarTestEvent[]>();
++  for (const evt of laminarEvents) {
++    if (evt.case) {
++      if (!caseGroups.has(evt.case)) {
++        caseGroups.set(evt.case, []);
++      }
++      caseGroups.get(evt.case)!.push(evt);
++    }
++  }
++
++  for (const [caseId, events] of caseGroups) {
++    const artifactPath = `reports/${caseId.replace(/[/:]/g, '.')}.jsonl`;
++    const dir = path.dirname(artifactPath);
++    fs.mkdirSync(dir, { recursive: true });
++    fs.writeFileSync(artifactPath, events.map(e => JSON.stringify(e)).join('\n') + '\n');
++  }
++
++  const summaryPath = 'reports/summary.jsonl';
++  fs.writeFileSync(summaryPath, summary.map(s => JSON.stringify(s)).join('\n') + '\n');
++}
++
++export function ingestPytestJSON(input: string): void {
++  const report = parsePytestJSON(input);
++  const { events, summary } = convertToLaminar(report);
++  writeOutput(events, summary);
++  
++  console.log(`Ingested pytest report with ${report.tests?.length || 0} tests`);
++  console.log(`Generated ${summary.length} test case summaries`);
++  console.log(`Wrote artifacts to reports/`);
++}
++
++if (import.meta.url === `file://${process.argv[1]}`) {
++  const args = process.argv.slice(2);
++  const fromFileIndex = args.indexOf('--from-file');
++  
++  if (fromFileIndex === -1 || !args[fromFileIndex + 1]) {
++    console.error('Usage: ingest-pytest.ts --from-file <path>');
++    process.exit(1);
++  }
++  
++  const filePath = args[fromFileIndex + 1];
++  
++  if (!fs.existsSync(filePath)) {
++    console.error(`File not found: ${filePath}`);
++    process.exit(1);
++  }
++  
++  const input = fs.readFileSync(filePath, 'utf-8');
++  ingestPytestJSON(input);
++}
+diff --git a/scripts/lam.ts b/scripts/lam.ts
+index f540860..3cfdcfe 100644
+--- a/scripts/lam.ts
++++ b/scripts/lam.ts
+@@ -2,6 +2,7 @@
+ import { spawnSync, execSync } from 'node:child_process';
+ import * as fs from 'node:fs';
+ import { ingestGoTest } from './ingest-go.js';
++import { ingestPytestJSON } from './ingest-pytest.js';
+ import { DigestDiffEngine } from '../src/digest/diff.js';
+ import { bundleRepro } from './repro-bundle.js';
+ 
+@@ -21,6 +22,7 @@ Usage:
+   lam diff <digest1> <digest2> [--output <path>] [--format json|markdown]
+   lam repro --bundle [--case <case-name>]
+   lam ingest --go [--from-file <path> | --cmd "<command>"]
++  lam ingest --pytest [--from-file <path> | --cmd "<command>"]
+   lam rules get
+   lam rules set --file <path> | --inline '<json>'
+   lam trends [--since <timestamp>] [--until <timestamp>] [--top <n>]
+@@ -37,6 +39,8 @@ Examples:
+   lam repro --bundle --case kernel.spec/connect_moves_data_1_1
+   lam ingest --go --from-file go-test-output.json
+   lam ingest --go --cmd "go test -json ./..."
++  lam ingest --pytest --from-file pytest-report.json
++  lam ingest --pytest --cmd "pytest --json-report --json-report-file=/dev/stdout"
+   lam rules get
+   lam rules set --inline '{"budget":{"kb":2}}'
+   lam trends --top 10 --since 2025-10-01
+@@ -280,8 +284,17 @@ async function main() {
+     }
+     case 'ingest': {
+       const go = args.get('go');
+-      if (!go) {
+-        console.error('lam ingest --go [--from-file <path> | --cmd "<command>"]');
++      const pytest = args.get('pytest');
++      
++      if (!go && !pytest) {
++        console.error('lam ingest requires --go or --pytest');
++        console.error('  lam ingest --go [--from-file <path> | --cmd "<command>"]');
++        console.error('  lam ingest --pytest [--from-file <path> | --cmd "<command>"]');
++        process.exit(1);
++      }
++      
++      if (go && pytest) {
++        console.error('lam ingest: use either --go or --pytest, not both');
+         process.exit(1);
+       }
+       
+@@ -289,12 +302,12 @@ async function main() {
+       const cmd = args.get('cmd') as string | undefined;
+       
+       if (!fromFile && !cmd) {
+-        console.error('lam ingest --go requires --from-file <path> or --cmd "<command>"');
++        console.error('lam ingest requires --from-file <path> or --cmd "<command>"');
+         process.exit(1);
+       }
+       
+       if (fromFile && cmd) {
+-        console.error('lam ingest --go: use either --from-file or --cmd, not both');
++        console.error('lam ingest: use either --from-file or --cmd, not both');
+         process.exit(1);
+       }
+       
+@@ -318,7 +331,11 @@ async function main() {
+         }
+       }
+       
+-      ingestGoTest(input);
++      if (go) {
++        ingestGoTest(input);
++      } else if (pytest) {
++        ingestPytestJSON(input);
++      }
+       break;
+     }
+     case 'rules': {
+diff --git a/tests/fixtures/pytest/sample-report.json b/tests/fixtures/pytest/sample-report.json
+new file mode 100644
+index 0000000..2ffd21c
+--- /dev/null
++++ b/tests/fixtures/pytest/sample-report.json
+@@ -0,0 +1,136 @@
++{
++  "created": 1678886400.123456,
++  "duration": 1.56789,
++  "exitcode": 1,
++  "root": "/path/to/project",
++  "environment": {
++    "Python": "3.9.12",
++    "Platform": "Linux-5.15.0-67-generic-x86_64",
++    "Packages": {
++      "pytest": "7.2.5",
++      "pytest-json-report": "1.5.0"
++    }
++  },
++  "summary": {
++    "collected": 5,
++    "passed": 2,
++    "failed": 1,
++    "error": 1,
++    "skipped": 1,
++    "total": 5
++  },
++  "tests": [
++    {
++      "nodeid": "test_example.py::test_success",
++      "lineno": 5,
++      "keywords": ["test_success", "test_example.py"],
++      "outcome": "passed",
++      "setup": {
++        "duration": 0.0001,
++        "outcome": "passed"
++      },
++      "call": {
++        "duration": 0.0005,
++        "outcome": "passed",
++        "stdout": "This test passed successfully.\n"
++      },
++      "teardown": {
++        "duration": 0.00005,
++        "outcome": "passed"
++      }
++    },
++    {
++      "nodeid": "test_example.py::test_failure",
++      "lineno": 10,
++      "keywords": ["test_failure", "test_example.py"],
++      "outcome": "failed",
++      "setup": {
++        "duration": 0.00015,
++        "outcome": "passed"
++      },
++      "call": {
++        "duration": 0.0008,
++        "outcome": "failed",
++        "crash": {
++          "path": "test_example.py",
++          "lineno": 12,
++          "message": "AssertionError: assert 1 == 2"
++        },
++        "traceback": [
++          {
++            "path": "test_example.py",
++            "lineno": 12,
++            "message": "def test_failure():"
++          },
++          {
++            "path": "test_example.py",
++            "lineno": 13,
++            "message": "    assert 1 == 2"
++          }
++        ],
++        "stdout": "About to fail...\n",
++        "longrepr": "def test_failure():\n    assert 1 == 2\nE   AssertionError: assert 1 == 2"
++      },
++      "teardown": {
++        "duration": 0.00008,
++        "outcome": "passed"
++      }
++    },
++    {
++      "nodeid": "test_example.py::test_error_during_setup",
++      "lineno": 18,
++      "keywords": ["test_error_during_setup", "test_example.py"],
++      "outcome": "error",
++      "setup": {
++        "duration": 0.0002,
++        "outcome": "error",
++        "crash": {
++          "path": "test_example.py",
++          "lineno": 20,
++          "message": "NameError: name 'non_existent_variable' is not defined"
++        },
++        "traceback": [
++          {
++            "path": "test_example.py",
++            "lineno": 20,
++            "message": "non_existent_variable"
++          }
++        ],
++        "longrepr": "NameError: name 'non_existent_variable' is not defined"
++      },
++      "call": null,
++      "teardown": null
++    },
++    {
++      "nodeid": "test_example.py::test_skipped_test",
++      "lineno": 25,
++      "keywords": ["test_skipped_test", "test_example.py", "skip"],
++      "outcome": "skipped",
++      "setup": {
++        "duration": 0.0001,
++        "outcome": "skipped",
++        "longrepr": "Skipped: This test is intentionally skipped."
++      },
++      "call": null,
++      "teardown": null
++    },
++    {
++      "nodeid": "test_calculations.py::test_addition",
++      "lineno": 3,
++      "keywords": ["test_addition", "test_calculations.py"],
++      "outcome": "passed",
++      "setup": {
++        "duration": 0.00008,
++        "outcome": "passed"
++      },
++      "call": {
++        "duration": 0.0003,
++        "outcome": "passed"
++      },
++      "teardown": {
++        "duration": 0.00004,
++        "outcome": "passed"
++      }
++    }
++  ]
++}
+diff --git a/tests/fixtures/pytest/simple-pass.json b/tests/fixtures/pytest/simple-pass.json
+new file mode 100644
+index 0000000..4b9ef72
+--- /dev/null
++++ b/tests/fixtures/pytest/simple-pass.json
+@@ -0,0 +1,31 @@
++{
++  "created": 1678886400.5,
++  "duration": 0.15,
++  "exitcode": 0,
++  "root": "/path/to/project",
++  "summary": {
++    "collected": 1,
++    "passed": 1,
++    "total": 1
++  },
++  "tests": [
++    {
++      "nodeid": "test_simple.py::test_basic",
++      "lineno": 1,
++      "keywords": ["test_basic"],
++      "outcome": "passed",
++      "setup": {
++        "duration": 0.0001,
++        "outcome": "passed"
++      },
++      "call": {
++        "duration": 0.0002,
++        "outcome": "passed"
++      },
++      "teardown": {
++        "duration": 0.00005,
++        "outcome": "passed"
++      }
++    }
++  ]
++}

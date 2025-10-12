@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="math-tests" tests="3" failures="1" errors="1" skipped="0" time="0.045">
+    <testcase classname="math-tests" name="addition works" time="0.005"/>
+    <testcase classname="math-tests" name="division fails" time="0.012">
+      <failure message="Expected 2 but got 3" type="AssertionError">
+AssertionError: Expected 2 but got 3
+    at tests/math.spec.js:45:5
+    at Object.&lt;anonymous&gt; (tests/math.spec.js:44:3)
+      </failure>
+    </testcase>
+    <testcase classname="math-tests" name="throws on invalid input" time="0.028">
+      <error message="Unexpected error" type="TypeError">
+TypeError: Unexpected error
+    at calculator.divide (src/calc.js:12:11)
+    at tests/math.spec.js:52:7
+      </error>
+    </testcase>
+  </testsuite>
+</testsuites>

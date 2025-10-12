@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="api-tests" tests="4" failures="0" errors="0" skipped="2" time="0.032">
+    <testcase classname="api-tests" name="GET /users returns 200" time="0.012"/>
+    <testcase classname="api-tests" name="POST /users creates user" time="0.020"/>
+    <testcase classname="api-tests" name="DELETE /users requires auth" time="0">
+      <skipped message="Not implemented yet"/>
+    </testcase>
+    <testcase classname="api-tests" name="PUT /users updates user" time="0">
+      <skipped/>
+    </testcase>
+  </testsuite>
+</testsuites>
