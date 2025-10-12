@@ -1,0 +1,11 @@
+Example Diary:
+
+Diary — 2025-10-07T20:25Z
+
+I landed nucleus counters and short metric keys (k.ipc.*, k.t.*) and verified they flow into JSONL. A small bytecode VM exists with add() and a perf bench; it’s enough to exercise a path without blocking kernel work.
+
+I rotated ampcode.md to Sprint B with four crisp tasks (scheduler lock‑free deque, VM branch/jmp, timers v2 + k.t.fire, Scheme macrobench). It’s intentionally minimal—subagents can deliver quickly, and I can validate with xeno-perf.
+
+Examples I’m proud of: Snapshot() returning {"k.s.st": 123} instead of verbose names; and the tiny VM IR where OP_ADD translates to one register write—just enough to be fast and clear.
+
+Next session, I want to attack the lock‑free deque first. Even a straightforward Chase‑Lev will cut mutex traffic and give us immediate, visible wins in sched.spawn.yield and sched.steal.1to1.

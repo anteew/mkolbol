@@ -1,0 +1,15 @@
+Primer — what to do next (after context compaction)
+
+- Recenter: read VEGA/WHO_AM_I.md and my-state-of-mind-today.txt.
+- Skim docs/rfcs/stream-kernel/00-index.md and src/kernel/Kernel.ts.
+- Open VEGA/ampcode.md and pick the top task.
+
+Taste cues
+- Kernel stays tiny: only pipes + registry. No semantics in core.
+- Short, consistent keys in types/registry; readable names, small diffs.
+- Examples should run; tests should cover the touched edges.
+
+If stalled
+- Add or update a tiny test/demo instead of speculating.
+- Write a one-sentence WHY at hot edges or in the PR.
+- Prefer small PR-sized diffs; wire tests before changing semantics.

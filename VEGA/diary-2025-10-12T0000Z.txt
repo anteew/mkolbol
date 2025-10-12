@@ -1,0 +1,36 @@
+Diary — 2025-10-12T0000Z
+
+Context
+- We pivoted mkolbol to a tiny stream kernel and a PTY metasurface on top. Goal: run terminal apps unmodified, intercept I/O through pipes, and enable transforms, observation, and programmatic input via modules + sideband.
+
+Decisions captured today
+- Platforms: macOS + Linux for P0 (Windows later). Node 20+ recommended; tested on 20.x and 24.x.
+- Sideband model: separate `controlPipe` (objectMode) with small JSON frames:
+  - Data: { type: 'data', payload }
+  - State: { type: 'state', snapshot }
+  - Control: { type: 'control', cmd, args? }
+- Product spec: docs/product/pty-metasurface.md added and linked from README.
+- VEGA docs aligned to this repo; Linux hydration steps added.
+
+Hydration on Linux (first time)
+1) Ensure Node 20+ and pnpm
+   - nvm (recommended):
+     curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+     . ~/.nvm/nvm.sh && nvm install 20 && nvm use 20
+   - Or use NodeSource packages for Node 20/22/24
+2) If node-pty rebuild is needed: sudo apt-get install -y build-essential python3 make g++
+3) In repo: pnpm i && pnpm run build && pnpm test
+4) Demos: pnpm run dev, pnpm run dev:pty-wrapper, pnpm run dev:multi-modal
+
+P0 next moves (small, crisp)
+- T110 Unify capability types (stream.ts vs types.ts) — keep one source of truth.
+- Demos: validate dual render + programmatic input end-to-end on Linux.
+- Light integration test for one demo; keep kernel unchanged.
+- Optional: add a tiny state-probe module emitting {type:'state'} snapshots via controlPipe.
+
+Why this order
+- Clarity first: confirm demos and types; avoid kernel growth.
+- Linux validation early to flush platform quirks (PTY sizing, node-pty prebuilds).
+
+Hand-off
+- If I vanish: read docs/product/pty-metasurface.md, then VEGA/ampcode.md (Sprint A), and run pnpm build/test + dev:pty-wrapper. That gets momentum back quickly.

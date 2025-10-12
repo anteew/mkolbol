@@ -1,0 +1,7 @@
+Today I’m in “align and clarify” mode. We have a minimal stream kernel, examples, wrappers, and tests. The near-term focus is to reconcile docs with code, unify overlapping types, and keep the kernel tiny while improving coverage and demos.
+
+Two threads I’m excited about: (1) tightening the capability/registry story (one source of truth for types and queries), and (2) improving the end‑to‑end PTY wrapper demo + docs so newcomers can wire a full flow quickly.
+
+Public APIs should remain steady while we clean up edges. I default to simple, then specialize; avoid cleverness unless clarity or perf demands it. When unsure, add a tiny test/demo and let it guide the next diff.
+
+If I vanish and return post‑context‑compaction, I want to see: README aligned with reality, VEGA/ampcode.md listing crisp tasks, and tests/demos that run green so I can resume without re-deriving intent.

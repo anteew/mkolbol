@@ -2,12 +2,20 @@
 
 **Stream-based microkernel for AI agent systems**
 
+## Primary Architect
+ - **Architect Name** - VEGA
+ - **Architect Model** - GPT-5 Thinking HIGH
+ - **AI AGENT SELF files** - In this repo in the subdirectory VEGA
+ - **AI AGENT reads self files on startup** - YES
+ - **Relation to human user** - Vega is the technical brains, helping to keep the human on track with what he or she is needing built.
+ 
+ 
 ## Overview
 
 mkolbol is a minimal (~100 line) stream-based microkernel designed for building flexible, distributed AI agent systems. The kernel provides protocol-agnostic "physical layer" plumbing while all semantics live in composable modules.
 
-**Current Status:** 🏗️ **Architecture & RFC Phase**  
-The Stream Kernel architecture is fully documented in comprehensive RFCs. Implementation is planned for the near future.
+**Current Status:** 🧪 **Early Implementation + RFCs**  
+A minimal stream kernel with examples and tests is present. APIs are still evolving; RFCs document the intended shape.
 
 ## Vision
 
@@ -18,6 +26,10 @@ Build the most flexible terminal I/O and AI agent system ever created:
 - **Protocol agnostic** - Pipes carry anything (bytes, JSON-RPC, MCP, custom protocols)
 - **Distributed deployment** - Same code runs single-process, multi-process, or across machines
 - **Browser-ready** - Works in Node.js and browsers (TypeScript)
+
+Product focus (P0)
+
+- See docs/product/pty-metasurface.md for the PTY metasurface product spec clarifying P0 scope and demos.
 
 ## Core Principles
 
@@ -52,7 +64,12 @@ npm install mkolbol
 pnpm add mkolbol
 ```
 
-**Note:** The Stream Kernel implementation is not yet available. Current package contains the archived MCP-based implementation (see below).
+**Note:** Experimental preview. The Stream Kernel is implemented minimally in this repo with runnable demos; APIs may change.
+
+Requirements
+
+- Node 20+ (tested on 20.x and 24.x)
+- macOS or Linux (Windows later)
 
 ## Example (Future API)
 
@@ -136,8 +153,8 @@ The Stream Kernel is designed to be testable in isolation:
 
 ## Documentation
 
-### Current Implementation (MCP Kernel)
-See [KERNEL_RFC.md](./KERNEL_RFC.md) for detailed architecture documentation of the current MCP-based kernel.
+### Archived: MCP Kernel
+See [archived/mcp-kernel/KERNEL_RFC.md](archived/mcp-kernel/KERNEL_RFC.md) for detailed documentation of the prior MCP-based kernel.
 
 ### Proposed Architecture (Stream Kernel)
 A new stream-based microkernel architecture has been proposed with comprehensive documentation:
