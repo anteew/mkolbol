@@ -3,54 +3,55 @@
   "ampcode": "v1",
   "notes": "Do not branch/commit/push — VEGA handles git.",
   "waves": [
-    { "id": "PKG-A", "parallel": true,  "tasks": ["T4101", "T4105"] },
-    { "id": "PKG-B", "parallel": true,  "depends_on": ["PKG-A"], "tasks": ["T4102", "T4103"] },
-    { "id": "PKG-C", "parallel": false, "depends_on": ["PKG-B"], "tasks": ["T4104"] }
+    { "id": "DOCS-A", "parallel": true,  "tasks": ["T4201", "T4203"] },
+    { "id": "DOCS-B", "parallel": true,  "depends_on": ["DOCS-A"], "tasks": ["T4202", "T4204"] },
+    { "id": "DOCS-C", "parallel": false, "depends_on": ["DOCS-B"], "tasks": ["T4205"] }
   ],
   "tasks": [
     {
-      "id": "T4101",
+      "id": "T4201",
       "agent": "susan-1",
-      "title": "Packaging: npx entry + bin script",
-      "allowedFiles": ["package.json", "README.md"],
-      "verify": ["jq -r '.bin? // "none"' package.json", "npm run build"],
-      "deliverables": ["patches/DIFF_T4101_pkg-npx-bin.patch"]
-    },
-    {
-      "id": "T4102",
-      "agent": "susan-2",
-      "title": "CLI: lam init scaffolding (laminar.config.json)",
-      "allowedFiles": ["scripts/lam.ts", "src/init/scaffold.ts", "docs/testing/laminar.md"],
-      "verify": ["npm run lam -- init --dry-run"],
-      "deliverables": ["patches/DIFF_T4102_cli-init-scaffold.patch"]
-    },
-    {
-      "id": "T4103",
-      "agent": "susan-3",
-      "title": "CI: GitHub Actions sample workflow publishing reports/",
-      "allowedFiles": [".github/workflows/laminar.yml", "README.md"],
-      "verify": ["test -f .github/workflows/laminar.yml && echo ok"],
-      "deliverables": ["patches/DIFF_T4103_ci-gha-workflow.patch"]
-    },
-    {
-      "id": "T4104",
-      "agent": "susan-4",
-      "title": "Docs: Quickstart (README front page + laminar.md)",
+      "title": "Docs: README Quickstart final polish",
       "allowedFiles": ["README.md", "docs/testing/laminar.md"],
-      "verify": ["grep -q 'Quickstart' README.md"],
-      "deliverables": ["patches/DIFF_T4104_docs-quickstart.patch"]
+      "verify": ["rg -n 'Quickstart' README.md", "rg -n 'Quickstart' docs/testing/laminar.md"],
+      "deliverables": ["patches/DIFF_T4201_docs-readme-quickstart.patch"]
     },
     {
-      "id": "T4105",
+      "id": "T4202",
+      "agent": "susan-2",
+      "title": "Docs: MCP cookbook (tools + JSON contracts + examples)",
+      "allowedFiles": ["src/mcp/laminar/server.ts", "docs/testing/laminar.md"],
+      "verify": ["rg -n 'MCP' docs/testing/laminar.md", "test -f src/mcp/laminar/server.ts || true"],
+      "deliverables": ["patches/DIFF_T4202_docs-mcp-cookbook.patch"]
+    },
+    {
+      "id": "T4203",
+      "agent": "susan-3",
+      "title": "Docs: Cross-language ingest how-tos (Go/Pytest/JUnit)",
+      "allowedFiles": ["docs/testing/laminar.md", "tests/fixtures/**"],
+      "verify": ["rg -n 'ingest --go' docs/testing/laminar.md", "rg -n 'ingest --pytest' docs/testing/laminar.md", "rg -n 'ingest --junit' docs/testing/laminar.md"],
+      "deliverables": ["patches/DIFF_T4203_docs-ingest-howtos.patch"]
+    },
+    {
+      "id": "T4204",
+      "agent": "susan-4",
+      "title": "Docs: Rule packs & redaction guidance; budgets & overlays",
+      "allowedFiles": ["docs/testing/laminar.md"],
+      "verify": ["rg -n 'Rule pack' docs/testing/laminar.md", "rg -n 'redaction' docs/testing/laminar.md", "rg -n 'overlay' docs/testing/laminar.md"],
+      "deliverables": ["patches/DIFF_T4204_docs-rulepacks-redaction.patch"]
+    },
+    {
+      "id": "T4205",
       "agent": "susan-5",
-      "title": "CLI polish: lam --help reflects init + npx",
-      "allowedFiles": ["scripts/lam.ts"],
-      "verify": ["npm run lam -- --help"],
-      "deliverables": ["patches/DIFF_T4105_cli-help-polish.patch"]
+      "title": "Docs: Final pass consistency (commands, examples, links)",
+      "allowedFiles": ["README.md", "docs/testing/laminar.md"],
+      "verify": ["npm run build"],
+      "deliverables": ["patches/DIFF_T4205_docs-final-polish.patch"]
     }
   ]
 }
 ```
+
 
 # Ampcode — Subagent Sprint Plan (mkolbol Debug Instrumentation P1)
 
