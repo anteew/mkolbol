@@ -97,11 +97,24 @@ const DEFAULT_CONFIG: DigestConfig = {
 
 export class DigestGenerator {
   private config: DigestConfig;
+  private overlayRules: DigestRule[] = [];
   private codeframeExtractor: CodeFrameExtractor;
 
   constructor(config?: DigestConfig) {
     this.config = config || DEFAULT_CONFIG;
     this.codeframeExtractor = new CodeFrameExtractor(2);
+  }
+
+  setOverlayRules(rules: DigestRule[]): void {
+    this.overlayRules = rules;
+  }
+
+  clearOverlayRules(): void {
+    this.overlayRules = [];
+  }
+
+  getOverlayRules(): DigestRule[] {
+    return [...this.overlayRules];
   }
 
   static loadConfig(configPath: string = 'laminar.config.json'): DigestConfig {
@@ -185,13 +198,16 @@ export class DigestGenerator {
   }
 
   private applyRules(events: DigestEvent[]): DigestEvent[] {
-    if (!this.config.rules || this.config.rules.length === 0) {
+    const baseRules = this.config.rules || [];
+    const mergedRules = [...baseRules, ...this.overlayRules];
+    
+    if (mergedRules.length === 0) {
       return events;
     }
 
     const included = new Set<number>();
     const redactedFields = new Map<number, Set<string>>();
-    const rules = [...this.config.rules].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    const rules = mergedRules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
     for (const rule of rules) {
       for (let i = 0; i < events.length; i++) {

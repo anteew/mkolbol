@@ -1,3 +1,3 @@
-{"ts":1760294318547,"lvl":"info","case":"parses Firefox-style stack traces","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760294318548,"lvl":"info","case":"parses Firefox-style stack traces","phase":"execution","evt":"test.run"}
-{"ts":1760294318549,"lvl":"info","case":"parses Firefox-style stack traces","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760297274639,"lvl":"info","case":"parses Firefox-style stack traces","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760297274640,"lvl":"info","case":"parses Firefox-style stack traces","phase":"execution","evt":"test.run"}
+{"ts":1760297274641,"lvl":"info","case":"parses Firefox-style stack traces","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

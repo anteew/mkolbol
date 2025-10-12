@@ -1,0 +1,157 @@
+{
+  "case": "should_include_test_error_events_for_failed_tests",
+  "status": "fail",
+  "duration": 7,
+  "location": "/srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:0",
+  "error": "test.error event should exist for failed test: expected undefined not to be undefined",
+  "summary": {
+    "totalEvents": 4,
+    "includedEvents": 2,
+    "redactedFields": 0,
+    "budgetUsed": 2533,
+    "budgetLimit": 10240
+  },
+  "suspects": [
+    {
+      "ts": 1760295577966,
+      "lvl": "error",
+      "case": "should include test.error events for failed tests",
+      "phase": "teardown",
+      "evt": "case.end",
+      "payload": {
+        "duration": 7,
+        "status": "failed"
+      },
+      "score": 80,
+      "reasons": [
+        "error level",
+        "close proximity to failure"
+      ]
+    },
+    {
+      "ts": 1760295577965,
+      "lvl": "error",
+      "case": "should include test.error events for failed tests",
+      "phase": "execution",
+      "evt": "test.error",
+      "payload": {
+        "message": "test.error event should exist for failed test: expected undefined not to be undefined",
+        "stack": "AssertionError: test.error event should exist for failed test: expected undefined not to be undefined\n    at Proxy.<anonymous> (file:///srv/repos0/mkolbol/node_modules/@vitest/expect/dist/index.js:1102:24)\n    at Proxy.<anonymous> (file:///srv/repos0/mkolbol/node_modules/@vitest/expect/dist/index.js:800:17)\n    at Proxy.methodWrapper (/srv/repos0/mkolbol/node_modules/chai/lib/chai/utils/addMethod.js:57:25)\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:212:77\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:135:14\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:60:26\n    at runTest (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:781:17)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)"
+      },
+      "score": 79.99,
+      "reasons": [
+        "error level",
+        "close proximity to failure"
+      ]
+    },
+    {
+      "ts": 1760295577964,
+      "lvl": "info",
+      "case": "should include test.error events for failed tests",
+      "phase": "execution",
+      "evt": "test.run",
+      "score": 29.98,
+      "reasons": [
+        "close proximity to failure"
+      ]
+    },
+    {
+      "ts": 1760295577963,
+      "lvl": "info",
+      "case": "should include test.error events for failed tests",
+      "phase": "setup",
+      "evt": "case.begin",
+      "env": {
+        "nodeVersion": "v24.9.0",
+        "platform": "linux",
+        "arch": "x64",
+        "os": "Linux 6.8.0-85-generic",
+        "seed": 42,
+        "envVars": {
+          "NODE_ENV": "test",
+          "TEST_SEED": "42",
+          "LAMINAR_DEBUG": "1",
+          "LAMINAR_SUITE": "coreReporter.spec",
+          "LAMINAR_CASE": "should_have_matching_test_count_between_index_and_summary"
+        }
+      },
+      "seed": 42,
+      "score": 29.97,
+      "reasons": [
+        "close proximity to failure"
+      ]
+    }
+  ],
+  "codeframes": [
+    {
+      "file": "/srv/repos0/mkolbol/node_modules/chai/lib/chai/utils/addMethod.js",
+      "line": 57,
+      "column": 25,
+      "source": [
+        "    }",
+        "",
+        "    var result = method.apply(this, arguments);",
+        "    if (result !== undefined)",
+        "      return result;"
+      ],
+      "context": {
+        "before": [
+          "    }",
+          ""
+        ],
+        "focus": "    var result = method.apply(this, arguments);",
+        "after": [
+          "    if (result !== undefined)",
+          "      return result;"
+        ]
+      }
+    },
+    {
+      "file": "/srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts",
+      "line": 212,
+      "column": 77,
+      "source": [
+        "        ",
+        "        const errorEvent = lines.find(e => e.evt === 'test.error');",
+        "        expect(errorEvent, 'test.error event should exist for failed test').toBeDefined();",
+        "        expect(errorEvent?.lvl).toBe('error');",
+        "        expect(errorEvent?.payload).toBeDefined();"
+      ],
+      "context": {
+        "before": [
+          "        ",
+          "        const errorEvent = lines.find(e => e.evt === 'test.error');"
+        ],
+        "focus": "        expect(errorEvent, 'test.error event should exist for failed test').toBeDefined();",
+        "after": [
+          "        expect(errorEvent?.lvl).toBe('error');",
+          "        expect(errorEvent?.payload).toBeDefined();"
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "ts": 1760295577965,
+      "lvl": "error",
+      "case": "should include test.error events for failed tests",
+      "phase": "execution",
+      "evt": "test.error",
+      "payload": {
+        "message": "test.error event should exist for failed test: expected undefined not to be undefined",
+        "stack": "AssertionError: test.error event should exist for failed test: expected undefined not to be undefined\n    at Proxy.<anonymous> (file:///srv/repos0/mkolbol/node_modules/@vitest/expect/dist/index.js:1102:24)\n    at Proxy.<anonymous> (file:///srv/repos0/mkolbol/node_modules/@vitest/expect/dist/index.js:800:17)\n    at Proxy.methodWrapper (/srv/repos0/mkolbol/node_modules/chai/lib/chai/utils/addMethod.js:57:25)\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:212:77\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:135:14\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:60:26\n    at runTest (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:781:17)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)"
+      }
+    },
+    {
+      "ts": 1760295577966,
+      "lvl": "error",
+      "case": "should include test.error events for failed tests",
+      "phase": "teardown",
+      "evt": "case.end",
+      "payload": {
+        "duration": 7,
+        "status": "failed"
+      }
+    }
+  ]
+}

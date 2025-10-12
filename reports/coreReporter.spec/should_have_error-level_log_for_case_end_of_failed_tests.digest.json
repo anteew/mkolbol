@@ -1,0 +1,134 @@
+{
+  "case": "should_have_error-level_log_for_case_end_of_failed_tests",
+  "status": "fail",
+  "duration": 2,
+  "location": "/srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:0",
+  "error": "expected 'info' to be 'error' // Object.is equality",
+  "summary": {
+    "totalEvents": 4,
+    "includedEvents": 2,
+    "redactedFields": 0,
+    "budgetUsed": 1917,
+    "budgetLimit": 10240
+  },
+  "suspects": [
+    {
+      "ts": 1760295577966,
+      "lvl": "error",
+      "case": "should have error-level log for case.end of failed tests",
+      "phase": "teardown",
+      "evt": "case.end",
+      "payload": {
+        "duration": 2,
+        "status": "failed"
+      },
+      "score": 80,
+      "reasons": [
+        "error level",
+        "close proximity to failure"
+      ]
+    },
+    {
+      "ts": 1760295577965,
+      "lvl": "error",
+      "case": "should have error-level log for case.end of failed tests",
+      "phase": "execution",
+      "evt": "test.error",
+      "payload": {
+        "message": "expected 'info' to be 'error' // Object.is equality",
+        "stack": "AssertionError: expected 'info' to be 'error' // Object.is equality\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:226:31\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:135:14\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:60:26\n    at runTest (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:781:17)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runFiles (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:958:5)\n    at startTests (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:967:3)\n    at file:///srv/repos0/mkolbol/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7"
+      },
+      "score": 79.99,
+      "reasons": [
+        "error level",
+        "close proximity to failure"
+      ]
+    },
+    {
+      "ts": 1760295577964,
+      "lvl": "info",
+      "case": "should have error-level log for case.end of failed tests",
+      "phase": "execution",
+      "evt": "test.run",
+      "score": 29.98,
+      "reasons": [
+        "close proximity to failure"
+      ]
+    },
+    {
+      "ts": 1760295577963,
+      "lvl": "info",
+      "case": "should have error-level log for case.end of failed tests",
+      "phase": "setup",
+      "evt": "case.begin",
+      "env": {
+        "nodeVersion": "v24.9.0",
+        "platform": "linux",
+        "arch": "x64",
+        "os": "Linux 6.8.0-85-generic",
+        "seed": 42,
+        "envVars": {
+          "NODE_ENV": "test",
+          "TEST_SEED": "42",
+          "LAMINAR_DEBUG": "1",
+          "LAMINAR_SUITE": "coreReporter.spec",
+          "LAMINAR_CASE": "should_have_matching_test_count_between_index_and_summary"
+        }
+      },
+      "seed": 42,
+      "score": 29.97,
+      "reasons": [
+        "close proximity to failure"
+      ]
+    }
+  ],
+  "codeframes": [
+    {
+      "file": "/srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts",
+      "line": 226,
+      "column": 31,
+      "source": [
+        "        ",
+        "        const endEvent = lines.find(e => e.evt === 'case.end');",
+        "        expect(endEvent?.lvl).toBe('error');",
+        "        expect(endEvent?.payload?.status).toBe('failed');",
+        "      }"
+      ],
+      "context": {
+        "before": [
+          "        ",
+          "        const endEvent = lines.find(e => e.evt === 'case.end');"
+        ],
+        "focus": "        expect(endEvent?.lvl).toBe('error');",
+        "after": [
+          "        expect(endEvent?.payload?.status).toBe('failed');",
+          "      }"
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "ts": 1760295577965,
+      "lvl": "error",
+      "case": "should have error-level log for case.end of failed tests",
+      "phase": "execution",
+      "evt": "test.error",
+      "payload": {
+        "message": "expected 'info' to be 'error' // Object.is equality",
+        "stack": "AssertionError: expected 'info' to be 'error' // Object.is equality\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:226:31\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:135:14\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:60:26\n    at runTest (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:781:17)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runFiles (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:958:5)\n    at startTests (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:967:3)\n    at file:///srv/repos0/mkolbol/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7"
+      }
+    },
+    {
+      "ts": 1760295577966,
+      "lvl": "error",
+      "case": "should have error-level log for case.end of failed tests",
+      "phase": "teardown",
+      "evt": "case.end",
+      "payload": {
+        "duration": 2,
+        "status": "failed"
+      }
+    }
+  ]
+}

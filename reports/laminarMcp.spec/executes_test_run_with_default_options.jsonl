@@ -1,0 +1,3 @@
+{"ts":1760295631123,"lvl":"info","case":"executes test run with default options","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760295631124,"lvl":"info","case":"executes test run with default options","phase":"execution","evt":"test.run"}
+{"ts":1760295631125,"lvl":"info","case":"executes test run with default options","phase":"teardown","evt":"case.end","payload":{"duration":203010,"status":"passed"}}

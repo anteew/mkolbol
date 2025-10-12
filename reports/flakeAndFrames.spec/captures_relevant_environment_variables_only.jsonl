@@ -1,3 +1,3 @@
-{"ts":1760294318535,"lvl":"info","case":"captures relevant environment variables only","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760294318536,"lvl":"info","case":"captures relevant environment variables only","phase":"execution","evt":"test.run"}
-{"ts":1760294318537,"lvl":"info","case":"captures relevant environment variables only","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760297274638,"lvl":"info","case":"captures relevant environment variables only","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760297274639,"lvl":"info","case":"captures relevant environment variables only","phase":"execution","evt":"test.run"}
+{"ts":1760297274640,"lvl":"info","case":"captures relevant environment variables only","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
