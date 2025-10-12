@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import { generateAllDigests } from '../src/digest/generator.js';
+import { generateFingerprint, extractFailureInfo, type HistoryEntry } from '../src/digest/fingerprint.js';
 
 type SummaryEntry = {
   status: 'pass'|'fail'|'skip';
@@ -8,6 +9,7 @@ type SummaryEntry = {
   location: string; // file:line
   artifactURI?: string;
   error?: string;
+  testName?: string;
 };
 
 type StabilityResult = {
@@ -49,6 +51,50 @@ function caseFromArtifact(uri?: string): string {
   if (!uri) return 'debug.case';
   const m = uri.match(/\/([^\/]+)\.jsonl$/);
   return m ? m[1] : 'debug.case';
+}
+
+function updateHistory(entries: SummaryEntry[], runMetadata?: Record<string, any>) {
+  fs.mkdirSync('reports', { recursive: true });
+  const historyPath = 'reports/history.jsonl';
+  const timestamp = new Date().toISOString();
+  
+  for (const entry of entries) {
+    const testName = entry.testName || caseFromArtifact(entry.artifactURI);
+    let fingerprint = '';
+    
+    if (entry.status === 'fail') {
+      let payload: any = undefined;
+      
+      if (entry.artifactURI && fs.existsSync(entry.artifactURI)) {
+        try {
+          const content = fs.readFileSync(entry.artifactURI, 'utf-8');
+          const lines = content.trim().split('\n');
+          for (const line of lines) {
+            const evt = JSON.parse(line);
+            if (evt.lvl === 'error' && evt.payload) {
+              payload = evt.payload;
+              break;
+            }
+          }
+        } catch {}
+      }
+      
+      const failureInfo = extractFailureInfo(testName, entry.error, payload);
+      fingerprint = generateFingerprint(failureInfo);
+    }
+    
+    const historyEntry: HistoryEntry = {
+      timestamp,
+      fingerprint,
+      testName,
+      status: entry.status,
+      duration: entry.duration,
+      location: entry.location,
+      runMetadata,
+    };
+    
+    fs.appendFileSync(historyPath, JSON.stringify(historyEntry) + '\n');
+  }
 }
 
 async function runFlakeDetection(reruns: number = 5) {
@@ -141,6 +187,16 @@ async function runFlakeDetection(reruns: number = 5) {
   }, null, 2));
   console.log(`\nDetailed report saved to ${reportPath}`);
   
+  // Update history ledger for flake detection runs
+  const finalEntries = parseSummary();
+  const runMetadata = {
+    seed,
+    runId: Date.now().toString(),
+    mode: 'flake-detection',
+    reruns,
+  };
+  updateHistory(finalEntries, runMetadata);
+  
   // Exit with error if any flaky tests found
   if (flakyTests.length > 0 || alwaysFail.length > 0) {
     process.exit(1);
@@ -206,6 +262,14 @@ async function main() {
   if (digestCount > 0) {
     console.log(`Generated ${digestCount} digest(s) in reports/ directory`);
   }
+
+  // Update history ledger
+  const finalEntries = parseSummary();
+  const runMetadata = {
+    seed: process.env.TEST_SEED || testEnv.TEST_SEED || 'default',
+    runId: Date.now().toString(),
+  };
+  updateHistory(finalEntries, runMetadata);
 
   process.exit(overall);
 }
