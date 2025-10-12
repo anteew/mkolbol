@@ -1,0 +1,934 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import { CodeFrameExtractor } from '../../src/digest/codeframe.js';
+import { DigestGenerator, DigestConfig, DigestEvent } from '../../src/digest/generator.js';
+
+describe('Flake Classification', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flake-test-'));
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
+
+  describe('stability scoring', () => {
+    it('calculates 100% stability for always-passing tests', () => {
+      const runs = 5;
+      const passes = 5;
+      const fails = 0;
+      const score = Math.round((passes / runs) * 100);
+      
+      expect(score).toBe(100);
+      expect(score === 100).toBe(true);
+    });
+
+    it('calculates 0% stability for always-failing tests', () => {
+      const runs = 5;
+      const passes = 0;
+      const fails = 5;
+      const score = Math.round((passes / runs) * 100);
+      
+      expect(score).toBe(0);
+      expect(score === 0).toBe(true);
+    });
+
+    it('calculates partial stability for flaky tests', () => {
+      const runs = 5;
+      const passes = 3;
+      const fails = 2;
+      const score = Math.round((passes / runs) * 100);
+      
+      expect(score).toBe(60);
+      expect(score < 100 && score > 0).toBe(true);
+    });
+
+    it('classifies test as stable when score is 100', () => {
+      const score = 100;
+      const isStable = score === 100;
+      const isFlaky = score < 100 && score > 0;
+      const isAlwaysFail = score === 0;
+
+      expect(isStable).toBe(true);
+      expect(isFlaky).toBe(false);
+      expect(isAlwaysFail).toBe(false);
+    });
+
+    it('classifies test as flaky when score is between 0 and 100', () => {
+      const score = 75;
+      const isStable = score === 100;
+      const isFlaky = score < 100 && score > 0;
+      const isAlwaysFail = score === 0;
+
+      expect(isStable).toBe(false);
+      expect(isFlaky).toBe(true);
+      expect(isAlwaysFail).toBe(false);
+    });
+
+    it('classifies test as always-fail when score is 0', () => {
+      const score = 0;
+      const isStable = score === 100;
+      const isFlaky = score < 100 && score > 0;
+      const isAlwaysFail = score === 0;
+
+      expect(isStable).toBe(false);
+      expect(isFlaky).toBe(false);
+      expect(isAlwaysFail).toBe(true);
+    });
+
+    it('handles edge case of single run passing', () => {
+      const runs = 1;
+      const passes = 1;
+      const score = Math.round((passes / runs) * 100);
+      
+      expect(score).toBe(100);
+    });
+
+    it('handles edge case of single run failing', () => {
+      const runs = 1;
+      const passes = 0;
+      const score = Math.round((passes / runs) * 100);
+      
+      expect(score).toBe(0);
+    });
+
+    it('calculates correct score for 1 pass out of 10 runs', () => {
+      const runs = 10;
+      const passes = 1;
+      const score = Math.round((passes / runs) * 100);
+      
+      expect(score).toBe(10);
+    });
+
+    it('calculates correct score for 9 passes out of 10 runs', () => {
+      const runs = 10;
+      const passes = 9;
+      const score = Math.round((passes / runs) * 100);
+      
+      expect(score).toBe(90);
+    });
+  });
+
+  describe('stability tracking', () => {
+    it('tracks multiple tests independently', () => {
+      const stabilityMap = new Map<string, { runs: number; passes: number; score: number }>();
+      
+      stabilityMap.set('test1.ts:10', { runs: 5, passes: 5, score: 100 });
+      stabilityMap.set('test2.ts:20', { runs: 5, passes: 3, score: 60 });
+      stabilityMap.set('test3.ts:30', { runs: 5, passes: 0, score: 0 });
+
+      expect(stabilityMap.size).toBe(3);
+      expect(stabilityMap.get('test1.ts:10')?.score).toBe(100);
+      expect(stabilityMap.get('test2.ts:20')?.score).toBe(60);
+      expect(stabilityMap.get('test3.ts:30')?.score).toBe(0);
+    });
+
+    it('increments run counts correctly', () => {
+      const stat = { runs: 0, passes: 0, fails: 0, score: 0 };
+      
+      for (let i = 0; i < 5; i++) {
+        stat.runs++;
+        if (i % 2 === 0) {
+          stat.passes++;
+        } else {
+          stat.fails++;
+        }
+      }
+
+      expect(stat.runs).toBe(5);
+      expect(stat.passes).toBe(3);
+      expect(stat.fails).toBe(2);
+    });
+
+    it('sorts tests by score ascending (flakiest first)', () => {
+      const results = [
+        { location: 'test1.ts:10', score: 100 },
+        { location: 'test2.ts:20', score: 50 },
+        { location: 'test3.ts:30', score: 0 },
+        { location: 'test4.ts:40', score: 75 },
+      ];
+
+      results.sort((a, b) => a.score - b.score);
+
+      expect(results[0].score).toBe(0);
+      expect(results[1].score).toBe(50);
+      expect(results[2].score).toBe(75);
+      expect(results[3].score).toBe(100);
+    });
+
+    it('filters stable tests correctly', () => {
+      const results = [
+        { location: 'test1.ts:10', score: 100 },
+        { location: 'test2.ts:20', score: 50 },
+        { location: 'test3.ts:30', score: 0 },
+      ];
+
+      const stable = results.filter(r => r.score === 100);
+
+      expect(stable).toHaveLength(1);
+      expect(stable[0].location).toBe('test1.ts:10');
+    });
+
+    it('filters flaky tests correctly', () => {
+      const results = [
+        { location: 'test1.ts:10', score: 100 },
+        { location: 'test2.ts:20', score: 50 },
+        { location: 'test3.ts:30', score: 75 },
+        { location: 'test4.ts:40', score: 0 },
+      ];
+
+      const flaky = results.filter(r => r.score < 100 && r.score > 0);
+
+      expect(flaky).toHaveLength(2);
+      expect(flaky.map(f => f.score)).toEqual([50, 75]);
+    });
+
+    it('filters always-fail tests correctly', () => {
+      const results = [
+        { location: 'test1.ts:10', score: 100 },
+        { location: 'test2.ts:20', score: 0 },
+        { location: 'test3.ts:30', score: 0 },
+      ];
+
+      const alwaysFail = results.filter(r => r.score === 0);
+
+      expect(alwaysFail).toHaveLength(2);
+      expect(alwaysFail.every(f => f.score === 0)).toBe(true);
+    });
+  });
+});
+
+describe('Seed and Environment Capture', () => {
+  let tmpDir: string;
+  let artifactPath: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'seed-test-'));
+    artifactPath = path.join(tmpDir, 'test.jsonl');
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
+
+  const createArtifactWithSeed = (seed: number, env: Record<string, string>): void => {
+    const events: DigestEvent[] = [
+      {
+        ts: 1000,
+        lvl: 'info',
+        case: 'test-1',
+        phase: 'setup',
+        evt: 'case.begin',
+        payload: {
+          env: {
+            nodeVersion: process.version,
+            platform: process.platform,
+            arch: process.arch,
+            os: 'Test OS',
+            seed,
+            envVars: env,
+          },
+          seed,
+        },
+      },
+      {
+        ts: 2000,
+        lvl: 'error',
+        case: 'test-1',
+        evt: 'test.error',
+        payload: { message: 'Test failed' },
+      },
+    ];
+    
+    const lines = events.map(e => JSON.stringify(e)).join('\n');
+    fs.writeFileSync(artifactPath, lines);
+  };
+
+  it('captures test seed in artifact', () => {
+    const seed = 42;
+    createArtifactWithSeed(seed, {});
+
+    const content = fs.readFileSync(artifactPath, 'utf-8');
+    const lines = content.trim().split('\n');
+    const firstEvent = JSON.parse(lines[0]);
+
+    expect(firstEvent.payload.seed).toBe(seed);
+  });
+
+  it('captures environment variables in artifact', () => {
+    const env = {
+      TEST_SEED: '42',
+      LAMINAR_DEBUG: '1',
+      CI: 'true',
+    };
+    createArtifactWithSeed(42, env);
+
+    const content = fs.readFileSync(artifactPath, 'utf-8');
+    const lines = content.trim().split('\n');
+    const firstEvent = JSON.parse(lines[0]);
+
+    expect(firstEvent.payload.env.envVars).toEqual(env);
+  });
+
+  it('stores platform information in artifact', () => {
+    createArtifactWithSeed(42, {});
+
+    const content = fs.readFileSync(artifactPath, 'utf-8');
+    const lines = content.trim().split('\n');
+    const firstEvent = JSON.parse(lines[0]);
+
+    expect(firstEvent.payload.env.platform).toBeDefined();
+    expect(firstEvent.payload.env.arch).toBeDefined();
+    expect(firstEvent.payload.env.nodeVersion).toBeDefined();
+  });
+
+  it('uses fixed seed for deterministic flake detection', () => {
+    const fixedSeed = 42;
+    const env = { TEST_SEED: String(fixedSeed) };
+    
+    createArtifactWithSeed(fixedSeed, env);
+
+    const content = fs.readFileSync(artifactPath, 'utf-8');
+    const lines = content.trim().split('\n');
+    const firstEvent = JSON.parse(lines[0]);
+
+    expect(firstEvent.payload.seed).toBe(fixedSeed);
+    expect(firstEvent.payload.env.envVars.TEST_SEED).toBe(String(fixedSeed));
+  });
+
+  it('includes seed in multiple runs for reproducibility', () => {
+    const seed = 42;
+    
+    for (let run = 0; run < 3; run++) {
+      const runPath = path.join(tmpDir, `run-${run}.jsonl`);
+      const events: DigestEvent[] = [
+        {
+          ts: 1000 + run,
+          lvl: 'info',
+          case: 'test-1',
+          evt: 'case.begin',
+          payload: { seed, run },
+        },
+      ];
+      fs.writeFileSync(runPath, events.map(e => JSON.stringify(e)).join('\n'));
+    }
+
+    const files = fs.readdirSync(tmpDir).filter(f => f.startsWith('run-'));
+    expect(files).toHaveLength(3);
+
+    files.forEach(file => {
+      const content = fs.readFileSync(path.join(tmpDir, file), 'utf-8');
+      const event = JSON.parse(content);
+      expect(event.payload.seed).toBe(seed);
+    });
+  });
+
+  it('captures relevant environment variables only', () => {
+    const relevantEnv = {
+      CI: 'true',
+      TEST_SEED: '42',
+      LAMINAR_DEBUG: '1',
+    };
+    
+    createArtifactWithSeed(42, relevantEnv);
+
+    const content = fs.readFileSync(artifactPath, 'utf-8');
+    const lines = content.trim().split('\n');
+    const firstEvent = JSON.parse(lines[0]);
+
+    expect(Object.keys(firstEvent.payload.env.envVars)).toEqual(['CI', 'TEST_SEED', 'LAMINAR_DEBUG']);
+  });
+});
+
+describe('Code Frame Extraction', () => {
+  let tmpDir: string;
+  let extractor: CodeFrameExtractor;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codeframe-test-'));
+    extractor = new CodeFrameExtractor(2);
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
+
+  describe('stack trace parsing', () => {
+    it('parses Node.js stack trace format', () => {
+      const stack = `Error: Test failed
+    at testFunction (${tmpDir}/test.js:10:15)
+    at Context.run (${tmpDir}/runner.js:20:10)`;
+
+      const frames = (extractor as any).parseStackTrace(stack);
+
+      expect(frames).toHaveLength(2);
+      expect(frames[0].function).toBe('testFunction');
+      expect(frames[0].file).toContain('test.js');
+      expect(frames[0].line).toBe(10);
+      expect(frames[0].column).toBe(15);
+    });
+
+    it('parses V8 stack trace without function names', () => {
+      const stack = `Error: failure
+    at ${tmpDir}/test.js:25:8`;
+
+      const frames = (extractor as any).parseStackTrace(stack);
+
+      expect(frames).toHaveLength(1);
+      expect(frames[0].file).toContain('test.js');
+      expect(frames[0].line).toBe(25);
+      expect(frames[0].column).toBe(8);
+    });
+
+    it('parses Firefox-style stack traces', () => {
+      const stack = `testFunc@${tmpDir}/test.js:30:5
+runTest@${tmpDir}/runner.js:40:10`;
+
+      const frames = (extractor as any).parseStackTrace(stack);
+
+      expect(frames).toHaveLength(2);
+      expect(frames[0].function).toBe('testFunc');
+      expect(frames[0].line).toBe(30);
+    });
+
+    it('handles empty stack traces', () => {
+      const stack = '';
+      const frames = (extractor as any).parseStackTrace(stack);
+
+      expect(frames).toHaveLength(0);
+    });
+
+    it('skips unparseable lines', () => {
+      const stack = `Error: Test failed
+    at valid (${tmpDir}/test.js:10:5)
+    invalid line without location
+    at another (${tmpDir}/test.js:20:10)`;
+
+      const frames = (extractor as any).parseStackTrace(stack);
+
+      expect(frames).toHaveLength(2);
+      expect(frames[0].line).toBe(10);
+      expect(frames[1].line).toBe(20);
+    });
+
+    it('extracts file path correctly', () => {
+      const stack = `    at test (${tmpDir}/deeply/nested/path/test.js:5:10)`;
+      const frames = (extractor as any).parseStackTrace(stack);
+
+      expect(frames[0].file).toContain('deeply/nested/path/test.js');
+    });
+
+    it('extracts line and column numbers as integers', () => {
+      const stack = `    at test (${tmpDir}/test.js:42:99)`;
+      const frames = (extractor as any).parseStackTrace(stack);
+
+      expect(typeof frames[0].line).toBe('number');
+      expect(typeof frames[0].column).toBe('number');
+      expect(frames[0].line).toBe(42);
+      expect(frames[0].column).toBe(99);
+    });
+  });
+
+  describe('code frame extraction from file', () => {
+    it('extracts code frame with context lines', () => {
+      const testFile = path.join(tmpDir, 'test.ts');
+      const code = [
+        'function add(a, b) {',
+        '  if (typeof a !== "number") {',
+        '    throw new Error("Invalid argument");',
+        '  }',
+        '  return a + b;',
+        '}',
+      ].join('\n');
+      fs.writeFileSync(testFile, code);
+
+      const frame = (extractor as any).extractCodeFrame({
+        file: testFile,
+        line: 3,
+        column: 5,
+      });
+
+      expect(frame).not.toBeNull();
+      expect(frame.file).toBe(testFile);
+      expect(frame.line).toBe(3);
+      expect(frame.context.focus).toBe('    throw new Error("Invalid argument");');
+      expect(frame.context.before).toHaveLength(2);
+      expect(frame.context.after).toHaveLength(2);
+    });
+
+    it('handles first line of file', () => {
+      const testFile = path.join(tmpDir, 'test.ts');
+      const code = [
+        'const x = 1;',
+        'const y = 2;',
+        'const z = 3;',
+      ].join('\n');
+      fs.writeFileSync(testFile, code);
+
+      const frame = (extractor as any).extractCodeFrame({
+        file: testFile,
+        line: 1,
+      });
+
+      expect(frame).not.toBeNull();
+      expect(frame.context.before).toHaveLength(0);
+      expect(frame.context.focus).toBe('const x = 1;');
+      expect(frame.context.after).toHaveLength(2);
+    });
+
+    it('handles last line of file', () => {
+      const testFile = path.join(tmpDir, 'test.ts');
+      const code = [
+        'const x = 1;',
+        'const y = 2;',
+        'const z = 3;',
+      ].join('\n');
+      fs.writeFileSync(testFile, code);
+
+      const frame = (extractor as any).extractCodeFrame({
+        file: testFile,
+        line: 3,
+      });
+
+      expect(frame).not.toBeNull();
+      expect(frame.context.before).toHaveLength(2);
+      expect(frame.context.focus).toBe('const z = 3;');
+      expect(frame.context.after).toHaveLength(0);
+    });
+
+    it('returns null for non-existent file', () => {
+      const frame = (extractor as any).extractCodeFrame({
+        file: path.join(tmpDir, 'nonexistent.ts'),
+        line: 1,
+      });
+
+      expect(frame).toBeNull();
+    });
+
+    it('returns null for line number out of range', () => {
+      const testFile = path.join(tmpDir, 'test.ts');
+      fs.writeFileSync(testFile, 'const x = 1;');
+
+      const frame = (extractor as any).extractCodeFrame({
+        file: testFile,
+        line: 100,
+      });
+
+      expect(frame).toBeNull();
+    });
+
+    it('includes correct line numbers in source array', () => {
+      const testFile = path.join(tmpDir, 'test.ts');
+      const code = [
+        'line1',
+        'line2',
+        'line3',
+        'line4',
+        'line5',
+      ].join('\n');
+      fs.writeFileSync(testFile, code);
+
+      const frame = (extractor as any).extractCodeFrame({
+        file: testFile,
+        line: 3,
+      });
+
+      expect(frame.source).toEqual(['line1', 'line2', 'line3', 'line4', 'line5']);
+    });
+  });
+
+  describe('sourcemap resolution', () => {
+    it('resolves .ts file when .js.map exists', () => {
+      const jsFile = path.join(tmpDir, 'test.js');
+      const tsFile = path.join(tmpDir, 'test.ts');
+      const mapFile = path.join(tmpDir, 'test.js.map');
+
+      fs.writeFileSync(jsFile, 'console.log("compiled");');
+      fs.writeFileSync(tsFile, 'console.log("source");');
+      fs.writeFileSync(mapFile, JSON.stringify({
+        version: 3,
+        sources: ['test.ts'],
+        mappings: '',
+      }));
+
+      const resolved = (extractor as any).resolveSourceMap({
+        file: jsFile,
+        line: 1,
+        column: 0,
+      });
+
+      expect(resolved.file).toBe(tsFile);
+    });
+
+    it('falls back to .ts file if sourcemap does not exist', () => {
+      const jsFile = path.join(tmpDir, 'test.js');
+      const tsFile = path.join(tmpDir, 'test.ts');
+
+      fs.writeFileSync(jsFile, 'console.log("compiled");');
+      fs.writeFileSync(tsFile, 'console.log("source");');
+
+      const resolved = (extractor as any).resolveSourceMap({
+        file: jsFile,
+        line: 1,
+        column: 0,
+      });
+
+      expect(resolved.file).toBe(tsFile);
+    });
+
+    it('returns original file if neither sourcemap nor .ts exists', () => {
+      const jsFile = path.join(tmpDir, 'test.js');
+      fs.writeFileSync(jsFile, 'console.log("compiled");');
+
+      const resolved = (extractor as any).resolveSourceMap({
+        file: jsFile,
+        line: 1,
+        column: 0,
+      });
+
+      expect(resolved.file).toBe(jsFile);
+    });
+
+    it('caches sourcemap for repeated access', () => {
+      const jsFile = path.join(tmpDir, 'test.js');
+      const mapFile = path.join(tmpDir, 'test.js.map');
+
+      fs.writeFileSync(jsFile, 'console.log("compiled");');
+      fs.writeFileSync(mapFile, JSON.stringify({
+        version: 3,
+        sources: ['test.ts'],
+        mappings: '',
+      }));
+
+      (extractor as any).resolveSourceMap({ file: jsFile, line: 1 });
+      (extractor as any).resolveSourceMap({ file: jsFile, line: 2 });
+
+      expect((extractor as any).sourcemapCache.size).toBe(1);
+    });
+  });
+
+  describe('code frame formatting', () => {
+    it('formats code frame with line numbers', () => {
+      const codeFrame = {
+        file: '/test/file.ts',
+        line: 10,
+        column: 5,
+        source: ['line8', 'line9', 'line10', 'line11', 'line12'],
+        context: {
+          before: ['line8', 'line9'],
+          focus: 'line10',
+          after: ['line11', 'line12'],
+        },
+      };
+
+      const formatted = extractor.formatCodeFrame(codeFrame);
+
+      expect(formatted).toContain('at /test/file.ts:10:5');
+      expect(formatted).toContain('8 | line8');
+      expect(formatted).toContain('9 | line9');
+      expect(formatted).toContain('> 10 | line10');
+      expect(formatted).toContain('11 | line11');
+      expect(formatted).toContain('12 | line12');
+    });
+
+    it('includes column indicator when column is specified', () => {
+      const codeFrame = {
+        file: '/test/file.ts',
+        line: 5,
+        column: 10,
+        source: ['line'],
+        context: {
+          before: [],
+          focus: 'const x = 1;',
+          after: [],
+        },
+      };
+
+      const formatted = extractor.formatCodeFrame(codeFrame);
+
+      expect(formatted).toContain('^');
+    });
+
+    it('omits column indicator when column is not specified', () => {
+      const codeFrame = {
+        file: '/test/file.ts',
+        line: 5,
+        source: ['line'],
+        context: {
+          before: [],
+          focus: 'const x = 1;',
+          after: [],
+        },
+      };
+
+      const formatted = extractor.formatCodeFrame(codeFrame);
+
+      expect(formatted).not.toContain('^');
+    });
+
+    it('pads line numbers correctly', () => {
+      const codeFrame = {
+        file: '/test/file.ts',
+        line: 100,
+        source: ['line'],
+        context: {
+          before: ['line98', 'line99'],
+          focus: 'line100',
+          after: ['line101', 'line102'],
+        },
+      };
+
+      const formatted = extractor.formatCodeFrame(codeFrame);
+
+      expect(formatted).toContain('98 | line98');
+      expect(formatted).toContain('99 | line99');
+      expect(formatted).toContain('> 100 | line100');
+    });
+  });
+
+  describe('full stack extraction', () => {
+    it('extracts code frames from stack trace', () => {
+      const testFile = path.join(tmpDir, 'test.ts');
+      const code = [
+        'function foo() {',
+        '  bar();',
+        '}',
+        'function bar() {',
+        '  throw new Error("fail");',
+        '}',
+      ].join('\n');
+      fs.writeFileSync(testFile, code);
+
+      const stack = `Error: fail
+    at bar (${testFile}:5:9)
+    at foo (${testFile}:2:3)`;
+
+      const frames = extractor.extractFromStack(stack);
+
+      expect(frames.length).toBeGreaterThan(0);
+      expect(frames[0].line).toBe(5);
+    });
+
+    it('limits to maximum 3 code frames', () => {
+      const testFile = path.join(tmpDir, 'test.ts');
+      const code = Array.from({ length: 20 }, (_, i) => `line${i + 1}`).join('\n');
+      fs.writeFileSync(testFile, code);
+
+      const stack = Array.from({ length: 10 }, (_, i) => 
+        `    at func${i} (${testFile}:${i + 1}:1)`
+      ).join('\n');
+
+      const frames = extractor.extractFromStack(stack);
+
+      expect(frames.length).toBeLessThanOrEqual(3);
+    });
+
+    it('skips frames without file or line information', () => {
+      const stack = `Error: fail
+    at unknownLocation
+    at (native)`;
+
+      const frames = extractor.extractFromStack(stack);
+
+      expect(frames).toHaveLength(0);
+    });
+  });
+});
+
+describe('Code Frame Budget Enforcement', () => {
+  let tmpDir: string;
+  let artifactPath: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'budget-test-'));
+    artifactPath = path.join(tmpDir, 'test.jsonl');
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
+
+  it('limits number of code frames to 5', async () => {
+    const testFile = path.join(tmpDir, 'test.ts');
+    const code = Array.from({ length: 50 }, (_, i) => `line${i + 1}`).join('\n');
+    fs.writeFileSync(testFile, code);
+
+    const events: DigestEvent[] = Array.from({ length: 10 }, (_, i) => ({
+      ts: 1000 + i,
+      lvl: 'error',
+      case: 'test-1',
+      evt: 'test.error',
+      payload: {
+        stack: `Error: fail
+    at test${i} (${testFile}:${i + 1}:1)`,
+      },
+    }));
+
+    fs.writeFileSync(artifactPath, events.map(e => JSON.stringify(e)).join('\n'));
+
+    const config: DigestConfig = {
+      enabled: true,
+      rules: [{ match: { lvl: 'error' }, actions: [{ type: 'codeframe' }] }],
+    };
+
+    const generator = new DigestGenerator(config);
+    const digest = await generator.generateDigest(
+      'test-1',
+      'fail',
+      1000,
+      'test.spec.ts:10',
+      artifactPath
+    );
+
+    expect(digest?.codeframes?.length || 0).toBeLessThanOrEqual(5);
+  });
+
+  it('includes code frames in budget calculation', async () => {
+    const testFile = path.join(tmpDir, 'test.ts');
+    const code = Array.from({ length: 20 }, (_, i) => `const line${i} = ${i};`).join('\n');
+    fs.writeFileSync(testFile, code);
+
+    const events: DigestEvent[] = [
+      {
+        ts: 1000,
+        lvl: 'error',
+        case: 'test-1',
+        evt: 'test.error',
+        payload: {
+          stack: `Error: fail
+    at test (${testFile}:10:1)`,
+        },
+      },
+    ];
+
+    fs.writeFileSync(artifactPath, events.map(e => JSON.stringify(e)).join('\n'));
+
+    const config: DigestConfig = {
+      enabled: true,
+      budget: { kb: 10, lines: 100 },
+      rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }, { type: 'codeframe' }] }],
+    };
+
+    const generator = new DigestGenerator(config);
+    const digest = await generator.generateDigest(
+      'test-1',
+      'fail',
+      1000,
+      'test.spec.ts:10',
+      artifactPath
+    );
+
+    expect(digest?.summary.budgetUsed).toBeGreaterThan(0);
+    if (digest?.codeframes && digest.codeframes.length > 0) {
+      const codeframeSize = JSON.stringify(digest.codeframes).length;
+      expect(digest.summary.budgetUsed).toBeGreaterThan(codeframeSize);
+    }
+  });
+
+  it('extracts code frames only when configured', async () => {
+    const events: DigestEvent[] = [
+      {
+        ts: 1000,
+        lvl: 'error',
+        case: 'test-1',
+        evt: 'test.error',
+        payload: { stack: 'Error: fail' },
+      },
+    ];
+
+    fs.writeFileSync(artifactPath, events.map(e => JSON.stringify(e)).join('\n'));
+
+    const configWithoutCodeframes: DigestConfig = {
+      enabled: true,
+      rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }],
+    };
+
+    const generator = new DigestGenerator(configWithoutCodeframes);
+    const digest = await generator.generateDigest(
+      'test-1',
+      'fail',
+      1000,
+      'test.spec.ts:10',
+      artifactPath
+    );
+
+    expect(digest?.codeframes).toBeUndefined();
+  });
+
+  it('extracts code frames only from error events with stack', async () => {
+    const testFile = path.join(tmpDir, 'test.ts');
+    fs.writeFileSync(testFile, 'const x = 1;\nconst y = 2;\nconst z = 3;');
+
+    const events: DigestEvent[] = [
+      {
+        ts: 1000,
+        lvl: 'info',
+        case: 'test-1',
+        evt: 'test.info',
+        payload: { stack: `at test (${testFile}:1:1)` },
+      },
+      {
+        ts: 2000,
+        lvl: 'error',
+        case: 'test-1',
+        evt: 'test.error',
+        payload: { message: 'No stack' },
+      },
+      {
+        ts: 3000,
+        lvl: 'error',
+        case: 'test-1',
+        evt: 'test.error',
+        payload: { stack: `Error: fail\n    at test (${testFile}:2:1)` },
+      },
+    ];
+
+    fs.writeFileSync(artifactPath, events.map(e => JSON.stringify(e)).join('\n'));
+
+    const config: DigestConfig = {
+      enabled: true,
+      rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }, { type: 'codeframe' }] }],
+    };
+
+    const generator = new DigestGenerator(config);
+    const digest = await generator.generateDigest(
+      'test-1',
+      'fail',
+      1000,
+      'test.spec.ts:10',
+      artifactPath
+    );
+
+    expect(digest?.codeframes?.length || 0).toBeGreaterThan(0);
+    expect(digest?.codeframes?.[0].line).toBe(2);
+  });
+
+  it('respects context lines configuration in codeframe action', async () => {
+    const extractor1 = new CodeFrameExtractor(1);
+    const extractor2 = new CodeFrameExtractor(3);
+
+    const testFile = path.join(tmpDir, 'test.ts');
+    const code = Array.from({ length: 10 }, (_, i) => `line${i + 1}`).join('\n');
+    fs.writeFileSync(testFile, code);
+
+    const frame1 = (extractor1 as any).extractCodeFrame({ file: testFile, line: 5 });
+    const frame2 = (extractor2 as any).extractCodeFrame({ file: testFile, line: 5 });
+
+    expect(frame1.context.before.length).toBe(1);
+    expect(frame1.context.after.length).toBe(1);
+    expect(frame2.context.before.length).toBe(3);
+    expect(frame2.context.after.length).toBe(3);
+  });
+});

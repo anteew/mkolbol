@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 export default class JSONLReporter {
     ctx;
     summaryPath = 'reports/summary.jsonl';
@@ -8,6 +9,32 @@ export default class JSONLReporter {
     processedTests = new Set();
     indexEntries = [];
     caseStreams = new Map();
+    environment;
+    testSeed;
+    constructor() {
+        // Fixed seed for determinism (can be overridden via env var)
+        this.testSeed = process.env.TEST_SEED
+            ? parseInt(process.env.TEST_SEED, 10)
+            : 42;
+        this.environment = this.captureEnvironment();
+    }
+    captureEnvironment() {
+        const relevantEnvVars = {};
+        const envKeys = ['CI', 'NODE_ENV', 'TEST_SEED', 'LAMINAR_DEBUG', 'LAMINAR_SUITE', 'LAMINAR_CASE'];
+        for (const key of envKeys) {
+            if (process.env[key]) {
+                relevantEnvVars[key] = process.env[key];
+            }
+        }
+        return {
+            nodeVersion: process.version,
+            platform: process.platform,
+            arch: process.arch,
+            os: `${os.type()} ${os.release()}`,
+            seed: this.testSeed,
+            envVars: Object.keys(relevantEnvVars).length > 0 ? relevantEnvVars : undefined,
+        };
+    }
     onInit(ctx) {
         this.ctx = ctx;
         const dir = path.dirname(this.summaryPath);
@@ -17,6 +44,13 @@ export default class JSONLReporter {
         }
         this.summaryStream = fs.createWriteStream(this.summaryPath, { flags: 'a' });
         this.indexEntries = [];
+        // Write environment info to summary on init
+        if (this.summaryStream) {
+            this.summaryStream.write(JSON.stringify({
+                type: 'environment',
+                ...this.environment
+            }) + '\n');
+        }
     }
     onCollected() {
         const files = this.ctx.state.getFiles();
@@ -78,6 +112,7 @@ export default class JSONLReporter {
             duration,
             location,
             artifactURI,
+            seed: this.testSeed,
         };
         if (result.errors && result.errors.length > 0) {
             summary.error = result.errors.map(e => e.message || String(e)).join('; ');
@@ -110,13 +145,15 @@ export default class JSONLReporter {
         const stream = fs.createWriteStream(artifactPath, { flags: 'a' });
         const ts = Date.now();
         // Write test lifecycle events
-        // 1. Test begin event
+        // 1. Test begin event with environment and seed
         stream.write(JSON.stringify({
             ts,
             lvl: 'info',
             case: caseName,
             phase: 'setup',
-            evt: 'case.begin'
+            evt: 'case.begin',
+            env: this.environment,
+            seed: this.testSeed
         }) + '\n');
         // 2. Test execution event
         stream.write(JSON.stringify({
@@ -161,6 +198,7 @@ export default class JSONLReporter {
             generated: new Date().toISOString(),
             totalTests: this.indexEntries.length,
             artifacts: this.indexEntries,
+            environment: this.environment,
         };
         fs.writeFileSync(this.indexPath, JSON.stringify(index, null, 2));
     }

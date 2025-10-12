@@ -7,6 +7,10 @@ export default class JSONLReporter implements Reporter {
     private processedTests;
     private indexEntries;
     private caseStreams;
+    private environment;
+    private testSeed;
+    constructor();
+    private captureEnvironment;
     onInit(ctx: Vitest): void;
     onCollected(): void;
     onFinished(files?: File[]): void;

@@ -1,0 +1,3 @@
+{"ts":1760294318515,"lvl":"info","case":"calculates correct score for 1 pass out of 10 runs","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760294318516,"lvl":"info","case":"calculates correct score for 1 pass out of 10 runs","phase":"execution","evt":"test.run"}
+{"ts":1760294318517,"lvl":"info","case":"calculates correct score for 1 pass out of 10 runs","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}

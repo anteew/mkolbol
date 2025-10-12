@@ -1,0 +1,297 @@
+diff --git a/scripts/laminar-run.ts b/scripts/laminar-run.ts
+index 6aad0c3..55cf24a 100644
+--- a/scripts/laminar-run.ts
++++ b/scripts/laminar-run.ts
+@@ -10,11 +10,24 @@ type SummaryEntry = {
+   error?: string;
+ };
+ 
++type StabilityResult = {
++  location: string;
++  runs: number;
++  passes: number;
++  fails: number;
++  score: number; // percentage 0-100
++};
++
+ function run(cmd: string, args: string[], env?: Record<string,string>) {
+   const res = spawnSync(cmd, args, { stdio: 'inherit', env: { ...process.env, ...env } });
+   return res.status ?? 0;
+ }
+ 
++function runSilent(cmd: string, args: string[], env?: Record<string,string>) {
++  const res = spawnSync(cmd, args, { stdio: 'pipe', env: { ...process.env, ...env } });
++  return res.status ?? 0;
++}
++
+ function parseSummary(): SummaryEntry[] {
+   const path = 'reports/summary.jsonl';
+   if (!fs.existsSync(path)) return [];
+@@ -38,12 +51,127 @@ function caseFromArtifact(uri?: string): string {
+   return m ? m[1] : 'debug.case';
+ }
+ 
++async function runFlakeDetection(reruns: number = 5) {
++  console.log(`\n=== FLAKE DETECTION MODE (${reruns} runs per test) ===\n`);
++  
++  fs.mkdirSync('reports', { recursive: true });
++  
++  // Use fixed seed for reproducibility
++  const seed = '42';
++  const env = { TEST_SEED: seed };
++  
++  const stabilityMap = new Map<string, StabilityResult>();
++  
++  for (let i = 1; i <= reruns; i++) {
++    console.log(`\nRun ${i}/${reruns} (seed: ${seed})...`);
++    
++    // Clean summary before each run
++    if (fs.existsSync('reports/summary.jsonl')) fs.unlinkSync('reports/summary.jsonl');
++    
++    // Run tests silently after first run
++    if (i === 1) {
++      run('npm', ['run', 'test:ci'], env);
++    } else {
++      runSilent('npm', ['run', 'test:ci'], env);
++    }
++    
++    const entries = parseSummary();
++    
++    // Track stability for each test
++    for (const entry of entries) {
++      if (entry.status === 'skip') continue;
++      
++      const loc = entry.location;
++      if (!stabilityMap.has(loc)) {
++        stabilityMap.set(loc, { location: loc, runs: 0, passes: 0, fails: 0, score: 0 });
++      }
++      
++      const stat = stabilityMap.get(loc)!;
++      stat.runs++;
++      if (entry.status === 'pass') {
++        stat.passes++;
++      } else if (entry.status === 'fail') {
++        stat.fails++;
++      }
++    }
++  }
++  
++  // Calculate final scores
++  const results: StabilityResult[] = [];
++  for (const stat of stabilityMap.values()) {
++    stat.score = Math.round((stat.passes / stat.runs) * 100);
++    results.push(stat);
++  }
++  
++  // Sort by score (flakiest first)
++  results.sort((a, b) => a.score - b.score);
++  
++  // Report findings
++  console.log('\n=== STABILITY REPORT ===\n');
++  
++  const flakyTests = results.filter(r => r.score < 100 && r.score > 0);
++  const alwaysFail = results.filter(r => r.score === 0);
++  const stable = results.filter(r => r.score === 100);
++  
++  if (flakyTests.length > 0) {
++    console.log('FLAKY TESTS:');
++    for (const t of flakyTests) {
++      console.log(`  ${t.score}% stable - ${t.location} (${t.passes}/${t.runs} passed)`);
++    }
++    console.log('');
++  }
++  
++  if (alwaysFail.length > 0) {
++    console.log('ALWAYS FAIL:');
++    for (const t of alwaysFail) {
++      console.log(`  ${t.location} (0/${t.runs} passed)`);
++    }
++    console.log('');
++  }
++  
++  console.log(`SUMMARY: ${stable.length} stable, ${flakyTests.length} flaky, ${alwaysFail.length} always fail`);
++  
++  // Save detailed report
++  const reportPath = 'reports/stability-report.json';
++  fs.writeFileSync(reportPath, JSON.stringify({ 
++    seed,
++    reruns,
++    timestamp: new Date().toISOString(),
++    results 
++  }, null, 2));
++  console.log(`\nDetailed report saved to ${reportPath}`);
++  
++  // Exit with error if any flaky tests found
++  if (flakyTests.length > 0 || alwaysFail.length > 0) {
++    process.exit(1);
++  }
++  
++  process.exit(0);
++}
++
+ async function main() {
++  // Check for flake detection mode
++  const args = process.argv.slice(2);
++  const flakeDetectIdx = args.findIndex(a => a === '--flake-detect' || a === '--flake');
++  
++  if (flakeDetectIdx !== -1) {
++    // Parse N reruns (default 5)
++    let reruns = 5;
++    if (flakeDetectIdx + 1 < args.length && /^\d+$/.test(args[flakeDetectIdx + 1])) {
++      reruns = parseInt(args[flakeDetectIdx + 1], 10);
++    }
++    await runFlakeDetection(reruns);
++    return;
++  }
++  
+   // First pass: fast lane
+   fs.mkdirSync('reports', { recursive: true });
+   // Clean previous summary
+   if (fs.existsSync('reports/summary.jsonl')) fs.unlinkSync('reports/summary.jsonl');
+-  const status1 = run('npm', ['run', 'test:ci']);
++  
++  // Set deterministic seed if not already set
++  const testEnv = process.env.TEST_SEED ? {} : { TEST_SEED: '42' };
++  const status1 = run('npm', ['run', 'test:ci'], testEnv);
+ 
+   const entries = parseSummary();
+   const fails = entries.filter(e => e.status === 'fail');
+@@ -58,7 +186,12 @@ async function main() {
+     const isPty = /ptyServerWrapper\.spec\.ts|multiModalOutput\.spec\.ts/.test(file);
+     const suite = suiteFromLocation(f.location);
+     const caseName = caseFromArtifact(f.artifactURI);
+-    const env = { LAMINAR_DEBUG: '1', LAMINAR_SUITE: suite, LAMINAR_CASE: caseName };
++    const env = { 
++      LAMINAR_DEBUG: '1', 
++      LAMINAR_SUITE: suite, 
++      LAMINAR_CASE: caseName,
++      ...(process.env.TEST_SEED ? {} : { TEST_SEED: '42' })
++    };
+     if (isPty) {
+       // Rerun pty lane for that file
+       overall = run('vitest', ['run', '--pool=forks', '--poolOptions.forks.singleFork=true', file, '--reporter=./dist/test/reporter/jsonlReporter.js'], env) || overall;
+diff --git a/src/test/reporter/jsonlReporter.ts b/src/test/reporter/jsonlReporter.ts
+index 5cbcd5a..c698146 100644
+--- a/src/test/reporter/jsonlReporter.ts
++++ b/src/test/reporter/jsonlReporter.ts
+@@ -1,13 +1,25 @@
+ import * as fs from 'fs';
+ import * as path from 'path';
++import * as os from 'os';
+ import type { File, Reporter, Task, Vitest } from 'vitest';
+ 
++interface RuntimeEnvironment {
++  nodeVersion: string;
++  platform: string;
++  arch: string;
++  os: string;
++  seed?: number;
++  envVars?: Record<string, string>;
++}
++
+ interface TestSummary {
+   status: 'pass' | 'fail' | 'skip';
+   duration: number;
+   location: string;
+   artifactURI?: string;
+   error?: string;
++  seed?: number;
++  env?: RuntimeEnvironment;
+ }
+ 
+ interface ArtifactIndexEntry {
+@@ -27,6 +39,7 @@ interface ArtifactIndex {
+   generated: string;
+   totalTests: number;
+   artifacts: ArtifactIndexEntry[];
++  environment: RuntimeEnvironment;
+ }
+ 
+ export default class JSONLReporter implements Reporter {
+@@ -37,6 +50,37 @@ export default class JSONLReporter implements Reporter {
+   private processedTests = new Set<string>();
+   private indexEntries: ArtifactIndexEntry[] = [];
+   private caseStreams = new Map<string, fs.WriteStream>();
++  private environment: RuntimeEnvironment;
++  private testSeed: number;
++
++  constructor() {
++    // Fixed seed for determinism (can be overridden via env var)
++    this.testSeed = process.env.TEST_SEED 
++      ? parseInt(process.env.TEST_SEED, 10)
++      : 42;
++    
++    this.environment = this.captureEnvironment();
++  }
++
++  private captureEnvironment(): RuntimeEnvironment {
++    const relevantEnvVars: Record<string, string> = {};
++    const envKeys = ['CI', 'NODE_ENV', 'TEST_SEED', 'LAMINAR_DEBUG', 'LAMINAR_SUITE', 'LAMINAR_CASE'];
++    
++    for (const key of envKeys) {
++      if (process.env[key]) {
++        relevantEnvVars[key] = process.env[key]!;
++      }
++    }
++
++    return {
++      nodeVersion: process.version,
++      platform: process.platform,
++      arch: process.arch,
++      os: `${os.type()} ${os.release()}`,
++      seed: this.testSeed,
++      envVars: Object.keys(relevantEnvVars).length > 0 ? relevantEnvVars : undefined,
++    };
++  }
+ 
+   onInit(ctx: Vitest): void {
+     this.ctx = ctx;
+@@ -47,6 +91,14 @@ export default class JSONLReporter implements Reporter {
+     }
+     this.summaryStream = fs.createWriteStream(this.summaryPath, { flags: 'a' });
+     this.indexEntries = [];
++    
++    // Write environment info to summary on init
++    if (this.summaryStream) {
++      this.summaryStream.write(JSON.stringify({
++        type: 'environment',
++        ...this.environment
++      }) + '\n');
++    }
+   }
+ 
+   onCollected(): void {
+@@ -121,6 +173,7 @@ export default class JSONLReporter implements Reporter {
+       duration,
+       location,
+       artifactURI,
++      seed: this.testSeed,
+     };
+ 
+     if (result.errors && result.errors.length > 0) {
+@@ -167,13 +220,15 @@ export default class JSONLReporter implements Reporter {
+     const ts = Date.now();
+ 
+     // Write test lifecycle events
+-    // 1. Test begin event
++    // 1. Test begin event with environment and seed
+     stream.write(JSON.stringify({
+       ts,
+       lvl: 'info',
+       case: caseName,
+       phase: 'setup',
+-      evt: 'case.begin'
++      evt: 'case.begin',
++      env: this.environment,
++      seed: this.testSeed
+     }) + '\n');
+ 
+     // 2. Test execution event
+@@ -223,6 +278,7 @@ export default class JSONLReporter implements Reporter {
+       generated: new Date().toISOString(),
+       totalTests: this.indexEntries.length,
+       artifacts: this.indexEntries,
++      environment: this.environment,
+     };
+ 
+     fs.writeFileSync(this.indexPath, JSON.stringify(index, null, 2));

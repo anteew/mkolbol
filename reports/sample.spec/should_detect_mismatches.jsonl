@@ -1,3 +1,3 @@
-{"ts":1760291940080,"lvl":"info","case":"should detect mismatches","phase":"setup","evt":"case.begin"}
-{"ts":1760291940081,"lvl":"info","case":"should detect mismatches","phase":"execution","evt":"test.run"}
-{"ts":1760291940082,"lvl":"info","case":"should detect mismatches","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760294318283,"lvl":"info","case":"should detect mismatches","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760294318284,"lvl":"info","case":"should detect mismatches","phase":"execution","evt":"test.run"}
+{"ts":1760294318285,"lvl":"info","case":"should detect mismatches","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
