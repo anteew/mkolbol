@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { CodeFrameExtractor } from './codeframe.js';
 /**
  * Default digest configuration.
  *
@@ -19,20 +20,22 @@ const DEFAULT_CONFIG = {
     rules: [
         {
             match: { lvl: 'error' },
-            actions: [{ type: 'include' }],
+            actions: [{ type: 'include' }, { type: 'codeframe', contextLines: 2 }],
             priority: 10,
         },
         {
             match: { evt: 'assert.fail' },
-            actions: [{ type: 'include' }, { type: 'slice', window: 10 }],
+            actions: [{ type: 'include' }, { type: 'slice', window: 10 }, { type: 'codeframe', contextLines: 2 }],
             priority: 9,
         },
     ],
 };
 export class DigestGenerator {
     config;
+    codeframeExtractor;
     constructor(config) {
         this.config = config || DEFAULT_CONFIG;
+        this.codeframeExtractor = new CodeFrameExtractor(2);
     }
     static loadConfig(configPath = 'laminar.config.json') {
         if (fs.existsSync(configPath)) {
@@ -57,8 +60,12 @@ export class DigestGenerator {
         const processedEvents = this.applyRules(events);
         const budgetedEvents = this.enforceBudget(processedEvents);
         const suspects = this.identifySuspects(events);
+        const codeframes = this.extractCodeFrames(events);
         const budgetLimit = (this.config.budget?.kb || 10) * 1024;
-        const budgetUsed = JSON.stringify(budgetedEvents).length;
+        let budgetUsed = JSON.stringify(budgetedEvents).length;
+        if (codeframes && codeframes.length > 0) {
+            budgetUsed += JSON.stringify(codeframes).length;
+        }
         return {
             case: caseName,
             status: 'fail',
@@ -73,6 +80,7 @@ export class DigestGenerator {
                 budgetLimit,
             },
             suspects,
+            codeframes: codeframes && codeframes.length > 0 ? codeframes : undefined,
             events: budgetedEvents,
         };
     }
@@ -203,6 +211,31 @@ export class DigestGenerator {
         }
         return currentEvents;
     }
+    extractCodeFrames(events) {
+        if (!this.config.rules) {
+            return [];
+        }
+        const shouldExtractCodeframes = this.config.rules.some(rule => rule.actions.some(action => action.type === 'codeframe'));
+        if (!shouldExtractCodeframes) {
+            return [];
+        }
+        const codeframes = [];
+        const errorEvents = events.filter(e => e.lvl === 'error' &&
+            e.payload &&
+            typeof e.payload === 'object' &&
+            'stack' in e.payload);
+        for (const event of errorEvents) {
+            const payload = event.payload;
+            if (payload.stack) {
+                const frames = this.codeframeExtractor.extractFromStack(payload.stack);
+                codeframes.push(...frames);
+                if (codeframes.length >= 5) {
+                    break;
+                }
+            }
+        }
+        return codeframes.slice(0, 5);
+    }
     identifySuspects(events) {
         if (events.length === 0) {
             return [];
@@ -290,6 +323,15 @@ export class DigestGenerator {
                 }
             }
             lines.push('');
+        }
+        if (digest.codeframes && digest.codeframes.length > 0) {
+            lines.push('## Code Frames');
+            for (const frame of digest.codeframes) {
+                lines.push('```');
+                lines.push(this.codeframeExtractor.formatCodeFrame(frame));
+                lines.push('```');
+                lines.push('');
+            }
         }
         if (digest.events.length > 0) {
             lines.push('## Events');

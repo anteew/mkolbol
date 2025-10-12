@@ -1,0 +1,294 @@
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index 81d8dad..afb6ecc 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -640,5 +640,289 @@ Planned ingestion adapters:
+ 
+ Each adapter will map native test events to Laminar's envelope schema, enabling unified reporting across polyglot projects.
+ 
++## Determinism & Reproducibility
++
++### Why Determinism Matters
++
++Deterministic tests are critical for:
++- **Reproducibility**: Same inputs → same outputs across machines and time
++- **Debugging**: Failures can be replayed exactly as they occurred
++- **Confidence**: Pass/fail is meaningful, not random noise
++- **CI stability**: Prevents false positives that block deployments
++
++Non-deterministic tests ("flakes") erode trust in test suites and waste engineering time triaging phantom failures.
++
++### Fixed Seed for Randomness
++
++All Laminar tests run with a fixed seed by default:
++
++```bash
++TEST_SEED=42  # Default seed injected by laminar-run.ts
++```
++
++This ensures:
++- Property-based tests generate identical random values each run
++- Timing-sensitive tests use consistent delays
++- Random sampling produces stable results
++
++**Usage:**
++```bash
++# Normal run (seed 42 injected automatically)
++npm run laminar:run
++
++# Override seed for exploration
++TEST_SEED=99 npm run laminar:run
++```
++
++Property-based tests consume the seed via:
++```typescript
++import * as fc from 'fast-check';
++
++const SEED = parseInt(process.env.TEST_SEED || '42', 10);
++
++test('property test', () => {
++  fc.assert(
++    fc.property(fc.integer(), (n) => n + 1 > n),
++    { seed: SEED }
++  );
++});
++```
++
++## Flake Detection & Stability Scoring
++
++### Concept
++
++Flake detection runs the entire test suite N times with the same seed to identify unstable tests. A test is **flaky** if it passes on some runs and fails on others under identical conditions.
++
++**Stability score** = (passes / total runs) × 100%
++
++- 100% = stable (always passes)
++- 0% = always fails (not flaky, but broken)
++- 1–99% = flaky (intermittent failure)
++
++### Running Flake Detection
++
++```bash
++# Default: 5 runs per test
++npm run laminar:run -- --flake-detect
++
++# Custom rerun count
++npm run laminar:run -- --flake 10
++
++# Shorter flag
++npm run laminar:run -- --flake 3
++```
++
++**Process:**
++1. Runs all tests with seed 42
++2. Cleans summary, reruns N-1 times (silent)
++3. Aggregates pass/fail counts per test location
++4. Calculates stability score for each test
++5. Reports flaky tests, always-fail tests, stable tests
++6. Saves detailed JSON to `reports/stability-report.json`
++7. Exits with code 1 if flaky/failing tests found (CI integration)
++
++### Example Output
++
++```
++=== FLAKE DETECTION MODE (5 runs per test) ===
++
++Run 1/5 (seed: 42)...
++[... test output ...]
++
++Run 2/5 (seed: 42)...
++[silent]
++
++=== STABILITY REPORT ===
++
++FLAKY TESTS:
++  60% stable - tests/feature.spec.ts:45 (3/5 passed)
++  80% stable - tests/timing.spec.ts:12 (4/5 passed)
++
++ALWAYS FAIL:
++  tests/broken.spec.ts:8 (0/5 passed)
++
++SUMMARY: 142 stable, 2 flaky, 1 always fail
++
++Detailed report saved to reports/stability-report.json
++```
++
++### Stability Report JSON
++
++```json
++{
++  "seed": "42",
++  "reruns": 5,
++  "timestamp": "2025-10-12T14:23:45.678Z",
++  "results": [
++    {
++      "location": "tests/feature.spec.ts:45",
++      "runs": 5,
++      "passes": 3,
++      "fails": 2,
++      "score": 60
++    }
++  ]
++}
++```
++
++### Triage Workflow
++
++1. **Identify flakes**: Run `npm run laminar:run -- --flake-detect`
++2. **Inspect failures**: Check `reports/<suite>/<case>.jsonl` for failed runs
++3. **Generate digest**: `lam digest` to get suspects and context
++4. **Review code frames**: See source code around error (if enabled)
++5. **Fix root cause**: Address timing assumptions, race conditions, etc.
++6. **Re-verify stability**: Run flake detection again to confirm 100% score
++
++**CI Integration:**
++```yaml
++- name: Flake Detection
++  run: npm run laminar:run -- --flake 10
++  # Fails if any test has < 100% stability
++```
++
++## Code Frames in Digest
++
++### Concept
++
++Code frames extract source code snippets around error locations from stack traces, making it easier to triage failures without manually opening files.
++
++**Benefits:**
++- **Context at a glance**: See the exact line that failed plus surrounding code
++- **Source mapping**: Maps compiled JS back to TypeScript sources
++- **Token-efficient**: Includes only relevant lines (±2 by default)
++- **Digest integration**: Code frames appear in `.digest.json` and `.digest.md`
++
++### Enabling Code Frames
++
++Add `codeframe` action to digest rules in `laminar.config.json`:
++
++```json
++{
++  "enabled": true,
++  "rules": [
++    {
++      "match": { "lvl": "error" },
++      "actions": [
++        { "type": "include" },
++        { "type": "codeframe", "contextLines": 2 }
++      ],
++      "priority": 10
++    },
++    {
++      "match": { "evt": "assert.fail" },
++      "actions": [
++        { "type": "include" },
++        { "type": "slice", "window": 10 },
++        { "type": "codeframe", "contextLines": 3 }
++      ],
++      "priority": 9
++    }
++  ]
++}
++```
++
++**Action parameters:**
++- `type: 'codeframe'` — extract code frames from stack traces
++- `contextLines` — lines before/after error (default: 2)
++
++### Code Frame Structure
++
++```typescript
++interface CodeFrame {
++  file: string;        // Source file path
++  line: number;        // Error line number
++  column?: number;     // Column position
++  source: string[];    // Full snippet lines
++  context: {
++    before: string[];  // Lines before error
++    focus: string;     // Error line
++    after: string[];   // Lines after error
++  };
++}
++```
++
++### Example Digest with Code Frames
++
++**`.digest.json`:**
++```json
++{
++  "summary": { "total": 42, "included": 8 },
++  "events": [ /* ... */ ],
++  "codeframes": [
++    {
++      "file": "/srv/repos0/mkolbol/tests/topology.spec.ts",
++      "line": 61,
++      "column": 5,
++      "context": {
++        "before": [
++          "  const result = controller.applyCommand(cmd);",
++          "  "
++        ],
++        "focus": "  expect(result.nodes.length).toBe(42);",
++        "after": [
++          "  expect(result.edges.length).toBe(12);",
++          "});"
++        ]
++      }
++    }
++  ]
++}
++```
++
++**`.digest.md`:**
++```markdown
++## Code Frames
++
++  at /srv/repos0/mkolbol/tests/topology.spec.ts:61:5
++  59 |   const result = controller.applyCommand(cmd);
++  60 |   
++> 61 |   expect(result.nodes.length).toBe(42);
++     |     ^
++  62 |   expect(result.edges.length).toBe(12);
++  63 | });
++```
++
++### Budget Behavior
++
++Code frames count toward digest budget:
++- Each frame adds ~200–500 bytes (depending on context lines)
++- Limited to 5 frames per digest to prevent budget exhaustion
++- If budget exceeded, code frames are truncated or omitted
++
++**Budget tuning** (in `laminar.config.json`):
++```json
++{
++  "budget": {
++    "kb": 15,      // Increase if you want more code frames
++    "lines": 300
++  }
++}
++```
++
++### Source Map Resolution
++
++Code frame extractor automatically resolves TypeScript source maps:
++1. Parses error stack trace
++2. Checks for `.map` files next to compiled `.js`
++3. Resolves original TypeScript line/column
++4. Extracts code from `.ts` file (if available)
++5. Falls back to compiled `.js` if sourcemap missing
++
++**No configuration required** — works automatically for standard TypeScript builds.
++
++### CLI Usage
++
++```bash
++# Generate digest with code frames (if configured)
++lam digest
++
++# View specific case digest
++cat reports/kernel.spec/connect_moves_data_1_1.digest.md
++```
++
++Code frames appear in the **Code Frames** section of the markdown digest, after suspects and before events.
++
+ ## Branding Notes
+ Laminar fits the project’s physical‑manifold metaphor: smooth, predictable flow with clear gauges and valves for control.

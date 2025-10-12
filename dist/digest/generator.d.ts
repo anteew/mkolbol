@@ -1,3 +1,4 @@
+import { CodeFrame } from './codeframe.js';
 export interface DigestConfig {
     budget?: {
         kb?: number;
@@ -18,9 +19,10 @@ export interface DigestRule {
     priority?: number;
 }
 export interface DigestAction {
-    type: 'include' | 'slice' | 'redact';
+    type: 'include' | 'slice' | 'redact' | 'codeframe';
     window?: number;
     field?: string | string[];
+    contextLines?: number;
 }
 export interface DigestEvent {
     ts: number;
@@ -51,10 +53,12 @@ export interface DigestOutput {
         budgetLimit: number;
     };
     suspects?: SuspectEvent[];
+    codeframes?: CodeFrame[];
     events: DigestEvent[];
 }
 export declare class DigestGenerator {
     private config;
+    private codeframeExtractor;
     constructor(config?: DigestConfig);
     static loadConfig(configPath?: string): DigestConfig;
     generateDigest(caseName: string, status: 'pass' | 'fail' | 'skip', duration: number, location: string, artifactURI: string, error?: string): Promise<DigestOutput | null>;
@@ -63,6 +67,7 @@ export declare class DigestGenerator {
     private matchEvent;
     private matchPattern;
     private enforceBudget;
+    private extractCodeFrames;
     private identifySuspects;
     private calculateSuspectScore;
     writeDigest(digest: DigestOutput, outputDir?: string): Promise<void>;

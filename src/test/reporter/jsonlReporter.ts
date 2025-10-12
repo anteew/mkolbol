@@ -1,6 +1,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import type { File, Reporter, Task, Vitest } from 'vitest';
+
+interface RuntimeEnvironment {
+  nodeVersion: string;
+  platform: string;
+  arch: string;
+  os: string;
+  seed?: number;
+  envVars?: Record<string, string>;
+}
 
 interface TestSummary {
   status: 'pass' | 'fail' | 'skip';
@@ -8,6 +18,8 @@ interface TestSummary {
   location: string;
   artifactURI?: string;
   error?: string;
+  seed?: number;
+  env?: RuntimeEnvironment;
 }
 
 interface ArtifactIndexEntry {
@@ -27,6 +39,7 @@ interface ArtifactIndex {
   generated: string;
   totalTests: number;
   artifacts: ArtifactIndexEntry[];
+  environment: RuntimeEnvironment;
 }
 
 export default class JSONLReporter implements Reporter {
@@ -37,6 +50,37 @@ export default class JSONLReporter implements Reporter {
   private processedTests = new Set<string>();
   private indexEntries: ArtifactIndexEntry[] = [];
   private caseStreams = new Map<string, fs.WriteStream>();
+  private environment: RuntimeEnvironment;
+  private testSeed: number;
+
+  constructor() {
+    // Fixed seed for determinism (can be overridden via env var)
+    this.testSeed = process.env.TEST_SEED 
+      ? parseInt(process.env.TEST_SEED, 10)
+      : 42;
+    
+    this.environment = this.captureEnvironment();
+  }
+
+  private captureEnvironment(): RuntimeEnvironment {
+    const relevantEnvVars: Record<string, string> = {};
+    const envKeys = ['CI', 'NODE_ENV', 'TEST_SEED', 'LAMINAR_DEBUG', 'LAMINAR_SUITE', 'LAMINAR_CASE'];
+    
+    for (const key of envKeys) {
+      if (process.env[key]) {
+        relevantEnvVars[key] = process.env[key]!;
+      }
+    }
+
+    return {
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      os: `${os.type()} ${os.release()}`,
+      seed: this.testSeed,
+      envVars: Object.keys(relevantEnvVars).length > 0 ? relevantEnvVars : undefined,
+    };
+  }
 
   onInit(ctx: Vitest): void {
     this.ctx = ctx;
@@ -47,6 +91,14 @@ export default class JSONLReporter implements Reporter {
     }
     this.summaryStream = fs.createWriteStream(this.summaryPath, { flags: 'a' });
     this.indexEntries = [];
+    
+    // Write environment info to summary on init
+    if (this.summaryStream) {
+      this.summaryStream.write(JSON.stringify({
+        type: 'environment',
+        ...this.environment
+      }) + '\n');
+    }
   }
 
   onCollected(): void {
@@ -121,6 +173,7 @@ export default class JSONLReporter implements Reporter {
       duration,
       location,
       artifactURI,
+      seed: this.testSeed,
     };
 
     if (result.errors && result.errors.length > 0) {
@@ -167,13 +220,15 @@ export default class JSONLReporter implements Reporter {
     const ts = Date.now();
 
     // Write test lifecycle events
-    // 1. Test begin event
+    // 1. Test begin event with environment and seed
     stream.write(JSON.stringify({
       ts,
       lvl: 'info',
       case: caseName,
       phase: 'setup',
-      evt: 'case.begin'
+      evt: 'case.begin',
+      env: this.environment,
+      seed: this.testSeed
     }) + '\n');
 
     // 2. Test execution event
@@ -223,6 +278,7 @@ export default class JSONLReporter implements Reporter {
       generated: new Date().toISOString(),
       totalTests: this.indexEntries.length,
       artifacts: this.indexEntries,
+      environment: this.environment,
     };
 
     fs.writeFileSync(this.indexPath, JSON.stringify(index, null, 2));
