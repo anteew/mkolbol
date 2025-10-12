@@ -45,4 +45,15 @@ export class TestLogger {
 export function createLogger(suite, caseName) {
     return new TestLogger(suite, caseName);
 }
+let globalDebugLogger;
+export function getGlobalDebugLogger() {
+    return globalDebugLogger;
+}
+export function initGlobalDebugLogger() {
+    if (process.env.LAMINAR_DEBUG === '1' && !globalDebugLogger) {
+        const suite = process.env.LAMINAR_SUITE || 'debug';
+        const caseName = process.env.LAMINAR_CASE || 'global';
+        globalDebugLogger = new TestLogger(suite, caseName);
+    }
+}
 //# sourceMappingURL=logger.js.map

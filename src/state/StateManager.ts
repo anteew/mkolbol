@@ -10,6 +10,7 @@ import {
   TopologyEvent,
   ValidationResult,
 } from '../types/topology.js';
+import { debug } from '../debug/api.js';
 
 type ValidatorFn = (from: TerminalRef, tos: TerminalRef[], type: 'direct' | 'split' | 'merge') => ValidationResult;
 
@@ -28,6 +29,7 @@ export class StateManager {
   }
 
   private emit(e: TopologyEvent) {
+    debug.emit('state', `event.${e.type}`, e);
     for (const l of this.listeners) l(e);
   }
 

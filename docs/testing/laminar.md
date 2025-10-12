@@ -48,6 +48,30 @@ Optional hooks emit events from:
 
 These hooks are no‑ops in production code paths unless a logger is attached during tests.
 
+## Debug Output
+
+### Environment Variables
+- `DEBUG=1` — enable all debug output to console
+- `MK_DEBUG_MODULES=kernel,pipes` — enable specific modules only
+- `MK_DEBUG_LEVEL=trace` — set level (error|warn|info|debug|trace, default: info)
+- `LAMINAR_DEBUG=1` — write debug events as JSONL to `reports/` instead of console
+
+### Console Mode (default)
+```bash
+DEBUG=1 node dist/examples/debug-demo.js
+```
+Prints timestamped debug events to stdout:
+```
+[2025-10-12T14:30:45.123Z] [DEBUG] [kernel] pipe.create: {"pipeId":"p-1"}
+[2025-10-12T14:30:45.124Z] [DEBUG] [kernel] pipe.connect: {"fromId":"p-1","toId":"p-2"}
+```
+
+### Test Mode (JSONL artifacts)
+```bash
+LAMINAR_DEBUG=1 npm test
+```
+Writes debug events to `reports/<suite>/<case>.jsonl` alongside test events, using the same envelope schema.
+
 ## Test Types
 - Unit: adapters and small modules
 - Component: module + adapters (inproc/worker/process)

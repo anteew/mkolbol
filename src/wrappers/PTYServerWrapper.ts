@@ -3,6 +3,7 @@ import { ExternalServerWrapper } from './ExternalServerWrapper.js';
 import { Kernel } from '../kernel/Kernel.js';
 import { Hostess } from '../hostess/Hostess.js';
 import type { ExternalServerManifest } from '../types.js';
+import { debug } from '../debug/api.js';
 
 export class PTYServerWrapper extends ExternalServerWrapper {
   private ptyProcess?: pty.IPty;
@@ -27,6 +28,8 @@ export class PTYServerWrapper extends ExternalServerWrapper {
       throw new Error(`PTY process already running for ${this.manifest.servername}`);
     }
 
+    debug.emit('pty', 'server.starting', { servername: this.manifest.servername }, 'info');
+
     const env = { ...process.env, ...this.manifest.env };
     const shell = this.manifest.shell || this.manifest.command;
     const args = this.manifest.shellArgs || this.manifest.args;
@@ -42,7 +45,16 @@ export class PTYServerWrapper extends ExternalServerWrapper {
 
     this.spawnTime = Date.now();
 
+    debug.emit('pty', 'server.started', { 
+      servername: this.manifest.servername, 
+      pid: this.ptyProcess.pid 
+    }, 'info');
+
     this.dataDisposable = this.ptyProcess.onData((data) => {
+      debug.emit('pty', 'server.output', { 
+        servername: this.manifest.servername, 
+        bytes: data.length 
+      }, 'trace');
       this._outputPipe.write(data);
     });
 
@@ -56,6 +68,10 @@ export class PTYServerWrapper extends ExternalServerWrapper {
 
     this._inputPipe.on('data', (data) => {
       if (this.ptyProcess) {
+        debug.emit('pty', 'server.input', { 
+          servername: this.manifest.servername, 
+          bytes: data.length 
+        }, 'trace');
         this.ptyProcess.write(data.toString());
       }
     });
@@ -75,6 +91,8 @@ export class PTYServerWrapper extends ExternalServerWrapper {
   async shutdown(timeout: number = 100): Promise<void> {
     if (!this.ptyProcess) return;
 
+    debug.emit('pty', 'server.stopping', { servername: this.manifest.servername }, 'info');
+
     this.explicitShutdown = true;
     
     if (this.dataDisposable) {
@@ -89,6 +107,8 @@ export class PTYServerWrapper extends ExternalServerWrapper {
       pty.kill('SIGKILL');
     } catch (err) {
     }
+    
+    debug.emit('pty', 'server.stopped', { servername: this.manifest.servername }, 'info');
     
     await new Promise(resolve => setTimeout(resolve, timeout));
   }

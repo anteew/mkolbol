@@ -3,6 +3,8 @@ import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
 import { Worker, MessageChannel } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { createLogger } from '../logging/logger.js';
+import { debug } from '../debug/api.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 export class Executor {
@@ -19,6 +21,11 @@ export class Executor {
         this.stateManager = stateManager;
         this.moduleRegistry = new ModuleRegistry();
         this.logger = logger;
+        if (!this.logger && process.env.LAMINAR_DEBUG === '1') {
+            const suite = process.env.LAMINAR_SUITE || 'debug';
+            const caseName = (process.env.LAMINAR_CASE || 'executor').replace(/[^a-zA-Z0-9-_]/g, '_');
+            this.logger = createLogger(suite, caseName);
+        }
     }
     load(config) {
         this.config = config;
@@ -27,6 +34,7 @@ export class Executor {
         if (!this.config) {
             throw new Error('No configuration loaded. Call load() first.');
         }
+        debug.emit('executor', 'start', { nodeCount: this.config.nodes.length });
         for (const nodeConfig of this.config.nodes) {
             await this.instantiateNode(nodeConfig);
         }
@@ -58,6 +66,7 @@ export class Executor {
         }
     }
     async down() {
+        debug.emit('executor', 'stop', { nodeCount: this.modules.size });
         for (const instance of this.modules.values()) {
             if (instance.worker) {
                 instance.worker.postMessage({ type: 'shutdown' });
@@ -154,6 +163,7 @@ export class Executor {
         const { port1: outputPort1, port2: outputPort2 } = new MessageChannel();
         const harnessPath = join(__dirname, 'workerHarness.js');
         const modulePath = this.getModulePath(nodeConfig.module);
+        debug.emit('executor', 'worker.spawn', { nodeId: nodeConfig.id, module: nodeConfig.module });
         const worker = new Worker(harnessPath, {
             workerData: {
                 nodeId: nodeConfig.id,
@@ -189,6 +199,7 @@ export class Executor {
             const handler = (msg) => {
                 if (msg && msg.type === 'worker.ready') {
                     console.log(`[Executor] Worker ready: ${nodeConfig.id}`);
+                    debug.emit('executor', 'worker.ready', { nodeId: nodeConfig.id, module: nodeConfig.module });
                     this.logger?.emit('worker.ready', {
                         lvl: 'info',
                         id: nodeConfig.id,
@@ -227,9 +238,11 @@ export class Executor {
         });
         worker.on('error', (err) => {
             console.error(`[Executor] Worker error for ${nodeConfig.id}:`, err);
+            debug.emit('executor', 'worker.error', { nodeId: nodeConfig.id, error: err.message }, 'error');
         });
         worker.on('exit', (code) => {
             console.log(`[Executor] Worker ${nodeConfig.id} exited with code ${code}`);
+            debug.emit('executor', 'worker.exit', { nodeId: nodeConfig.id, exitCode: code });
             this.logger?.emit('worker.exit', {
                 lvl: 'info',
                 id: nodeConfig.id,

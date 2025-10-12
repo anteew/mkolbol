@@ -1,3 +1,4 @@
+import { debug } from '../debug/api.js';
 export class StateManager {
     kernel;
     nodes = new Map();
@@ -13,6 +14,7 @@ export class StateManager {
         return () => this.listeners.delete(fn);
     }
     emit(e) {
+        debug.emit('state', `event.${e.type}`, e);
         for (const l of this.listeners)
             l(e);
     }

@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import { buildServerIdentity } from '../types.js';
 import { createEvent } from '../logging/TestEvent.js';
+import { createLogger } from '../logging/logger.js';
+import { debug } from '../debug/api.js';
 export class Hostess {
     guestBook = new Map();
     interval;
@@ -11,6 +13,12 @@ export class Hostess {
         this.heartbeatIntervalMs = opts.heartbeatIntervalMs ?? 5000;
         this.evictionThresholdMs = opts.evictionThresholdMs ?? 20000;
         this.logger = opts.logger;
+        if (!this.logger && process.env.LAMINAR_DEBUG === '1') {
+            const suite = process.env.LAMINAR_SUITE || 'debug';
+            const caseName = (process.env.LAMINAR_CASE || 'hostess').replace(/[^a-zA-Z0-9-_]/g, '_');
+            const logger = createLogger(suite, caseName);
+            this.logger = (evt) => logger.emit(evt.evt, { payload: evt.payload, id: evt.id, corr: evt.corr, phase: evt.phase, lvl: evt.lvl });
+        }
     }
     register(entry) {
         const uuid = entry.uuid ?? crypto.randomUUID();
@@ -48,6 +56,13 @@ export class Hostess {
             id: identity,
             payload: { fqdn: entry.fqdn, servername: entry.servername, uuid }
         }));
+        debug.emit('hostess', 'register', {
+            identity,
+            fqdn: entry.fqdn,
+            servername: entry.servername,
+            uuid,
+            terminals: entry.terminals.length
+        });
         return identity;
     }
     heartbeat(serverId) {
@@ -58,6 +73,7 @@ export class Hostess {
         this.logger?.(createEvent('hostess:heartbeat', 'hostess', {
             id: serverId
         }));
+        debug.emit('hostess', 'heartbeat', { serverId });
     }
     markInUse(serverId, terminalName, connectomeId) {
         const entry = this.guestBook.get(serverId);
@@ -71,6 +87,7 @@ export class Hostess {
             id: serverId,
             payload: { terminalName, connectomeId }
         }));
+        debug.emit('hostess', 'markInUse', { serverId, terminalName, connectomeId });
     }
     markAvailable(serverId, terminalName) {
         const entry = this.guestBook.get(serverId);

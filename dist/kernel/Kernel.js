@@ -1,4 +1,5 @@
 import { InProcPipe } from '../pipes/adapters/InProcPipe.js';
+import { debug } from '../debug/api.js';
 export class Kernel {
     registry = new Map();
     adapter;
@@ -6,17 +7,28 @@ export class Kernel {
         this.adapter = adapter ?? new InProcPipe();
     }
     createPipe(options) {
-        return this.adapter.createDuplex(options);
+        const pipe = this.adapter.createDuplex(options);
+        debug.emit('kernel', 'pipe.create', { pipeId: pipe._id });
+        return pipe;
     }
     connect(from, to) {
+        debug.emit('kernel', 'pipe.connect', { fromId: from._id, toId: to._id });
         from.pipe(to);
     }
     split(source, destinations) {
+        debug.emit('kernel', 'pipe.split', {
+            sourceId: source._id,
+            destIds: destinations.map((d) => d._id),
+        });
         for (const dest of destinations) {
             source.pipe(dest);
         }
     }
     merge(sources, destination) {
+        debug.emit('kernel', 'pipe.merge', {
+            sourceIds: sources.map((s) => s._id),
+            destId: destination._id,
+        });
         for (const source of sources) {
             source.pipe(destination);
         }

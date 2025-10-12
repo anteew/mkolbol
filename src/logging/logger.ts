@@ -64,3 +64,17 @@ export class TestLogger {
 export function createLogger(suite: string, caseName: string): TestLogger {
   return new TestLogger(suite, caseName);
 }
+
+let globalDebugLogger: TestLogger | undefined;
+
+export function getGlobalDebugLogger(): TestLogger | undefined {
+  return globalDebugLogger;
+}
+
+export function initGlobalDebugLogger(): void {
+  if (process.env.LAMINAR_DEBUG === '1' && !globalDebugLogger) {
+    const suite = process.env.LAMINAR_SUITE || 'debug';
+    const caseName = process.env.LAMINAR_CASE || 'global';
+    globalDebugLogger = new TestLogger(suite, caseName);
+  }
+}

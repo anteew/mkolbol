@@ -4,6 +4,7 @@ import { Hostess } from '../hostess/Hostess.js';
 import type { Pipe } from '../types/stream.js';
 import type { ExternalServerManifest, ProcessInfo } from '../types.js';
 import crypto from 'node:crypto';
+import { debug } from '../debug/api.js';
 
 export class ExternalServerWrapper {
   protected process?: ChildProcess;
@@ -54,6 +55,8 @@ export class ExternalServerWrapper {
       throw new Error(`Process already running for ${this.manifest.servername}`);
     }
 
+    debug.emit('external', 'server.starting', { servername: this.manifest.servername }, 'info');
+
     const env = { ...process.env, ...this.manifest.env };
     
     this.process = spawn(this.manifest.command, this.manifest.args, {
@@ -64,12 +67,37 @@ export class ExternalServerWrapper {
 
     this.spawnTime = Date.now();
 
+    debug.emit('external', 'server.started', { 
+      servername: this.manifest.servername, 
+      pid: this.process.pid 
+    }, 'info');
+
     if (!this.process.stdin || !this.process.stdout || !this.process.stderr) {
       throw new Error('Failed to get process stdio streams');
     }
 
+    this._inputPipe.on('data', (chunk) => {
+      debug.emit('external', 'server.input', { 
+        servername: this.manifest.servername, 
+        bytes: chunk.length 
+      }, 'trace');
+    });
     this._inputPipe.pipe(this.process.stdin);
+    
+    this.process.stdout.on('data', (chunk) => {
+      debug.emit('external', 'server.output', { 
+        servername: this.manifest.servername, 
+        bytes: chunk.length 
+      }, 'trace');
+    });
     this.process.stdout.pipe(this._outputPipe);
+    
+    this.process.stderr.on('data', (chunk) => {
+      debug.emit('external', 'server.error', { 
+        servername: this.manifest.servername, 
+        bytes: chunk.length 
+      }, 'trace');
+    });
     this.process.stderr.pipe(this._errorPipe);
 
     this.process.on('exit', (code, signal) => {
@@ -97,6 +125,8 @@ export class ExternalServerWrapper {
   async shutdown(timeout: number = 5000): Promise<void> {
     if (!this.process) return;
 
+    debug.emit('external', 'server.stopping', { servername: this.manifest.servername }, 'info');
+
     this.explicitShutdown = true;
 
     return new Promise((resolve) => {
@@ -114,6 +144,7 @@ export class ExternalServerWrapper {
       this.process.once('exit', () => {
         clearTimeout(killTimer);
         this.process = undefined;
+        debug.emit('external', 'server.stopped', { servername: this.manifest.servername }, 'info');
         resolve();
       });
 

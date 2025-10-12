@@ -14,17 +14,227 @@
 }
 ```
 
-# Ampcode — Subagent Sprint Plan (Laminar CI Stability: PTY split)
+# Ampcode — Subagent Sprint Plan (mkolbol Debug Instrumentation P1)
 
 **Architect**: VEGA  
-**Sprint/Batch**: SB-CI-STABILIZE-PTY (Brand: Laminar)  
+**Sprint/Batch**: SB-MK-DEBUG-P1 (Brand: Laminar)  
 **Reporting**: Results go to `ampcode.log`
 
 ---
 
 ## Context & Scope
 
-**Goal**: Ensure CI runs reliably by splitting PTY-heavy tests into a single-threaded lane while keeping the rest threaded. Add scripts (test:ci, test:pty), tag/audit PTY tests, document the reason in Laminar docs, and optionally make logq/repro runnable without ts-node.
+**Goal**: Add a lightweight, runtime‑configurable debug instrumentation layer to mkolbol that agents/humans can toggle without code edits, and integrate it with Laminar so debug events are captured automatically in JSONL when enabled. Keep overhead near‑zero when disabled.
+
+---
+
+## Execution Waves
+
+```yaml
+waves:
+  - id: D-A
+    parallel: true
+    tasks: [T2201, T2202, T2203]
+
+  - id: D-B
+    parallel: true
+    depends_on: [D-A]
+    tasks: [T2204, T2205, T2206, T2207]
+
+  - id: D-C
+    parallel: true
+    depends_on: [D-B]
+    tasks: [T2208, T2209, T2210]
+```
+
+---
+
+## Tasks
+
+### TASK T2201 — Debug config + API (near‑zero overhead when disabled)
+
+**Goal**: Create `src/debug/` with a tiny API to check toggles and emit structured debug events. Reads env (DEBUG, MK_DEBUG_MODULES, MK_DEBUG_LEVEL) once at startup.
+
+**Allowed Files**:
+
+```yaml
+create:
+  - src/debug/config.ts # parse env, freeze flags
+  - src/debug/api.ts    # debug.on('module'), debug.emit(module, evt, payload)
+modify:
+  - README.md           # short section on enabling debug
+```
+
+**Requirements**:
+1. Disabled path adds ~no work (guard clauses)
+2. Tokens: map to Laminar TestEvent envelope when Laminar is present
+
+**Verify**:
+```bash
+npm run build
+```
+
+**Deliverable**: `patches/DIFF_T2201_debug-api.patch`
+
+---
+
+### TASK T2202 — Debug helpers: function wrapper + simple decorator
+
+**Goal**: Provide helpers to wrap functions/methods with entry/exit logging (args, duration) when enabled. Use TS decorator only if enabled in tsconfig (fallback wrapper otherwise).
+
+**Allowed Files**:
+
+```yaml
+create:
+  - src/debug/wrap.ts   # wrap(fn, name, module)
+  - src/debug/decorators.ts # optional, behind compiler flag
+```
+
+**Requirements**:
+1. Do not require project‑wide decorators; helpers must work without them
+2. Redact large/secret args (lengths only) by default
+
+**Verify**: `npm run build`
+
+**Deliverable**: `patches/DIFF_T2202_debug-helpers.patch`
+
+---
+
+### TASK T2203 — Laminar bridge: auto‑attach when LAMINAR_DEBUG=1
+
+**Goal**: If LAMINAR_DEBUG=1, bind debug.emit() to Laminar logger so debug events flow into JSONL without test code changes.
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - src/logging/logger.ts
+  - src/debug/api.ts
+```
+
+**Verify**: `npm run build`
+
+**Deliverable**: `patches/DIFF_T2203_laminar-bridge.patch`
+
+---
+
+### TASK T2204 — Instrument core surfaces (Kernel/StateManager minimal)
+
+**Goal**: Guarded debug emits for pipe create/connect/split/merge and state events.
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - src/kernel/Kernel.ts
+  - src/state/StateManager.ts
+```
+
+**Requirements**:
+1. No behavior change when debug off
+2. When on, emit evt=pipe.create|connect|split|merge with ids
+
+**Verify**: `npm run test:ci`
+
+**Deliverable**: `patches/DIFF_T2204_kernel-state-instrument.patch`
+
+---
+
+### TASK T2205 — Instrument Hostess (registrations/usage)
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - src/hostess/Hostess.ts
+```
+
+**Verify**: `npm run test:ci`
+
+**Deliverable**: `patches/DIFF_T2205_hostess-instrument.patch`
+
+---
+
+### TASK T2206 — Instrument Executor (start/stop/workers)
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - src/executor/Executor.ts
+```
+
+**Verify**: `npm run test:ci`
+
+**Deliverable**: `patches/DIFF_T2206_executor-instrument.patch`
+
+---
+
+### TASK T2207 — Instrument Wrappers (PTY + External)
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - src/wrappers/PTYServerWrapper.ts
+  - src/wrappers/ExternalServerWrapper.ts
+```
+
+**Verify**: `npm run test:pty`
+
+**Deliverable**: `patches/DIFF_T2207_wrappers-instrument.patch`
+
+---
+
+### TASK T2208 — Examples: enable debug via env (docs + demo)
+
+**Goal**: Add a short example showing debug on/off and where events appear in reports/.
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - docs/testing/laminar.md
+create:
+  - src/examples/debug-demo.ts
+```
+
+**Verify**: `npm run build && node dist/examples/debug-demo.js`
+
+**Deliverable**: `patches/DIFF_T2208_debug-demo-docs.patch`
+
+---
+
+### TASK T2209 — Tests: ensure off==silent, on==emits minimal events
+
+**Allowed Files**:
+
+```yaml
+create:
+  - tests/debug/debug-api.spec.ts
+```
+
+**Verify**: `npm run test:ci`
+
+**Deliverable**: `patches/DIFF_T2209_debug-tests.patch`
+
+---
+
+### TASK T2210 — CI: add laminar:run to default pipeline
+
+**Goal**: Ensure auto‑debug rerun is used in CI for fast triage.
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - package.json
+  - README.md (CI notes)
+```
+
+**Verify**: `npm run laminar:run || true`
+
+**Deliverable**: `patches/DIFF_T2210_ci-laminar-run.patch`
 
 **Constraints**:
 
