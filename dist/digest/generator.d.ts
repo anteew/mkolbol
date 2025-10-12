@@ -1,4 +1,5 @@
 import { CodeFrame } from './codeframe.js';
+import { Hint } from './hints.js';
 export interface DigestConfig {
     budget?: {
         kb?: number;
@@ -54,12 +55,14 @@ export interface DigestOutput {
     };
     suspects?: SuspectEvent[];
     codeframes?: CodeFrame[];
+    hints?: Hint[];
     events: DigestEvent[];
 }
 export declare class DigestGenerator {
     private config;
     private overlayRules;
     private codeframeExtractor;
+    private hintEngine;
     constructor(config?: DigestConfig);
     setOverlayRules(rules: DigestRule[]): void;
     clearOverlayRules(): void;

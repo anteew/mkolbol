@@ -1,3 +1,3 @@
-{"ts":1760304728277,"lvl":"info","case":"should have caseFile path for each entry","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42","LAMINAR_DEBUG":"1","LAMINAR_SUITE":"coreReporter.spec","LAMINAR_CASE":"should_have_matching_test_count_between_index_and_summary"}},"seed":42}
-{"ts":1760304728278,"lvl":"info","case":"should have caseFile path for each entry","phase":"execution","evt":"test.run"}
-{"ts":1760304728279,"lvl":"info","case":"should have caseFile path for each entry","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760310689145,"lvl":"info","case":"should have caseFile path for each entry","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760310689146,"lvl":"info","case":"should have caseFile path for each entry","phase":"execution","evt":"test.run"}
+{"ts":1760310689147,"lvl":"info","case":"should have caseFile path for each entry","phase":"teardown","evt":"case.end","payload":{"duration":10,"status":"passed"}}

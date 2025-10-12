@@ -1,3 +1,3 @@
-{"ts":1760304679683,"lvl":"info","case":"parses V8 stack trace without function names","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760304679684,"lvl":"info","case":"parses V8 stack trace without function names","phase":"execution","evt":"test.run"}
-{"ts":1760304679685,"lvl":"info","case":"parses V8 stack trace without function names","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760310689176,"lvl":"info","case":"parses V8 stack trace without function names","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760310689177,"lvl":"info","case":"parses V8 stack trace without function names","phase":"execution","evt":"test.run"}
+{"ts":1760310689178,"lvl":"info","case":"parses V8 stack trace without function names","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

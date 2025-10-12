@@ -1,3 +1,3 @@
-{"ts":1760304724449,"lvl":"info","case":"captures error events","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42","LAMINAR_DEBUG":"1","LAMINAR_SUITE":"rulepacks.spec","LAMINAR_CASE":"enforces_budget_after_redaction"}},"seed":42}
-{"ts":1760304724450,"lvl":"info","case":"captures error events","phase":"execution","evt":"test.run"}
-{"ts":1760304724451,"lvl":"info","case":"captures error events","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
+{"ts":1760310689367,"lvl":"info","case":"captures error events","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760310689368,"lvl":"info","case":"captures error events","phase":"execution","evt":"test.run"}
+{"ts":1760310689369,"lvl":"info","case":"captures error events","phase":"teardown","evt":"case.end","payload":{"duration":9,"status":"passed"}}

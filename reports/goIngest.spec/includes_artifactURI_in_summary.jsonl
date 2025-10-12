@@ -1,3 +1,3 @@
-{"ts":1760304679716,"lvl":"info","case":"includes artifactURI in summary","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760304679717,"lvl":"info","case":"includes artifactURI in summary","phase":"execution","evt":"test.run"}
-{"ts":1760304679718,"lvl":"info","case":"includes artifactURI in summary","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760310689170,"lvl":"info","case":"includes artifactURI in summary","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760310689171,"lvl":"info","case":"includes artifactURI in summary","phase":"execution","evt":"test.run"}
+{"ts":1760310689172,"lvl":"info","case":"includes artifactURI in summary","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

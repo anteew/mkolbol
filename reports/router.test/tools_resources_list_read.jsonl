@@ -1,3 +1,3 @@
-{"ts":1760304679671,"lvl":"info","case":"tools/resources list read","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760304679672,"lvl":"info","case":"tools/resources list read","phase":"execution","evt":"test.run"}
-{"ts":1760304679673,"lvl":"info","case":"tools/resources list read","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760310689052,"lvl":"info","case":"tools/resources list read","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760310689053,"lvl":"info","case":"tools/resources list read","phase":"execution","evt":"test.run"}
+{"ts":1760310689054,"lvl":"info","case":"tools/resources list read","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

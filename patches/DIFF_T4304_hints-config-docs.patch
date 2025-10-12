@@ -1,0 +1,323 @@
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index 408080c..29d9110 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -4786,3 +4786,302 @@ interface McpServerConfig {
+ 3. **Error handling:** Always wrap tool calls in try-catch for `McpError`
+ 4. **Idempotency:** Tools are safe to retry on network failures
+ 5. **Resource limits:** Use `limit` parameter in `query` to avoid large responses
++
++## Triage Hints
++
++Laminar can automatically detect common patterns in test failures and suggest next steps. Hints appear in digest outputs and help you quickly identify configuration issues, budget constraints, and test trends.
++
++### Hints Configuration
++
++Add hints configuration to your `laminar.config.json`:
++
++```json
++{
++  "enabled": true,
++  "budget": {
++    "kb": 10,
++    "lines": 200
++  },
++  "hints": {
++    "enabled": false,
++    "showTrends": true,
++    "maxLines": 1
++  },
++  "rules": [
++    // ... your rules
++  ]
++}
++```
++
++**Configuration Options:**
++
++- `hints.enabled` (boolean): Enable/disable hint generation (default: `false`)
++- `hints.showTrends` (boolean): Include trend hints from test history (default: `true`)
++- `hints.maxLines` (number): Maximum number of hints to show per digest (default: `1`)
++
++**Environment Override:**
++
++```bash
++# Enable hints via environment variable (overrides config)
++LAMINAR_HINTS=1 npx lam digest
++
++# Disable hints temporarily
++LAMINAR_HINTS=0 npx lam digest
++```
++
++The environment variable takes precedence over `hints.enabled` in the config file.
++
++### Hint Detectors
++
++Laminar includes four built-in hint detectors that analyze your digest output:
++
++#### 1. Missing Include Detector (`missing-include`)
++
++**What it detects:**
++- Expected events are configured in rules but absent from the digest
++- Occurs when budget constraints or filtering exclude important events
++
++**Example scenario:**
++```json
++// Rule expects 'worker.ready' event
++{
++  "match": { "evt": "worker.ready" },
++  "actions": [{ "type": "include" }]
++}
++```
++
++If `worker.ready` never appears in the digest, you'll see:
++
++```
++## Hints
++### missing-include
++**Signal**: Expected events not in digest: worker.ready
++**Suggested Commands**:
++- npx laminar digest kernel.spec/connect_moves_data_1_1 --expand
++- npx laminar tail kernel.spec/connect_moves_data_1_1 --evt "worker.ready"
++```
++
++**Why it matters:** You might be investigating the wrong time window or have budget constraints hiding critical events.
++
++#### 2. Redaction Mismatch Detector (`redaction-mismatch`)
++
++**What it detects:**
++- Redaction rules are configured but no fields were actually redacted
++- Indicates rules may not match the events in the digest
++
++**Example scenario:**
++```json
++{
++  "match": { "evt": "api.call" },
++  "actions": [
++    { "type": "include" },
++    { "type": "redact", "field": ["apiKey", "token"] }
++  ]
++}
++```
++
++If the digest has 0 redacted fields despite the rule above:
++
++```
++## Hints
++### redaction-mismatch
++**Signal**: Redaction rules present (apiKey, token) but no fields redacted
++**Suggested Commands**:
++- npx laminar tail kernel.spec/connect_moves_data_1_1 --raw
++- npx laminar config rules --show
++```
++
++**Why it matters:** Your security rules may not be working, or event names/field names don't match expectations.
++
++#### 3. Budget Clipped Detector (`budget-clipped`)
++
++**What it detects:**
++- Budget is near exhaustion (>85% used)
++- Large number of events were dropped (inclusion ratio <50%)
++- Critical events may have been excluded
++
++**Example scenario:**
++```json
++{
++  "budget": {
++    "kb": 10,
++    "lines": 200
++  }
++}
++```
++
++If budget hits 10KB and only 20% of events are included:
++
++```
++## Hints
++### budget-clipped
++**Signal**: Budget at 95%, 450 events dropped
++**Suggested Commands**:
++- npx laminar config --budget-kb 20
++- npx laminar tail kernel.spec/connect_moves_data_1_1 --before-fail 20
++```
++
++**Why it matters:** You may be missing context needed to diagnose the failure. Increase budget or make rules more selective.
++
++#### 4. Trend Detector (`trend/new` or `trend/regression`)
++
++**What it detects:**
++- New test failure with no previous history
++- Regression after recent passing runs (within last 5 runs)
++
++**Requires:** Test history tracking (generated automatically when tests run)
++
++**Example scenario (new failure):**
++
++```
++## Hints
++### trend/new
++**Signal**: New test failure - no history found
++**Suggested Commands**:
++- npx laminar compare --case kernel.spec/connect_moves_data_1_1
++- git log -p --follow -- "tests/kernel.spec.ts:45"
++```
++
++**Example scenario (regression):**
++
++```
++## Hints
++### trend/regression
++**Signal**: Regression - passed 4/5 recent runs
++**Suggested Commands**:
++- npx laminar compare kernel.spec/connect_moves_data_1_1 --last-pass
++- git log --oneline -10 -- "tests/kernel.spec.ts:45"
++```
++
++**Why it matters:** Helps prioritize triage. New failures may indicate test infrastructure issues. Regressions suggest recent code changes broke existing functionality.
++
++### Hints in Digest Output
++
++Hints appear at the bottom of both JSON and Markdown digests:
++
++**JSON format (`*.digest.json`):**
++```json
++{
++  "case": "kernel.spec/connect_moves_data_1_1",
++  "summary": {
++    "totalEvents": 500,
++    "includedEvents": 25,
++    "budgetUsed": 9800,
++    "budgetLimit": 10240
++  },
++  "hints": [
++    {
++      "tag": "budget-clipped",
++      "signal": "Budget at 96%, 475 events dropped",
++      "suggestedCommands": [
++        "npx laminar config --budget-kb 20",
++        "npx laminar tail kernel.spec/connect_moves_data_1_1 --before-fail 20"
++      ]
++    }
++  ]
++}
++```
++
++**Markdown format (`*.digest.md`):**
++```markdown
++## Summary
++- Total events: 500
++- Included events: 25
++- Budget used: 9800 / 10240 bytes
++
++## Hints
++### budget-clipped
++**Signal**: Budget at 96%, 475 events dropped
++**Suggested Commands**:
++- npx laminar config --budget-kb 20
++- npx laminar tail kernel.spec/connect_moves_data_1_1 --before-fail 20
++```
++
++### Configuring Hint Behavior
++
++**Enable all hints:**
++```json
++{
++  "hints": {
++    "enabled": true,
++    "showTrends": true,
++    "maxLines": 3
++  }
++}
++```
++
++**Disable trend hints (only config/budget hints):**
++```json
++{
++  "hints": {
++    "enabled": true,
++    "showTrends": false,
++    "maxLines": 1
++  }
++}
++```
++
++**Disable hints entirely:**
++```json
++{
++  "hints": {
++    "enabled": false
++  }
++}
++```
++
++### Common Hint Workflows
++
++**Workflow 1: Investigating budget-clipped**
++```bash
++# 1. See the hint in digest
++npx lam digest --cases kernel.spec/connect_moves_data_1_1
++
++# 2. Check budget utilization
++cat reports/kernel.spec/connect_moves_data_1_1.digest.json | jq '.summary'
++
++# 3. Increase budget temporarily
++LAMINAR_BUDGET_KB=20 npx lam digest --cases kernel.spec/connect_moves_data_1_1
++
++# 4. Update config permanently if needed
++npx lam config --budget-kb 20
++```
++
++**Workflow 2: Investigating missing-include**
++```bash
++# 1. See hint about missing 'worker.ready'
++npx lam digest --cases kernel.spec/worker_lifecycle
++
++# 2. Search raw JSONL for the event
++npx lam tail kernel.spec/worker_lifecycle --evt "worker.ready"
++
++# 3. If found, expand digest window
++npx lam digest --cases kernel.spec/worker_lifecycle --expand
++
++# 4. If not found, check test source
++cat tests/kernel.spec.ts | grep -A5 -B5 "worker.ready"
++```
++
++**Workflow 3: Following regression trend**
++```bash
++# 1. See trend/regression hint
++npx lam digest --cases api.spec/auth_flow
++
++# 2. Compare to last passing run
++npx lam compare api.spec/auth_flow --last-pass
++
++# 3. Check recent commits
++git log --oneline -10 -- tests/api.spec.ts
++
++# 4. View diff between passing and failing
++npx lam diff api.spec/auth_flow --from last-pass --to latest
++```
++
++### Best Practices
++
++1. **Start with hints disabled:** Enable once you're familiar with Laminar's output format
++2. **Use `maxLines: 1` in CI:** Keeps digest output compact for automated workflows
++3. **Use `maxLines: 3` locally:** See multiple hints when debugging interactively
++4. **Enable `showTrends` with history:** Requires persistent test history tracking
++5. **Override with `LAMINAR_HINTS=1`:** Temporarily enable hints without config changes
++6. **Review suggested commands:** Hints include actionable next steps, not just diagnostics
+diff --git a/laminar.config.json b/laminar.config.json
+index ab53553..5335d04 100644
+--- a/laminar.config.json
++++ b/laminar.config.json
+@@ -4,6 +4,11 @@
+     "kb": 10,
+     "lines": 200
+   },
++  "hints": {
++    "enabled": false,
++    "showTrends": true,
++    "maxLines": 1
++  },
+   "rules": [
+     {
+       "match": {

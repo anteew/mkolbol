@@ -1,3 +1,3 @@
-{"ts":1760304679668,"lvl":"info","case":"writes JSONL files per test case in suite directories","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760304679669,"lvl":"info","case":"writes JSONL files per test case in suite directories","phase":"execution","evt":"test.run"}
-{"ts":1760304679670,"lvl":"info","case":"writes JSONL files per test case in suite directories","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760310689104,"lvl":"info","case":"writes JSONL files per test case in suite directories","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760310689105,"lvl":"info","case":"writes JSONL files per test case in suite directories","phase":"execution","evt":"test.run"}
+{"ts":1760310689106,"lvl":"info","case":"writes JSONL files per test case in suite directories","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
