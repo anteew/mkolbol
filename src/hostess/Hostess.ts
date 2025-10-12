@@ -1,9 +1,11 @@
 import crypto from 'node:crypto';
 import { CapabilityQuery, GuestBookEntry, ServerManifest, buildServerIdentity } from '../types.js';
+import { TestEventEnvelope, createEvent } from '../logging/TestEvent.js';
 
 interface HostessOptions {
   heartbeatIntervalMs?: number;
   evictionThresholdMs?: number;
+  logger?: (evt: TestEventEnvelope) => void;
 }
 
 export class Hostess {
@@ -11,10 +13,12 @@ export class Hostess {
   private interval?: NodeJS.Timeout;
   private readonly heartbeatIntervalMs: number;
   private readonly evictionThresholdMs: number;
+  private readonly logger?: (evt: TestEventEnvelope) => void;
 
   constructor(opts: HostessOptions = {}) {
     this.heartbeatIntervalMs = opts.heartbeatIntervalMs ?? 5000;
     this.evictionThresholdMs = opts.evictionThresholdMs ?? 20000;
+    this.logger = opts.logger;
   }
 
   register(entry: ServerManifest): string {
@@ -50,6 +54,10 @@ export class Hostess {
     };
 
     this.guestBook.set(identity, gbe);
+    this.logger?.(createEvent('hostess:register', 'hostess', {
+      id: identity,
+      payload: { fqdn: entry.fqdn, servername: entry.servername, uuid }
+    }));
     return identity;
   }
 
@@ -57,6 +65,9 @@ export class Hostess {
     const entry = this.guestBook.get(serverId);
     if (!entry) return;
     entry.lastHeartbeat = Date.now();
+    this.logger?.(createEvent('hostess:heartbeat', 'hostess', {
+      id: serverId
+    }));
   }
 
   markInUse(serverId: string, terminalName: string, connectomeId: string): void {
@@ -65,6 +76,10 @@ export class Hostess {
     if (!(terminalName in entry.inUse)) return;
     entry.inUse[terminalName] = connectomeId;
     entry.available = this.computeAvailable(entry.inUse) && this.isLive(entry);
+    this.logger?.(createEvent('hostess:markInUse', 'hostess', {
+      id: serverId,
+      payload: { terminalName, connectomeId }
+    }));
   }
 
   markAvailable(serverId: string, terminalName: string): void {

@@ -2,34 +2,29 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "W-A", "parallel": false, "tasks": ["T1501", "T1502"] },
-    { "id": "W-B", "parallel": true, "depends_on": ["W-A"], "tasks": ["T1503", "T1504"] },
-    { "id": "W-C", "parallel": false, "depends_on": ["W-B"], "tasks": ["T1505"] },
-    { "id": "W-D", "parallel": true, "depends_on": ["W-C"], "tasks": ["T1506", "T1507"] }
+    { "id": "CI-A", "parallel": false, "tasks": ["T2101", "T2102"] },
+    { "id": "CI-B", "parallel": true,  "depends_on": ["CI-A"], "tasks": ["T2103", "T2104"] }
   ],
   "tasks": [
-    { "id": "T1501", "agent": "worker-1", "title": "Define ControlBusAdapter and extract InProc adapter", "allowedFiles": ["src/control/**"], "verify": ["npm run build", "npm run dev:control-bus"], "deliverables": ["patches/DIFF_T1501_controlbus-adapter.patch"] },
-    { "id": "T1502", "agent": "worker-2", "title": "Define PipeAdapter and extract InProc pipe adapter", "allowedFiles": ["src/pipes/**", "src/kernel/**"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T1502_pipe-adapter.patch"] },
-    { "id": "T1503", "agent": "worker-3", "title": "Implement WorkerControlBusAdapter (MessagePort)", "allowedFiles": ["src/control/adapters/**", "src/controller/**"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T1503_worker-controlbus-adapter.patch"] },
-    { "id": "T1504", "agent": "worker-4", "title": "Implement WorkerPipeAdapter (MessagePort duplex)", "allowedFiles": ["src/pipes/adapters/**"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T1504_worker-pipe-adapter.patch"] },
-    { "id": "T1505", "agent": "worker-5", "title": "Executor runMode 'worker' + harness + handshake", "allowedFiles": ["src/executor/**", "src/config/schema.ts", "src/examples/**"], "verify": ["npm run build", "node dist/examples/worker-demo.js"], "deliverables": ["patches/DIFF_T1505_executor-worker-mode.patch"] },
-    { "id": "T1506", "agent": "worker-6", "title": "Mixed-mode demo (inproc + worker) and script", "allowedFiles": ["src/examples/**", "package.json"], "verify": ["npm run build", "npm run dev:worker-demo"], "deliverables": ["patches/DIFF_T1506_mixed-mode-demo.patch"] },
-    { "id": "T1507", "agent": "worker-7", "title": "Basic tests for worker adapters + handshake", "allowedFiles": ["test/**", "tests/**", "vitest.config.ts"], "verify": ["npm test"], "deliverables": ["patches/DIFF_T1507_worker-tests.patch"] }
+    { "id": "T2101", "agent": "susan-1", "title": "Split CI scripts: test:ci (threads, exclude PTY) + test:pty (single-thread)", "allowedFiles": ["package.json", "vitest.config.ts"], "verify": ["npm run build", "npm run test:ci || true", "npm run test:pty || true"], "deliverables": ["patches/DIFF_T2101_ci-scripts-split.patch"] },
+    { "id": "T2102", "agent": "susan-2", "title": "Tag/audit PTY tests to wrappers group", "allowedFiles": ["tests/**"], "verify": ["npm run test:pty || true"], "deliverables": ["patches/DIFF_T2102_tag-pty-tests.patch"] },
+    { "id": "T2103", "agent": "susan-3", "title": "Docs: Laminar CI notes (why PTY runs single-thread)", "allowedFiles": ["docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2103_laminar-ci-docs.patch"] },
+    { "id": "T2104", "agent": "susan-4", "title": "Optional: add ts-node or compile scripts (logq/repro)", "allowedFiles": ["package.json", "scripts/**", "README.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2104_cli-runtime.patch"] }
   ]
 }
 ```
 
-# Ampcode — Subagent Sprint Plan (Worker-Mode Phase 1)
+# Ampcode — Subagent Sprint Plan (Laminar CI Stability: PTY split)
 
 **Architect**: VEGA  
-**Sprint/Batch**: SB-CTRL-ISOLATION-P1  
+**Sprint/Batch**: SB-CI-STABILIZE-PTY (Brand: Laminar)  
 **Reporting**: Results go to `ampcode.log`
 
 ---
 
 ## Context & Scope
 
-**Goal**: Introduce worker-mode isolation with pluggable adapters for control (ControlBus) and data (pipes), keeping the kernel unchanged and the message envelope stable.
+**Goal**: Ensure CI runs reliably by splitting PTY-heavy tests into a single-threaded lane while keeping the rest threaded. Add scripts (test:ci, test:pty), tag/audit PTY tests, document the reason in Laminar docs, and optionally make logq/repro runnable without ts-node.
 
 **Constraints**:
 
@@ -72,158 +67,152 @@ waves:
 
 ## Tasks
 
-### TASK T1501 — Define ControlBusAdapter and extract InProc adapter
+### TASK T2001 — Event schema + test logger (JSONL)
 
-**Goal**: Introduce a ControlBusAdapter interface and move current in-process bus into an InProc adapter, preserving publish/subscribe API.
-
-**Allowed Files**:
-
-```yaml
-modify:
-  - src/control/ControlBus.ts # refactor to delegate to adapters
-create:
-  - src/control/BusAdapter.ts # interface
-  - src/control/adapters/InProcBusAdapter.ts # PassThrough-based implementation
-```
-
-**Requirements**:
-
-1. ControlBus exposes publish(topic, frame) and subscribe(topic, handler)
-2. BusAdapter defines topic(name) and subscription mechanism; InProc adapter mirrors current behavior
-3. No behavior change to existing demo (`npm run dev:control-bus`)
-
-**Success Criteria**:
-
-- Build passes; control-bus demo prints events/acks as before
-
-**Verification Commands**:
-
-```bash
-npm run build
-npm run dev:control-bus
-```
-
-**Deliverable**: `patches/DIFF_T1501_controlbus-adapter.patch`
-
----
-
-### TASK T1502 — Define PipeAdapter and extract InProc pipe adapter
-
-**Goal**: Provide a PipeAdapter abstraction for data pipes; extract PassThrough implementation as InProc pipe adapter.
+**Goal**: Introduce a stable event schema and a tiny logger to emit JSONL to `reports/<suite>/<case>.jsonl` with helpers.
 
 **Allowed Files**:
 
 ```yaml
 modify:
-  - src/kernel/Kernel.ts # use adapter-created pipes internally if needed (minimal change)
+  - README.md # short section on reports/ and event schema (optional)
 create:
-  - src/pipes/PipeAdapter.ts # interface with createReadable/createWritable or createDuplex
-  - src/pipes/adapters/InProcPipe.ts # PassThrough-based duplex
+  - src/logging/TestEvent.ts # types for envelope and helpers
+  - src/logging/logger.ts # JSONL writer with case/phase helpers
 ```
 
 **Requirements**:
 
-1. PipeAdapter can create a Duplex with options (highWaterMark, objectMode)
-2. Default adapter is InProc; kernel behavior unchanged
+1. Define envelope keys: ts,lvl,case,phase,evt,id,corr,path,payload
+2. Logger writes one JSON object per line; creates reports/ directories as needed
+3. Expose helpers: beginCase, endCase, emit(evt,...)
 
 **Success Criteria**:
 
-- Build passes; existing demos run unchanged
+- Build passes; simple smoke test writes JSONL to reports/demo/demo.case.jsonl
 
 **Verification Commands**:
 
 ```bash
 npm run build
+
 ```
 
-**Deliverable**: `patches/DIFF_T1502_pipe-adapter.patch`
+**Deliverable**: `patches/DIFF_T2001_logging-schema.patch`
 
 ---
 
-### TASK T1503 — Implement WorkerControlBusAdapter (MessagePort)
+### TASK T2002 — Vitest reporter (compact + JSONL summary)
 
-**Goal**: Implement a ControlBus adapter over MessagePort for worker isolates.
-
-**Allowed Files**:
-
-```yaml
-create:
-  - src/control/adapters/WorkerBusAdapter.ts # MessagePort-backed publish/subscribe
-```
-
-**Requirements**:
-
-1. Serialize frames as structured clones over MessagePort
-2. Support subscribe/unsubscribe; multiple topics per port
-
-**Success Criteria**:
-
-- Build passes; basic local harness sends/receives frames across a worker
-
-**Verification Commands**:
-
-```bash
-npm run build
-```
-
-**Deliverable**: `patches/DIFF_T1503_worker-controlbus-adapter.patch`
-
----
-
-### TASK T1504 — Implement WorkerPipeAdapter (MessagePort duplex)
-
-**Goal**: Provide a Duplex-like pipe over MessagePort with backpressure emulation.
-
-**Allowed Files**:
-
-```yaml
-create:
-  - src/pipes/adapters/WorkerPipe.ts # wraps MessagePort into Duplex; basic backpressure
-```
-
-**Requirements**:
-
-1. Support Buffer payloads; objectMode optional for control tests
-2. Minimal backpressure (pause/resume semantics simulated)
-
-**Success Criteria**:
-
-- Build passes; simple echo across worker using WorkerPipe
-
-**Verification Commands**:
-
-```bash
-npm run build
-```
-
-**Deliverable**: `patches/DIFF_T1504_worker-pipe-adapter.patch`
-
----
-
-### TASK T1505 — Executor runMode 'worker' + harness + handshake
-
-**Goal**: Extend Executor to start servers in worker mode with a minimal harness and control handshake.
+**Goal**: Add a custom vitest reporter that prints compact console lines and writes `reports/summary.jsonl` with per-test status and artifact pointers.
 
 **Allowed Files**:
 
 ```yaml
 modify:
-  - src/executor/Executor.ts # runMode 'worker'
-  - src/config/schema.ts # runMode already present
+  - vitest.config.ts # attach reporter
 create:
-  - src/executor/workerHarness.ts # boots a module, wires adapters, sends control.hello
-  - src/examples/worker-demo.ts # mixed-mode demo entry
+  - src/test/reporter/jsonlReporter.ts # implements onTestResult/onFinished
 ```
 
 **Requirements**:
 
-1. Executor spawns Worker with workerData (ports/endpoints as needed)
-2. Worker sends control.hello; Executor logs ready
-3. Mixed-mode wiring: inproc source → worker transform → inproc sink
+1. Console output: one line per test (ok/fail) + duration
+2. JSONL summary: status, duration, file:line, artifact URIs (reports/<suite>/<case>.jsonl)
 
 **Success Criteria**:
 
-- `node dist/examples/worker-demo.js` prints events and acks; data flows end-to-end
+- Running `npm test || true` generates summary.jsonl even on failure
+
+**Verification Commands**:
+
+```bash
+npm run build
+```
+
+**Deliverable**: `patches/DIFF_T2002_vitest-reporter.patch`
+
+---
+
+### TASK T2003 — logq CLI (filter/slice JSONL)
+
+**Goal**: Provide a tiny CLI to query JSONL logs with composable filters (field=value) and slice windows.
+
+**Allowed Files**:
+
+```yaml
+create:
+  - scripts/logq.ts # `node scripts/logq.ts failures`, `logq case id`, `logq around corr=...`
+```
+
+**Requirements**:
+
+1. Filters: case=, evt=, path=, corr=; support regex; windows via --around and --window
+2. Output: compact human lines plus raw JSONL option
+
+**Success Criteria**:
+
+- Build passes; `node scripts/logq.ts --help` shows usage
+
+**Verification Commands**:
+
+```bash
+npm run build
+```
+
+**Deliverable**: `patches/DIFF_T2003_logq-cli.patch`
+
+---
+
+### TASK T2004A — Instrumentation: TopologyController events
+
+**Goal**: Emit structured events from TopologyController (cmd received, applied, snapshot, errors) to logger hooks in test mode.
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - src/controller/TopologyController.ts # add optional logger hook
+```
+
+**Requirements**:
+
+1. No behavior change in production; only emit when logger hook provided
+2. Events adhere to schema
+
+**Success Criteria**:
+
+- Build passes
+
+**Verification Commands**:
+
+```bash
+npm run build
+```
+
+**Deliverable**: `patches/DIFF_T2004A_controller-instrument.patch`
+
+---
+
+### TASK T2004B — Instrumentation: Executor events
+
+**Goal**: Emit worker lifecycle and wiring events (worker.ready, worker.exit, connect edges) under logger hook.
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - src/executor/Executor.ts
+```
+
+**Requirements**:
+
+1. No logic change; emit events behind optional logger
+2. Include node ids and mapping to file:line when available
+
+**Success Criteria**:
+
+- Build passes
 
 **Verification Commands**:
 
@@ -232,31 +221,29 @@ npm run build
 node dist/examples/worker-demo.js
 ```
 
-**Deliverable**: `patches/DIFF_T1505_executor-worker-mode.patch`
+**Deliverable**: `patches/DIFF_T2004B_executor-instrument.patch`
 
 ---
 
-### TASK T1506 — Mixed-mode demo (inproc + worker) and script
+### TASK T2004C — Instrumentation: Hostess events
 
-**Goal**: Add a demo showcasing inproc + worker servers under one wiring and add npm script.
+**Goal**: Emit guest-book registration/heartbeat/markInUse events under logger hook.
 
 **Allowed Files**:
 
 ```yaml
-create:
-  - src/examples/worker-demo.ts
 modify:
-  - package.json # add dev:worker-demo script
+  - src/hostess/Hostess.ts
 ```
 
 **Requirements**:
 
-1. Demo must wire at least three nodes across inproc/worker boundary
-2. Log key events to stdout for verification
+1. No logic change; emit when logger provided
+2. Stable schema
 
 **Success Criteria**:
 
-- `npm run dev:worker-demo` runs and prints expected messages
+- Build passes
 
 **Verification Commands**:
 
@@ -265,32 +252,29 @@ npm run build
 npm run dev:worker-demo
 ```
 
-**Deliverable**: `patches/DIFF_T1506_mixed-mode-demo.patch`
+**Deliverable**: `patches/DIFF_T2004C_hostess-instrument.patch`
 
 ---
 
-### TASK T1507 — Basic tests for worker adapters + handshake
+### TASK T2004D — Instrumentation: ControlBus (test mode)
 
-**Goal**: Cover adapter send/receive and handshake path with minimal tests.
+**Goal**: Optionally emit publish/subscribe events for control frames when a logger is attached (tests only).
 
 **Allowed Files**:
 
 ```yaml
-create:
-  - tests/worker/workerAdapters.spec.ts
 modify:
-  - vitest.config.ts
+  - src/control/ControlBus.ts
 ```
 
 **Requirements**:
 
-1. Round-trip a control frame over WorkerBusAdapter
-2. Round-trip a Buffer over WorkerPipe
-3. Assert handshake event structure
+1. Keep default silent; enable via flag/hook only in tests
+2. Attach topic name and minimal payload size stats
 
 **Success Criteria**:
 
-- `npm test` passes locally
+- Build passes
 
 **Verification Commands**:
 
@@ -298,7 +282,165 @@ modify:
 npm test
 ```
 
-**Deliverable**: `patches/DIFF_T1507_worker-tests.patch`
+**Deliverable**: `patches/DIFF_T2004D_controlbus-instrument.patch`
+
+---
+
+### TASK T2005 — Golden transcript harness (snapshots + masks)
+
+**Goal**: Provide snapshot compare utilities for complex streams (e.g., PTY transcripts) with redaction masks.
+
+**Allowed Files**:
+
+```yaml
+create:
+  - src/test/golden/harness.ts
+  - tests/golden/sample.spec.ts
+```
+
+**Requirements**:
+
+1. Write snapshots under `reports/<suite>/<case>.snap/`
+2. Mask rules: replace volatile fields (timestamps, uuids)
+
+**Success Criteria**:
+
+- `npm test || true` creates a sample golden artifact and compares it
+
+**Verification Commands**:
+
+```bash
+npm test || true
+```
+
+**Deliverable**: `patches/DIFF_T2005_golden-harness.patch`
+
+---
+
+### TASK T2006 — Property-based test harness (seeded)
+
+**Goal**: Add a seeded property-based test harness for small invariants (no flakes), recording seeds in logs for repro.
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - package.json # optional dev dep (fast-check) if used
+create:
+  - tests/property/invariants.spec.ts
+```
+
+**Requirements**:
+
+1. Use fixed seed; log `seed` in summary.jsonl when property tests fail
+2. Cover split/merge invariants on small graphs
+
+**Success Criteria**:
+
+- `npm test || true` runs invariants and logs seeds
+
+**Verification Commands**:
+
+```bash
+npm test || true
+```
+
+**Deliverable**: `patches/DIFF_T2006_property-tests.patch`
+
+---
+
+### TASK T2007 — CI runner flags + Node matrix + scripts
+
+**Goal**: Add npm scripts and vitest flags to run reliably on Node 20/24, avoiding tinypool issues.
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - package.json
+  - vitest.config.ts
+```
+
+**Requirements**:
+
+1. Add `test:ci` script with `--pool=threads` or `--single-thread`
+2. Document Node matrix in README or a CI note
+
+**Success Criteria**:
+
+- `npm run test:ci || true` runs and produces summary.jsonl
+
+**Verification Commands**:
+
+```bash
+npm run test:ci || true
+```
+
+**Deliverable**: `patches/DIFF_T2007_ci-runner.patch`
+
+---
+
+### TASK T2008 — Repro script generator from summary.jsonl
+
+**Goal**: Add a script that reads `reports/summary.jsonl` and prints an exact `logq` command and test filter for any failed case.
+
+**Allowed Files**:
+
+```yaml
+create:
+  - scripts/repro.ts
+modify:
+  - package.json
+```
+
+**Requirements**:
+
+1. CLI prints repro commands per failure (vitest --filter plus logq slice)
+2. Friendly messages when no failures
+
+**Success Criteria**:
+
+- `node scripts/repro.ts` prints useful commands after a failing run
+
+**Verification Commands**:
+
+```bash
+node scripts/repro.ts || true
+```
+
+**Deliverable**: `patches/DIFF_T2008_repro-script.patch`
+
+---
+
+### TASK T2009 — Amp integration: reporting pointers to reports/
+
+**Goal**: Ensure ampcode template and docs tell agents to include report pointers in ampcode.log for each task.
+
+**Allowed Files**:
+
+```yaml
+modify:
+  - agent_template/AMPCODE_TEMPLATE.md
+  - README.md
+  - VEGA/ampcode.md
+```
+
+**Requirements**:
+
+1. Add a note in template Reporting Format to include `reports/summary.jsonl` and case files
+2. Keep console output compact; rely on files for depth
+
+**Success Criteria**:
+
+- Build passes; docs updated
+
+**Verification Commands**:
+
+```bash
+npm run build
+```
+
+**Deliverable**: `patches/DIFF_T2009_amp-integration-docs.patch`
 
 ---
 
@@ -343,4 +485,3 @@ At completion, aggregate to `ampcode.log` using the template in agent_template/A
 - src/control/ControlBus.ts (baseline)
 - src/state/StateManager.ts
 - src/executor/Executor.ts
-

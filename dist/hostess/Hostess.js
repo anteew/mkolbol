@@ -1,13 +1,16 @@
 import crypto from 'node:crypto';
 import { buildServerIdentity } from '../types.js';
+import { createEvent } from '../logging/TestEvent.js';
 export class Hostess {
     guestBook = new Map();
     interval;
     heartbeatIntervalMs;
     evictionThresholdMs;
+    logger;
     constructor(opts = {}) {
         this.heartbeatIntervalMs = opts.heartbeatIntervalMs ?? 5000;
         this.evictionThresholdMs = opts.evictionThresholdMs ?? 20000;
+        this.logger = opts.logger;
     }
     register(entry) {
         const uuid = entry.uuid ?? crypto.randomUUID();
@@ -41,6 +44,10 @@ export class Hostess {
             available: this.computeAvailable(inUse)
         };
         this.guestBook.set(identity, gbe);
+        this.logger?.(createEvent('hostess:register', 'hostess', {
+            id: identity,
+            payload: { fqdn: entry.fqdn, servername: entry.servername, uuid }
+        }));
         return identity;
     }
     heartbeat(serverId) {
@@ -48,6 +55,9 @@ export class Hostess {
         if (!entry)
             return;
         entry.lastHeartbeat = Date.now();
+        this.logger?.(createEvent('hostess:heartbeat', 'hostess', {
+            id: serverId
+        }));
     }
     markInUse(serverId, terminalName, connectomeId) {
         const entry = this.guestBook.get(serverId);
@@ -57,6 +67,10 @@ export class Hostess {
             return;
         entry.inUse[terminalName] = connectomeId;
         entry.available = this.computeAvailable(entry.inUse) && this.isLive(entry);
+        this.logger?.(createEvent('hostess:markInUse', 'hostess', {
+            id: serverId,
+            payload: { terminalName, connectomeId }
+        }));
     }
     markAvailable(serverId, terminalName) {
         const entry = this.guestBook.get(serverId);

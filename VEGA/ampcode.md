@@ -23,6 +23,7 @@ T140 — Package surface
 Notes
 - Keep diffs small; prefer tests + docs to invasive changes.
 - Kernel remains tiny; push semantics into modules.
+- Include report pointers in ampcode.log: always reference `reports/summary.jsonl` and case files for detailed metrics. Keep console output compact.
 
 Sprint B — Control Plane + Isolation (P0→P1)
 

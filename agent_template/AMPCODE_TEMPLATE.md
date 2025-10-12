@@ -155,8 +155,12 @@ At completion, aggregate to `ampcode.log` with:
 
 - [metric]: [value] ([delta from baseline if known])
 
+**Reports**: See `reports/summary.jsonl` and case files in `reports/` for detailed metrics and traces
+
 **Notes**: [blockers, follow-ups, or architect attention needed]
 ```
+
+**Note on Report Pointers**: Always include a **Reports** line pointing to `reports/summary.jsonl` and any case-specific files generated during testing. Keep console output compact; rely on report files for depth.
 
 ---
 
