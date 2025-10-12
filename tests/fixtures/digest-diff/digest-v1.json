@@ -1,0 +1,58 @@
+{
+  "case": "test-case-1",
+  "status": "fail",
+  "duration": 1500,
+  "location": "test.spec.ts:10",
+  "error": "Expected 2 to be 3",
+  "summary": {
+    "totalEvents": 5,
+    "includedEvents": 3,
+    "redactedFields": 0,
+    "budgetUsed": 512,
+    "budgetLimit": 10240
+  },
+  "events": [
+    {
+      "ts": 1000,
+      "lvl": "info",
+      "case": "test-case-1",
+      "evt": "test.start",
+      "id": "1"
+    },
+    {
+      "ts": 2000,
+      "lvl": "error",
+      "case": "test-case-1",
+      "evt": "assert.fail",
+      "id": "2",
+      "payload": { "expected": 3, "actual": 2 }
+    },
+    {
+      "ts": 2500,
+      "lvl": "info",
+      "case": "test-case-1",
+      "evt": "test.end",
+      "id": "3"
+    }
+  ],
+  "suspects": [
+    {
+      "ts": 2000,
+      "lvl": "error",
+      "case": "test-case-1",
+      "evt": "assert.fail",
+      "id": "2",
+      "payload": { "expected": 3, "actual": 2 },
+      "score": 85.5,
+      "reasons": ["error level", "failure event"]
+    }
+  ],
+  "codeframes": [
+    {
+      "file": "test.spec.ts",
+      "line": 10,
+      "column": 5,
+      "snippet": "expect(result).toBe(3);"
+    }
+  ]
+}

@@ -1746,6 +1746,705 @@ interface SummaryEntry {
 }
 ```
 
+## Repro Bundles: Portable Failure Reproduction
+
+Repro bundles package all information needed to reproduce a failed test into portable JSON and Markdown files. Each bundle contains failure context, environment details, and reproduction commands.
+
+### What's Included in Bundles
+
+Every repro bundle includes:
+
+1. **Metadata**
+   - Bundle version
+   - Generation timestamp
+   - Test name and file location
+   - Test status (fail, skip)
+   - Test duration in milliseconds
+
+2. **Environment**
+   - Test seed (if used)
+   - Node.js version
+   - Platform (OS + architecture)
+   - Environment variables (if captured)
+
+3. **Failure Details**
+   - Error message
+   - Error-level events (all events with `lvl: 'error'`)
+   - Context events (±5 events around each error)
+
+4. **Reproduction Commands**
+   - Vitest command to re-run test
+   - Logq command to view full logs
+   - Digest file reference (if available)
+
+### Bundle Structure
+
+Bundles are written to `reports/bundles/` in two formats:
+
+**JSON Bundle** (`<suite>/<case>.repro.json`):
+```json
+{
+  "metadata": {
+    "bundleVersion": "1.0.0",
+    "generated": "2025-10-12T18:30:45.123Z",
+    "testName": "connect moves data 1:1",
+    "testFile": "tests/kernel.spec.ts",
+    "status": "fail",
+    "duration": 12,
+    "timestamp": "2025-10-12T18:30:43.000Z"
+  },
+  "environment": {
+    "seed": "test-seed-12345",
+    "nodeVersion": "v20.10.0",
+    "platform": "linux x64",
+    "env": {
+      "TEST_MODE": "ci",
+      "LAMINAR_DEBUG": "1"
+    }
+  },
+  "failure": {
+    "errorMessage": "Expected value to be 42, got 40",
+    "errorEvents": [
+      {
+        "ts": 1760290661029,
+        "lvl": "error",
+        "case": "connect moves data 1:1",
+        "phase": "execution",
+        "evt": "test.error",
+        "payload": {
+          "message": "Expected value to be 42, got 40",
+          "stack": "Error: ...\n  at tests/kernel.spec.ts:45:5"
+        }
+      }
+    ],
+    "contextEvents": [
+      // ±5 events around each error
+    ]
+  },
+  "reproduction": {
+    "vitestCommand": "vitest run --reporter=verbose --pool=threads \"tests/kernel.spec.ts\" -t \"connect moves data 1:1\"",
+    "logCommand": "npm run logq -- reports/kernel.spec/connect_moves_data_1_1.jsonl",
+    "digestFile": "reports/kernel.spec/connect_moves_data_1_1.digest.md"
+  }
+}
+```
+
+**Markdown Summary** (`<suite>/<case>.repro.md`):
+```markdown
+# Reproduction Bundle: connect moves data 1:1
+
+**Generated:** 2025-10-12T18:30:45.123Z
+**Status:** FAIL
+**Duration:** 12ms
+**Test File:** tests/kernel.spec.ts
+
+## Environment
+
+- **Seed:** test-seed-12345
+- **Node:** v20.10.0
+- **Platform:** linux x64
+
+## Failure Summary
+
+**Error:**
+```
+Expected value to be 42, got 40
+```
+
+**Error Events:** 1
+
+- **test.error** (2025-10-12T18:30:43.029Z)
+  - Expected value to be 42, got 40
+
+## Reproduction Commands
+
+**Run test:**
+```bash
+vitest run --reporter=verbose --pool=threads "tests/kernel.spec.ts" -t "connect moves data 1:1"
+```
+
+**View logs:**
+```bash
+npm run logq -- reports/kernel.spec/connect_moves_data_1_1.jsonl
+```
+
+**Digest file:**
+`reports/kernel.spec/connect_moves_data_1_1.digest.md`
+
+## Context Events
+
+**Total context events:** 11
+
+_See JSON bundle for full event details_
+```
+
+### Generating Repro Bundles
+
+#### CLI: `lam repro --bundle`
+
+Generate bundles for all failures:
+```bash
+lam repro --bundle
+```
+
+Generate bundle for specific failure:
+```bash
+lam repro --bundle --case kernel.spec/connect_moves_data_1_1
+```
+
+**Output:**
+```
+=== Generating Repro Bundles (2 failures) ===
+
+✓ kernel.spec/connect_moves_data_1_1
+  JSON: reports/bundles/kernel.spec/connect_moves_data_1_1.repro.json
+  MD:   reports/bundles/kernel.spec/connect_moves_data_1_1.repro.md
+
+✓ topology.spec/rewire_edges
+  JSON: reports/bundles/topology.spec/rewire_edges.repro.json
+  MD:   reports/bundles/topology.spec/rewire_edges.repro.md
+
+✓ Generated 2 bundles in reports/bundles/
+```
+
+#### MCP Tool: `repro.bundle`
+
+```typescript
+// Generate all bundles
+const result = await server.callTool('repro.bundle', {});
+
+// Generate bundle for specific case
+const result = await server.callTool('repro.bundle', {
+  caseName: 'kernel.spec/connect_moves_data_1_1',
+  format: 'json'  // or 'markdown'
+});
+
+// Output
+{
+  count: 1,
+  message: "Generated 1 repro bundle(s)",
+  bundles: [
+    {
+      caseName: "kernel.spec/connect_moves_data_1_1",
+      jsonPath: "reports/bundles/kernel.spec/connect_moves_data_1_1.repro.json",
+      mdPath: "reports/bundles/kernel.spec/connect_moves_data_1_1.repro.md"
+    }
+  ]
+}
+```
+
+### Use Cases and Workflows
+
+#### Workflow 1: CI Failure Triage
+
+After a CI failure, generate bundles and send to developers:
+
+```bash
+# In CI pipeline
+npm run test:ci || {
+  # Generate bundles for all failures
+  lam repro --bundle
+  
+  # Upload bundles to artifact storage
+  # Bundles contain everything needed to reproduce locally
+}
+```
+
+#### Workflow 2: Bug Report Automation
+
+AI agent creates GitHub issue with bundle:
+
+```typescript
+// 1. Run tests
+await server.callTool('run', {});
+
+// 2. List failures
+const failures = await server.callTool('list_failures', {});
+
+// 3. Generate bundle for first failure
+const bundle = await server.callTool('repro.bundle', {
+  caseName: failures.failures[0].testName,
+  format: 'markdown'
+});
+
+// 4. Create GitHub issue with bundle markdown
+// Issue contains all context: error, environment, repro steps
+```
+
+#### Workflow 3: Local Debugging
+
+Developer receives bundle and reproduces failure:
+
+```bash
+# 1. Receive bundle file: kernel.spec/connect_moves_data_1_1.repro.md
+
+# 2. Read reproduction command from bundle
+vitest run --reporter=verbose --pool=threads "tests/kernel.spec.ts" -t "connect moves data 1:1"
+
+# 3. View full logs if needed
+npm run logq -- reports/kernel.spec/connect_moves_data_1_1.jsonl
+
+# 4. View digest if available
+cat reports/kernel.spec/connect_moves_data_1_1.digest.md
+```
+
+#### Workflow 4: Regression Investigation
+
+Compare bundles across test runs to identify changes:
+
+```bash
+# Generate bundle from current run
+lam repro --bundle --case kernel.spec/connect_moves_data_1_1
+
+# Compare with previous bundle (check git history)
+git show HEAD~1:reports/bundles/kernel.spec/connect_moves_data_1_1.repro.json > old.json
+diff old.json reports/bundles/kernel.spec/connect_moves_data_1_1.repro.json
+```
+
+## Digest Diffs: Tracking Failure Changes
+
+Digest diffs compare two digest files to identify changes in test failures. This helps track regressions, verify fixes, and analyze failure evolution.
+
+### What's Compared
+
+The diff engine compares:
+
+1. **Events**: Added and removed events
+2. **Suspects**: Changed suspect scoring and reasons
+3. **Codeframes**: Added and removed stack frames
+4. **Metadata**: Duration, location, error message changes
+
+### Diff Output Formats
+
+#### JSON Format
+
+```json
+{
+  "oldDigest": "kernel.spec/connect_moves_data_1_1",
+  "newDigest": "kernel.spec/connect_moves_data_1_1",
+  "summary": {
+    "eventsAdded": 2,
+    "eventsRemoved": 1,
+    "eventsChanged": 3,
+    "suspectsChanged": true,
+    "codeframesChanged": false,
+    "durationDelta": 5
+  },
+  "addedEvents": [
+    {
+      "ts": 1760290661030,
+      "lvl": "error",
+      "case": "connect moves data 1:1",
+      "evt": "worker.exit",
+      "phase": "execution"
+    }
+  ],
+  "removedEvents": [
+    {
+      "ts": 1760290661025,
+      "lvl": "warn",
+      "case": "connect moves data 1:1",
+      "evt": "worker.ready"
+    }
+  ],
+  "changedSuspects": {
+    "added": [
+      {
+        "ts": 1760290661030,
+        "lvl": "error",
+        "evt": "worker.exit",
+        "score": 8.5,
+        "reasons": ["error level", "worker lifecycle"]
+      }
+    ],
+    "removed": [],
+    "scoreChanged": [
+      {
+        "event": "assert.fail",
+        "oldScore": 9.0,
+        "newScore": 7.5
+      }
+    ]
+  },
+  "changedCodeframes": {
+    "added": [],
+    "removed": []
+  },
+  "metadataChanges": {
+    "durationChanged": true,
+    "oldDuration": 10,
+    "newDuration": 15,
+    "locationChanged": false,
+    "oldLocation": "tests/kernel.spec.ts:45",
+    "newLocation": "tests/kernel.spec.ts:45",
+    "errorChanged": false,
+    "oldError": "Expected value to be 42, got 40",
+    "newError": "Expected value to be 42, got 40"
+  }
+}
+```
+
+#### Markdown Format
+
+```markdown
+# Digest Diff: kernel.spec/connect_moves_data_1_1 → kernel.spec/connect_moves_data_1_1
+
+## Summary
+- Events Added: 2
+- Events Removed: 1
+- Events Changed: 3
+- Suspects Changed: Yes
+- Codeframes Changed: No
+- Duration Delta: +5ms
+
+## Metadata Changes
+- **Duration**: 10ms → 15ms
+
+## Added Events
+- `worker.exit` (error) at 2025-10-12T18:30:43.030Z
+
+## Removed Events
+- `worker.ready` (warn) at 2025-10-12T18:30:43.025Z
+
+## Suspect Changes
+
+### Added Suspects
+- `worker.exit` (score: 8.5)
+  - Reasons: error level, worker lifecycle
+
+### Score Changes
+- `assert.fail`: 9.0 → 7.5
+```
+
+### Generating Digest Diffs
+
+#### CLI: `lam diff`
+
+Compare two digest files:
+```bash
+lam diff reports/case1.digest.json reports/case2.digest.json
+```
+
+Output to file:
+```bash
+lam diff reports/case1.digest.json reports/case2.digest.json --output diff.json
+```
+
+Generate markdown diff:
+```bash
+lam diff reports/case1.digest.json reports/case2.digest.json --output diff.md --format markdown
+```
+
+**Output:**
+```
+Digest Diff: case1 → case2
+
+Summary:
+  Events Added: 2
+  Events Removed: 1
+  Suspects Changed: Yes
+  Duration Delta: +5ms
+
+Diff written to: diff.md
+```
+
+#### MCP Tool: `diff.get`
+
+```typescript
+// Compare two digests (JSON output)
+const diff = await server.callTool('diff.get', {
+  digest1Path: 'reports/kernel.spec/connect_moves_data_1_1.digest.json',
+  digest2Path: 'reports/kernel.spec/connect_moves_data_1_1-v2.digest.json',
+  outputFormat: 'json'
+});
+
+// Compare with markdown output
+const diff = await server.callTool('diff.get', {
+  digest1Path: 'reports/kernel.spec/test1.digest.json',
+  digest2Path: 'reports/kernel.spec/test2.digest.json',
+  outputFormat: 'markdown'
+});
+
+// Output includes both structured diff and formatted markdown
+{
+  diff: {
+    summary: { eventsAdded: 2, eventsRemoved: 1, ... },
+    addedEvents: [...],
+    removedEvents: [...],
+    changedSuspects: { added: [...], removed: [...], scoreChanged: [...] }
+  },
+  formatted: "# Digest Diff: ...\n\n## Summary\n..."
+}
+```
+
+#### Programmatic API
+
+```typescript
+import { DigestDiffEngine, diffDigests } from './src/digest/diff.js';
+
+// Simple comparison
+const diff = diffDigests(
+  'reports/case1.digest.json',
+  'reports/case2.digest.json',
+  'output/diff.json',  // optional output path
+  'json'               // 'json' or 'markdown'
+);
+
+// Using engine directly
+const engine = new DigestDiffEngine();
+
+// Compare files
+const diff = engine.compareFiles(
+  'reports/case1.digest.json',
+  'reports/case2.digest.json'
+);
+
+// Compare in-memory digests
+const diff = engine.compareDigests(digest1, digest2);
+
+// Format output
+const jsonStr = engine.formatAsJson(diff, true);  // pretty print
+const mdStr = engine.formatAsMarkdown(diff);
+
+// Write to file
+engine.writeDiff(diff, 'output.md', 'markdown');
+```
+
+### Use Cases and Workflows
+
+#### Use Case 1: Regression Detection
+
+Compare digests before and after code changes to detect regressions:
+
+```bash
+# Before changes
+lam digest --cases kernel.spec/connect_moves_data_1_1
+cp reports/kernel.spec/connect_moves_data_1_1.digest.json baseline.digest.json
+
+# Make code changes
+
+# After changes
+lam digest --cases kernel.spec/connect_moves_data_1_1
+
+# Compare
+lam diff baseline.digest.json reports/kernel.spec/connect_moves_data_1_1.digest.json --format markdown
+
+# Check for new errors or suspect changes
+```
+
+#### Use Case 2: Fix Verification
+
+Verify that a fix reduces suspects or removes errors:
+
+```bash
+# Digest from broken test
+lam digest --cases topology.spec/rewire
+cp reports/topology.spec/rewire.digest.json broken.digest.json
+
+# Apply fix
+
+# Digest from fixed test
+lam digest --cases topology.spec/rewire
+
+# Compare to verify improvement
+lam diff broken.digest.json reports/topology.spec/rewire.digest.json
+# Expected: fewer suspects, removed error events, negative duration delta
+```
+
+#### Use Case 3: CI Regression Tracking
+
+In CI pipeline, compare digests across commits:
+
+```bash
+# In CI script
+npm run test:ci || true
+
+# Generate digests for current failures
+lam digest
+
+# Download previous digests from artifact storage
+# Compare each digest with previous version
+
+for digest in reports/**/*.digest.json; do
+  if [ -f "previous/$digest" ]; then
+    lam diff "previous/$digest" "$digest" --output "diffs/$digest.diff.md" --format markdown
+  fi
+done
+
+# Upload diffs to artifact storage
+# Alert on significant changes (new suspects, more errors)
+```
+
+#### Use Case 4: AI Agent Failure Analysis
+
+Agent analyzes failure evolution over time:
+
+```typescript
+// Agent workflow
+async function analyzeFailureProgression(caseName: string) {
+  // Get current digest
+  const current = await server.callTool('get_digest', { caseName });
+  
+  // Get historical digest from git
+  const previousPath = `history/${caseName}.digest.json`;
+  
+  // Compare
+  const diff = await server.callTool('diff.get', {
+    digest1Path: previousPath,
+    digest2Path: `reports/${caseName}.digest.json`,
+    outputFormat: 'markdown'
+  });
+  
+  // Analyze changes
+  if (diff.diff.summary.suspectsChanged) {
+    console.log('Suspects changed - failure pattern evolving');
+    
+    if (diff.diff.changedSuspects.added.length > 0) {
+      console.log('New suspects indicate regression or new failure mode');
+    }
+    
+    if (diff.diff.changedSuspects.removed.length > 0) {
+      console.log('Removed suspects indicate partial fix or symptom shift');
+    }
+  }
+  
+  if (diff.diff.summary.durationDelta > 100) {
+    console.log('Significant performance regression detected');
+  }
+  
+  return diff.formatted;
+}
+```
+
+#### Use Case 5: Test Stability Monitoring
+
+Track digest changes over multiple runs to identify flaky tests:
+
+```typescript
+// Run test 5 times, compare digests
+const digests: DigestOutput[] = [];
+
+for (let i = 0; i < 5; i++) {
+  await server.callTool('run', { 
+    case: 'kernel.spec/connect_moves_data_1_1' 
+  });
+  
+  const digest = await server.callTool('get_digest', { 
+    caseName: 'kernel.spec/connect_moves_data_1_1' 
+  });
+  
+  digests.push(digest.digest);
+}
+
+// Compare all pairs
+let hasVariation = false;
+const engine = new DigestDiffEngine();
+
+for (let i = 0; i < digests.length - 1; i++) {
+  const diff = engine.compareDigests(digests[i], digests[i + 1]);
+  
+  if (diff.summary.eventsChanged > 0 || diff.summary.suspectsChanged) {
+    hasVariation = true;
+    console.log(`Variation detected between run ${i} and ${i + 1}`);
+  }
+}
+
+if (hasVariation) {
+  console.log('Test is FLAKY - digests vary across runs');
+} else {
+  console.log('Test is STABLE - consistent digests across runs');
+}
+```
+
+### Integration Examples
+
+#### CLI + MCP Combined Workflow
+
+```bash
+# Generate baseline digests (CLI)
+lam run --lane ci
+lam digest
+
+# Agent analyzes failures and compares (MCP)
+```
+
+```typescript
+// Agent script
+const failures = await server.callTool('list_failures', {});
+
+for (const failure of failures.failures) {
+  // Generate repro bundle
+  const bundle = await server.callTool('repro.bundle', {
+    caseName: failure.testName
+  });
+  
+  // Compare with historical digest if available
+  const historicalPath = `history/${failure.testName}.digest.json`;
+  
+  if (fs.existsSync(historicalPath)) {
+    const diff = await server.callTool('diff.get', {
+      digest1Path: historicalPath,
+      digest2Path: `reports/${failure.testName}.digest.json`,
+      outputFormat: 'markdown'
+    });
+    
+    // Create report combining bundle + diff
+    const report = `
+# Failure Report: ${failure.testName}
+
+## Reproduction Bundle
+${bundle.formatted}
+
+## Change Analysis
+${diff.formatted}
+
+## Recommendation
+${analyzeDiffForRecommendation(diff.diff)}
+    `;
+    
+    console.log(report);
+  }
+}
+```
+
+#### Automated Regression Alerts
+
+```typescript
+// CI integration: alert on digest regressions
+async function checkForRegressions() {
+  const failures = await server.callTool('list_failures', {});
+  const regressions: string[] = [];
+  
+  for (const failure of failures.failures) {
+    const previousDigest = loadPreviousDigest(failure.testName);
+    
+    if (!previousDigest) continue;
+    
+    const diff = await server.callTool('diff.get', {
+      digest1Path: previousDigest,
+      digest2Path: `reports/${failure.testName}.digest.json`
+    });
+    
+    // Check for regression indicators
+    if (diff.diff.summary.eventsAdded > 0) {
+      regressions.push(`${failure.testName}: ${diff.diff.summary.eventsAdded} new error events`);
+    }
+    
+    if (diff.diff.changedSuspects?.added.length > 0) {
+      regressions.push(`${failure.testName}: ${diff.diff.changedSuspects.added.length} new suspects`);
+    }
+    
+    if (diff.diff.summary.durationDelta > 200) {
+      regressions.push(`${failure.testName}: +${diff.diff.summary.durationDelta}ms performance regression`);
+    }
+  }
+  
+  if (regressions.length > 0) {
+    sendAlert('Regressions detected', regressions.join('\n'));
+  }
+}
+```
+
 ### Focus Overlay Deep Dive
 
 The focus overlay system provides ephemeral digest rule management without modifying the persistent config file.

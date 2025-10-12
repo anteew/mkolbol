@@ -1,0 +1,5 @@
+{"ts":1000,"lvl":"info","case":"test-case-1","evt":"test.start","id":"1","payload":{"seed":"test-seed-123"}}
+{"ts":1500,"lvl":"info","case":"test-case-1","evt":"setup.complete","id":"2"}
+{"ts":2000,"lvl":"error","case":"test-case-1","evt":"assert.fail","id":"3","payload":{"expected":3,"actual":2,"message":"Expected 2 to be 3"}}
+{"ts":2100,"lvl":"info","case":"test-case-1","evt":"cleanup.start","id":"4"}
+{"ts":2500,"lvl":"info","case":"test-case-1","evt":"test.end","id":"5"}

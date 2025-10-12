@@ -227,7 +227,7 @@ const failures = await server.callTool('list_failures', {});
 - `laminar://summary` - Test summary JSONL file (all test results)
 - `laminar://digest/{caseName}` - Digest JSON for specific failed test case
 
-#### MCP Tools (12)
+#### MCP Tools (14)
 
 **Test Execution:**
 - `run` - Execute tests with options for suite, case, and flake detection
@@ -266,6 +266,16 @@ const failures = await server.callTool('list_failures', {});
 - `list_failures` - List all failed test cases from summary
   - Input: `{}` (no parameters)
   - Output: `{ failures: SummaryEntry[] }`
+
+**Repro Bundles & Diffs:**
+- `repro.bundle` - Generate repro bundle with logs and digests
+  - Input: `{ caseName?: string, format?: 'json' | 'markdown' }` (optional, all failures if omitted)
+  - Output: `{ count: number, message: string, bundles: Array<{ caseName, jsonPath, mdPath }> }`
+  - Use case: Package failure for reproduction and triage
+- `diff.get` - Compare two digest files and return differences
+  - Input: `{ digest1Path: string, digest2Path: string, outputFormat?: 'json' | 'markdown' }` (required)
+  - Output: `{ diff: DigestDiff, formatted?: string }`
+  - Use case: Track regressions, verify fixes, analyze failure evolution
 
 **Focus Overlay (Ephemeral Rules):**
 - `focus.overlay.set` - Set ephemeral focus overlay rules (non-persistent)
@@ -410,6 +420,40 @@ npm run repro
 # Example output provides vitest commands to rerun failing tests
 # and logq commands to inspect their JSONL logs
 ```
+
+#### lam - Comprehensive test management CLI
+
+```bash
+# Run tests
+lam run --lane auto
+
+# Generate failure digests
+lam digest
+lam digest --cases kernel.spec/connect_moves_data_1_1
+
+# Generate repro bundles
+lam repro --bundle
+lam repro --bundle --case kernel.spec/connect_moves_data_1_1
+
+# Compare digest files
+lam diff reports/case1.digest.json reports/case2.digest.json
+lam diff reports/case1.digest.json reports/case2.digest.json --output diff.md --format markdown
+
+# Digest rules management
+lam rules get
+lam rules set --inline '{"budget":{"kb":2}}'
+
+# Failure trends
+lam trends --top 10 --since 2025-10-01
+
+# Show test details
+lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 50
+
+# See all commands
+lam --help
+```
+
+See [docs/testing/laminar.md](docs/testing/laminar.md) for complete documentation on repro bundles and digest diffs.
 
 ### Sprint 1 Quickstart (Local, In-Process)
 

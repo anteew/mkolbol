@@ -1,0 +1,81 @@
+{
+  "case": "test-case-1",
+  "status": "fail",
+  "duration": 1800,
+  "location": "test.spec.ts:10",
+  "error": "Expected 2 to be 3",
+  "summary": {
+    "totalEvents": 7,
+    "includedEvents": 5,
+    "redactedFields": 0,
+    "budgetUsed": 768,
+    "budgetLimit": 10240
+  },
+  "events": [
+    {
+      "ts": 1000,
+      "lvl": "info",
+      "case": "test-case-1",
+      "evt": "test.start",
+      "id": "1"
+    },
+    {
+      "ts": 1500,
+      "lvl": "warn",
+      "case": "test-case-1",
+      "evt": "deprecation.warning",
+      "id": "1a"
+    },
+    {
+      "ts": 2000,
+      "lvl": "error",
+      "case": "test-case-1",
+      "evt": "assert.fail",
+      "id": "2",
+      "payload": { "expected": 3, "actual": 2 }
+    },
+    {
+      "ts": 2200,
+      "lvl": "error",
+      "case": "test-case-1",
+      "evt": "cleanup.error",
+      "id": "2a"
+    },
+    {
+      "ts": 2500,
+      "lvl": "info",
+      "case": "test-case-1",
+      "evt": "test.end",
+      "id": "3"
+    }
+  ],
+  "suspects": [
+    {
+      "ts": 2000,
+      "lvl": "error",
+      "case": "test-case-1",
+      "evt": "assert.fail",
+      "id": "2",
+      "payload": { "expected": 3, "actual": 2 },
+      "score": 85.5,
+      "reasons": ["error level", "failure event"]
+    },
+    {
+      "ts": 2200,
+      "lvl": "error",
+      "case": "test-case-1",
+      "evt": "cleanup.error",
+      "id": "2a",
+      "score": 72.0,
+      "reasons": ["error level"]
+    }
+  ],
+  "codeframes": [
+    {
+      "file": "test.spec.ts",
+      "line": 10,
+      "column": 5,
+      "snippet": "expect(result).toBe(3);"
+    }
+  ]
+}
