@@ -175,6 +175,7 @@ At completion, aggregate to `ampcode.log` with:
 3. Apply each diff locally, run verification, capture results
 4. If a task FAILS, halt dependent tasks and report immediately
 5. Aggregate all results to `ampcode.log` for architect review
+6. Do NOT create branches or push commits — the architect (VEGA) handles branching/commits/pushes. Produce unified patch files under `patches/` and a comprehensive `ampcode.log`.
 
 **If you hit ambiguity**:
 

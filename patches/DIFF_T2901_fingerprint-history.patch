@@ -1,0 +1,415 @@
+diff --git a/dist/digest/fingerprint.d.ts b/dist/digest/fingerprint.d.ts
+new file mode 100644
+index 0000000..05b4d21
+--- /dev/null
++++ b/dist/digest/fingerprint.d.ts
+@@ -0,0 +1,22 @@
++export interface FailureInfo {
++    testName: string;
++    errorType?: string;
++    stackLocation?: string;
++    errorMessage?: string;
++}
++export interface HistoryEntry {
++    timestamp: string;
++    fingerprint: string;
++    testName: string;
++    status: 'pass' | 'fail' | 'skip';
++    duration: number;
++    location: string;
++    runMetadata?: {
++        seed?: string;
++        runId?: string;
++        [key: string]: any;
++    };
++}
++export declare function generateFingerprint(failure: FailureInfo): string;
++export declare function extractFailureInfo(testName: string, error?: string, payload?: any): FailureInfo;
++//# sourceMappingURL=fingerprint.d.ts.map
+\ No newline at end of file
+diff --git a/dist/digest/fingerprint.d.ts.map b/dist/digest/fingerprint.d.ts.map
+new file mode 100644
+index 0000000..abab68b
+--- /dev/null
++++ b/dist/digest/fingerprint.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"fingerprint.d.ts","sourceRoot":"","sources":["../../src/digest/fingerprint.ts"],"names":[],"mappings":"AAEA,MAAM,WAAW,WAAW;IAC1B,QAAQ,EAAE,MAAM,CAAC;IACjB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,aAAa,CAAC,EAAE,MAAM,CAAC;IACvB,YAAY,CAAC,EAAE,MAAM,CAAC;CACvB;AAED,MAAM,WAAW,YAAY;IAC3B,SAAS,EAAE,MAAM,CAAC;IAClB,WAAW,EAAE,MAAM,CAAC;IACpB,QAAQ,EAAE,MAAM,CAAC;IACjB,MAAM,EAAE,MAAM,GAAG,MAAM,GAAG,MAAM,CAAC;IACjC,QAAQ,EAAE,MAAM,CAAC;IACjB,QAAQ,EAAE,MAAM,CAAC;IACjB,WAAW,CAAC,EAAE;QACZ,IAAI,CAAC,EAAE,MAAM,CAAC;QACd,KAAK,CAAC,EAAE,MAAM,CAAC;QACf,CAAC,GAAG,EAAE,MAAM,GAAG,GAAG,CAAC;KACpB,CAAC;CACH;AAED,wBAAgB,mBAAmB,CAAC,OAAO,EAAE,WAAW,GAAG,MAAM,CAahE;AAED,wBAAgB,kBAAkB,CAChC,QAAQ,EAAE,MAAM,EAChB,KAAK,CAAC,EAAE,MAAM,EACd,OAAO,CAAC,EAAE,GAAG,GACZ,WAAW,CAkCb"}
+\ No newline at end of file
+diff --git a/dist/digest/fingerprint.js b/dist/digest/fingerprint.js
+new file mode 100644
+index 0000000..3b3cba1
+--- /dev/null
++++ b/dist/digest/fingerprint.js
+@@ -0,0 +1,40 @@
++import * as crypto from 'node:crypto';
++export function generateFingerprint(failure) {
++    const parts = [failure.testName];
++    if (failure.errorType) {
++        parts.push(failure.errorType);
++    }
++    if (failure.stackLocation) {
++        parts.push(failure.stackLocation);
++    }
++    const content = parts.join('::');
++    return crypto.createHash('sha256').update(content).digest('hex').substring(0, 16);
++}
++export function extractFailureInfo(testName, error, payload) {
++    const info = { testName };
++    if (error) {
++        info.errorMessage = error;
++        const errorTypeMatch = error.match(/^(\w+Error)/);
++        if (errorTypeMatch) {
++            info.errorType = errorTypeMatch[1];
++        }
++    }
++    if (payload && typeof payload === 'object') {
++        if ('stack' in payload && typeof payload.stack === 'string') {
++            const stackLines = payload.stack.split('\n');
++            const firstRelevantLine = stackLines.find((line) => line.includes('.spec.ts') || line.includes('.test.ts'));
++            if (firstRelevantLine) {
++                const match = firstRelevantLine.match(/\(([^)]+):(\d+):(\d+)\)/) ||
++                    firstRelevantLine.match(/at ([^:]+):(\d+):(\d+)/);
++                if (match) {
++                    info.stackLocation = `${match[1]}:${match[2]}`;
++                }
++            }
++        }
++        if ('name' in payload && typeof payload.name === 'string') {
++            info.errorType = payload.name;
++        }
++    }
++    return info;
++}
++//# sourceMappingURL=fingerprint.js.map
+\ No newline at end of file
+diff --git a/dist/digest/fingerprint.js.map b/dist/digest/fingerprint.js.map
+new file mode 100644
+index 0000000..7340af2
+--- /dev/null
++++ b/dist/digest/fingerprint.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"fingerprint.js","sourceRoot":"","sources":["../../src/digest/fingerprint.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,MAAM,aAAa,CAAC;AAuBtC,MAAM,UAAU,mBAAmB,CAAC,OAAoB;IACtD,MAAM,KAAK,GAAa,CAAC,OAAO,CAAC,QAAQ,CAAC,CAAC;IAE3C,IAAI,OAAO,CAAC,SAAS,EAAE,CAAC;QACtB,KAAK,CAAC,IAAI,CAAC,OAAO,CAAC,SAAS,CAAC,CAAC;IAChC,CAAC;IAED,IAAI,OAAO,CAAC,aAAa,EAAE,CAAC;QAC1B,KAAK,CAAC,IAAI,CAAC,OAAO,CAAC,aAAa,CAAC,CAAC;IACpC,CAAC;IAED,MAAM,OAAO,GAAG,KAAK,CAAC,IAAI,CAAC,IAAI,CAAC,CAAC;IACjC,OAAO,MAAM,CAAC,UAAU,CAAC,QAAQ,CAAC,CAAC,MAAM,CAAC,OAAO,CAAC,CAAC,MAAM,CAAC,KAAK,CAAC,CAAC,SAAS,CAAC,CAAC,EAAE,EAAE,CAAC,CAAC;AACpF,CAAC;AAED,MAAM,UAAU,kBAAkB,CAChC,QAAgB,EAChB,KAAc,EACd,OAAa;IAEb,MAAM,IAAI,GAAgB,EAAE,QAAQ,EAAE,CAAC;IAEvC,IAAI,KAAK,EAAE,CAAC;QACV,IAAI,CAAC,YAAY,GAAG,KAAK,CAAC;QAE1B,MAAM,cAAc,GAAG,KAAK,CAAC,KAAK,CAAC,aAAa,CAAC,CAAC;QAClD,IAAI,cAAc,EAAE,CAAC;YACnB,IAAI,CAAC,SAAS,GAAG,cAAc,CAAC,CAAC,CAAC,CAAC;QACrC,CAAC;IACH,CAAC;IAED,IAAI,OAAO,IAAI,OAAO,OAAO,KAAK,QAAQ,EAAE,CAAC;QAC3C,IAAI,OAAO,IAAI,OAAO,IAAI,OAAO,OAAO,CAAC,KAAK,KAAK,QAAQ,EAAE,CAAC;YAC5D,MAAM,UAAU,GAAG,OAAO,CAAC,KAAK,CAAC,KAAK,CAAC,IAAI,CAAC,CAAC;YAC7C,MAAM,iBAAiB,GAAG,UAAU,CAAC,IAAI,CAAC,CAAC,IAAY,EAAE,EAAE,CACzD,IAAI,CAAC,QAAQ,CAAC,UAAU,CAAC,IAAI,IAAI,CAAC,QAAQ,CAAC,UAAU,CAAC,CACvD,CAAC;YAEF,IAAI,iBAAiB,EAAE,CAAC;gBACtB,MAAM,KAAK,GAAG,iBAAiB,CAAC,KAAK,CAAC,yBAAyB,CAAC;oBAClD,iBAAiB,CAAC,KAAK,CAAC,wBAAwB,CAAC,CAAC;gBAChE,IAAI,KAAK,EAAE,CAAC;oBACV,IAAI,CAAC,aAAa,GAAG,GAAG,KAAK,CAAC,CAAC,CAAC,IAAI,KAAK,CAAC,CAAC,CAAC,EAAE,CAAC;gBACjD,CAAC;YACH,CAAC;QACH,CAAC;QAED,IAAI,MAAM,IAAI,OAAO,IAAI,OAAO,OAAO,CAAC,IAAI,KAAK,QAAQ,EAAE,CAAC;YAC1D,IAAI,CAAC,SAAS,GAAG,OAAO,CAAC,IAAI,CAAC;QAChC,CAAC;IACH,CAAC;IAED,OAAO,IAAI,CAAC;AACd,CAAC"}
+\ No newline at end of file
+diff --git a/scripts/lam.ts b/scripts/lam.ts
+index 3b96327..ac3968a 100644
+--- a/scripts/lam.ts
++++ b/scripts/lam.ts
+@@ -19,6 +19,7 @@ Usage:
+   lam ingest --go [--from-file <path> | --cmd "<command>"]
+   lam rules get
+   lam rules set --file <path> | --inline '<json>'
++  lam trends [--since <timestamp>] [--until <timestamp>] [--top <n>]
+ 
+ Examples:
+   lam run --lane auto
+@@ -30,6 +31,7 @@ Examples:
+   lam ingest --go --cmd "go test -json ./..."
+   lam rules get
+   lam rules set --inline '{"budget":{"kb":2}}'
++  lam trends --top 10 --since 2025-10-01
+ `);
+ }
+ 
+@@ -278,6 +280,116 @@ async function main() {
+       }
+       break;
+     }
++    case 'trends': {
++      const historyPath = 'reports/history.jsonl';
++      if (!fs.existsSync(historyPath)) {
++        console.error('No history.jsonl found. Run tests first to generate failure history.');
++        process.exit(1);
++      }
++      
++      const sinceArg = args.get('since') as string | undefined;
++      const untilArg = args.get('until') as string | undefined;
++      const topN = parseInt((args.get('top') as string) || '10', 10);
++      
++      const sinceTs = sinceArg ? new Date(sinceArg).getTime() : 0;
++      const untilTs = untilArg ? new Date(untilArg).getTime() : Date.now();
++      
++      interface HistoryEntry {
++        ts: number;
++        fingerprint: string;
++        caseName: string;
++        status: 'fail' | 'pass' | 'skip';
++        location?: string;
++        errorMessage?: string;
++      }
++      
++      const entries: HistoryEntry[] = fs.readFileSync(historyPath, 'utf-8')
++        .trim()
++        .split(/\n+/)
++        .map(line => {
++          try {
++            return JSON.parse(line);
++          } catch {
++            return undefined;
++          }
++        })
++        .filter(Boolean);
++      
++      const filtered = entries.filter(e => e.ts >= sinceTs && e.ts <= untilTs);
++      
++      interface FailureStats {
++        fingerprint: string;
++        caseName: string;
++        count: number;
++        firstSeen: number;
++        lastSeen: number;
++        locations: Set<string>;
++        errorSamples: string[];
++      }
++      
++      const failureMap = new Map<string, FailureStats>();
++      
++      for (const entry of filtered) {
++        if (entry.status !== 'fail') continue;
++        
++        const fp = entry.fingerprint;
++        if (!failureMap.has(fp)) {
++          failureMap.set(fp, {
++            fingerprint: fp,
++            caseName: entry.caseName,
++            count: 0,
++            firstSeen: entry.ts,
++            lastSeen: entry.ts,
++            locations: new Set(),
++            errorSamples: [],
++          });
++        }
++        
++        const stats = failureMap.get(fp)!;
++        stats.count++;
++        stats.lastSeen = Math.max(stats.lastSeen, entry.ts);
++        stats.firstSeen = Math.min(stats.firstSeen, entry.ts);
++        if (entry.location) stats.locations.add(entry.location);
++        if (entry.errorMessage && stats.errorSamples.length < 3) {
++          stats.errorSamples.push(entry.errorMessage);
++        }
++      }
++      
++      const sorted = Array.from(failureMap.values()).sort((a, b) => b.count - a.count);
++      const topFailures = sorted.slice(0, topN);
++      
++      const totalFailures = filtered.filter(e => e.status === 'fail').length;
++      const totalTests = filtered.length;
++      const failureRate = totalTests > 0 ? ((totalFailures / totalTests) * 100).toFixed(1) : '0.0';
++      
++      console.log(`\n=== Laminar Trends ===`);
++      console.log(`Period: ${new Date(sinceTs).toISOString()} → ${new Date(untilTs).toISOString()}`);
++      console.log(`Total test runs: ${totalTests}`);
++      console.log(`Total failures: ${totalFailures}`);
++      console.log(`Failure rate: ${failureRate}%`);
++      console.log(`Unique failure fingerprints: ${failureMap.size}`);
++      console.log(`\n=== Top ${topN} Offenders ===\n`);
++      
++      for (let i = 0; i < topFailures.length; i++) {
++        const f = topFailures[i];
++        const firstSeenDate = new Date(f.firstSeen).toISOString();
++        const lastSeenDate = new Date(f.lastSeen).toISOString();
++        const locationList = Array.from(f.locations).join(', ');
++        
++        console.log(`#${i + 1} ${f.caseName} (${f.count} failures)`);
++        console.log(`   Fingerprint: ${f.fingerprint}`);
++        console.log(`   First seen:  ${firstSeenDate}`);
++        console.log(`   Last seen:   ${lastSeenDate}`);
++        if (locationList) {
++          console.log(`   Locations:   ${locationList}`);
++        }
++        if (f.errorSamples.length > 0) {
++          console.log(`   Error:       ${f.errorSamples[0].substring(0, 100)}${f.errorSamples[0].length > 100 ? '...' : ''}`);
++        }
++        console.log('');
++      }
++      break;
++    }
+     default:
+       printHelp();
+   }
+diff --git a/scripts/laminar-run.ts b/scripts/laminar-run.ts
+index 55cf24a..98740d3 100644
+--- a/scripts/laminar-run.ts
++++ b/scripts/laminar-run.ts
+@@ -1,6 +1,7 @@
+ import { spawnSync } from 'node:child_process';
+ import * as fs from 'node:fs';
+ import { generateAllDigests } from '../src/digest/generator.js';
++import { generateFingerprint, extractFailureInfo, type HistoryEntry } from '../src/digest/fingerprint.js';
+ 
+ type SummaryEntry = {
+   status: 'pass'|'fail'|'skip';
+@@ -8,6 +9,7 @@ type SummaryEntry = {
+   location: string; // file:line
+   artifactURI?: string;
+   error?: string;
++  testName?: string;
+ };
+ 
+ type StabilityResult = {
+@@ -51,6 +53,50 @@ function caseFromArtifact(uri?: string): string {
+   return m ? m[1] : 'debug.case';
+ }
+ 
++function updateHistory(entries: SummaryEntry[], runMetadata?: Record<string, any>) {
++  fs.mkdirSync('reports', { recursive: true });
++  const historyPath = 'reports/history.jsonl';
++  const timestamp = new Date().toISOString();
++  
++  for (const entry of entries) {
++    const testName = entry.testName || caseFromArtifact(entry.artifactURI);
++    let fingerprint = '';
++    
++    if (entry.status === 'fail') {
++      let payload: any = undefined;
++      
++      if (entry.artifactURI && fs.existsSync(entry.artifactURI)) {
++        try {
++          const content = fs.readFileSync(entry.artifactURI, 'utf-8');
++          const lines = content.trim().split('\n');
++          for (const line of lines) {
++            const evt = JSON.parse(line);
++            if (evt.lvl === 'error' && evt.payload) {
++              payload = evt.payload;
++              break;
++            }
++          }
++        } catch {}
++      }
++      
++      const failureInfo = extractFailureInfo(testName, entry.error, payload);
++      fingerprint = generateFingerprint(failureInfo);
++    }
++    
++    const historyEntry: HistoryEntry = {
++      timestamp,
++      fingerprint,
++      testName,
++      status: entry.status,
++      duration: entry.duration,
++      location: entry.location,
++      runMetadata,
++    };
++    
++    fs.appendFileSync(historyPath, JSON.stringify(historyEntry) + '\n');
++  }
++}
++
+ async function runFlakeDetection(reruns: number = 5) {
+   console.log(`\n=== FLAKE DETECTION MODE (${reruns} runs per test) ===\n`);
+   
+@@ -141,6 +187,16 @@ async function runFlakeDetection(reruns: number = 5) {
+   }, null, 2));
+   console.log(`\nDetailed report saved to ${reportPath}`);
+   
++  // Update history ledger for flake detection runs
++  const finalEntries = parseSummary();
++  const runMetadata = {
++    seed,
++    runId: Date.now().toString(),
++    mode: 'flake-detection',
++    reruns,
++  };
++  updateHistory(finalEntries, runMetadata);
++  
+   // Exit with error if any flaky tests found
+   if (flakyTests.length > 0 || alwaysFail.length > 0) {
+     process.exit(1);
+@@ -207,6 +263,14 @@ async function main() {
+     console.log(`Generated ${digestCount} digest(s) in reports/ directory`);
+   }
+ 
++  // Update history ledger
++  const finalEntries = parseSummary();
++  const runMetadata = {
++    seed: process.env.TEST_SEED || testEnv.TEST_SEED || 'default',
++    runId: Date.now().toString(),
++  };
++  updateHistory(finalEntries, runMetadata);
++
+   process.exit(overall);
+ }
+ 
+diff --git a/src/digest/fingerprint.ts b/src/digest/fingerprint.ts
+new file mode 100644
+index 0000000..65bfa94
+--- /dev/null
++++ b/src/digest/fingerprint.ts
+@@ -0,0 +1,77 @@
++import * as crypto from 'node:crypto';
++
++export interface FailureInfo {
++  testName: string;
++  errorType?: string;
++  stackLocation?: string;
++  errorMessage?: string;
++}
++
++export interface HistoryEntry {
++  timestamp: string;
++  fingerprint: string;
++  testName: string;
++  status: 'pass' | 'fail' | 'skip';
++  duration: number;
++  location: string;
++  runMetadata?: {
++    seed?: string;
++    runId?: string;
++    [key: string]: any;
++  };
++}
++
++export function generateFingerprint(failure: FailureInfo): string {
++  const parts: string[] = [failure.testName];
++  
++  if (failure.errorType) {
++    parts.push(failure.errorType);
++  }
++  
++  if (failure.stackLocation) {
++    parts.push(failure.stackLocation);
++  }
++  
++  const content = parts.join('::');
++  return crypto.createHash('sha256').update(content).digest('hex').substring(0, 16);
++}
++
++export function extractFailureInfo(
++  testName: string,
++  error?: string,
++  payload?: any
++): FailureInfo {
++  const info: FailureInfo = { testName };
++  
++  if (error) {
++    info.errorMessage = error;
++    
++    const errorTypeMatch = error.match(/^(\w+Error)/);
++    if (errorTypeMatch) {
++      info.errorType = errorTypeMatch[1];
++    }
++  }
++  
++  if (payload && typeof payload === 'object') {
++    if ('stack' in payload && typeof payload.stack === 'string') {
++      const stackLines = payload.stack.split('\n');
++      const firstRelevantLine = stackLines.find((line: string) => 
++        line.includes('.spec.ts') || line.includes('.test.ts')
++      );
++      
++      if (firstRelevantLine) {
++        const match = firstRelevantLine.match(/\(([^)]+):(\d+):(\d+)\)/) ||
++                      firstRelevantLine.match(/at ([^:]+):(\d+):(\d+)/);
++        if (match) {
++          info.stackLocation = `${match[1]}:${match[2]}`;
++        }
++      }
++    }
++    
++    if ('name' in payload && typeof payload.name === 'string') {
++      info.errorType = payload.name;
++    }
++  }
++  
++  return info;
++}

@@ -19,6 +19,7 @@ Usage:
   lam ingest --go [--from-file <path> | --cmd "<command>"]
   lam rules get
   lam rules set --file <path> | --inline '<json>'
+  lam trends [--since <timestamp>] [--until <timestamp>] [--top <n>]
 
 Examples:
   lam run --lane auto
@@ -30,6 +31,7 @@ Examples:
   lam ingest --go --cmd "go test -json ./..."
   lam rules get
   lam rules set --inline '{"budget":{"kb":2}}'
+  lam trends --top 10 --since 2025-10-01
 `);
 }
 
@@ -275,6 +277,116 @@ async function main() {
       } else {
         printHelp();
         process.exit(1);
+      }
+      break;
+    }
+    case 'trends': {
+      const historyPath = 'reports/history.jsonl';
+      if (!fs.existsSync(historyPath)) {
+        console.error('No history.jsonl found. Run tests first to generate failure history.');
+        process.exit(1);
+      }
+      
+      const sinceArg = args.get('since') as string | undefined;
+      const untilArg = args.get('until') as string | undefined;
+      const topN = parseInt((args.get('top') as string) || '10', 10);
+      
+      const sinceTs = sinceArg ? new Date(sinceArg).getTime() : 0;
+      const untilTs = untilArg ? new Date(untilArg).getTime() : Date.now();
+      
+      interface HistoryEntry {
+        ts: number;
+        fingerprint: string;
+        caseName: string;
+        status: 'fail' | 'pass' | 'skip';
+        location?: string;
+        errorMessage?: string;
+      }
+      
+      const entries: HistoryEntry[] = fs.readFileSync(historyPath, 'utf-8')
+        .trim()
+        .split(/\n+/)
+        .map(line => {
+          try {
+            return JSON.parse(line);
+          } catch {
+            return undefined;
+          }
+        })
+        .filter(Boolean);
+      
+      const filtered = entries.filter(e => e.ts >= sinceTs && e.ts <= untilTs);
+      
+      interface FailureStats {
+        fingerprint: string;
+        caseName: string;
+        count: number;
+        firstSeen: number;
+        lastSeen: number;
+        locations: Set<string>;
+        errorSamples: string[];
+      }
+      
+      const failureMap = new Map<string, FailureStats>();
+      
+      for (const entry of filtered) {
+        if (entry.status !== 'fail') continue;
+        
+        const fp = entry.fingerprint;
+        if (!failureMap.has(fp)) {
+          failureMap.set(fp, {
+            fingerprint: fp,
+            caseName: entry.caseName,
+            count: 0,
+            firstSeen: entry.ts,
+            lastSeen: entry.ts,
+            locations: new Set(),
+            errorSamples: [],
+          });
+        }
+        
+        const stats = failureMap.get(fp)!;
+        stats.count++;
+        stats.lastSeen = Math.max(stats.lastSeen, entry.ts);
+        stats.firstSeen = Math.min(stats.firstSeen, entry.ts);
+        if (entry.location) stats.locations.add(entry.location);
+        if (entry.errorMessage && stats.errorSamples.length < 3) {
+          stats.errorSamples.push(entry.errorMessage);
+        }
+      }
+      
+      const sorted = Array.from(failureMap.values()).sort((a, b) => b.count - a.count);
+      const topFailures = sorted.slice(0, topN);
+      
+      const totalFailures = filtered.filter(e => e.status === 'fail').length;
+      const totalTests = filtered.length;
+      const failureRate = totalTests > 0 ? ((totalFailures / totalTests) * 100).toFixed(1) : '0.0';
+      
+      console.log(`\n=== Laminar Trends ===`);
+      console.log(`Period: ${new Date(sinceTs).toISOString()} → ${new Date(untilTs).toISOString()}`);
+      console.log(`Total test runs: ${totalTests}`);
+      console.log(`Total failures: ${totalFailures}`);
+      console.log(`Failure rate: ${failureRate}%`);
+      console.log(`Unique failure fingerprints: ${failureMap.size}`);
+      console.log(`\n=== Top ${topN} Offenders ===\n`);
+      
+      for (let i = 0; i < topFailures.length; i++) {
+        const f = topFailures[i];
+        const firstSeenDate = new Date(f.firstSeen).toISOString();
+        const lastSeenDate = new Date(f.lastSeen).toISOString();
+        const locationList = Array.from(f.locations).join(', ');
+        
+        console.log(`#${i + 1} ${f.caseName} (${f.count} failures)`);
+        console.log(`   Fingerprint: ${f.fingerprint}`);
+        console.log(`   First seen:  ${firstSeenDate}`);
+        console.log(`   Last seen:   ${lastSeenDate}`);
+        if (locationList) {
+          console.log(`   Locations:   ${locationList}`);
+        }
+        if (f.errorSamples.length > 0) {
+          console.log(`   Error:       ${f.errorSamples[0].substring(0, 100)}${f.errorSamples[0].length > 100 ? '...' : ''}`);
+        }
+        console.log('');
       }
       break;
     }
