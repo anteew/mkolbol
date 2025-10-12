@@ -2,13 +2,17 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "TR-A", "parallel": true,  "tasks": ["T2901", "T2902"] },
-    { "id": "TR-B", "parallel": false, "depends_on": ["TR-A"], "tasks": ["T2903"] }
+    { "id": "RD-A", "parallel": true,  "tasks": ["T3101", "T3102"] },
+    { "id": "RD-B", "parallel": true,  "depends_on": ["RD-A"], "tasks": ["T3103", "T3106"] },
+    { "id": "RD-C", "parallel": false, "depends_on": ["RD-B"], "tasks": ["T3104", "T3105"] }
   ],
   "tasks": [
-    { "id": "T2901", "agent": "susan-1", "title": "Failure fingerprinting + history ledger (history.jsonl)", "allowedFiles": ["src/digest/fingerprint.ts", "scripts/laminar-run.ts", "scripts/lam.ts"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2901_fingerprint-history.patch"] },
-    { "id": "T2902", "agent": "susan-2", "title": "CLI: lam trends (top offenders, first/last seen)", "allowedFiles": ["scripts/lam.ts", "docs/testing/laminar.md"], "verify": ["npm run lam -- --help"], "deliverables": ["patches/DIFF_T2902_cli-trends.patch"] },
-    { "id": "T2903", "agent": "susan-3", "title": "Tests: synthetic regression history + trend outputs", "allowedFiles": ["tests/laminar/trends.spec.ts", "tests/fixtures/**", "reports/**"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T2903_tests-trends.patch"] }
+    { "id": "T3101", "agent": "susan-1", "title": "Repro bundler: lam repro --bundle (seed/env + minimal logs + commands)", "allowedFiles": ["scripts/repro-bundle.ts", "scripts/lam.ts", "docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T3101_repro-bundler.patch"] },
+    { "id": "T3102", "agent": "susan-2", "title": "Digest diff engine: src/digest/diff.ts (compare two digests)", "allowedFiles": ["src/digest/diff.ts", "docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T3102_digest-diff-engine.patch"] },
+    { "id": "T3103", "agent": "susan-3", "title": "CLI: lam diff + lam repro --bundle integration", "allowedFiles": ["scripts/lam.ts", "scripts/digest.ts"], "verify": ["npm run lam -- --help"], "deliverables": ["patches/DIFF_T3103_cli-diff-repro.patch"] },
+    { "id": "T3106", "agent": "susan-4", "title": "MCP tools: diff.get, repro.bundle; JSON contracts + tests skeleton", "allowedFiles": ["src/mcp/laminar/server.ts", "tests/mcp/laminarMcp.spec.ts"], "verify": ["npm run build", "npm run test:ci || true"], "deliverables": ["patches/DIFF_T3106_mcp-diff-repro.patch"] },
+    { "id": "T3104", "agent": "susan-5", "title": "Tests: diff scenarios + bundle contents (fixtures)", "allowedFiles": ["tests/digest/diff.spec.ts", "tests/fixtures/**", "reports/**"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T3104_tests-diff-bundle.patch"] },
+    { "id": "T3105", "agent": "susan-6", "title": "Docs: Repro bundles + Digest diffs usage", "allowedFiles": ["docs/testing/laminar.md", "README.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T3105_docs-diff-repro.patch"] }
   ]
 }
 ```
