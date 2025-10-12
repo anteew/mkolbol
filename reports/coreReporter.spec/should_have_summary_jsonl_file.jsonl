@@ -1,0 +1,3 @@
+{"ts":1760290661037,"lvl":"info","case":"should have summary.jsonl file","phase":"setup","evt":"case.begin"}
+{"ts":1760290661038,"lvl":"info","case":"should have summary.jsonl file","phase":"execution","evt":"test.run"}
+{"ts":1760290661039,"lvl":"info","case":"should have summary.jsonl file","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}

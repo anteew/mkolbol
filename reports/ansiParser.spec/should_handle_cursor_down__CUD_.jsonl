@@ -1,0 +1,3 @@
+{"ts":1760290661045,"lvl":"info","case":"should handle cursor down (CUD)","phase":"setup","evt":"case.begin"}
+{"ts":1760290661046,"lvl":"info","case":"should handle cursor down (CUD)","phase":"execution","evt":"test.run"}
+{"ts":1760290661047,"lvl":"info","case":"should handle cursor down (CUD)","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}

@@ -1,0 +1,3 @@
+{"ts":1760290661042,"lvl":"info","case":"handles empty input","phase":"setup","evt":"case.begin"}
+{"ts":1760290661043,"lvl":"info","case":"handles empty input","phase":"execution","evt":"test.run"}
+{"ts":1760290661044,"lvl":"info","case":"handles empty input","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}

@@ -1,0 +1,3 @@
+{"ts":1760290661040,"lvl":"info","case":"enforces byte budget","phase":"setup","evt":"case.begin"}
+{"ts":1760290661041,"lvl":"info","case":"enforces byte budget","phase":"execution","evt":"test.run"}
+{"ts":1760290661042,"lvl":"info","case":"enforces byte budget","phase":"teardown","evt":"case.end","payload":{"duration":7,"status":"passed"}}

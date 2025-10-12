@@ -1,0 +1,3 @@
+{"ts":1760290661008,"lvl":"info","case":"initialize","phase":"setup","evt":"case.begin"}
+{"ts":1760290661009,"lvl":"info","case":"initialize","phase":"execution","evt":"test.run"}
+{"ts":1760290661010,"lvl":"info","case":"initialize","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}

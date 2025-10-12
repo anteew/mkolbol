@@ -1,0 +1,3 @@
+{"ts":1760290663102,"lvl":"info","case":"should gracefully shutdown with SIGTERM","phase":"setup","evt":"case.begin"}
+{"ts":1760290663103,"lvl":"info","case":"should gracefully shutdown with SIGTERM","phase":"execution","evt":"test.run"}
+{"ts":1760290663104,"lvl":"info","case":"should gracefully shutdown with SIGTERM","phase":"teardown","evt":"case.end","payload":{"duration":68,"status":"passed"}}

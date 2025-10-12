@@ -1,0 +1,3 @@
+{"ts":1760290661041,"lvl":"info","case":"parses go test -json fixture data","phase":"setup","evt":"case.begin"}
+{"ts":1760290661042,"lvl":"info","case":"parses go test -json fixture data","phase":"execution","evt":"test.run"}
+{"ts":1760290661043,"lvl":"info","case":"parses go test -json fixture data","phase":"teardown","evt":"case.end","payload":{"duration":5,"status":"passed"}}

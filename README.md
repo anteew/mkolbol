@@ -151,6 +151,16 @@ The project includes structured test event logging in JSONL format:
 - **Logger:** [src/logging/logger.ts](src/logging/logger.ts) provides `beginCase()`, `endCase()`, `emit()` helpers
 - **Output:** Events written to `reports/<suite>/<case>.jsonl` for test analysis and reporting
 
+**Artifact Structure:**
+```
+reports/
+├── index.json                    # Manifest of all test artifacts
+├── summary.jsonl                 # One-line summaries
+└── <suite>/<case>.jsonl         # Per-case event streams
+```
+
+See [docs/testing/laminar.md](docs/testing/laminar.md) for complete artifact structure, guarantees, and index.json specification.
+
 **Agent Integration**: When working with agents via ampcode.log, include pointers to `reports/summary.jsonl` and case files in task reports. If digests were created or updated, also include pointers to relevant digest files in `docs/digests/`. Keep console output compact; rely on report files and digests for detailed metrics, traces, and learnings.
 
 ### Debug Instrumentation

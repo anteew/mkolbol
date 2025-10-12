@@ -1,0 +1,3 @@
+{"ts":1760290661035,"lvl":"info","case":"should have caseFile path for each entry","phase":"setup","evt":"case.begin"}
+{"ts":1760290661036,"lvl":"info","case":"should have caseFile path for each entry","phase":"execution","evt":"test.run"}
+{"ts":1760290661037,"lvl":"info","case":"should have caseFile path for each entry","phase":"teardown","evt":"case.end","payload":{"duration":8,"status":"passed"}}

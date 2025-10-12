@@ -1,0 +1,3 @@
+{"ts":1760290663098,"lvl":"info","case":"should throw if up() called without load()","phase":"setup","evt":"case.begin"}
+{"ts":1760290663099,"lvl":"info","case":"should throw if up() called without load()","phase":"execution","evt":"test.run"}
+{"ts":1760290663100,"lvl":"info","case":"should throw if up() called without load()","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

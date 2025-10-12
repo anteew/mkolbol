@@ -1,0 +1,3 @@
+{"ts":1760290661036,"lvl":"info","case":"should organize case files in suite directories","phase":"setup","evt":"case.begin"}
+{"ts":1760290661037,"lvl":"info","case":"should organize case files in suite directories","phase":"execution","evt":"test.run"}
+{"ts":1760290661038,"lvl":"info","case":"should organize case files in suite directories","phase":"teardown","evt":"case.end","payload":{"duration":7,"status":"passed"}}

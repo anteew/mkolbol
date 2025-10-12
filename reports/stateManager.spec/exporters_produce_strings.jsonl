@@ -1,0 +1,3 @@
+{"ts":1760290661147,"lvl":"info","case":"exporters produce strings","phase":"setup","evt":"case.begin"}
+{"ts":1760290661148,"lvl":"info","case":"exporters produce strings","phase":"execution","evt":"test.run"}
+{"ts":1760290661149,"lvl":"info","case":"exporters produce strings","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

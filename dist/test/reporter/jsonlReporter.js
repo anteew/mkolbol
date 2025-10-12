@@ -3,8 +3,11 @@ import * as path from 'path';
 export default class JSONLReporter {
     ctx;
     summaryPath = 'reports/summary.jsonl';
+    indexPath = 'reports/index.json';
     summaryStream;
     processedTests = new Set();
+    indexEntries = [];
+    caseStreams = new Map();
     onInit(ctx) {
         this.ctx = ctx;
         const dir = path.dirname(this.summaryPath);
@@ -13,6 +16,7 @@ export default class JSONLReporter {
             fs.unlinkSync(this.summaryPath);
         }
         this.summaryStream = fs.createWriteStream(this.summaryPath, { flags: 'a' });
+        this.indexEntries = [];
     }
     onCollected() {
         const files = this.ctx.state.getFiles();
@@ -25,6 +29,12 @@ export default class JSONLReporter {
         if (this.summaryStream) {
             this.summaryStream.end();
         }
+        // Close all per-case streams
+        for (const stream of this.caseStreams.values()) {
+            stream.end();
+        }
+        this.caseStreams.clear();
+        this.generateIndex();
     }
     processFiles(files) {
         for (const file of files) {
@@ -61,6 +71,8 @@ export default class JSONLReporter {
         const suiteName = file ? path.basename(file.filepath, path.extname(file.filepath)) : 'unknown';
         const caseName = task.name.replace(/[^a-zA-Z0-9-_]/g, '_');
         const artifactURI = `reports/${suiteName}/${caseName}.jsonl`;
+        // Write per-case JSONL file with test lifecycle events
+        this.writePerCaseJSONL(artifactURI, task.name, state, duration, result.errors);
         const summary = {
             status: state,
             duration,
@@ -73,6 +85,84 @@ export default class JSONLReporter {
         if (this.summaryStream) {
             this.summaryStream.write(JSON.stringify(summary) + '\n');
         }
+        const suitePath = file ? path.basename(file.filepath, path.extname(file.filepath)) : 'unknown';
+        const digestPath = `reports/${suitePath}/digest.jsonl`;
+        this.indexEntries.push({
+            testName: task.name,
+            status: state,
+            duration,
+            location,
+            timestamp: new Date().toISOString(),
+            artifacts: {
+                summary: this.summaryPath,
+                caseFile: artifactURI,
+                digestFile: fs.existsSync(digestPath) ? digestPath : undefined,
+            },
+        });
+    }
+    writePerCaseJSONL(artifactPath, caseName, state, duration, errors) {
+        const dir = path.dirname(artifactPath);
+        fs.mkdirSync(dir, { recursive: true });
+        // Remove existing file if it exists
+        if (fs.existsSync(artifactPath)) {
+            fs.unlinkSync(artifactPath);
+        }
+        const stream = fs.createWriteStream(artifactPath, { flags: 'a' });
+        const ts = Date.now();
+        // Write test lifecycle events
+        // 1. Test begin event
+        stream.write(JSON.stringify({
+            ts,
+            lvl: 'info',
+            case: caseName,
+            phase: 'setup',
+            evt: 'case.begin'
+        }) + '\n');
+        // 2. Test execution event
+        stream.write(JSON.stringify({
+            ts: ts + 1,
+            lvl: 'info',
+            case: caseName,
+            phase: 'execution',
+            evt: 'test.run'
+        }) + '\n');
+        // 3. If there are errors, write error events
+        if (errors && errors.length > 0) {
+            errors.forEach((error, idx) => {
+                stream.write(JSON.stringify({
+                    ts: ts + 2 + idx,
+                    lvl: 'error',
+                    case: caseName,
+                    phase: 'execution',
+                    evt: 'test.error',
+                    payload: {
+                        message: error.message || String(error),
+                        stack: error.stack
+                    }
+                }) + '\n');
+            });
+        }
+        // 4. Test end event with result
+        stream.write(JSON.stringify({
+            ts: ts + 2 + (errors?.length || 0),
+            lvl: state === 'fail' ? 'error' : 'info',
+            case: caseName,
+            phase: 'teardown',
+            evt: 'case.end',
+            payload: {
+                duration,
+                status: state === 'pass' ? 'passed' : state === 'fail' ? 'failed' : 'skipped'
+            }
+        }) + '\n');
+        stream.end();
+    }
+    generateIndex() {
+        const index = {
+            generated: new Date().toISOString(),
+            totalTests: this.indexEntries.length,
+            artifacts: this.indexEntries,
+        };
+        fs.writeFileSync(this.indexPath, JSON.stringify(index, null, 2));
     }
 }
 //# sourceMappingURL=jsonlReporter.js.map

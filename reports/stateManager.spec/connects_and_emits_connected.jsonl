@@ -1,0 +1,3 @@
+{"ts":1760290661146,"lvl":"info","case":"connects and emits connected","phase":"setup","evt":"case.begin"}
+{"ts":1760290661147,"lvl":"info","case":"connects and emits connected","phase":"execution","evt":"test.run"}
+{"ts":1760290661148,"lvl":"info","case":"connects and emits connected","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
