@@ -1,0 +1,114 @@
+# Merged View — Docs 5 + 4 + 3 + 2 + 1 (Diff‑Style)
+
+Legend
+- `==` Duplicate/similar across docs
+- `++` Complementary; works together when combined
+- `--` Potential tension/contrast to reconcile
+- Tags: `[D5]` wrappers/composition, `[D4]` HMI/Hostess/executor, `[D3]` distributed mesh/routing, `[D2]` terminology/deployment/supervision, `[D1]` core kernel vision
+
+## Vision / Purpose
+- == [D5][D4][D1] Minimal microkernel; servers run on/through it; kernel provides only pipes + discovery.
+- ++ [D5][D4] Declarative composition: executor starts; control surface wires.
+- ++ [D3] Distributed service mesh with routing servers and terminals; location transparency.
+- ++ [D2] Policy‑free kernel and disciplined terminology (servers in user space, kernel ≠ feature host).
+- ++ [D1] Terminal as proving ground but transport‑agnostic foundation for broader systems.
+- -- [D4] Pure compile‑time wiring vs [D3] dynamic route learning; layer discovery/routing as optional.
+
+## Core Components
+- == [D4][D5] Executor (lifecycle) and Control Surface/HMI (topology control).
+- ++ [D4] Hostess registry: guest book, reservations, identity schema, availability.
+- ++ [D5] External Server Wrappers: adapt npm/C binaries; PTY optional.
+- ++ [D3] Routing Server: terminals + route table; envelope‑driven forwarding.
+- ++ [D2] Supervision belongs to user‑space components (bootstrap/init/supervisor), not the kernel.
+- ++ [D1] Kernel surface: `createPipe`, `connect`, `split`, `merge`, `register`, `lookup` (~60–100 LOC) using Node Duplex streams with backpressure.
+- ++ [D1] Module model: input/source/transform/output with minimal interface (id/type/init/destroy, inputPipe/outputPipe).
+
+## Manifests / Specifications
+- == [D5][D4] Dual manifests: execution (Executor) and wiring (Control Surface/connectome).
+- ++ [D3] Config‑driven mesh (machines, services, network terminals) for multi‑machine topologies.
+- ++ [D1] “Configuration over code” (YAML/programmatic) to define topologies and routing; lintable.
+- -- [D4] No discovery if baked vs [D3] dynamic; manifests remain authoritative; discovery optional.
+
+## Naming / Identity / Registration
+- ++ [D4] Hostess identity string: `fqdn:servername:classHex:owner:authFlag:authMechanism:uuid`; per‑terminal usage.
+- ++ [D5] Wrappers register capabilities/terminals consistent with Hostess schema.
+- ++ [D1] Kernel‑local capability registry: `accepts`, `produces`, `type`, `features` for module discovery.
+- ++ [D3] Router service names/destinations; map serviceName ↔ Hostess identity for unified lookup.
+- -- [D1] Kernel‑local `lookup` vs [D4] centralized Hostess registry; decide scoping (local vs federated discovery).
+
+## Workflows
+- ++ [D4] Single‑binary systems that later discover each other; static wiring at startup.
+- ++ [D5] Wrapper‑driven integration of third‑party servers (in‑proc or external process), lifecycle by Executor.
+- ++ [D3] Multi‑machine A/B/C flows (e.g., PTY→Parser→GPU→Encoder→Display) with hairpin return.
+- ++ [D1] Canonical flows: minimal VT100, multi‑input fan‑in, multi‑output fan‑out, dual‑path raw+parsed, remote viewer.
+
+## Routing / Discovery / Connectivity
+- ++ [D3] Envelopes `{ source, destination, replyTo?, data, ... }` with multi‑hop + hairpin via `replyTo`.
+- ++ [D3] Discovery: gossip/announcements and/or central registry; hop counts for preference.
+- ++ [D4] LLDP + probe/beacon provide transport viability; cache to speed connections.
+- == [D3][D4][D2][D1] Transport/location transparency: PassThrough (in‑proc), Unix sockets (multi‑process), TCP/WebSocket (distributed); kernel remains protocol‑agnostic.
+- -- [D1] Kernel “physical layer only” vs [D3] router semantics: keep routing as a server (policy outside kernel).
+
+## PTY Considerations
+- ++ [D5] Wrap TTY‑oriented programs with PTY; render to null/logging if needed.
+- ++ [D1] PTY is exemplar use case (fast raw → screen path; parsed path for recording).
+- == [D3][D4][D2] Routing/HMI/terminology neutral to PTY; operate over pipes.
+
+## Interfaces / Control Surface
+- ++ [D4] Control Surface is source of truth for connectome; Hostess is source for resources/availability.
+- ++ [D3] Routers expose terminals/routes as addressable endpoints; Control Surface can wire through routers.
+- ++ [D2] Executor ≈ supervisor/init; kernel uninvolved in restarts.
+- ++ [D1] Capability‑based `register/lookup` allows late binding of modules even in single‑process setups.
+- -- State ownership: routing state ([D3]) vs topology/connectome ([D4]) vs kernel registry ([D1]). Boundary: kernel registry = local discovery; Hostess = inventory/reservations; routers = path selection.
+
+## Terminology & Positioning
+- == [D2][D1] Kernel = mechanism/physical layer; modules/servers = policy/upper layers.
+- == [D2] Say “servers run on/through the kernel,” avoid “in the kernel.”
+- ++ [D1] OSI‑style analogy clarifies boundaries; microkernel heritage (Mach/L4/QNX/Plan 9) as positioning.
+
+## Discovery / Registry Interplay
+- ++ [D4] Hostess: authoritative server inventory + reservations; per‑terminal state and identities.
+- ++ [D1] Kernel `lookup`: simple, local capability discovery for in‑proc compositions.
+- ++ [D3] Routers: route learning/selection; consume Hostess and LLDP/probe data as hints.
+- -- Avoid dual truth: define roles — Hostess (who/what/availability), Kernel registry (local discovery), Routers (how/where to forward).
+
+## Testing & Performance
+- ++ [D1] Testability first: unit (modules), integration (compositions), end‑to‑end; golden transcripts.
+- ++ [D1] Performance: zero‑copy fast paths; O(N) fan‑out cost; backpressure built‑in via Node streams.
+- == [D5][D4] Reproducibility via manifests and stable interfaces.
+
+## Use Cases (from D1, aligned with others)
+- Minimal VT100: Keyboard → PTY → Screen (raw bytes, no transforms).
+- Multi‑input: Keyboard + Voice + MCP → Merge → PTY → Screen.
+- Multi‑output: PTY → Parser → [Browser, MP4, TTS, Braille].
+- Dual‑path: PTY → Screen (fast raw) and PTY → Parser → MP4 (structured).
+- Remote viewer: Remote PTY → Network → Local outputs (screen/TTS).
+
+## Strong Overlaps (De‑duplication Targets)
+- == Executor/Supervisor concept across [D5][D4][D2] → one component with clear API.
+- == Declarative schemas across [D5][D4][D3][D1] → unify execution, wiring, mesh terminals; shared terminology.
+- == Terminal direction vocabulary across [D4][D5][D3][D1] → input/output/multiplexer/combiner.
+- == Capability types across [D1][D5] → single source of truth for `accepts/produces/features/type`.
+
+## Works Better Together (Synergies)
+- ++ Wrappers ([D5]) + Hostess ([D4]) + Kernel registry ([D1]): consistent registration and discovery at different scopes.
+- ++ Probe/Beacon ([D4]) + Routers ([D3]) + Transport matrix ([D2]): informed path selection and resilient connectivity.
+- ++ HMI ([D4]) + Envelopes ([D3]) + Metrics ([D1]): end‑to‑end observability and control.
+
+## Potential Conflicts (Callouts)
+- -- Static vs dynamic (compile‑time wiring vs mesh learning) → optional discovery; manifests authoritative.
+- -- Central registry vs distributed routes vs local registry → explicit boundaries (inventory vs path vs local discovery).
+- -- Wrapper PTY assumption vs non‑TTY servers → PTY is optional; choose per use case.
+- -- Terminology drift (“in the kernel”) vs policy‑free design → enforce phrasing and boundaries.
+
+## Merged Checklist (Conceptual)
+- == Single Executor/Supervisor (user‑space) with start/stop/restart/query; consumes execution manifest.
+- == Control Surface with wiring manifest; maintains connectome; round‑trips reservation IDs with Hostess.
+- == Hostess: guest‑book identity, per‑terminal usage, reservations/filters; federation later.
+- ++ Routing Server: terminals/routes; envelope parsing; multi‑hop, hairpin via `replyTo`.
+- ++ Discovery stack: optional gossip announcements; LLDP/probe transport viability; central Hostess lookup.
+- == Transport options: PassThrough (local), Unix sockets (multi‑process), TCP/WebSocket (distributed); embedded path later.
+- ++ Kernel: provide `createPipe/connect/split/merge/register/lookup`; keep protocol‑agnostic; backpressure via Node streams.
+- ++ Module model: input/source/transform/output; capability registration (`accepts/produces/features/type`).
+- ++ Wrapper standard: registers capabilities/terminals; integrates with Hostess; local/remote; PTY optional.
+- ++ Tests & perf: unit/integration/E2E; golden transcripts; fast paths and backpressure acknowledged.

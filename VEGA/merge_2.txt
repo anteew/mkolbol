@@ -1,0 +1,81 @@
+# Merged View — Docs 5 + 4 + 3 (Diff‑Style)
+
+Legend
+- `==` Duplicate/similar across docs
+- `++` Complementary; works together when combined
+- `--` Potential tension/contrast to reconcile
+- Tags: `[D5]` wrappers/composition, `[D4]` HMI/Hostess/executor, `[D3]` distributed mesh/routing
+
+## Vision / Purpose
+- == [D5][D4] Minimal microkernel; servers run on/through it; pipes as IPC.
+- ++ [D5][D4] Declarative composition: executor starts; control surface wires.
+- ++ [D3] Distributed service mesh: routing servers + terminals enable multi‑hop, hairpin flows with location transparency.
+- -- [D4] Pure compile‑time wiring vs [D3] dynamic route learning; reconcile via optional discovery/routing layers.
+
+## Core Components
+- == [D4][D5] Executor for lifecycle; Control Surface/HMI for topology control; Hostess registry for resources/reservations.
+- ++ [D5] External Server Wrappers standardize third‑party servers; optionally PTY‑backed.
+- ++ [D3] Routing Server (“airport”) manages terminals and a route table; forwards by destination envelope.
+- ++ [D3] Terminals: `local | network | loopback` with `inputPipe`/`outputPipe` and optional remote address.
+
+## Manifests / Specifications
+- == [D5][D4] Dual declarative inputs: execution manifest (executor) and wiring manifest (control surface).
+- ++ [D3] Config‑driven mesh: declare machines, services, and network terminals (addr/ports) to form multi‑machine topologies.
+- -- [D4] “No discovery if baked at compile time” vs [D3] mesh learning. Resolution: manifests first; discovery optional.
+
+## Naming / Identity / Registration
+- ++ [D4] Hostess guest‑book identity: `fqdn:servername:classHex:owner:authFlag:authMechanism:uuid` with per‑terminal availability.
+- ++ [D5] Wrappers register capabilities/terminals; align with Hostess schema.
+- ++ [D3] Service names and destinations used by routers; map service name ↔ Hostess identity (or alias) to unify lookup.
+- -- [D3] Router‑local route tables vs [D4] centralized Hostess registry; plan for federation/consistency later.
+
+## Workflows
+- ++ [D4] Single‑binary systems that later discover each other; static single system wired at startup.
+- ++ [D5] Wrapper‑driven integration to onboard third‑party servers.
+- ++ [D3] Multi‑machine A/B/C scenarios (e.g., PTY→Parser→GPU→Encoder→Display) with cross‑site hops and returns.
+
+## Routing / Discovery / Connectivity
+- ++ [D3] Envelope routing: `{ source, destination, replyTo?, data, ... }` parsed by routers.
+- ++ [D3] Multi‑hop and hairpin supported via routes and `replyTo`.
+- ++ [D3] Discovery methods: gossip/announcements vs central registry; hop counts for preference.
+- ++ [D4] LLDP + probe/beacon inform viable transports; cache results to speed connections.
+- == [D3][D4] Transport agnosticism: in‑proc (PassThrough), Unix sockets, TCP/WebSocket; pipes hide location.
+- -- Overlap: [D3] gossip routing vs [D4] Hostess queries; treat as complementary layers (service discovery + resource reservation).
+
+## PTY Considerations
+- ++ [D5] Use PTY when wrapping TTY‑oriented programs; send to null/logging renderer if no UI.
+- == [D3][D4] Routing/HMI are neutral to PTY; they operate on pipes and metrics regardless of source.
+
+## Interfaces / Control Surface
+- ++ [D4] Control Surface is source of truth for connectome; Hostess is source for resource availability.
+- ++ [D3] Routers expose terminals and routes as addressable endpoints; Control Surface can wire through routers as just another server.
+- -- State ownership: routing state in [D3] routers vs topology state in [D4] Control Surface. Approach: routing ≈ data plane; connectome ≈ control plane.
+
+## Discovery / Registry Interplay
+- ++ [D3] Gossip announcements teach routes; [D4] Hostess provides authoritative server inventory and reservations.
+- ++ [D4] LLDP/probe record transport viability; [D3] routers consume that knowledge to choose terminals/transports.
+- -- Potential conflict: dual sources of truth. Rule: Hostess = who/what/availability; Routers = how/where to forward.
+
+## Strong Overlaps (De‑duplication Targets)
+- == Executor API surfaces in [D5] and [D4] → one component.
+- == Declarative manifests across [D5]/[D4]/[D3] → unify schemas (execution, wiring, mesh terminals).
+- == Terminal direction semantics across [D4]/[D5]/[D3] → single vocabulary (input/output/multiplexer/combiner).
+
+## Works Better Together (Synergies)
+- ++ Wrappers ([D5]) + Hostess ([D4]): wrappers register capabilities; Hostess manages reservations; Control Surface binds per wiring manifest.
+- ++ Probe/Beacon ([D4]) + Routers ([D3]): probe finds working transports; routers pick best path; hop count + transport viability guide selection.
+- ++ HMI ([D4]) + Envelopes ([D3]): expose per‑edge flow/latency and envelope paths for operational observability.
+
+## Potential Conflicts (Callouts)
+- -- Static vs dynamic (compile‑time wiring vs mesh learning) → layer optional discovery; keep manifests authoritative.
+- -- Central registry vs distributed routes → define clear boundaries (resource inventory vs path selection).
+- -- Wrapper PTY assumption vs non‑TTY servers → PTY is optional per use case.
+
+## Merged Checklist (Conceptual)
+- == Single Executor with start/stop/restart/query; accepts an execution manifest.
+- == Control Surface with a wiring manifest; maintains connectome; exchanges reservation IDs with Hostess.
+- == Hostess guest‑book identity and per‑terminal usage; supports reservations and filters.
+- ++ Routing Server with terminals/routes; parses envelopes and forwards; supports multi‑hop and hairpin via `replyTo`.
+- ++ Discovery stack: optional gossip announcements; LLDP/probe for transport viability; central Hostess lookup.
+- == Transport options: PassThrough (local), Unix sockets (multi‑process), TCP/WebSocket (distributed).
+- ++ Wrapper standard: registers capabilities/terminals; integrates with Hostess; can operate locally or remotely.

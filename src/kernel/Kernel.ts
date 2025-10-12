@@ -1,11 +1,17 @@
-import { PassThrough } from 'stream';
 import type { Pipe, StreamOptions, Capabilities, CapabilityQuery } from '../types/stream';
+import type { PipeAdapter } from '../pipes/PipeAdapter';
+import { InProcPipe } from '../pipes/adapters/InProcPipe.js';
 
 export class Kernel {
   private registry = new Map<string, { capabilities: Capabilities; pipe: Pipe }>();
+  private adapter: PipeAdapter;
+
+  constructor(adapter?: PipeAdapter) {
+    this.adapter = adapter ?? new InProcPipe();
+  }
 
   createPipe(options?: StreamOptions): Pipe {
-    return new PassThrough(options);
+    return this.adapter.createDuplex(options);
   }
 
   connect(from: Pipe, to: Pipe): void {

@@ -19,6 +19,9 @@ export declare class Executor {
     registerModule(name: string, constructor: any): void;
     spawnExternalWrapper(manifest: ExternalServerManifest): Promise<ExternalServerWrapper>;
     private instantiateNode;
+    private instantiateInProcNode;
+    private instantiateWorkerNode;
+    private getModulePath;
     private inferTerminalsForHostess;
     private inferTerminalsForStateManager;
     private getClassHex;

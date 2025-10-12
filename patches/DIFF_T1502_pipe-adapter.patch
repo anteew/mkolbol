@@ -1,0 +1,50 @@
+diff --git a/src/kernel/Kernel.ts b/src/kernel/Kernel.ts
+index 64bab3b..d22bcfc 100644
+--- a/src/kernel/Kernel.ts
++++ b/src/kernel/Kernel.ts
+@@ -1,11 +1,17 @@
+-import { PassThrough } from 'stream';
+ import type { Pipe, StreamOptions, Capabilities, CapabilityQuery } from '../types/stream';
++import type { PipeAdapter } from '../pipes/PipeAdapter';
++import { InProcPipe } from '../pipes/adapters/InProcPipe';
+ 
+ export class Kernel {
+   private registry = new Map<string, { capabilities: Capabilities; pipe: Pipe }>();
++  private adapter: PipeAdapter;
++
++  constructor(adapter?: PipeAdapter) {
++    this.adapter = adapter ?? new InProcPipe();
++  }
+ 
+   createPipe(options?: StreamOptions): Pipe {
+-    return new PassThrough(options);
++    return this.adapter.createDuplex(options);
+   }
+ 
+   connect(from: Pipe, to: Pipe): void {
+diff --git a/src/pipes/PipeAdapter.ts b/src/pipes/PipeAdapter.ts
+new file mode 100644
+index 0000000..5edba39
+--- /dev/null
++++ b/src/pipes/PipeAdapter.ts
+@@ -0,0 +1,5 @@
++import type { Pipe, StreamOptions } from '../types/stream';
++
++export interface PipeAdapter {
++  createDuplex(options?: StreamOptions): Pipe;
++}
+diff --git a/src/pipes/adapters/InProcPipe.ts b/src/pipes/adapters/InProcPipe.ts
+new file mode 100644
+index 0000000..a545c00
+--- /dev/null
++++ b/src/pipes/adapters/InProcPipe.ts
+@@ -0,0 +1,9 @@
++import { PassThrough } from 'stream';
++import type { Pipe, StreamOptions } from '../../types/stream';
++import type { PipeAdapter } from '../PipeAdapter';
++
++export class InProcPipe implements PipeAdapter {
++  createDuplex(options?: StreamOptions): Pipe {
++    return new PassThrough(options);
++  }
++}

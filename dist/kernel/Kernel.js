@@ -1,8 +1,12 @@
-import { PassThrough } from 'stream';
+import { InProcPipe } from '../pipes/adapters/InProcPipe.js';
 export class Kernel {
     registry = new Map();
+    adapter;
+    constructor(adapter) {
+        this.adapter = adapter ?? new InProcPipe();
+    }
     createPipe(options) {
-        return new PassThrough(options);
+        return this.adapter.createDuplex(options);
     }
     connect(from, to) {
         from.pipe(to);

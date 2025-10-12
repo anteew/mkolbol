@@ -5,11 +5,18 @@ import { ModuleRegistry } from './moduleRegistry.js';
 import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
 import type { TopologyConfig, NodeConfig } from '../config/schema.js';
 import type { ServerManifest, ExternalServerManifest } from '../types.js';
+import { Worker, MessageChannel } from 'node:worker_threads';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 interface ModuleInstance {
   id: string;
   module: any;
   config: NodeConfig;
+  worker?: Worker;
 }
 
 export class Executor {
@@ -38,6 +45,21 @@ export class Executor {
       await this.instantiateNode(nodeConfig);
     }
 
+    for (const nodeConfig of this.config.nodes) {
+      const instance = this.modules.get(nodeConfig.id);
+      if (!instance) continue;
+
+      if (instance.module.outputPipe) {
+        const statePipe = this.stateManager.createPipe(`${nodeConfig.id}.output`, { objectMode: true });
+        instance.module.outputPipe.pipe(statePipe);
+      }
+
+      if (instance.module.inputPipe) {
+        const statePipe = this.stateManager.createPipe(`${nodeConfig.id}.input`, { objectMode: true });
+        statePipe.pipe(instance.module.inputPipe);
+      }
+    }
+
     for (const conn of this.config.connections) {
       this.stateManager.connect(conn.from, conn.to);
     }
@@ -51,7 +73,10 @@ export class Executor {
 
   async down(): Promise<void> {
     for (const instance of this.modules.values()) {
-      if (typeof instance.module.stop === 'function') {
+      if (instance.worker) {
+        instance.worker.postMessage({ type: 'shutdown' });
+        await instance.worker.terminate();
+      } else if (typeof instance.module.stop === 'function') {
         instance.module.stop();
       }
     }
@@ -101,6 +126,16 @@ export class Executor {
   }
 
   private async instantiateNode(nodeConfig: NodeConfig): Promise<void> {
+    const runMode = nodeConfig.runMode || 'inproc';
+
+    if (runMode === 'worker') {
+      await this.instantiateWorkerNode(nodeConfig);
+    } else {
+      await this.instantiateInProcNode(nodeConfig);
+    }
+  }
+
+  private async instantiateInProcNode(nodeConfig: NodeConfig): Promise<void> {
     const Constructor = this.moduleRegistry.get(nodeConfig.module);
     if (!Constructor) {
       throw new Error(`Module not found in registry: ${nodeConfig.module}`);
@@ -141,6 +176,112 @@ export class Executor {
       capabilities: [],
       location: 'local'
     });
+  }
+
+  private async instantiateWorkerNode(nodeConfig: NodeConfig): Promise<void> {
+    const { port1: controlPort1, port2: controlPort2 } = new MessageChannel();
+    const { port1: inputPort1, port2: inputPort2 } = new MessageChannel();
+    const { port1: outputPort1, port2: outputPort2 } = new MessageChannel();
+
+    const harnessPath = join(__dirname, 'workerHarness.js');
+    const modulePath = this.getModulePath(nodeConfig.module);
+
+    const worker = new Worker(harnessPath, {
+      workerData: {
+        nodeId: nodeConfig.id,
+        modulePath,
+        params: nodeConfig.params || {},
+        controlPort: controlPort2,
+        inputPort: inputPort2,
+        outputPort: outputPort2,
+      },
+      transferList: [controlPort2, inputPort2, outputPort2]
+    });
+
+    const inputPipe = this.kernel.createPipe({ objectMode: true });
+    const outputPipe = this.kernel.createPipe({ objectMode: true });
+
+    const WorkerPipe = (await import('../pipes/adapters/WorkerPipe.js')).WorkerPipe;
+    const workerInputPipe = new WorkerPipe(inputPort1).createDuplex({ objectMode: true });
+    const workerOutputPipe = new WorkerPipe(outputPort1).createDuplex({ objectMode: true });
+
+    inputPipe.pipe(workerInputPipe);
+    workerOutputPipe.pipe(outputPipe);
+
+    const module = {
+      inputPipe,
+      outputPipe,
+    };
+
+    this.modules.set(nodeConfig.id, {
+      id: nodeConfig.id,
+      module,
+      config: nodeConfig,
+      worker
+    });
+
+    const WorkerBusAdapter = (await import('../control/adapters/WorkerBusAdapter.js')).WorkerBusAdapter;
+    const workerControlBus = new WorkerBusAdapter(controlPort1);
+
+    await new Promise<void>((resolve) => {
+      const topic = workerControlBus.topic('control.hello');
+      const handler = (msg: any) => {
+        if (msg && msg.type === 'worker.ready') {
+          console.log(`[Executor] Worker ready: ${nodeConfig.id}`);
+          topic.off('data', handler);
+          resolve();
+        }
+      };
+      topic.on('data', handler);
+    });
+
+    const terminalsForHostess = this.inferTerminalsForHostess(module);
+    const terminalsForStateManager = this.inferTerminalsForStateManager(module);
+
+    const manifest: ServerManifest = {
+      fqdn: 'localhost',
+      servername: nodeConfig.id,
+      classHex: this.getClassHex(nodeConfig.module),
+      owner: 'system',
+      auth: 'no',
+      authMechanism: 'none',
+      terminals: terminalsForHostess,
+      capabilities: {
+        type: this.getModuleType(nodeConfig.module),
+        accepts: [],
+        produces: []
+      }
+    };
+    this.hostess.register(manifest);
+
+    this.stateManager.addNode({
+      id: nodeConfig.id,
+      name: nodeConfig.module,
+      terminals: terminalsForStateManager,
+      capabilities: [],
+      location: 'worker'
+    });
+
+    worker.on('error', (err) => {
+      console.error(`[Executor] Worker error for ${nodeConfig.id}:`, err);
+    });
+
+    worker.on('exit', (code) => {
+      console.log(`[Executor] Worker ${nodeConfig.id} exited with code ${code}`);
+    });
+  }
+
+  private getModulePath(moduleName: string): string {
+    const moduleMap: Record<string, string> = {
+      'TimerSource': '../modules/timer.js',
+      'UppercaseTransform': '../modules/uppercase.js',
+      'ConsoleSink': '../modules/consoleSink.js',
+    };
+    const relativePath = moduleMap[moduleName];
+    if (!relativePath) {
+      throw new Error(`Unknown module for worker: ${moduleName}`);
+    }
+    return join(__dirname, relativePath);
   }
 
   private inferTerminalsForHostess(module: any) {

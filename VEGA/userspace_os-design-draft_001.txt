@@ -1,0 +1,98 @@
+REQUIRES DISCUSSION
+
+- Static vs dynamic (compile-time wiring vs mesh learning) → optional discovery; manifests authoritative.
+- Central registry vs distributed routes vs local registry → explicit boundaries (inventory vs path vs local discovery).
+- Wrapper PTY assumption vs non-TTY servers → PTY is optional; choose per use case.
+- Terminology drift ("in the kernel") vs policy-free design → enforce phrasing and boundaries.
+
+CONFIGURATION IDEAS - NEEDS DISCUSSION
+
+- Dual manifests: execution (Executor) and wiring (Control Surface/connectome).
+- Config-driven mesh (machines, services, network terminals) for multi-machine topologies.
+- “Configuration over code” (YAML/programmatic) to define topologies and routing; lintable.
+- No discovery if baked vs dynamic mesh learning; manifests remain authoritative; discovery optional.
+
+NAMING-IDENTITY-REGISTRATION - NEEDS DISCUSSION
+
+- Hostess identity string format and usage: `fqdn:servername:classHex:owner:authFlag:authMechanism:uuid`; track per-terminal usage.
+- Wrapper registration alignment: wrappers register capabilities/terminals consistent with Hostess schema.
+- Kernel-local capability registry: `accepts`, `produces`, `type`, `features` for module discovery.
+- Router naming: service names/destinations; map serviceName ↔ Hostess identity for unified lookup.
+- Scope boundary: kernel-local `lookup` vs centralized Hostess registry; define local vs federated discovery.
+
+WANTED FEATURES - NEEDS DISCUSSION
+
+- Single-binary systems that can later discover and coordinate.
+- Wrapper-driven integration of third-party servers; lifecycle via Executor (in-proc or external).
+- Multi-machine flows (e.g., PTY→Parser→GPU→Encoder→Display) with hairpin return paths.
+- Canonical flows: minimal VT100, multi-input fan-in, multi-output fan-out, dual-path raw+parsed, remote viewer.
+- PTY: wrap TTY-oriented programs; render to null/logging if needed.
+- PTY as exemplar: fast raw → screen path; parsed path for recording.
+- PTY neutrality elsewhere: routing/HMI/terminology operate over pipes regardless of PTY.
+
+ROUTING-DISCOVERY-CONNECTIVITY - NEEDS DISCUSSION
+
+- Envelopes `{ source, destination, replyTo?, data, ... }` with multi-hop + hairpin via `replyTo`.
+- Discovery: gossip/announcements and/or central registry; hop counts for preference.
+- LLDP + probe/beacon provide transport viability; cache to speed connections.
+- Transport/location transparency: PassThrough (in-proc), Unix sockets (multi-process), TCP/WebSocket (distributed); kernel remains protocol-agnostic.
+- Kernel “physical layer only” vs router semantics: keep routing as a server (policy outside kernel).
+
+INTERFACES-CONTROL-SURFACE - NEEDS DISCUSSION
+
+- Control Surface is source of truth for connectome; Hostess is source for resources/availability.
+- Routers expose terminals/routes as addressable endpoints; Control Surface can wire through routers.
+- Executor ≈ supervisor/init; kernel uninvolved in restarts.
+
+TESTING AND PERFORMANCE
+
+- Testability first: unit (modules), integration (compositions), end-to-end; consider golden transcripts where applicable.
+- Performance principles: zero-copy fast paths; O(N) fan-out cost; rely on Node streams backpressure.
+- Reproducibility: manifests and stable interfaces ensure consistent behavior across environments.
+
+USE CASES
+
+- Minimal VT100: Keyboard → PTY → Screen (raw bytes, no transforms).
+- Multi-input: Keyboard + Voice + MCP → Merge → PTY → Screen.
+- Multi-output: PTY → Parser → [Browser, MP4, TTS, Braille].
+- Dual-path: PTY → Screen (fast raw) and PTY → Parser → MP4 (structured).
+- Remote viewer: Remote PTY → Network → Local outputs (screen/TTS).
+
+STRONG OVERLAPS - NEEDS DISCUSSION
+
+- Executor/Supervisor concept appears in multiple places; converge to a single component with a clear API.
+- Declarative schemas recur (execution, wiring, mesh terminals); unify under one schema set with shared terminology.
+- Terminal direction vocabulary should be uniform: input, output, multiplexer (fan-out), combiner (fan-in).
+- Capability types should have a single source of truth: `accepts`, `produces`, `features`, `type`.
+
+TERMINOLOGY-POSITIONING
+
+- Kernel = mechanism/physical layer; modules/servers = policy/upper layers.
+- Use phrasing: “servers run on/through the kernel”; avoid “in the kernel.”
+- OSI-style analogy clarifies boundaries; microkernel heritage (Mach/L4/QNX/Plan 9) as positioning.
+
+DISCOVERY / REGISTRY INTERPLAY
+
+- Hostess: authoritative server inventory + reservations; per-terminal state and identities.
+- Kernel `lookup`: simple, local capability discovery for in-proc compositions.
+- Routers: route learning/selection; consume Hostess and LLDP/probe data as hints.
+- Avoid dual truth: define roles — Hostess (who/what/availability), Kernel registry (local discovery), Routers (how/where to forward).
+
+WORKS BETTER TOGETHER (SYNERGIES) - NEEDS DISCUSSION
+
+- Wrappers + Hostess + Kernel registry: consistent registration and discovery at different scopes.
+- Probe/Beacon + Routers + Transport matrix: informed path selection and resilient connectivity.
+- HMI + Envelopes + Metrics: end-to-end observability and control.
+
+POTENTIAL HIGH LEVEL VISION DOC OF A LARGER SYSTEM
+
+- Single Executor/Supervisor (user-space) with start/stop/restart/query; consumes execution manifest.
+- Control Surface with wiring manifest; maintains connectome; round-trips reservation IDs with Hostess.
+- Hostess: guest-book identity, per-terminal usage, reservations/filters; federation later.
+- Routing Server: terminals/routes; envelope parsing; multi-hop, hairpin via `replyTo`.
+- Discovery stack: optional gossip announcements; LLDP/probe transport viability; central Hostess lookup.
+- Transport options: PassThrough (local), Unix sockets (multi-process), TCP/WebSocket (distributed); embedded path later.
+- Kernel: provide `createPipe/connect/split/merge/register/lookup`; keep protocol-agnostic; backpressure via Node streams.
+- Module model: input/source/transform/output; capability registration (`accepts/produces/features/type`).
+- Wrapper standard: registers capabilities/terminals; integrates with Hostess; local/remote; PTY optional.
+- Tests & perf: unit/integration/E2E; golden transcripts; fast paths and backpressure acknowledged.
