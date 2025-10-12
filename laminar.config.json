@@ -4,6 +4,11 @@
     "kb": 10,
     "lines": 200
   },
+  "hints": {
+    "enabled": false,
+    "showTrends": true,
+    "maxLines": 1
+  },
   "rules": [
     {
       "match": {

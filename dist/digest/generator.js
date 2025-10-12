@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { CodeFrameExtractor } from './codeframe.js';
+import { HintEngine } from './hints.js';
 /**
  * Default digest configuration.
  *
@@ -34,9 +35,11 @@ export class DigestGenerator {
     config;
     overlayRules = [];
     codeframeExtractor;
+    hintEngine;
     constructor(config) {
         this.config = config || DEFAULT_CONFIG;
         this.codeframeExtractor = new CodeFrameExtractor(2);
+        this.hintEngine = new HintEngine();
     }
     setOverlayRules(rules) {
         this.overlayRules = rules;
@@ -76,7 +79,7 @@ export class DigestGenerator {
         if (codeframes && codeframes.length > 0) {
             budgetUsed += JSON.stringify(codeframes).length;
         }
-        return {
+        const digest = {
             case: caseName,
             status: 'fail',
             duration,
@@ -93,6 +96,14 @@ export class DigestGenerator {
             codeframes: codeframes && codeframes.length > 0 ? codeframes : undefined,
             events: budgetedEvents,
         };
+        const hints = this.hintEngine.generateHints({
+            digest,
+            rules: [...(this.config.rules || []), ...this.overlayRules],
+        });
+        if (hints.length > 0) {
+            digest.hints = hints;
+        }
+        return digest;
     }
     loadEvents(artifactURI) {
         if (!fs.existsSync(artifactURI)) {
@@ -303,10 +314,17 @@ export class DigestGenerator {
     async writeDigest(digest, outputDir = 'reports') {
         const digestJsonPath = path.join(outputDir, `${digest.case}.digest.json`);
         const digestMdPath = path.join(outputDir, `${digest.case}.digest.md`);
+        const hintsJsonPath = path.join(outputDir, `${digest.case}.hints.json`);
+        const hintsMdPath = path.join(outputDir, `${digest.case}.hints.md`);
         fs.mkdirSync(outputDir, { recursive: true });
         fs.writeFileSync(digestJsonPath, JSON.stringify(digest, null, 2));
         const md = this.formatMarkdown(digest);
         fs.writeFileSync(digestMdPath, md);
+        if (digest.hints && digest.hints.length > 0) {
+            fs.writeFileSync(hintsJsonPath, JSON.stringify(digest.hints, null, 2));
+            const hintsMd = this.hintEngine.formatMarkdown(digest.hints);
+            fs.writeFileSync(hintsMdPath, hintsMd);
+        }
     }
     formatMarkdown(digest) {
         const lines = [];
@@ -324,6 +342,21 @@ export class DigestGenerator {
         lines.push(`- Included Events: ${digest.summary.includedEvents}`);
         lines.push(`- Budget Used: ${digest.summary.budgetUsed} / ${digest.summary.budgetLimit} bytes`);
         lines.push('');
+        if (digest.hints && digest.hints.length > 0) {
+            lines.push('## Hints');
+            for (const hint of digest.hints) {
+                lines.push(`### ${hint.tag}`);
+                lines.push(`**Signal**: ${hint.signal}`);
+                lines.push('');
+                lines.push('**Suggested Commands**:');
+                for (const cmd of hint.suggestedCommands) {
+                    lines.push(`\`\`\`bash`);
+                    lines.push(cmd);
+                    lines.push(`\`\`\``);
+                }
+                lines.push('');
+            }
+        }
         if (digest.suspects && digest.suspects.length > 0) {
             lines.push('## Suspects');
             for (const suspect of digest.suspects) {

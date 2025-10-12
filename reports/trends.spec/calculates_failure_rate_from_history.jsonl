@@ -1,3 +1,3 @@
-{"ts":1760304679823,"lvl":"info","case":"calculates failure rate from history","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760304679824,"lvl":"info","case":"calculates failure rate from history","phase":"execution","evt":"test.run"}
-{"ts":1760304679825,"lvl":"info","case":"calculates failure rate from history","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760310689182,"lvl":"info","case":"calculates failure rate from history","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760310689183,"lvl":"info","case":"calculates failure rate from history","phase":"execution","evt":"test.run"}
+{"ts":1760310689184,"lvl":"info","case":"calculates failure rate from history","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

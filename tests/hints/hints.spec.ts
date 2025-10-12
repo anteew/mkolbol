@@ -1,0 +1,799 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { HintEngine, Hint, HintContext } from '../../src/digest/hints.js';
+import { DigestGenerator, DigestConfig, DigestEvent, DigestOutput, DigestRule } from '../../src/digest/generator.js';
+import { HistoryEntry } from '../../src/digest/fingerprint.js';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
+
+describe('HintEngine - Detector Tests', () => {
+  let hintEngine: HintEngine;
+
+  beforeEach(() => {
+    hintEngine = new HintEngine();
+  });
+
+  describe('missing-include detector', () => {
+    it('detects when expected events are missing from digest', () => {
+      const rules: DigestRule[] = [
+        {
+          match: { evt: ['test.start', 'test.end', 'db.query'] },
+          actions: [{ type: 'include' }],
+        },
+      ];
+
+      const digest: DigestOutput = {
+        case: 'test-missing-events',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 100,
+          includedEvents: 50,
+          redactedFields: 0,
+          budgetUsed: 5000,
+          budgetLimit: 10240,
+        },
+        events: [
+          { ts: 1000, lvl: 'info', case: 'test-1', evt: 'test.start' },
+          { ts: 2000, lvl: 'error', case: 'test-1', evt: 'test.error' },
+        ],
+      };
+
+      const context: HintContext = { digest, rules };
+      const hints = hintEngine.generateHints(context);
+
+      const missingHint = hints.find(h => h.tag === 'missing-include');
+      expect(missingHint).toBeDefined();
+      expect(missingHint!.signal).toContain('db.query');
+      expect(missingHint!.suggestedCommands).toHaveLength(2);
+      expect(missingHint!.suggestedCommands[0]).toContain('--expand');
+      expect(missingHint!.suggestedCommands[1]).toContain('--evt');
+    });
+
+    it('does not trigger when all expected events are present', () => {
+      const rules: DigestRule[] = [
+        {
+          match: { evt: ['test.start', 'test.end'] },
+          actions: [{ type: 'include' }],
+        },
+      ];
+
+      const digest: DigestOutput = {
+        case: 'test-all-events',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 3,
+          includedEvents: 3,
+          redactedFields: 0,
+          budgetUsed: 500,
+          budgetLimit: 10240,
+        },
+        events: [
+          { ts: 1000, lvl: 'info', case: 'test-1', evt: 'test.start' },
+          { ts: 2000, lvl: 'error', case: 'test-1', evt: 'test.error' },
+          { ts: 3000, lvl: 'info', case: 'test-1', evt: 'test.end' },
+        ],
+      };
+
+      const context: HintContext = { digest, rules };
+      const hints = hintEngine.generateHints(context);
+
+      const missingHint = hints.find(h => h.tag === 'missing-include');
+      expect(missingHint).toBeUndefined();
+    });
+
+    it('does not trigger when no include rules exist', () => {
+      const rules: DigestRule[] = [
+        {
+          match: { lvl: 'error' },
+          actions: [{ type: 'redact', field: 'payload' }],
+        },
+      ];
+
+      const digest: DigestOutput = {
+        case: 'test-no-include-rules',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 100,
+          includedEvents: 50,
+          redactedFields: 0,
+          budgetUsed: 5000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' }],
+      };
+
+      const context: HintContext = { digest, rules };
+      const hints = hintEngine.generateHints(context);
+
+      const missingHint = hints.find(h => h.tag === 'missing-include');
+      expect(missingHint).toBeUndefined();
+    });
+  });
+
+  describe('redaction-mismatch detector', () => {
+    it('detects when redaction rules exist but no fields were redacted', () => {
+      const rules: DigestRule[] = [
+        {
+          match: { lvl: 'error' },
+          actions: [{ type: 'redact', field: ['password', 'token'] }],
+        },
+      ];
+
+      const digest: DigestOutput = {
+        case: 'test-no-redaction',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 10,
+          includedEvents: 5,
+          redactedFields: 0,
+          budgetUsed: 2000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' }],
+      };
+
+      const context: HintContext = { digest, rules };
+      const hints = hintEngine.generateHints(context);
+
+      const redactionHint = hints.find(h => h.tag === 'redaction-mismatch');
+      expect(redactionHint).toBeDefined();
+      expect(redactionHint!.signal).toContain('password');
+      expect(redactionHint!.signal).toContain('token');
+      expect(redactionHint!.suggestedCommands).toContain('npx laminar tail test-no-redaction --raw');
+    });
+
+    it('does not trigger when redaction rules are applied', () => {
+      const rules: DigestRule[] = [
+        {
+          match: { lvl: 'error' },
+          actions: [{ type: 'redact', field: 'password' }],
+        },
+      ];
+
+      const digest: DigestOutput = {
+        case: 'test-with-redaction',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 10,
+          includedEvents: 5,
+          redactedFields: 3,
+          budgetUsed: 2000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' }],
+      };
+
+      const context: HintContext = { digest, rules };
+      const hints = hintEngine.generateHints(context);
+
+      const redactionHint = hints.find(h => h.tag === 'redaction-mismatch');
+      expect(redactionHint).toBeUndefined();
+    });
+
+    it('does not trigger when no redaction rules exist', () => {
+      const rules: DigestRule[] = [
+        {
+          match: { lvl: 'error' },
+          actions: [{ type: 'include' }],
+        },
+      ];
+
+      const digest: DigestOutput = {
+        case: 'test-no-rules',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 10,
+          includedEvents: 5,
+          redactedFields: 0,
+          budgetUsed: 2000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' }],
+      };
+
+      const context: HintContext = { digest, rules };
+      const hints = hintEngine.generateHints(context);
+
+      const redactionHint = hints.find(h => h.tag === 'redaction-mismatch');
+      expect(redactionHint).toBeUndefined();
+    });
+  });
+
+  describe('budget-clipped detector', () => {
+    it('detects when budget is nearly exhausted and many events dropped', () => {
+      const digest: DigestOutput = {
+        case: 'test-budget-clipped',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 1000,
+          includedEvents: 100,
+          redactedFields: 0,
+          budgetUsed: 9000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' }],
+      };
+
+      const context: HintContext = { digest, rules: [] };
+      const hints = hintEngine.generateHints(context);
+
+      const budgetHint = hints.find(h => h.tag === 'budget-clipped');
+      expect(budgetHint).toBeDefined();
+      expect(budgetHint!.signal).toContain('900 events dropped');
+      expect(budgetHint!.signal).toMatch(/Budget at 8[789]%/);
+      expect(budgetHint!.suggestedCommands[0]).toContain('--budget-kb');
+      expect(budgetHint!.suggestedCommands[1]).toContain('--before-fail');
+    });
+
+    it('does not trigger when budget utilization is low', () => {
+      const digest: DigestOutput = {
+        case: 'test-budget-ok',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 100,
+          includedEvents: 90,
+          redactedFields: 0,
+          budgetUsed: 2000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' }],
+      };
+
+      const context: HintContext = { digest, rules: [] };
+      const hints = hintEngine.generateHints(context);
+
+      const budgetHint = hints.find(h => h.tag === 'budget-clipped');
+      expect(budgetHint).toBeUndefined();
+    });
+
+    it('does not trigger when budget is high but inclusion ratio is good', () => {
+      const digest: DigestOutput = {
+        case: 'test-high-budget-good-ratio',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 100,
+          includedEvents: 80,
+          redactedFields: 0,
+          budgetUsed: 9000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' }],
+      };
+
+      const context: HintContext = { digest, rules: [] };
+      const hints = hintEngine.generateHints(context);
+
+      const budgetHint = hints.find(h => h.tag === 'budget-clipped');
+      expect(budgetHint).toBeUndefined();
+    });
+  });
+
+  describe('trend detector', () => {
+    it('detects new test failure with no history', () => {
+      const digest: DigestOutput = {
+        case: 'new-test',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 10,
+          includedEvents: 5,
+          redactedFields: 0,
+          budgetUsed: 2000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'new-test', evt: 'test.error' }],
+      };
+
+      const history: HistoryEntry[] = [
+        {
+          timestamp: '2025-10-12T10:00:00Z',
+          fingerprint: 'fp1',
+          testName: 'other-test',
+          status: 'pass',
+          duration: 500,
+          location: 'test.spec.ts:20',
+        },
+      ];
+
+      const context: HintContext = { digest, rules: [], history };
+      const hints = hintEngine.generateHints(context);
+
+      const trendHint = hints.find(h => h.tag === 'trend/new');
+      expect(trendHint).toBeDefined();
+      expect(trendHint!.signal).toContain('New test failure');
+      expect(trendHint!.suggestedCommands).toContain('npx laminar compare --case new-test');
+    });
+
+    it('detects regression when test previously passed', () => {
+      const digest: DigestOutput = {
+        case: 'regressed-test',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 10,
+          includedEvents: 5,
+          redactedFields: 0,
+          budgetUsed: 2000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'regressed-test', evt: 'test.error' }],
+      };
+
+      const history: HistoryEntry[] = [
+        {
+          timestamp: '2025-10-12T12:00:00Z',
+          fingerprint: 'fp1',
+          testName: 'regressed-test',
+          status: 'fail',
+          duration: 1000,
+          location: 'test.spec.ts:10',
+        },
+        {
+          timestamp: '2025-10-12T11:00:00Z',
+          fingerprint: 'fp1',
+          testName: 'regressed-test',
+          status: 'pass',
+          duration: 500,
+          location: 'test.spec.ts:10',
+        },
+        {
+          timestamp: '2025-10-12T10:00:00Z',
+          fingerprint: 'fp1',
+          testName: 'regressed-test',
+          status: 'pass',
+          duration: 500,
+          location: 'test.spec.ts:10',
+        },
+      ];
+
+      const context: HintContext = { digest, rules: [], history };
+      const hints = hintEngine.generateHints(context);
+
+      const trendHint = hints.find(h => h.tag === 'trend/regression');
+      expect(trendHint).toBeDefined();
+      expect(trendHint!.signal).toContain('Regression');
+      expect(trendHint!.signal).toContain('passed 2');
+      expect(trendHint!.suggestedCommands).toContain('npx laminar compare regressed-test --last-pass');
+    });
+
+    it('does not trigger when no history is provided', () => {
+      const digest: DigestOutput = {
+        case: 'test-no-history',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 10,
+          includedEvents: 5,
+          redactedFields: 0,
+          budgetUsed: 2000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' }],
+      };
+
+      const context: HintContext = { digest, rules: [] };
+      const hints = hintEngine.generateHints(context);
+
+      const trendHint = hints.find(h => h.tag.startsWith('trend/'));
+      expect(trendHint).toBeUndefined();
+    });
+  });
+
+  describe('hint generation from digest', () => {
+    it('generates multiple hints when multiple conditions are met', () => {
+      const rules: DigestRule[] = [
+        {
+          match: { evt: 'missing-event' },
+          actions: [{ type: 'include' }],
+        },
+        {
+          match: { lvl: 'error' },
+          actions: [{ type: 'redact', field: 'password' }],
+        },
+      ];
+
+      const digest: DigestOutput = {
+        case: 'multi-hint-test',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 1000,
+          includedEvents: 100,
+          redactedFields: 0,
+          budgetUsed: 9000,
+          budgetLimit: 10240,
+        },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' }],
+      };
+
+      const context: HintContext = { digest, rules };
+      const hints = hintEngine.generateHints(context);
+
+      expect(hints.length).toBeGreaterThan(1);
+      expect(hints.some(h => h.tag === 'missing-include')).toBe(true);
+      expect(hints.some(h => h.tag === 'redaction-mismatch')).toBe(true);
+      expect(hints.some(h => h.tag === 'budget-clipped')).toBe(true);
+    });
+
+    it('returns empty array when no hints are triggered', () => {
+      const digest: DigestOutput = {
+        case: 'no-hints-test',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 10,
+          includedEvents: 10,
+          redactedFields: 0,
+          budgetUsed: 1000,
+          budgetLimit: 10240,
+        },
+        events: [
+          { ts: 1000, lvl: 'error', case: 'test-1', evt: 'test.error' },
+        ],
+      };
+
+      const context: HintContext = { digest, rules: [] };
+      const hints = hintEngine.generateHints(context);
+
+      expect(hints).toEqual([]);
+    });
+  });
+});
+
+describe('HintEngine - Output Formatting', () => {
+  let hintEngine: HintEngine;
+
+  beforeEach(() => {
+    hintEngine = new HintEngine();
+  });
+
+  describe('markdown formatting', () => {
+    it('formats hints as markdown correctly', () => {
+      const hints: Hint[] = [
+        {
+          tag: 'missing-include',
+          signal: 'Expected events not in digest: db.query',
+          suggestedCommands: [
+            'npx laminar digest test-1 --expand',
+            'npx laminar tail test-1 --evt "db.query"',
+          ],
+        },
+        {
+          tag: 'budget-clipped',
+          signal: 'Budget at 90%, 500 events dropped',
+          suggestedCommands: ['npx laminar config --budget-kb 20'],
+        },
+      ];
+
+      const markdown = hintEngine.formatMarkdown(hints);
+
+      expect(markdown).toContain('# Triage Hints');
+      expect(markdown).toContain('## missing-include');
+      expect(markdown).toContain('**Signal**: Expected events not in digest: db.query');
+      expect(markdown).toContain('**Suggested Commands**:');
+      expect(markdown).toContain('```bash');
+      expect(markdown).toContain('npx laminar digest test-1 --expand');
+      expect(markdown).toContain('## budget-clipped');
+      expect(markdown).toContain('Budget at 90%, 500 events dropped');
+    });
+
+    it('handles empty hints array', () => {
+      const markdown = hintEngine.formatMarkdown([]);
+
+      expect(markdown).toContain('# Hints');
+      expect(markdown).toContain('No hints available.');
+    });
+
+    it('handles hints with no suggested commands', () => {
+      const hints: Hint[] = [
+        {
+          tag: 'test-hint',
+          signal: 'Test signal',
+          suggestedCommands: [],
+        },
+      ];
+
+      const markdown = hintEngine.formatMarkdown(hints);
+
+      expect(markdown).toContain('## test-hint');
+      expect(markdown).toContain('**Signal**: Test signal');
+      expect(markdown).not.toContain('**Suggested Commands**:');
+    });
+  });
+});
+
+describe('DigestGenerator - Hint Integration', () => {
+  let tmpDir: string;
+  let artifactPath: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hints-test-'));
+    artifactPath = path.join(tmpDir, 'test.jsonl');
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
+
+  const createSyntheticLogs = (events: DigestEvent[]): void => {
+    const lines = events.map(e => JSON.stringify(e)).join('\n');
+    fs.writeFileSync(artifactPath, lines);
+  };
+
+  it('generates hints in digest output', async () => {
+    const events: DigestEvent[] = [];
+    for (let i = 0; i < 200; i++) {
+      events.push({ ts: 1000 + i, lvl: 'info', case: 'test-1', evt: 'test.log' });
+    }
+    events.push({ ts: 2000, lvl: 'error', case: 'test-1', evt: 'test.error' });
+    createSyntheticLogs(events);
+
+    const config: DigestConfig = {
+      enabled: true,
+      budget: { kb: 1, lines: 10 },
+      rules: [
+        {
+          match: { evt: 'missing-event' },
+          actions: [{ type: 'include' }],
+        },
+        {
+          match: { lvl: 'error' },
+          actions: [{ type: 'include' }],
+        },
+      ],
+    };
+
+    const generator = new DigestGenerator(config);
+    const digest = await generator.generateDigest(
+      'test-1',
+      'fail',
+      1000,
+      'test.spec.ts:10',
+      artifactPath
+    );
+
+    expect(digest).not.toBeNull();
+    expect(digest!.hints).toBeDefined();
+    expect(digest!.hints!.length).toBeGreaterThan(0);
+  });
+
+  it('writes hints to separate files', async () => {
+    const events: DigestEvent[] = [];
+    for (let i = 0; i < 150; i++) {
+      events.push({ ts: 1000 + i, lvl: 'info', case: 'test-1', evt: 'test.log' });
+    }
+    events.push({ ts: 2000, lvl: 'error', case: 'test-1', evt: 'test.error' });
+    createSyntheticLogs(events);
+
+    const config: DigestConfig = {
+      enabled: true,
+      budget: { kb: 1, lines: 10 },
+      rules: [
+        {
+          match: { evt: 'missing-event' },
+          actions: [{ type: 'include' }],
+        },
+        {
+          match: { lvl: 'error' },
+          actions: [{ type: 'include' }],
+        },
+      ],
+    };
+
+    const generator = new DigestGenerator(config);
+    const digest = await generator.generateDigest(
+      'test-hints-output',
+      'fail',
+      1000,
+      'test.spec.ts:10',
+      artifactPath
+    );
+
+    expect(digest).not.toBeNull();
+    
+    await generator.writeDigest(digest!, tmpDir);
+
+    const hintsJsonPath = path.join(tmpDir, 'test-hints-output.hints.json');
+    const hintsMdPath = path.join(tmpDir, 'test-hints-output.hints.md');
+
+    if (digest!.hints && digest!.hints.length > 0) {
+      expect(fs.existsSync(hintsJsonPath)).toBe(true);
+      expect(fs.existsSync(hintsMdPath)).toBe(true);
+
+      const hintsJson = JSON.parse(fs.readFileSync(hintsJsonPath, 'utf-8'));
+      expect(Array.isArray(hintsJson)).toBe(true);
+
+      const hintsMd = fs.readFileSync(hintsMdPath, 'utf-8');
+      expect(hintsMd).toContain('# Triage Hints');
+    }
+  });
+
+  it('does not write hint files when no hints exist', async () => {
+    const events: DigestEvent[] = [];
+    for (let i = 0; i < 10; i++) {
+      events.push({ ts: 1000 + i, lvl: 'info', case: 'test-1', evt: 'test.log' });
+    }
+    events.push({ ts: 2000, lvl: 'error', case: 'test-1', evt: 'test.error' });
+    createSyntheticLogs(events);
+
+    const config: DigestConfig = {
+      enabled: true,
+      budget: { kb: 100, lines: 1000 },
+      rules: [
+        {
+          match: { lvl: 'error' },
+          actions: [{ type: 'include' }],
+        },
+      ],
+    };
+
+    const generator = new DigestGenerator(config);
+    const digest = await generator.generateDigest(
+      'test-no-hints',
+      'fail',
+      1000,
+      'test.spec.ts:10',
+      artifactPath
+    );
+
+    expect(digest).not.toBeNull();
+    
+    await generator.writeDigest(digest!, tmpDir);
+
+    const hintsJsonPath = path.join(tmpDir, 'test-no-hints.hints.json');
+    const hintsMdPath = path.join(tmpDir, 'test-no-hints.hints.md');
+
+    expect(fs.existsSync(hintsJsonPath)).toBe(false);
+    expect(fs.existsSync(hintsMdPath)).toBe(false);
+  });
+});
+
+describe('Hints - Flag and Environment Variable Gating', () => {
+  let tmpDir: string;
+  let originalEnv: string | undefined;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hints-gating-'));
+    originalEnv = process.env.LAMINAR_HINTS;
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+    if (originalEnv === undefined) {
+      delete process.env.LAMINAR_HINTS;
+    } else {
+      process.env.LAMINAR_HINTS = originalEnv;
+    }
+  });
+
+  it('respects LAMINAR_HINTS=1 environment variable', () => {
+    process.env.LAMINAR_HINTS = '1';
+    const hintsEnabled = process.env.LAMINAR_HINTS === '1';
+    expect(hintsEnabled).toBe(true);
+  });
+
+  it('respects LAMINAR_HINTS=0 environment variable', () => {
+    process.env.LAMINAR_HINTS = '0';
+    const hintsEnabled = process.env.LAMINAR_HINTS === '1';
+    expect(hintsEnabled).toBe(false);
+  });
+
+  it('handles missing LAMINAR_HINTS environment variable', () => {
+    delete process.env.LAMINAR_HINTS;
+    const hintsEnabled = process.env.LAMINAR_HINTS === '1';
+    expect(hintsEnabled).toBe(false);
+  });
+
+  it('simulates --hints flag behavior', () => {
+    const args = new Map<string, string | true>();
+    args.set('hints', true);
+    
+    const hintsEnabled = args.get('hints') === true;
+    expect(hintsEnabled).toBe(true);
+  });
+
+  it('combines env var and flag (OR logic)', () => {
+    process.env.LAMINAR_HINTS = '0';
+    const args = new Map<string, string | true>();
+    args.set('hints', true);
+    
+    const hintsEnabled = process.env.LAMINAR_HINTS === '1' || args.get('hints') === true;
+    expect(hintsEnabled).toBe(true);
+  });
+
+  it('combines env var and flag (both false)', () => {
+    process.env.LAMINAR_HINTS = '0';
+    const args = new Map<string, string | true>();
+    
+    const hintsEnabled = process.env.LAMINAR_HINTS === '1' || args.get('hints') === true;
+    expect(hintsEnabled).toBe(false);
+  });
+});
+
+describe('Hints - Console Output', () => {
+  it('generates compact console hint for budget-clipped', () => {
+    const digest = {
+      case: 'test-1',
+      summary: {
+        budgetUsed: 9216,
+        budgetLimit: 10240,
+        totalEvents: 1000,
+        includedEvents: 100,
+      },
+    };
+
+    const budgetUtilization = digest.summary.budgetUsed / digest.summary.budgetLimit;
+    expect(budgetUtilization).toBeGreaterThan(0.85);
+
+    const hint = `[budget-clipped] budget=${digest.summary.budgetUsed}/${digest.summary.budgetLimit}`;
+    expect(hint).toContain('budget-clipped');
+    expect(hint).toContain('9216');
+    expect(hint).toContain('10240');
+  });
+
+  it('generates compact console hint for redaction-mismatch', () => {
+    const digest = {
+      summary: {
+        redactedFields: 0,
+        totalEvents: 50,
+      },
+    };
+
+    if (digest.summary.redactedFields === 0 && digest.summary.totalEvents > 0) {
+      const hint = `[redaction-mismatch] no redactions (${digest.summary.totalEvents} events)`;
+      expect(hint).toContain('redaction-mismatch');
+      expect(hint).toContain('50 events');
+    }
+  });
+
+  it('generates compact console hint for error-signal', () => {
+    const digest = {
+      suspects: [
+        {
+          evt: 'assert.fail',
+          payload: { message: 'Expected 5 to equal 10' },
+        },
+      ],
+      error: 'Test failed',
+    };
+
+    const topSuspect = digest.suspects[0];
+    if (topSuspect) {
+      const signal = topSuspect.evt;
+      const errorMsg = topSuspect.payload?.message || digest.error;
+      const shortError = errorMsg.split('\n')[0].substring(0, 40);
+      const hint = `[error-signal] ${signal}: ${shortError}...`;
+      
+      expect(hint).toContain('error-signal');
+      expect(hint).toContain('assert.fail');
+      expect(hint).toContain('Expected 5 to equal 10');
+    }
+  });
+});

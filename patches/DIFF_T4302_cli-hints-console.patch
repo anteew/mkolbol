@@ -1,0 +1,100 @@
+diff --git a/scripts/lam.ts b/scripts/lam.ts
+index 5ed1d25..0a3d164 100755
+--- a/scripts/lam.ts
++++ b/scripts/lam.ts
+@@ -144,6 +144,39 @@ function findTestInIndex(caseId: string): any {
+   }
+ }
+ 
++function generateHint(digest: any, entry: any): string | null {
++  // Extract suite/case for command
++  const location = entry.location || '';
++  const testName = entry.testName || '';
++  const caseId = `${location.split('/').pop()?.replace('.ts', '') || 'unknown'}/${testName.replace(/\s+/g, '_')}`;
++  
++  // Detect triage patterns
++  const summary = digest.summary || {};
++  const suspects = digest.suspects || [];
++  const topSuspect = suspects[0];
++  
++  // Pattern: budget-clipped
++  if (summary.budgetUsed >= summary.budgetLimit * 0.9) {
++    return `[budget-clipped] budget=${summary.budgetUsed}/${summary.budgetLimit} → lam show --case ${caseId} --window 100`;
++  }
++  
++  // Pattern: redaction-mismatch
++  if (summary.redactedFields === 0 && summary.totalEvents > 0) {
++    return `[redaction-mismatch] no redactions (${summary.totalEvents} events) → lam rules set --inline '{"budget":{"kb":4}}'`;
++  }
++  
++  // Pattern: error-signal (default)
++  if (topSuspect) {
++    const signal = topSuspect.evt || 'unknown';
++    const errorMsg = topSuspect.payload?.message || digest.error || 'unknown error';
++    const shortError = errorMsg.split('\n')[0].substring(0, 40);
++    return `[error-signal] ${signal}: ${shortError}... → lam show --case ${caseId}`;
++  }
++  
++  // Fallback
++  return `[unknown] → lam show --case ${caseId}`;
++}
++
+ async function main() {
+   const [,, cmd, ...rest] = process.argv;
+   const args = new Map<string,string|true>();
+@@ -204,6 +237,9 @@ async function main() {
+     case 'summary': {
+       const entries = readSummary();
+       if (!entries.length) { console.log('No summary found. Run `lam run` first.'); break; }
++      
++      const hintsEnabled = process.env.LAMINAR_HINTS === '1' || args.get('hints') === true;
++      
+       for (const e of entries) {
+         const status = (e.status || 'unknown').toUpperCase();
+         const duration = e.duration || 0;
+@@ -212,21 +248,42 @@ async function main() {
+         
+         // Check for digest file
+         let digestLink = '';
++        let digestPath = '';
+         if (e.artifacts?.digestFile && fs.existsSync(e.artifacts.digestFile)) {
+           digestLink = ` [digest: ${e.artifacts.digestFile}]`;
++          digestPath = e.artifacts.digestFile;
+         } else {
+           // Try to find digest file based on caseFile path
+           const caseFile = e.artifacts?.caseFile || e.artifactURI || '';
+           if (caseFile.endsWith('.jsonl')) {
+-            const digestPath = caseFile.replace('.jsonl', '.digest.md');
+-            if (fs.existsSync(digestPath)) {
+-              digestLink = ` [digest: ${digestPath}]`;
++            const dp = caseFile.replace('.jsonl', '.digest.json');
++            if (fs.existsSync(dp)) {
++              digestLink = ` [digest: ${dp}]`;
++              digestPath = dp;
++            } else {
++              const dpMd = caseFile.replace('.jsonl', '.digest.md');
++              if (fs.existsSync(dpMd)) {
++                digestLink = ` [digest: ${dpMd}]`;
++              }
+             }
+           }
+         }
+         
+         const artifactURI = e.artifactURI || e.artifacts?.caseFile || '';
+         console.log(`${status} ${duration}ms ${location} → ${artifactURI}${digestLink}`);
++        
++        // Show hint for failed tests if enabled
++        if (hintsEnabled && status === 'FAIL' && digestPath && digestPath.endsWith('.json')) {
++          try {
++            const digest = JSON.parse(fs.readFileSync(digestPath, 'utf-8'));
++            const hint = generateHint(digest, e);
++            if (hint) {
++              console.log(`💡 ${hint}`);
++            }
++          } catch (err) {
++            // Silently skip if digest can't be read or parsed
++          }
++        }
+       }
+       break;
+     }
