@@ -1,0 +1,3 @@
+{"ts":1760298829141,"lvl":"info","case":"redacts API keys","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760298829142,"lvl":"info","case":"redacts API keys","phase":"execution","evt":"test.run"}
+{"ts":1760298829143,"lvl":"info","case":"redacts API keys","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}
