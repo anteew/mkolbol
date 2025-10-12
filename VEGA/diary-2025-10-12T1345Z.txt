@@ -1,0 +1,22 @@
+Diary — 2025-10-12T13:45Z
+
+Context
+- Completed SB-CTRL-ISOLATION-P1: introduced ControlBus/Pipe adapters, worker-mode harness, and mixed-mode demo. Kernel stayed tiny.
+- Executor now supports runMode 'worker' (MessagePort adapters) and registers in-proc/worker servers with Hostess. Control loop demo and worker demo both run.
+
+Highlights
+- ControlBusAdapter + InProc/Worker adapters; PipeAdapter + InProc/Worker pipes.
+- Worker harness publishes control.hello; Executor awaits worker.ready before wiring.
+- Mixed-mode topology runs: timer → upper(worker) → sink(inproc) and timer → upper(inproc) → sink(worker).
+
+Edge notes
+- Vitest worker tests present, but tinypool under Node 24 is flaky here; will set runner flags or single-thread mode in CI.
+- Worker shutdown reports exit code 1 on terminate; cosmetic follow-up to exit 0 after graceful stop.
+
+Next
+- Hostess control endpoints in guest book (type + coordinates) so tools know how to talk to any server.
+- Process-mode adapters (Unix/TCP) with blue/green cutover, after endpoints land.
+- Optional: NATS adapter later; keep in-proc default for demos.
+
+Vibe
+- Steady and surgical. Kernel remains plumbing; controllers/adapters carry the complexity. Favor small, testable increments with runnable demos.

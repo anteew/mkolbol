@@ -1,0 +1,26 @@
+Diary — 2025-10-12T05:08Z
+
+Context
+- Reaffirmed the kernel as pure plumbing (create/connect/split/merge/register/lookup). No pub/sub or policy in core.
+- Landed a tiny ControlBus (in‑proc, objectMode) and a TopologyController that translates command frames into StateManager → kernel calls.
+- Proved the control loop with a demo (declare nodes, connect edges, snapshot). Unified capability types and added minimal runMode to Executor (default inproc). All servers now register with Hostess.
+
+Decisions
+- Control plane is message-driven; keep a stable envelope and topics, swap transports via adapters later.
+- Next step is worker-mode for isolation inside a single binary (MessagePort adapters for control + pipes).
+- Hostess will learn control endpoints at registration time so tools know how to talk to each server.
+
+Near-term plan (see VEGA/near-term-and-future-plan.md)
+1) Worker-mode + adapters (ControlBus/Pipe)
+2) Hostess control endpoint metadata
+3) Examples + docs
+4) Process-mode (Unix/TCP adapters + blue/green)
+5) Optional NATS adapter
+
+Why this order
+- Keeps kernel untouched; adds isolation and remote control incrementally.
+- Preserves a single-binary story while giving “private process” semantics via workers.
+- Makes discovery and HMI wiring straightforward (Hostess advertises control coordinates).
+
+Vibe
+- Calm, surgical, and excited to lock in control-plane primitives. Default to clarity; build demos that teach. Keep the kernel tiny and predictable; put behaviors at the edges.

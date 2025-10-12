@@ -1,0 +1,62 @@
+diff --git a/src/control/BusAdapter.ts b/src/control/BusAdapter.ts
+new file mode 100644
+index 0000000..953992c
+--- /dev/null
++++ b/src/control/BusAdapter.ts
+@@ -0,0 +1,5 @@
++import { PassThrough } from 'node:stream';
++
++export interface BusAdapter {
++  topic(name: string): PassThrough;
++}
+diff --git a/src/control/ControlBus.ts b/src/control/ControlBus.ts
+new file mode 100644
+index 0000000..97b4b3c
+--- /dev/null
++++ b/src/control/ControlBus.ts
+@@ -0,0 +1,24 @@
++import { BusAdapter } from './BusAdapter.js';
++import { InProcBusAdapter } from './adapters/InProcBusAdapter.js';
++
++export type ControlMessage = Record<string, any>;
++
++export class ControlBus {
++  private adapter: BusAdapter;
++
++  constructor(adapter?: BusAdapter) {
++    this.adapter = adapter ?? new InProcBusAdapter();
++  }
++
++  publish(topic: string, msg: ControlMessage): void {
++    this.adapter.topic(topic).write(msg);
++  }
++
++  subscribe(topic: string, handler: (msg: ControlMessage) => void): () => void {
++    const t = this.adapter.topic(topic);
++    const onData = (m: any) => handler(m as ControlMessage);
++    t.on('data', onData);
++    return () => t.off('data', onData);
++  }
++}
++
+diff --git a/src/control/adapters/InProcBusAdapter.ts b/src/control/adapters/InProcBusAdapter.ts
+new file mode 100644
+index 0000000..5139b31
+--- /dev/null
++++ b/src/control/adapters/InProcBusAdapter.ts
+@@ -0,0 +1,15 @@
++import { PassThrough } from 'node:stream';
++import { BusAdapter } from '../BusAdapter.js';
++
++export class InProcBusAdapter implements BusAdapter {
++  private topics = new Map<string, PassThrough>();
++
++  topic(name: string): PassThrough {
++    let t = this.topics.get(name);
++    if (!t) {
++      t = new PassThrough({ objectMode: true });
++      this.topics.set(name, t);
++    }
++    return t;
++  }
++}

@@ -37,7 +37,8 @@
     "dev:executor": "node --enable-source-maps dist/examples/executor-demo.js",
     "dev:external-wrapper": "node --enable-source-maps dist/examples/external-wrapper-demo.js",
     "dev:pty-wrapper": "node --enable-source-maps dist/examples/pty-wrapper-demo.js",
-    "dev:multi-modal": "node --enable-source-maps dist/examples/multi-modal-output.js"
+    "dev:multi-modal": "node --enable-source-maps dist/examples/multi-modal-output.js",
+    "dev:worker-demo": "node --enable-source-maps dist/examples/worker-demo.js"
   },
   "dependencies": {
     "node-pty": "^1.0.0"
