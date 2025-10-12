@@ -31,7 +31,7 @@ npx lam summary
 npx lam digest
 
 # Show specific test details
-npx lam show --case my-suite/my-test
+npx lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 10
 
 # Get repro commands
 npx lam repro
@@ -120,7 +120,7 @@ npx mkolbol lam run --lane auto
 npx mkolbol lam digest
 npx mkolbol lam repro --bundle
 
-# Alternative: direct lam command with npx
+# Alternative: Direct lam command with npx
 npx -y mkolbol lam run --lane auto
 ```
 

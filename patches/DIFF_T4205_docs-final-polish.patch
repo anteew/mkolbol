@@ -1,0 +1,22 @@
+diff --git a/README.md b/README.md
+index ce0b04c..8f9a4e1 100644
+--- a/README.md
++++ b/README.md
+@@ -37,7 +37,7 @@ npx lam digest
+ npx lam digest
+ 
+ # Show specific test details
+-npx lam show --case my-suite/my-test
++npx lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 10
+ 
+ # Get repro commands
+ npx lam repro
+@@ -120,7 +120,7 @@ npx mkolbol lam run --lane auto
+ npx mkolbol lam digest
+ npx mkolbol lam repro --bundle
+ 
+-# Alternative: direct lam command with npx
++# Alternative: Direct lam command with npx
+ npx -y mkolbol lam run --lane auto
+ ```
+ 

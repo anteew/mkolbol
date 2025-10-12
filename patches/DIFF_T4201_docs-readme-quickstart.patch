@@ -1,0 +1,141 @@
+diff --git a/README.md b/README.md
+index ce0b04c..e2ae074 100644
+--- a/README.md
++++ b/README.md
+@@ -14,35 +14,50 @@
+ 
+ Get started with Laminar testing in 5 minutes:
+ 
++### Installation & First Run
++
+ ```bash
+-# Install
++# 1. Install
+ npm install mkolbol
+ 
+-# Initialize Laminar config
++# 2. Initialize Laminar config
+ npx lam init
+ 
+-# Run tests
++# 3. Run your tests
+ npx lam run --lane auto
+ 
+-# View results
++# 4. View test results
+ npx lam summary
++```
+ 
+-# Analyze failures
++### Analyze Failures
++
++```bash
++# Generate failure digests
+ npx lam digest
+ 
+-# Show specific test details
+-npx lam show --case my-suite/my-test
++# Show specific test details with context
++npx lam show --case my-suite/my-test --around assert.fail --window 10
+ 
+-# Get repro commands
++# Get reproduction commands
+ npx lam repro
+ ```
+ 
+-**Basic Commands:**
+-- `lam init` — Create laminar.config.json with defaults
+-- `lam run` — Execute tests with structured logging
+-- `lam summary` — List all test results
+-- `lam digest` — Generate failure analysis digests
+-- `lam show` — Inspect test artifacts and events
++### Basic Commands
++
++| Command | Purpose |
++|---------|---------|
++| `lam init` | Create laminar.config.json with defaults |
++| `lam run` | Execute tests with structured logging |
++| `lam summary` | List all test results |
++| `lam digest` | Generate failure analysis digests |
++| `lam show` | Inspect test artifacts and events |
++| `lam repro` | Get repro commands for failures |
++
++**Quick Tips:**
++- All artifacts → `reports/` directory
++- Quick failure scan → `reports/summary.jsonl`
++- Per-case logs → `reports/<suite>/<case>.jsonl`
+ 
+ 📖 **Full Documentation:** [docs/testing/laminar.md](docs/testing/laminar.md)
+ 
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index b5385cc..80aee7b 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -4,29 +4,28 @@ Laminar is a branded, structured testing system for flow‑based applications. I
+ 
+ ## Quickstart (5 Minutes)
+ 
+-### Installation
++### Installation & First Run
+ 
+ ```bash
+-# Install via npm
++# 1. Install
+ npm install mkolbol
+ 
+-# Or use npx (no installation)
+-npx mkolbol lam init
+-```
+-
+-### First Test Run
+-
+-```bash
+-# 1. Initialize config
++# 2. Initialize Laminar config
+ npx lam init
+ 
+-# 2. Run your tests
++# 3. Run your tests
+ npx lam run --lane auto
+ 
+-# 3. View summary
++# 4. View test results
+ npx lam summary
+ ```
+ 
++**Using npx (no installation):**
++```bash
++npx mkolbol lam init
++npx mkolbol lam run --lane auto
++```
++
+ ### Analyze Failures
+ 
+ ```bash
+@@ -44,18 +43,18 @@ npx lam repro
+ 
+ | Command | Purpose |
+ |---------|---------|
+-| `lam init` | Scaffold laminar.config.json |
++| `lam init` | Create laminar.config.json with defaults |
+ | `lam run` | Execute tests with structured logging |
+ | `lam summary` | List all test results |
+-| `lam digest` | Generate failure digests |
+-| `lam show` | Inspect test artifacts |
+-| `lam repro` | Get repro commands |
++| `lam digest` | Generate failure analysis digests |
++| `lam show` | Inspect test artifacts and events |
++| `lam repro` | Get repro commands for failures |
+ 
+ **Quick Tips:**
+-- All test artifacts go to `reports/` directory
+-- Use `reports/summary.jsonl` for quick failure scan
+-- Per-case logs in `reports/<suite>/<case>.jsonl`
+-- Digests auto-generated on failure (see below for configuration)
++- All artifacts → `reports/` directory
++- Quick failure scan → `reports/summary.jsonl`
++- Per-case logs → `reports/<suite>/<case>.jsonl`
++- Digests auto-generated on failure (see configuration below)
+ 
+ ## Why Laminar
+ - Token‑cheap: short summaries, deep artifacts on disk

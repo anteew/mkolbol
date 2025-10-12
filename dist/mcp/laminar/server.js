@@ -35,6 +35,11 @@ export class LaminarMcpServer {
     summaryFile;
     configFile;
     digestGenerator = null;
+    /**
+     * Creates a new Laminar MCP server instance.
+     *
+     * @param config - Server configuration options
+     */
     constructor(config = {}) {
         this.reportsDir = config.reportsDir || 'reports';
         this.summaryFile = config.summaryFile || path.join(this.reportsDir, 'summary.jsonl');
@@ -146,6 +151,11 @@ export class LaminarMcpServer {
             format: params.format,
         };
     }
+    /**
+     * Lists all available MCP resources (test summaries and digests).
+     *
+     * @returns Array of MCP resource descriptors
+     */
     listResources() {
         const resources = [];
         if (fs.existsSync(this.summaryFile)) {
@@ -168,6 +178,15 @@ export class LaminarMcpServer {
         }
         return resources;
     }
+    /**
+     * Lists all available MCP tools with their schemas.
+     * Each tool defines name, description, and JSON schema for input validation.
+     *
+     * @returns Array of MCP tool definitions
+     * @example
+     * const tools = server.listTools();
+     * console.log(tools.map(t => t.name)); // ['run', 'query', 'get_digest', ...]
+     */
     listTools() {
         return [
             {
@@ -980,6 +999,9 @@ export class LaminarMcpServer {
             summary: `Created bundle with ${failures.length} case(s) at ${bundleDir}`,
         };
     }
+    /**
+     * Starts the MCP server and displays available resources and tools.
+     */
     async start() {
         console.log('Laminar MCP Server started');
         console.log(`Reports directory: ${this.reportsDir}`);
