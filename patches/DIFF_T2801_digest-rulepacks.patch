@@ -1,0 +1,388 @@
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index 146d321..58761c8 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -342,6 +342,7 @@ Place in repo root. Uses JSON Schema at docs/testing/laminar.schema.json.
+ 
+ ```json
+ {
++  "extends": "node-defaults",
+   "enabled": true,
+   "budget": {
+     "kb": 10,
+@@ -349,28 +350,111 @@ Place in repo root. Uses JSON Schema at docs/testing/laminar.schema.json.
+   },
+   "rules": [
+     {
+-      "match": { "lvl": "error" },
+-      "actions": [{ "type": "include" }],
+-      "priority": 10
+-    },
+-    {
+-      "match": { "evt": "assert.fail" },
++      "match": { "evt": "worker.exit" },
+       "actions": [
+         { "type": "include" },
+-        { "type": "slice", "window": 10 }
++        { "type": "slice", "window": 15 }
+       ],
+-      "priority": 9
++      "priority": 11
+     }
+   ]
+ }
+ ```
+ 
+ **Fields**:
++- `extends` (string | string[]): inherit rules from built-in rule packs (see Rule Packs section)
+ - `enabled` (bool): toggle digest generation globally
+ - `budget.kb`: max output size in kilobytes
+ - `budget.lines`: max event count
+ - `rules[]`: ordered match/action pairs (applied by priority)
+ 
++### Rule Packs
++
++Rule packs provide preset digest configurations for common testing frameworks. Use the `extends` field to inherit from built-in packs.
++
++#### Built-in Rule Packs
++
++**`node-defaults`** — Node.js/Vitest patterns:
++- Captures errors (`lvl=error`) with code frames
++- Captures assertion failures (`assert.fail`) with ±10 event window
++- Captures console output (`console.error`, `console.warn`)
++- Captures test errors (`test.error`) with ±5 event window
++
++**`go-defaults`** — Go test patterns:
++- Captures errors (`lvl=error`) with code frames
++- Captures test failures and panics (`test.fail`, `test.panic`) with ±10 event window
++- Captures race conditions (`race.detected`) with ±20 event window
++- Captures test timeouts (`test.timeout`) with ±15 event window
++
++#### Using Rule Packs
++
++**Extend single pack:**
++```json
++{
++  "extends": "node-defaults"
++}
++```
++
++**Extend multiple packs:**
++```json
++{
++  "extends": ["node-defaults", "go-defaults"]
++}
++```
++
++**Extend pack + add custom rules:**
++```json
++{
++  "extends": "node-defaults",
++  "rules": [
++    {
++      "match": { "evt": "custom.event" },
++      "actions": [{ "type": "include" }],
++      "priority": 11
++    }
++  ]
++}
++```
++
++**Override budget from pack:**
++```json
++{
++  "extends": "node-defaults",
++  "budget": {
++    "kb": 20,
++    "lines": 500
++  }
++}
++```
++
++#### Rule Priority & Merging
++
++When extending rule packs:
++1. Base pack rules are applied first (by their priority)
++2. Local rules are added to the merged set
++3. Higher priority rules (e.g., `priority: 11`) override lower priority rules
++4. Local rules can override pack rules by using higher priority values
++
++**Example — Override pack rule:**
++```json
++{
++  "extends": "node-defaults",
++  "rules": [
++    {
++      "match": { "lvl": "error" },
++      "actions": [
++        { "type": "include" },
++        { "type": "slice", "window": 20 },
++        { "type": "codeframe", "contextLines": 5 }
++      ],
++      "priority": 12
++    }
++  ]
++}
++```
++
++The local rule (priority 12) executes before `node-defaults` error rule (priority 10), effectively replacing it.
++
+ ### Rule Structure
+ Each rule has:
+ - `match`: pattern object (AND semantics; all must match)
+@@ -438,6 +522,82 @@ Each rule has:
+ }
+ ```
+ 
++### Automatic Secret Redaction
++
++Laminar automatically detects and redacts secrets from digest output to prevent credential leaks in test artifacts.
++
++**Built-in Secret Patterns:**
++- **JWT Tokens**: `eyJ...` format tokens → `[REDACTED:jwt]`
++- **AWS Access Keys**: `AKIA...` format → `[REDACTED:aws-key]`
++- **AWS Secret Keys**: `aws_secret_access_key=...` → `[REDACTED:aws-secret]`
++- **API Keys**: Common patterns (`api_key`, `apikey`, `access_key`) → `[REDACTED:api-key]`
++- **URLs with Credentials**: `https://user:pass@host` → `https://[REDACTED:url-creds]@host`
++- **Private Keys**: `-----BEGIN PRIVATE KEY-----...` → `[REDACTED:private-key]`
++
++**Configuration:**
++```json
++{
++  "redaction": {
++    "enabled": true,
++    "secrets": true,
++    "optOut": false
++  }
++}
++```
++
++**Fields:**
++- `enabled` (default: `true`): Master toggle for all redaction
++- `secrets` (default: `true`): Toggle secret pattern scanning
++- `optOut` (default: `false`): Disable all redaction globally
++
++**Opt-Out Options:**
++
++Global opt-out in `laminar.config.json`:
++```json
++{
++  "redaction": {
++    "optOut": true
++  }
++}
++```
++
++Disable only secret scanning:
++```json
++{
++  "redaction": {
++    "secrets": false
++  }
++}
++```
++
++**Redaction Count:**
++The digest summary includes `redactedFields` to track how many secrets were found and redacted:
++```json
++{
++  "summary": {
++    "totalEvents": 150,
++    "includedEvents": 12,
++    "redactedFields": 3,
++    "budgetUsed": 2048,
++    "budgetLimit": 10240
++  }
++}
++```
++
++**Example Output:**
++```json
++{
++  "ts": 1728756789123,
++  "lvl": "error",
++  "evt": "auth.fail",
++  "payload": {
++    "token": "[REDACTED:jwt]",
++    "apiKey": "[REDACTED:api-key]",
++    "dbUrl": "postgres://[REDACTED:url-creds]@db.example.com/mydb"
++  }
++}
++```
++
+ ### Suspect Scoring
+ For failed tests, digest identifies top 5 "suspect" events using heuristic scoring:
+ 
+diff --git a/src/digest/generator.ts b/src/digest/generator.ts
+index 1f1cf93..11a346e 100644
+--- a/src/digest/generator.ts
++++ b/src/digest/generator.ts
+@@ -3,6 +3,7 @@ import * as path from 'node:path';
+ import { CodeFrameExtractor, CodeFrame } from './codeframe.js';
+ 
+ export interface DigestConfig {
++  extends?: string | string[];
+   budget?: {
+     kb?: number;
+     lines?: number;
+@@ -65,6 +66,70 @@ export interface DigestOutput {
+   events: DigestEvent[];
+ }
+ 
++/**
++ * Built-in rule packs for common testing frameworks.
++ */
++const RULE_PACKS: Record<string, DigestConfig> = {
++  'node-defaults': {
++    enabled: true,
++    budget: {
++      kb: 10,
++      lines: 200,
++    },
++    rules: [
++      {
++        match: { lvl: 'error' },
++        actions: [{ type: 'include' }, { type: 'codeframe', contextLines: 2 }],
++        priority: 10,
++      },
++      {
++        match: { evt: 'assert.fail' },
++        actions: [{ type: 'include' }, { type: 'slice', window: 10 }, { type: 'codeframe', contextLines: 2 }],
++        priority: 9,
++      },
++      {
++        match: { evt: ['console.error', 'console.warn'] },
++        actions: [{ type: 'include' }],
++        priority: 7,
++      },
++      {
++        match: { evt: 'test.error' },
++        actions: [{ type: 'include' }, { type: 'slice', window: 5 }],
++        priority: 8,
++      },
++    ],
++  },
++  'go-defaults': {
++    enabled: true,
++    budget: {
++      kb: 10,
++      lines: 200,
++    },
++    rules: [
++      {
++        match: { lvl: 'error' },
++        actions: [{ type: 'include' }, { type: 'codeframe', contextLines: 2 }],
++        priority: 10,
++      },
++      {
++        match: { evt: ['test.fail', 'test.panic'] },
++        actions: [{ type: 'include' }, { type: 'slice', window: 10 }],
++        priority: 9,
++      },
++      {
++        match: { evt: 'race.detected' },
++        actions: [{ type: 'include' }, { type: 'slice', window: 20 }],
++        priority: 8,
++      },
++      {
++        match: { evt: 'test.timeout' },
++        actions: [{ type: 'include' }, { type: 'slice', window: 15 }],
++        priority: 7,
++      },
++    ],
++  },
++};
++
+ /**
+  * Default digest configuration.
+  * 
+@@ -75,25 +140,7 @@ export interface DigestOutput {
+  * - Any event with lvl='error' (includes Go test.fail events)
+  * - Any event name containing 'fail' (includes assert.fail, test.fail, etc.)
+  */
+-const DEFAULT_CONFIG: DigestConfig = {
+-  budget: {
+-    kb: 10,
+-    lines: 200,
+-  },
+-  enabled: true,
+-  rules: [
+-    {
+-      match: { lvl: 'error' },
+-      actions: [{ type: 'include' }, { type: 'codeframe', contextLines: 2 }],
+-      priority: 10,
+-    },
+-    {
+-      match: { evt: 'assert.fail' },
+-      actions: [{ type: 'include' }, { type: 'slice', window: 10 }, { type: 'codeframe', contextLines: 2 }],
+-      priority: 9,
+-    },
+-  ],
+-};
++const DEFAULT_CONFIG: DigestConfig = RULE_PACKS['node-defaults'];
+ 
+ export class DigestGenerator {
+   private config: DigestConfig;
+@@ -121,7 +168,8 @@ export class DigestGenerator {
+     if (fs.existsSync(configPath)) {
+       try {
+         const content = fs.readFileSync(configPath, 'utf-8');
+-        return JSON.parse(content);
++        const userConfig = JSON.parse(content);
++        return this.resolveConfig(userConfig);
+       } catch (e) {
+         console.warn(`Failed to load ${configPath}, using defaults:`, e);
+       }
+@@ -129,6 +177,52 @@ export class DigestGenerator {
+     return DEFAULT_CONFIG;
+   }
+ 
++  private static resolveConfig(config: DigestConfig): DigestConfig {
++    if (!config.extends) {
++      return config;
++    }
++
++    const extendsArray = Array.isArray(config.extends) ? config.extends : [config.extends];
++    const baseConfigs: DigestConfig[] = [];
++
++    for (const extendName of extendsArray) {
++      const rulePack = RULE_PACKS[extendName];
++      if (!rulePack) {
++        console.warn(`Unknown rule pack: ${extendName}, skipping`);
++        continue;
++      }
++      baseConfigs.push(rulePack);
++    }
++
++    if (baseConfigs.length === 0) {
++      return config;
++    }
++
++    const mergedConfig: DigestConfig = {
++      enabled: config.enabled ?? baseConfigs[0].enabled ?? true,
++      budget: {
++        kb: config.budget?.kb ?? baseConfigs[0].budget?.kb ?? 10,
++        lines: config.budget?.lines ?? baseConfigs[0].budget?.lines ?? 200,
++      },
++      rules: [],
++    };
++
++    const allRules: DigestRule[] = [];
++    for (const baseConfig of baseConfigs) {
++      if (baseConfig.rules) {
++        allRules.push(...baseConfig.rules);
++      }
++    }
++
++    if (config.rules) {
++      allRules.push(...config.rules);
++    }
++
++    mergedConfig.rules = allRules;
++
++    return mergedConfig;
++  }
++
+   async generateDigest(
+     caseName: string,
+     status: 'pass' | 'fail' | 'skip',
