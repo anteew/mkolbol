@@ -2,16 +2,16 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "SFL-A", "parallel": true,  "tasks": ["T2601", "T2602"] },
-    { "id": "SFL-B", "parallel": false, "depends_on": ["SFL-A"], "tasks": ["T2603"] },
-    { "id": "SFL-C", "parallel": true,  "depends_on": ["SFL-B"], "tasks": ["T2604", "T2605"] }
+    { "id": "MCP-A", "parallel": true,  "tasks": ["T2701", "T2702"] },
+    { "id": "MCP-B", "parallel": true,  "depends_on": ["MCP-A"], "tasks": ["T2703", "T2704"] },
+    { "id": "MCP-C", "parallel": false, "depends_on": ["MCP-B"], "tasks": ["T2705"] }
   ],
   "tasks": [
-    { "id": "T2601", "agent": "susan-1", "title": "Env/seed capture: include run env + seeds in summary and per-case", "allowedFiles": ["src/test/reporter/jsonlReporter.ts", "scripts/laminar-run.ts"], "verify": ["npm run build", "npm run test:ci || true"], "deliverables": ["patches/DIFF_T2601_env-seed-capture.patch"] },
-    { "id": "T2602", "agent": "susan-2", "title": "Flake runner: N reruns with same seed; stability score", "allowedFiles": ["scripts/laminar-run.ts", "package.json"], "verify": ["npm run laminar:run || true"], "deliverables": ["patches/DIFF_T2602_flake-runner.patch"] },
-    { "id": "T2603", "agent": "susan-3", "title": "Code frames: sourcemap-aware frames in digest (opt-in, budgeted)", "allowedFiles": ["src/digest/codeframe.ts", "src/digest/generator.ts", "package.json"], "verify": ["npm run build", "npm run test:ci || true"], "deliverables": ["patches/DIFF_T2603_digest-codeframes.patch"] },
-    { "id": "T2604", "agent": "susan-4", "title": "Tests: flake classifier + seeds/env + codeframe output", "allowedFiles": ["tests/digest/flakeAndFrames.spec.ts", "tests/fixtures/**"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T2604_tests-flake-frames.patch"] },
-    { "id": "T2605", "agent": "susan-5", "title": "Docs: Determinism, flake triage, and code frames", "allowedFiles": ["docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2605_docs-flake-frames.patch"] }
+    { "id": "T2701", "agent": "susan-1", "title": "MCP: implement tools (run, rules.get/set, digest.generate, logs.case.get, query, repro)", "allowedFiles": ["src/mcp/laminar/server.ts", "scripts/**"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2701_mcp-tools.patch"] },
+    { "id": "T2702", "agent": "susan-2", "title": "MCP: JSON contracts + error model + idempotence", "allowedFiles": ["src/mcp/laminar/server.ts", "README.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2702_mcp-contracts.patch"] },
+    { "id": "T2703", "agent": "susan-3", "title": "MCP: focus overlays (ephemeral rules via MCP)", "allowedFiles": ["src/digest/generator.ts", "src/mcp/laminar/server.ts"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2703_mcp-focus-overlays.patch"] },
+    { "id": "T2704", "agent": "susan-4", "title": "Tests: MCP tool happy/edge paths + concurrency", "allowedFiles": ["tests/mcp/laminarMcp.spec.ts"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T2704_tests-mcp.patch"] },
+    { "id": "T2705", "agent": "susan-5", "title": "Docs: MCP usage examples + tool schemas", "allowedFiles": ["README.md", "docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2705_docs-mcp.patch"] }
   ]
 }
 ```
