@@ -1,0 +1,1070 @@
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index b5385cc..4604316 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -4,29 +4,28 @@ Laminar is a branded, structured testing system for flow‑based applications. I
+ 
+ ## Quickstart (5 Minutes)
+ 
+-### Installation
++### Installation & First Run
+ 
+ ```bash
+-# Install via npm
++# 1. Install
+ npm install mkolbol
+ 
+-# Or use npx (no installation)
+-npx mkolbol lam init
+-```
+-
+-### First Test Run
+-
+-```bash
+-# 1. Initialize config
++# 2. Initialize Laminar config
+ npx lam init
+ 
+-# 2. Run your tests
++# 3. Run your tests
+ npx lam run --lane auto
+ 
+-# 3. View summary
++# 4. View test results
+ npx lam summary
+ ```
+ 
++**Using npx (no installation):**
++```bash
++npx mkolbol lam init
++npx mkolbol lam run --lane auto
++```
++
+ ### Analyze Failures
+ 
+ ```bash
+@@ -44,18 +43,18 @@ npx lam repro
+ 
+ | Command | Purpose |
+ |---------|---------|
+-| `lam init` | Scaffold laminar.config.json |
++| `lam init` | Create laminar.config.json with defaults |
+ | `lam run` | Execute tests with structured logging |
+ | `lam summary` | List all test results |
+-| `lam digest` | Generate failure digests |
+-| `lam show` | Inspect test artifacts |
+-| `lam repro` | Get repro commands |
++| `lam digest` | Generate failure analysis digests |
++| `lam show` | Inspect test artifacts and events |
++| `lam repro` | Get repro commands for failures |
+ 
+ **Quick Tips:**
+-- All test artifacts go to `reports/` directory
+-- Use `reports/summary.jsonl` for quick failure scan
+-- Per-case logs in `reports/<suite>/<case>.jsonl`
+-- Digests auto-generated on failure (see below for configuration)
++- All artifacts → `reports/` directory
++- Quick failure scan → `reports/summary.jsonl`
++- Per-case logs → `reports/<suite>/<case>.jsonl`
++- Digests auto-generated on failure (see configuration below)
+ 
+ ## Why Laminar
+ - Token‑cheap: short summaries, deep artifacts on disk
+@@ -850,15 +849,396 @@ echo "✅ Quality gates passed"
+ 
+ Ingest Go test JSON output (generated via `go test -json`):
+ 
+-**Usage:**
++##### Installation & Setup
++
++Go has built-in support for JSON test output (no additional dependencies required):
++
++```bash
++# Verify Go is installed
++go version
++
++# Generate JSON test output
++go test -json ./...
++```
++
++##### Generate Go Test JSON
++
++```bash
++# Run all tests with JSON output
++go test -json ./... > go-test.json
++
++# Run specific package
++go test -json ./pkg/mypackage > go-test.json
++
++# With verbose output
++go test -json -v ./...
++
++# With coverage
++go test -json -cover ./... > go-test.json
++```
++
++##### Ingest into Laminar
++
+ ```bash
+ # From file
+ lam ingest --go --from-file go-test.json
+ 
+-# From command
++# From command (one-liner)
++lam ingest --go --cmd "go test -json ./..."
++
++# Alternative: Direct script
++tsx scripts/ingest-go.ts --from-file go-test.json
++```
++
++##### Go → Laminar Event Mapping
++
++The adapter converts Go's JSON test events into Laminar's structured JSONL events:
++
++| Go Action | Laminar Event | Phase | Level | Notes |
++|-----------|---------------|-------|-------|-------|
++| `run` (test start) | `case.begin` | setup | info | Test identifier from Package + Test |
++| `output` | `test.output` | execution | info | Captured stdout/stderr during test |
++| `pass` | `case.end` | teardown | info | Test passed successfully |
++| `fail` | `test.error` + `case.end` | execution/teardown | error | Test failure with output |
++| `skip` | `test.skip` + `case.end` | execution/teardown | info | Test skipped with reason |
++| `bench` | `test.benchmark` | execution | info | Benchmark result (if applicable) |
++
++##### Status Mapping
++
++Go test outcomes are normalized to Laminar status values:
++
++| Go Outcome | Laminar Status | Description |
++|------------|----------------|-------------|
++| `pass` | `pass` | Test passed successfully |
++| `fail` | `fail` | Test failed assertion or panic |
++| `skip` | `skip` | Test skipped via `t.Skip()` |
++
++##### Extracted Data
++
++The adapter extracts and preserves test metadata:
++
++**Test Metadata:**
++- `Package` — Go package name (e.g., `github.com/user/project/pkg`)
++- `Test` — Test function name (e.g., `TestBasicAuth`)
++- Combined as case ID: `<package>.<test>`
++
++**Duration:**
++- `Elapsed` — Test execution time in seconds (converted to milliseconds)
++
++**Output:**
++- All `output` events are captured with their content
++- Both stdout and stderr are preserved
++- Test failure messages extracted from output
++
++**Location:**
++- Package path used as location reference
++- Line numbers not directly available in Go JSON format
++
++##### Generated Event Lifecycle
++
++Every Go test produces a predictable sequence of Laminar events:
++
++**1. Test Begin**
++```json
++{
++  "ts": 1678886400000,
++  "lvl": "info",
++  "case": "github.com/user/project.TestExample",
++  "phase": "setup",
++  "evt": "case.begin",
++  "payload": {
++    "package": "github.com/user/project",
++    "test": "TestExample"
++  }
++}
++```
++
++**2. Test Output (captured during execution)**
++```json
++{
++  "ts": 1678886400050,
++  "lvl": "info",
++  "case": "github.com/user/project.TestExample",
++  "phase": "execution",
++  "evt": "test.output",
++  "payload": {
++    "output": "=== RUN   TestExample\n"
++  }
++}
++```
++
++**3. Test Error (if failed)**
++```json
++{
++  "ts": 1678886400100,
++  "lvl": "error",
++  "case": "github.com/user/project.TestExample",
++  "phase": "execution",
++  "evt": "test.error",
++  "payload": {
++    "message": "Expected 5, got 3",
++    "output": "    example_test.go:42: Expected 5, got 3\n"
++  }
++}
++```
++
++**4. Test Skip (if skipped)**
++```json
++{
++  "ts": 1678886400120,
++  "lvl": "info",
++  "case": "github.com/user/project.TestSkipped",
++  "phase": "execution",
++  "evt": "test.skip",
++  "payload": {
++    "message": "Skipping slow test"
++  }
++}
++```
++
++**5. Test End**
++```json
++{
++  "ts": 1678886400150,
++  "lvl": "info",
++  "case": "github.com/user/project.TestExample",
++  "phase": "teardown",
++  "evt": "case.end",
++  "payload": {
++    "duration": 150,
++    "status": "passed"
++  }
++}
++```
++
++##### Output Structure
++
++Ingested Go tests follow the standard Laminar artifact layout:
++
++```
++reports/
++├── summary.jsonl                                    # One-line summaries (all tests)
++└── <package-name>/                                  # Per-package directories
++    ├── <test-name>.jsonl                           # Event stream for each test
++    └── ...
++```
++
++**Example `summary.jsonl` entry:**
++```json
++{
++  "status": "pass",
++  "duration": 150,
++  "location": "github.com/user/project",
++  "artifactURI": "reports/github.com.user.project/TestExample.jsonl",
++  "testName": "github.com/user/project.TestExample"
++}
++```
++
++##### Complete Workflow Examples
++
++**Example 1: Basic Go Project**
++```bash
++# Run Go tests with JSON output
++go test -json ./... > go-test.json
++
++# Ingest into Laminar
++lam ingest --go --from-file go-test.json
++
++# View summary
++lam summary
++
++# Generate digests for failures
++lam digest
++```
++
++**Example 2: Specific Package Testing**
++```bash
++# Test a specific package
++go test -json ./internal/auth > auth-tests.json
++
++# Ingest
++lam ingest --go --from-file auth-tests.json
++
++# View failures only
++lam summary | grep fail
++```
++
++**Example 3: With Coverage**
++```bash
++# Run tests with coverage
++go test -json -cover ./... > go-test-coverage.json
++
++# Ingest
++lam ingest --go --from-file go-test-coverage.json
++
++# Analyze results
++lam trends --top 5
++```
++
++**Example 4: CI Integration (GitHub Actions)**
++```yaml
++name: Go Tests with Laminar
++
++on: [push, pull_request]
++
++jobs:
++  test:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v3
++      
++      - name: Set up Go
++        uses: actions/setup-go@v4
++        with:
++          go-version: '1.21'
++      
++      - name: Run Go tests
++        run: go test -json ./... > go-test.json
++        continue-on-error: true
++      
++      - name: Install Laminar
++        run: npm install -g mkolbol
++      
++      - name: Ingest Go test results
++        run: lam ingest --go --from-file go-test.json
++      
++      - name: Generate failure digests
++        if: failure()
++        run: lam digest
++      
++      - name: Upload test artifacts
++        uses: actions/upload-artifact@v3
++        with:
++          name: test-reports
++          path: reports/
++```
++
++**Example 5: Live Ingest (No Intermediate File)**
++```bash
++# Direct ingest from command
+ lam ingest --go --cmd "go test -json ./..."
++
++# With specific tags
++lam ingest --go --cmd "go test -json -tags=integration ./..."
++
++# With timeout
++lam ingest --go --cmd "go test -json -timeout 30s ./..."
++```
++
++**Example 6: Multi-Module Go Project**
++```bash
++#!/bin/bash
++# test-all-modules.sh - Test multiple Go modules
++
++MODULES=("module1" "module2" "module3")
++
++for module in "${MODULES[@]}"; do
++  echo "Testing $module..."
++  cd "$module"
++  go test -json ./... > "../go-test-$module.json"
++  cd ..
++  
++  # Ingest each module
++  lam ingest --go --from-file "go-test-$module.json"
++done
++
++# Generate consolidated digest
++lam digest
++
++# Summary
++lam summary
++```
++
++##### CI Integration Patterns
++
++**Pattern 1: Fail-Fast with Analysis**
++```bash
++# Run tests (don't fail immediately)
++go test -json ./... > go-test.json || true
++
++# Ingest results
++lam ingest --go --from-file go-test.json
++
++# Generate digests
++lam digest
++
++# Check for failures
++if grep -q '"status":"fail"' reports/summary.jsonl; then
++  echo "Tests failed - see reports/"
++  exit 1
++fi
++```
++
++**Pattern 2: Parallel Package Testing**
++```bash
++# Get all packages
++PACKAGES=$(go list ./...)
++
++# Test each package in parallel
++for pkg in $PACKAGES; do
++  (
++    echo "Testing $pkg..."
++    go test -json "$pkg" > "go-test-$(basename $pkg).json"
++    lam ingest --go --from-file "go-test-$(basename $pkg).json"
++  ) &
++done
++
++# Wait for all to complete
++wait
++
++# Generate combined analysis
++lam summary
++lam trends
++```
++
++**Pattern 3: Historical Comparison**
++```bash
++# Run tests
++go test -json ./... > go-test.json
++lam ingest --go --from-file go-test.json
++
++# Compare with baseline
++CURRENT_FAILS=$(jq -s '[.[] | select(.status == "fail")] | length' reports/summary.jsonl)
++BASELINE_FAILS=$(cat baseline-failures.txt)
++
++if [ "$CURRENT_FAILS" -gt "$BASELINE_FAILS" ]; then
++  echo "⚠️  New failures detected: $CURRENT_FAILS (baseline: $BASELINE_FAILS)"
++  exit 1
++fi
+ ```
+ 
++##### Troubleshooting
++
++**Issue: Missing test output**
++- Go's `-json` flag captures output differently than regular mode
++- Use `go test -json -v` for verbose output
++- Some output may be buffered; ensure tests flush output
++
++**Issue: Incomplete JSON**
++- If `go test` crashes, JSON may be malformed
++- Check the last line of the JSON file is complete
++- Use `jq empty < go-test.json` to validate JSON structure
++
++**Issue: Test names not unique**
++- Go allows same test name in different packages
++- Laminar uses `<package>.<test>` to ensure uniqueness
++- Subtests use the full name including parent (e.g., `TestMain/subtest`)
++
++**Issue: Timing discrepancies**
++- Go reports elapsed time in seconds (float)
++- Laminar converts to milliseconds (integer)
++- Minor precision loss (<1ms) is expected
++
++**Issue: Benchmark results**
++- `go test -bench` output is partially supported
++- Benchmark iterations are captured as output events
++- Use `-json` with `-bench` to capture benchmark data
++
++**Issue: Package-level failures**
++- If package fails to compile, no test events are emitted
++- Check for build errors before the first test event
++- Use `go build ./...` to verify compilation separately
++
+ See `scripts/ingest-go.ts` for implementation details.
+ 
+ ### lam trends — Failure Trend Analysis
+@@ -3685,17 +4065,590 @@ async function checkForRegressions() {
+ }
+ ```
+ 
+-### Focus Overlay Deep Dive
++## Rule Packs
+ 
+-The focus overlay system provides ephemeral digest rule management without modifying the persistent config file.
++Rule packs are pre-configured digest rule templates optimized for specific test environments. Laminar provides three built-in packs via `lam init --template <pack>`.
+ 
+-**Key Characteristics:**
+-- **Non-persistent:** Overlay rules exist only in memory, cleared on server restart
+-- **Override behavior:** Overlay rules are applied AFTER persistent rules
+-- **Independent:** Changing overlay doesn't affect `laminar.config.json`
+-- **Atomic operations:** Set/clear/get are immediate, no file I/O
++### node-defaults (Default)
++
++**Purpose:** Node.js/TypeScript test environments with Vitest or Jest.
++
++**What it captures:**
++- All error-level events with code frames
++- Assertion failures (`assert.fail`) with ±10 event window and code frames
++- Worker lifecycle events (ready/exit/error)
++
++**Full configuration:**
++```json
++{
++  "enabled": true,
++  "budget": {
++    "kb": 10,
++    "lines": 200
++  },
++  "rules": [
++    {
++      "match": { "lvl": "error" },
++      "actions": [
++        { "type": "include" },
++        { "type": "codeframe", "contextLines": 2 }
++      ],
++      "priority": 10
++    },
++    {
++      "match": { "evt": "assert.fail" },
++      "actions": [
++        { "type": "include" },
++        { "type": "slice", "window": 10 },
++        { "type": "codeframe", "contextLines": 2 }
++      ],
++      "priority": 9
++    },
++    {
++      "match": { "evt": ["worker.ready", "worker.exit", "worker.error"] },
++      "actions": [{ "type": "include" }],
++      "priority": 7
++    }
++  ]
++}
++```
++
++**Best for:** Node.js projects, concurrent test suites, systems using worker threads.
++
++### go-defaults
++
++**Purpose:** Go test environments using `lam ingest --go`.
++
++**What it captures:**
++- All error-level events with code frames
++- Go test failures (`test.fail`) with ±10 event window and code frames
++- Teardown and cleanup phase events
++
++**Full configuration:**
++```json
++{
++  "enabled": true,
++  "budget": {
++    "kb": 10,
++    "lines": 200
++  },
++  "rules": [
++    {
++      "match": { "lvl": "error" },
++      "actions": [
++        { "type": "include" },
++        { "type": "codeframe", "contextLines": 2 }
++      ],
++      "priority": 10
++    },
++    {
++      "match": { "evt": "test.fail" },
++      "actions": [
++        { "type": "include" },
++        { "type": "slice", "window": 10 },
++        { "type": "codeframe", "contextLines": 2 }
++      ],
++      "priority": 9
++    },
++    {
++      "match": { "phase": ["teardown", "cleanup"] },
++      "actions": [{ "type": "include" }],
++      "priority": 6
++    }
++  ]
++}
++```
++
++**Best for:** Go projects, table-driven tests, Go subtests with cleanup functions.
++
++### minimal
++
++**Purpose:** Lightweight digest generation with minimal overhead.
++
++**What it captures:**
++- Error-level events only (no context, no code frames)
++
++**Full configuration:**
++```json
++{
++  "enabled": true,
++  "budget": {
++    "kb": 10,
++    "lines": 200
++  },
++  "rules": [
++    {
++      "match": { "lvl": "error" },
++      "actions": [{ "type": "include" }],
++      "priority": 10
++    }
++  ]
++}
++```
++
++**Best for:** CI pipelines with tight token budgets, minimal debugging info, mass test runs.
++
++### When to Use Each Pack
++
++| Rule Pack | Use When | Avoid When |
++|-----------|----------|------------|
++| `node-defaults` | Node.js/TS tests, worker-based systems | Go tests, non-worker systems |
++| `go-defaults` | Go test ingestion, Go-specific failures | Node.js tests, non-Go codebases |
++| `minimal` | Strict token budgets, error-only debugging | Need context or code frames |
++
++### Customizing Rule Packs
++
++Start with a pack and modify:
++
++```bash
++# Initialize with node-defaults
++lam init --template node-defaults
++
++# Edit laminar.config.json to add custom rules
++```
++
++**Example: Add redaction to node-defaults**
++```json
++{
++  "enabled": true,
++  "budget": { "kb": 10, "lines": 200 },
++  "rules": [
++    {
++      "match": { "lvl": "error" },
++      "actions": [
++        { "type": "include" },
++        { "type": "codeframe", "contextLines": 2 }
++      ],
++      "priority": 10
++    },
++    {
++      "match": { "evt": "topology.snapshot" },
++      "actions": [
++        { "type": "include" },
++        { "type": "redact", "field": ["apiKey", "token", "secret"] }
++      ],
++      "priority": 8
++    }
++  ]
++}
++```
++
++## Redaction
++
++Redaction masks sensitive data in digest artifacts before they reach LLMs, logs, or human reviewers.
++
++### How Redaction Works
++
++The `redact` action replaces specified fields with `[REDACTED]` in matching events:
++
++```typescript
++// Before redaction
++{
++  "evt": "auth.token",
++  "payload": {
++    "token": "sk_live_abc123",
++    "user": "alice"
++  }
++}
++
++// After redaction (field: "payload")
++{
++  "evt": "auth.token",
++  "payload": "[REDACTED]"
++}
++```
++
++### Redaction Patterns
++
++#### Entire Payload Redaction
++
++Remove complete payload objects:
++
++```json
++{
++  "match": { "evt": "auth.token" },
++  "actions": [
++    { "type": "include" },
++    { "type": "redact", "field": "payload" }
++  ],
++  "priority": 10
++}
++```
++
++**Output:**
++```json
++{ "evt": "auth.token", "payload": "[REDACTED]" }
++```
++
++#### Multiple Field Redaction
++
++Redact multiple top-level fields:
++
++```json
++{
++  "match": { "evt": "api.request" },
++  "actions": [
++    { "type": "include" },
++    { "type": "redact", "field": ["apiKey", "token", "secret"] }
++  ],
++  "priority": 10
++}
++```
++
++**Input:**
++```json
++{
++  "evt": "api.request",
++  "apiKey": "sk_abc123",
++  "token": "Bearer xyz789",
++  "method": "POST"
++}
++```
++
++**Output:**
++```json
++{
++  "evt": "api.request",
++  "apiKey": "[REDACTED]",
++  "token": "[REDACTED]",
++  "method": "POST"
++}
++```
++
++#### Conditional Redaction
++
++Redact only when event matches specific criteria:
++
++```json
++{
++  "match": { 
++    "evt": "db.query",
++    "phase": "execution"
++  },
++  "actions": [
++    { "type": "include" },
++    { "type": "redact", "field": "payload" }
++  ],
++  "priority": 9
++}
++```
++
++### Redaction Limitations
++
++**Current scope:** Redaction operates on top-level event fields only.
++
++**Not supported:**
++- Nested field redaction (e.g., `payload.user.email`)
++- Pattern-based redaction (e.g., all fields matching `/token/i`)
++- Content scanning within strings
++
++**Workaround for nested fields:**
++```json
++{
++  "match": { "evt": "user.profile" },
++  "actions": [
++    { "type": "include" },
++    { "type": "redact", "field": "payload" }
++  ]
++}
++```
++This redacts the entire `payload` object, including nested `payload.user.email`.
++
++### Common Redaction Use Cases
++
++#### API Keys & Tokens
++```json
++{
++  "match": { "evt": ["api.call", "auth.token", "oauth.refresh"] },
++  "actions": [
++    { "type": "include" },
++    { "type": "redact", "field": ["apiKey", "token", "refreshToken", "secret"] }
++  ],
++  "priority": 10
++}
++```
++
++#### Database Credentials
++```json
++{
++  "match": { "evt": "db.connect" },
++  "actions": [
++    { "type": "include" },
++    { "type": "redact", "field": ["password", "connectionString"] }
++  ],
++  "priority": 10
++}
++```
++
++#### PII (Personally Identifiable Information)
++```json
++{
++  "match": { "evt": ["user.create", "user.update", "profile.view"] },
++  "actions": [
++    { "type": "include" },
++    { "type": "redact", "field": ["email", "ssn", "phoneNumber", "address"] }
++  ],
++  "priority": 10
++}
++```
++
++#### Environment Variables
++```json
++{
++  "match": { "evt": "config.load" },
++  "actions": [
++    { "type": "include" },
++    { "type": "redact", "field": "payload" }
++  ],
++  "priority": 10
++}
++```
++
++### Redaction Best Practices
++
++1. **Redact at highest priority:** Security rules should have `priority: 10` to run first
++2. **Include before redacting:** Always pair `{ "type": "include" }` with redaction
++3. **Test redaction rules:** Verify sensitive data is masked in digest outputs
++4. **Document redacted fields:** Comment in config which fields contain secrets
++5. **Fail-safe defaults:** When uncertain, redact entire `payload` field
++
++**Example config with best practices:**
++```json
++{
++  "rules": [
++    {
++      "match": { "lvl": "error" },
++      "actions": [
++        { "type": "include" },
++        { "type": "codeframe", "contextLines": 2 }
++      ],
++      "priority": 10
++    },
++    {
++      "match": { "evt": ["auth.token", "api.key", "oauth.refresh"] },
++      "actions": [
++        { "type": "include" },
++        { "type": "redact", "field": "payload" }
++      ],
++      "priority": 10
++    },
++    {
++      "match": { "evt": "assert.fail" },
++      "actions": [
++        { "type": "include" },
++        { "type": "slice", "window": 10 }
++      ],
++      "priority": 9
++    }
++  ]
++}
++```
++
++### Verifying Redaction
++
++Check digest outputs to confirm redaction:
++
++```bash
++# Generate digest
++lam digest --cases auth.spec/token_refresh
++
++# Inspect digest for [REDACTED] markers
++cat reports/auth.spec/token_refresh.digest.json | jq '.events[] | select(.evt == "auth.token")'
++```
++
++Expected output:
++```json
++{
++  "evt": "auth.token",
++  "lvl": "info",
++  "payload": "[REDACTED]"
++}
++```
++
++## Budget Behavior & Tuning
++
++Digest budgets prevent token/cost overruns by limiting artifact size. Budgets apply to each test case digest independently.
++
++### Budget Configuration
++
++```json
++{
++  "budget": {
++    "kb": 10,
++    "lines": 200
++  }
++}
++```
++
++- `kb`: Maximum digest size in kilobytes (applies to final JSON output)
++- `lines`: Maximum number of events included in digest
++
++**Both limits enforced:** Digest generation stops when EITHER limit is reached.
++
++### How Budgets Are Applied
++
++**Event selection order:**
++1. Rules sorted by priority (high → low)
++2. Events matched and marked for inclusion
++3. Events added to digest until budget exhausted
++4. Remaining events discarded
++
++**Budget consumption:**
++- Each event: ~100-500 bytes (depends on payload size)
++- Each code frame: ~200-500 bytes (depends on context lines)
++- Total digest: Sum of all included events + metadata + code frames
++
++**Code frame limits:**
++- Max 5 code frames per digest (prevents budget exhaustion)
++- Frames extracted from error events only
++- Context lines configurable via `contextLines` parameter
++
++### Budget Tuning Guidelines
++
++#### Default Budget (10KB / 200 lines)
++**Good for:**
++- Standard unit tests
++- Single assertion failures
++- ~20-50 events with code frames
++- ~2500 LLM tokens
++
++**Increase if:**
++- Complex integration tests with many events
++- Need more code frame context
++- Multi-step failures requiring full lifecycle
++
++#### Small Budget (5KB / 100 lines)
++```json
++{
++  "budget": { "kb": 5, "lines": 100 }
++}
++```
++
++**Good for:**
++- CI pipelines with strict token limits
++- Simple error-only capture
++- Mass test runs (hundreds of tests)
++- ~1200 LLM tokens
++
++#### Large Budget (20KB / 500 lines)
++```json
++{
++  "budget": { "kb": 20, "lines": 500 }
++}
++```
++
++**Good for:**
++- E2E tests with long event sequences
++- Distributed system failures
++- Full worker lifecycle capture
++- ~5000 LLM tokens
++
++#### Unlimited Budget (for debugging)
++```json
++{
++  "budget": { "kb": 1000, "lines": 10000 }
++}
++```
++
++**Use sparingly:**
++- Local debugging only
++- Single test deep-dive
++- Not recommended for CI/production
++
++### Budget Exhaustion Behavior
++
++When budget is exceeded:
++1. Digest generation stops immediately
++2. Already-included events are preserved
++3. `summary.budgetUsed` shows bytes consumed
++4. `summary.budgetLimit` shows configured limit
++5. Digest marked as truncated (implicit)
++
++**Example truncated digest:**
++```json
++{
++  "summary": {
++    "totalEvents": 1500,
++    "includedEvents": 180,
++    "budgetUsed": 10240,
++    "budgetLimit": 10240
++  }
++}
++```
++
++This shows 180/1500 events included before hitting 10KB limit.
++
++### Optimizing for Budget
++
++**Reduce events:**
++- Use higher-priority rules for critical events only
++- Avoid `slice` windows on every rule
++- Filter by `phase` or `lvl` to narrow scope
++
++**Reduce code frames:**
++- Decrease `contextLines` from 5 → 2 or 1
++- Remove `codeframe` action from non-critical rules
++
++**Increase selectivity:**
++```json
++{
++  "match": { 
++    "lvl": "error",
++    "phase": "assert"
++  },
++  "actions": [{ "type": "include" }]
++}
++```
++
++Instead of:
++```json
++{
++  "match": { "lvl": "error" },
++  "actions": [
++    { "type": "include" },
++    { "type": "slice", "window": 50 }
++  ]
++}
++```
++
++### Budget Monitoring
++
++Check budget usage in digest summary:
++
++```bash
++# View budget metrics
++cat reports/kernel.spec/connect_moves_data_1_1.digest.json | jq '.summary'
++```
++
++Output:
++```json
++{
++  "totalEvents": 342,
++  "includedEvents": 28,
++  "redactedFields": 3,
++  "budgetUsed": 8450,
++  "budgetLimit": 10240
++}
++```
++
++**Interpreting metrics:**
++- `budgetUsed / budgetLimit`: Utilization ratio (8450/10240 = 82%)
++- If equal: Budget exhausted, digest truncated
++- If under: Budget sufficient, all matched events included
++
++## Focus Overlays
++
++Focus overlays provide ephemeral, in-memory digest rule management without modifying `laminar.config.json`.
++
++### Key Characteristics
++
++- **Non-persistent:** Overlay rules exist only in memory, cleared on server restart
++- **Override behavior:** Overlay rules are applied AFTER persistent rules
++- **Independent:** Changing overlay doesn't affect `laminar.config.json`
++- **Atomic operations:** Set/clear/get are immediate, no file I/O
++
++### Use Cases
+ 
+-**Use Cases:**
+ 1. **Debugging sessions:** Focus on specific event patterns without config changes
+ 2. **Agent-driven filtering:** AI agents dynamically adjust filters based on failure analysis
+ 3. **Temporary experiments:** Try different digest rules without persisting changes
