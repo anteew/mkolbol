@@ -9,6 +9,7 @@ import { Worker, MessageChannel } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import type { TestLogger } from '../logging/logger.js';
+import { createLogger } from '../logging/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,6 +35,11 @@ export class Executor {
   ) {
     this.moduleRegistry = new ModuleRegistry();
     this.logger = logger;
+    if (!this.logger && process.env.LAMINAR_DEBUG === '1') {
+      const suite = process.env.LAMINAR_SUITE || 'debug';
+      const caseName = (process.env.LAMINAR_CASE || 'executor').replace(/[^a-zA-Z0-9-_]/g, '_');
+      this.logger = createLogger(suite, caseName);
+    }
   }
 
   load(config: TopologyConfig): void {

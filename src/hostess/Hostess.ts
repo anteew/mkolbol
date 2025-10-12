@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { CapabilityQuery, GuestBookEntry, ServerManifest, buildServerIdentity } from '../types.js';
 import { TestEventEnvelope, createEvent } from '../logging/TestEvent.js';
+import { createLogger } from '../logging/logger.js';
 
 interface HostessOptions {
   heartbeatIntervalMs?: number;
@@ -19,6 +20,12 @@ export class Hostess {
     this.heartbeatIntervalMs = opts.heartbeatIntervalMs ?? 5000;
     this.evictionThresholdMs = opts.evictionThresholdMs ?? 20000;
     this.logger = opts.logger;
+    if (!this.logger && process.env.LAMINAR_DEBUG === '1') {
+      const suite = process.env.LAMINAR_SUITE || 'debug';
+      const caseName = (process.env.LAMINAR_CASE || 'hostess').replace(/[^a-zA-Z0-9-_]/g, '_');
+      const logger = createLogger(suite, caseName);
+      this.logger = (evt) => logger.emit(evt.evt, { payload: evt.payload, id: evt.id, corr: evt.corr, phase: evt.phase, lvl: evt.lvl });
+    }
   }
 
   register(entry: ServerManifest): string {

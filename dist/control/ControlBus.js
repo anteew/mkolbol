@@ -1,9 +1,16 @@
 import { InProcBusAdapter } from './adapters/InProcBusAdapter.js';
+import { createLogger } from '../logging/logger.js';
 export class ControlBus {
     adapter;
     eventLogger;
     constructor(adapter) {
         this.adapter = adapter ?? new InProcBusAdapter();
+        if (process.env.LAMINAR_DEBUG === '1') {
+            const suite = process.env.LAMINAR_SUITE || 'debug';
+            const caseName = (process.env.LAMINAR_CASE || 'control-bus').replace(/[^a-zA-Z0-9-_]/g, '_');
+            const logger = createLogger(suite, caseName);
+            this.eventLogger = (evt) => logger.emit(evt.evt, { payload: evt.payload, id: evt.id, corr: evt.corr, phase: evt.phase, lvl: evt.lvl });
+        }
     }
     setEventLogger(logger) {
         this.eventLogger = logger;

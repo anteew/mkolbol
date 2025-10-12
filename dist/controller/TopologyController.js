@@ -13,6 +13,13 @@ export class TopologyController {
         this.commandsTopic = opts.commandsTopic ?? 'topology.commands';
         this.eventsTopic = opts.eventsTopic ?? 'topology.events';
         this.loggerHook = opts.loggerHook;
+        if (!this.loggerHook && process.env.LAMINAR_DEBUG === '1') {
+            // Default to forwarding events through ControlBus event logger if set
+            this.loggerHook = (evt) => {
+                // @ts-ignore access private for debug
+                this.bus.eventLogger?.(evt);
+            };
+        }
     }
     start() {
         if (this.unsub)
