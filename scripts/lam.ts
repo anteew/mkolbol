@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { spawnSync } from 'node:child_process';
+import { spawnSync, execSync } from 'node:child_process';
 import * as fs from 'node:fs';
+import { ingestGoTest } from './ingest-go.js';
 
 function sh(cmd: string, args: string[], env: Record<string, string> = {}) {
   const res = spawnSync(cmd, args, { stdio: 'inherit', env: { ...process.env, ...env } });
@@ -15,6 +16,7 @@ Usage:
   lam summary
   lam show --case <suite/case> [--around <pattern>] [--window <n>]
   lam digest [--cases <case1,case2,...>]
+  lam ingest --go [--from-file <path> | --cmd "<command>"]
   lam rules get
   lam rules set --file <path> | --inline '<json>'
 
@@ -24,6 +26,8 @@ Examples:
   lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 50
   lam digest
   lam digest --cases kernel.spec/connect_moves_data_1_1,kernel.spec/another_case
+  lam ingest --go --from-file go-test-output.json
+  lam ingest --go --cmd "go test -json ./..."
   lam rules get
   lam rules set --inline '{"budget":{"kb":2}}'
 `);
@@ -104,6 +108,49 @@ async function main() {
       } else {
         sh('npm', ['run', 'laminar:digest']);
       }
+      break;
+    }
+    case 'ingest': {
+      const go = args.get('go');
+      if (!go) {
+        console.error('lam ingest --go [--from-file <path> | --cmd "<command>"]');
+        process.exit(1);
+      }
+      
+      const fromFile = args.get('from-file') as string | undefined;
+      const cmd = args.get('cmd') as string | undefined;
+      
+      if (!fromFile && !cmd) {
+        console.error('lam ingest --go requires --from-file <path> or --cmd "<command>"');
+        process.exit(1);
+      }
+      
+      if (fromFile && cmd) {
+        console.error('lam ingest --go: use either --from-file or --cmd, not both');
+        process.exit(1);
+      }
+      
+      let input: string;
+      if (fromFile) {
+        if (!fs.existsSync(fromFile)) {
+          console.error(`File not found: ${fromFile}`);
+          process.exit(1);
+        }
+        input = fs.readFileSync(fromFile, 'utf-8');
+      } else {
+        try {
+          input = execSync(cmd!, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+        } catch (error: any) {
+          input = error.stdout || '';
+          if (!input) {
+            console.error(`Command failed: ${cmd}`);
+            console.error(error.message);
+            process.exit(1);
+          }
+        }
+      }
+      
+      ingestGoTest(input);
       break;
     }
     case 'rules': {

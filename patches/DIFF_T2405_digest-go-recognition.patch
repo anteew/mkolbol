@@ -1,0 +1,92 @@
+diff --git a/src/digest/generator.ts b/src/digest/generator.ts
+index b713597..4b41c5a 100644
+--- a/src/digest/generator.ts
++++ b/src/digest/generator.ts
+@@ -62,6 +62,16 @@ export interface DigestOutput {
+   events: DigestEvent[];
+ }
+ 
++/**
++ * Default digest configuration.
++ * 
++ * These rules work with both native Vitest events and ingested test data
++ * from external sources (e.g., Go test via `laminar:ingest go`).
++ * 
++ * The rules match:
++ * - Any event with lvl='error' (includes Go test.fail events)
++ * - Any event name containing 'fail' (includes assert.fail, test.fail, etc.)
++ */
+ const DEFAULT_CONFIG: DigestConfig = {
+   budget: {
+     kb: 10,
+diff --git a/tests/digest/digest.spec.ts b/tests/digest/digest.spec.ts
+index 36d060b..1d57a19 100644
+--- a/tests/digest/digest.spec.ts
++++ b/tests/digest/digest.spec.ts
+@@ -642,4 +642,66 @@ describe('DigestGenerator', () => {
+       expect(digest!.events[0]).toMatchObject({ ts: 1000, lvl: 'error', evt: 'test.error' });
+     });
+   });
++
++  describe('Go test ingestion compatibility', () => {
++    it('processes ingested Go test failures transparently', async () => {
++      // Simulate events from Go test ingestion (from scripts/ingest-go.ts)
++      const events: DigestEvent[] = [
++        { ts: 1000, lvl: 'info', case: 'github.com/example/calc/TestDivide', phase: 'run', evt: 'test.start', payload: { package: 'github.com/example/calc', test: 'TestDivide' } },
++        { ts: 1010, lvl: 'info', case: 'github.com/example/calc/TestDivide', phase: 'run', evt: 'test.output', payload: { output: '=== RUN   TestDivide' } },
++        { ts: 1020, lvl: 'info', case: 'github.com/example/calc/TestDivide', phase: 'run', evt: 'test.output', payload: { output: 'calc_test.go:30: Dividing 10 / 0' } },
++        { ts: 1030, lvl: 'info', case: 'github.com/example/calc/TestDivide', phase: 'run', evt: 'test.output', payload: { output: 'calc_test.go:31: Error: division by zero' } },
++        { ts: 1040, lvl: 'error', case: 'github.com/example/calc/TestDivide', phase: 'complete', evt: 'test.fail', payload: { package: 'github.com/example/calc', test: 'TestDivide', elapsed: 0.09 } },
++      ];
++      createSyntheticLogs(events);
++
++      const generator = new DigestGenerator();
++      const digest = await generator.generateDigest(
++        'github.com.example.calc.TestDivide',
++        'fail',
++        90,
++        'github.com/example/calc/TestDivide',
++        artifactPath
++      );
++
++      expect(digest).not.toBeNull();
++      expect(digest!.status).toBe('fail');
++      expect(digest!.summary.totalEvents).toBe(5);
++      
++      // Verify error-level event is included
++      expect(digest!.events.some(e => e.evt === 'test.fail' && e.lvl === 'error')).toBe(true);
++      
++      // Verify suspect scoring works
++      expect(digest!.suspects).toBeDefined();
++      expect(digest!.suspects!.length).toBeGreaterThan(0);
++      const topSuspect = digest!.suspects![0];
++      expect(topSuspect.evt).toBe('test.fail');
++      expect(topSuspect.lvl).toBe('error');
++      expect(topSuspect.reasons).toContain('error level');
++      expect(topSuspect.reasons).toContain('failure event');
++      expect(topSuspect.score).toBeGreaterThan(50);
++    });
++
++    it('recognizes Go test.fail events in rules', async () => {
++      const events: DigestEvent[] = [
++        { ts: 1000, lvl: 'error', case: 'go-test', phase: 'complete', evt: 'test.fail', payload: { test: 'TestExample' } },
++      ];
++      createSyntheticLogs(events);
++
++      const generator = new DigestGenerator();
++      const digest = await generator.generateDigest(
++        'go-test',
++        'fail',
++        100,
++        'example_test.go',
++        artifactPath
++      );
++
++      // Default rule matches 'evt' containing 'fail'
++      expect(digest!.events.some(e => e.evt === 'test.fail')).toBe(true);
++      
++      // Default rule matches 'lvl: error'
++      expect(digest!.events.some(e => e.lvl === 'error')).toBe(true);
++    });
++  });
+ });

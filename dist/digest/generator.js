@@ -1,5 +1,15 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+/**
+ * Default digest configuration.
+ *
+ * These rules work with both native Vitest events and ingested test data
+ * from external sources (e.g., Go test via `laminar:ingest go`).
+ *
+ * The rules match:
+ * - Any event with lvl='error' (includes Go test.fail events)
+ * - Any event name containing 'fail' (includes assert.fail, test.fail, etc.)
+ */
 const DEFAULT_CONFIG = {
     budget: {
         kb: 10,

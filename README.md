@@ -216,6 +216,18 @@ const failures = await server.callTool('list_failures', {});
 - `get_digest` - Get digest for a specific failed test case
 - `list_failures` - List all failed test cases from summary
 
+### Cross-Language Test Ingest
+
+Laminar can import test results from external languages and frameworks:
+
+```bash
+# Import Go test results
+lam ingest --go --from-file go-test-output.json
+lam ingest --go --cmd "go test -json ./..."
+```
+
+Ingested tests integrate with all Laminar features (`logq`, `lam digest`, `lam show`). See [docs/testing/laminar.md](docs/testing/laminar.md#cross-language-test-ingest) for complete workflow examples and CI integration.
+
 ### CLI Tools
 
 #### logq - Query JSONL test logs

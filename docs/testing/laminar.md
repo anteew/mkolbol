@@ -300,5 +300,145 @@ Digests are token-efficient for LLM review:
 
 Attach `.digest.md` to CI failure notifications; agents can request `.digest.json` for structured analysis.
 
+## Cross-Language Test Ingest
+
+### Concept
+Laminar can import test results from external test frameworks (Go, Rust, Python, etc.) and convert them into Laminar's unified JSONL format. This enables:
+
+- **Unified reporting**: View results from multiple languages in one place
+- **Cross-language debugging**: Use `logq` and `lam show` on any ingested test
+- **Digest generation**: Apply Laminar's smart failure summarization to external tests
+- **Token-efficient CI reports**: Consolidate polyglot test results into compact summaries
+
+Ingested tests integrate seamlessly with all Laminar features: `logq`, `lam digest`, `lam show`, and suspect scoring.
+
+### Go Test Ingest
+
+Go's `go test -json` output produces structured JSON events. Laminar converts these to the standard event envelope schema.
+
+**Usage**:
+```bash
+# From file
+lam ingest --go --from-file go-test-output.json
+
+# From command (live)
+lam ingest --go --cmd "go test -json ./..."
+```
+
+**Go Event Mapping**:
+| Go Action | Laminar Event | Level | Phase |
+|-----------|---------------|-------|-------|
+| `run` | `test.start` | info | run |
+| `output` | `test.output` | info | run |
+| `pass` | `test.pass` | info | complete |
+| `fail` | `test.fail` | error | complete |
+| `skip` | `test.skip` | info | complete |
+
+**Output**:
+- `reports/<package>.<test>.jsonl` — event stream per test
+- `reports/summary.jsonl` — summary with status, duration, location, artifact URI
+
+### Complete Workflow Example
+
+**1. Run Go tests and capture output**:
+```bash
+cd /path/to/go-project
+go test -json ./... > go-test-output.json
+```
+
+**2. Ingest into Laminar**:
+```bash
+lam ingest --go --from-file go-test-output.json
+```
+
+Output:
+```
+Ingested 847 go test events
+Generated 23 test case summaries
+Wrote artifacts to reports/
+```
+
+**3. View summary**:
+```bash
+lam summary
+```
+
+Output:
+```
+PASS 120ms github.com/user/project/TestBasicAuth → reports/github.com.user.project.TestBasicAuth.jsonl
+FAIL 89ms github.com/user/project/TestDatabaseConnect → reports/github.com.user.project.TestDatabaseConnect.jsonl
+SKIP 0ms github.com/user/project/TestSlowIntegration → reports/github.com.user.project.TestSlowIntegration.jsonl
+```
+
+**4. Query failure logs**:
+```bash
+lam show --case github.com/user/project/TestDatabaseConnect
+```
+
+**5. Generate digest for failed tests**:
+```bash
+lam digest
+```
+
+Creates `reports/github.com.user.project.TestDatabaseConnect.digest.md` with suspects and context.
+
+**6. Query specific events**:
+```bash
+# Find all test failures
+logq lvl=error reports/summary.jsonl
+
+# View output around failure
+logq --around evt=test.fail --window 10 reports/github.com.user.project.TestDatabaseConnect.jsonl
+```
+
+### Integration with CI Pipelines
+
+**GitHub Actions Example**:
+```yaml
+- name: Run Go tests
+  run: go test -json ./... > go-test-output.json
+  continue-on-error: true
+
+- name: Ingest into Laminar
+  run: lam ingest --go --from-file go-test-output.json
+
+- name: Generate failure digests
+  run: lam digest
+
+- name: Upload artifacts
+  uses: actions/upload-artifact@v3
+  with:
+    name: test-reports
+    path: reports/
+```
+
+**Attach to PR comments**:
+```bash
+# Generate compact summary for LLM/human review
+lam digest
+cat reports/*.digest.md >> $GITHUB_STEP_SUMMARY
+```
+
+### Live Ingest (Direct Command)
+
+Skip intermediate files by running Go tests directly:
+```bash
+lam ingest --go --cmd "go test -json ./..."
+```
+
+This captures stdout (up to 10MB) and processes it immediately. Use for:
+- Local development workflows
+- Quick CI pipelines without artifact storage
+- Streaming test results into Laminar
+
+### Future Language Support
+
+Planned ingestion adapters:
+- **Rust**: `cargo test -- --format json`
+- **Python**: `pytest --json-report`
+- **JavaScript/TypeScript**: `jest --json`
+
+Each adapter will map native test events to Laminar's envelope schema, enabling unified reporting across polyglot projects.
+
 ## Branding Notes
 Laminar fits the project’s physical‑manifold metaphor: smooth, predictable flow with clear gauges and valves for control.

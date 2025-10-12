@@ -1,0 +1,305 @@
+diff --git a/package.json b/package.json
+index 52ef4c3..4bddf21 100644
+--- a/package.json
++++ b/package.json
+@@ -36,6 +36,7 @@
+     "repro": "tsx scripts/repro.ts",
+     "laminar:run": "tsx scripts/laminar-run.ts",
+     "laminar:digest": "tsx scripts/digest.ts",
++    "ingest:go": "tsx scripts/ingest-go.ts",
+     "dev": "node --enable-source-maps dist/examples/basic-topology.js",
+     "dev:split": "node --enable-source-maps dist/examples/split-topology.js",
+     "dev:merge": "node --enable-source-maps dist/examples/merge-topology.js",
+diff --git a/scripts/ingest-go.ts b/scripts/ingest-go.ts
+new file mode 100644
+index 0000000..d0de5a6
+--- /dev/null
++++ b/scripts/ingest-go.ts
+@@ -0,0 +1,287 @@
++#!/usr/bin/env tsx
++import * as fs from 'fs';
++import * as path from 'path';
++import { createEvent, TestEventEnvelope } from '../src/logging/TestEvent.js';
++
++/**
++ * Go test JSON event format
++ * See: https://pkg.go.dev/cmd/test2json
++ */
++interface GoTestEvent {
++  Time: string;        // RFC3339 timestamp
++  Action: string;      // "run", "output", "pass", "fail", "skip", "pause", "cont", "bench"
++  Package?: string;    // Package name
++  Test?: string;       // Test name (e.g., "TestExample")
++  Output?: string;     // Output text
++  Elapsed?: number;    // Elapsed time in seconds
++}
++
++interface TestSummary {
++  status: 'pass' | 'fail' | 'skip';
++  duration: number;
++  location: string;
++  artifactURI?: string;
++  error?: string;
++}
++
++class GoTestParser {
++  private testStates = new Map<string, { startTime: number; output: string[] }>();
++  private summaryStream?: fs.WriteStream;
++  private testLoggers = new Map<string, fs.WriteStream>();
++
++  constructor() {
++    const reportsDir = 'reports';
++    fs.mkdirSync(reportsDir, { recursive: true });
++    
++    const summaryPath = path.join(reportsDir, 'summary.jsonl');
++    if (fs.existsSync(summaryPath)) {
++      fs.unlinkSync(summaryPath);
++    }
++    this.summaryStream = fs.createWriteStream(summaryPath, { flags: 'a' });
++  }
++
++  parseEvent(line: string): void {
++    try {
++      const event: GoTestEvent = JSON.parse(line);
++      this.handleEvent(event);
++    } catch (err) {
++      console.error('Failed to parse Go test event:', err);
++    }
++  }
++
++  private handleEvent(event: GoTestEvent): void {
++    const { Action, Package, Test, Output, Elapsed } = event;
++
++    // Skip package-level events without test name
++    if (!Test) {
++      return;
++    }
++
++    const testKey = this.getTestKey(Package, Test);
++    const caseName = this.getCaseName(Test);
++    const suite = this.getSuite(Package);
++
++    switch (Action) {
++      case 'run':
++        this.handleTestStart(testKey, caseName, suite);
++        break;
++
++      case 'output':
++        this.handleTestOutput(testKey, caseName, suite, Output || '');
++        break;
++
++      case 'pass':
++        this.handleTestPass(testKey, caseName, suite, Elapsed);
++        break;
++
++      case 'fail':
++        this.handleTestFail(testKey, caseName, suite, Elapsed);
++        break;
++
++      case 'skip':
++        this.handleTestSkip(testKey, caseName, suite, Elapsed);
++        break;
++    }
++  }
++
++  private handleTestStart(testKey: string, caseName: string, suite: string): void {
++    this.testStates.set(testKey, {
++      startTime: Date.now(),
++      output: [],
++    });
++
++    const beginEvent = createEvent('case.begin', caseName, { lvl: 'info' });
++    this.writeTestEvent(suite, caseName, beginEvent);
++  }
++
++  private handleTestOutput(testKey: string, caseName: string, suite: string, output: string): void {
++    const state = this.testStates.get(testKey);
++    if (state) {
++      state.output.push(output);
++    }
++
++    const outputEvent = createEvent('test.output', caseName, {
++      lvl: 'debug',
++      payload: { text: output.trimEnd() },
++    });
++    this.writeTestEvent(suite, caseName, outputEvent);
++  }
++
++  private handleTestPass(testKey: string, caseName: string, suite: string, elapsed?: number): void {
++    const state = this.testStates.get(testKey);
++    const duration = elapsed ? elapsed * 1000 : 0; // Convert to milliseconds
++
++    const endEvent = createEvent('case.end', caseName, {
++      lvl: 'info',
++      payload: { status: 'pass', duration },
++    });
++    this.writeTestEvent(suite, caseName, endEvent);
++
++    this.writeSummary({
++      status: 'pass',
++      duration,
++      location: `${suite}:0`,
++      artifactURI: `reports/${suite}/${caseName}.jsonl`,
++    });
++
++    this.testStates.delete(testKey);
++    this.closeTestLogger(suite, caseName);
++  }
++
++  private handleTestFail(testKey: string, caseName: string, suite: string, elapsed?: number): void {
++    const state = this.testStates.get(testKey);
++    const duration = elapsed ? elapsed * 1000 : 0;
++    const output = state?.output || [];
++    const errorMsg = this.extractError(output);
++
++    const endEvent = createEvent('case.end', caseName, {
++      lvl: 'error',
++      payload: { status: 'fail', duration, error: errorMsg },
++    });
++    this.writeTestEvent(suite, caseName, endEvent);
++
++    this.writeSummary({
++      status: 'fail',
++      duration,
++      location: `${suite}:0`,
++      artifactURI: `reports/${suite}/${caseName}.jsonl`,
++      error: errorMsg,
++    });
++
++    this.testStates.delete(testKey);
++    this.closeTestLogger(suite, caseName);
++  }
++
++  private handleTestSkip(testKey: string, caseName: string, suite: string, elapsed?: number): void {
++    const duration = elapsed ? elapsed * 1000 : 0;
++
++    const endEvent = createEvent('case.end', caseName, {
++      lvl: 'info',
++      payload: { status: 'skip', duration },
++    });
++    this.writeTestEvent(suite, caseName, endEvent);
++
++    this.writeSummary({
++      status: 'skip',
++      duration,
++      location: `${suite}:0`,
++      artifactURI: `reports/${suite}/${caseName}.jsonl`,
++    });
++
++    this.testStates.delete(testKey);
++    this.closeTestLogger(suite, caseName);
++  }
++
++  private getTestKey(pkg?: string, test?: string): string {
++    return `${pkg || 'unknown'}::${test || 'unknown'}`;
++  }
++
++  private getCaseName(test: string): string {
++    // Sanitize test name for filesystem
++    return test.replace(/[^a-zA-Z0-9-_]/g, '_');
++  }
++
++  private getSuite(pkg?: string): string {
++    if (!pkg) return 'go_test';
++    // Extract last component of package path
++    const parts = pkg.split('/');
++    return parts[parts.length - 1] || 'go_test';
++  }
++
++  private extractError(output: string[]): string {
++    // Look for failure messages in output
++    const errorLines = output.filter(line => 
++      line.includes('FAIL') || 
++      line.includes('Error') || 
++      line.includes('panic') ||
++      line.trim().startsWith('---')
++    );
++    return errorLines.join(' ').trim() || 'Test failed';
++  }
++
++  private writeTestEvent(suite: string, caseName: string, event: TestEventEnvelope): void {
++    const logger = this.getOrCreateTestLogger(suite, caseName);
++    logger.write(JSON.stringify(event) + '\n');
++  }
++
++  private getOrCreateTestLogger(suite: string, caseName: string): fs.WriteStream {
++    const key = `${suite}/${caseName}`;
++    let logger = this.testLoggers.get(key);
++    
++    if (!logger) {
++      const logPath = path.join('reports', suite, `${caseName}.jsonl`);
++      const dir = path.dirname(logPath);
++      fs.mkdirSync(dir, { recursive: true });
++      logger = fs.createWriteStream(logPath, { flags: 'a' });
++      this.testLoggers.set(key, logger);
++    }
++    
++    return logger;
++  }
++
++  private closeTestLogger(suite: string, caseName: string): void {
++    const key = `${suite}/${caseName}`;
++    const logger = this.testLoggers.get(key);
++    if (logger) {
++      logger.end();
++      this.testLoggers.delete(key);
++    }
++  }
++
++  private writeSummary(summary: TestSummary): void {
++    if (this.summaryStream) {
++      this.summaryStream.write(JSON.stringify(summary) + '\n');
++    }
++  }
++
++  close(): void {
++    // Close all test loggers
++    for (const logger of this.testLoggers.values()) {
++      logger.end();
++    }
++    this.testLoggers.clear();
++
++    // Close summary stream
++    if (this.summaryStream) {
++      this.summaryStream.end();
++    }
++  }
++}
++
++async function main() {
++  const args = process.argv.slice(2);
++  const parser = new GoTestParser();
++
++  if (args.length > 0) {
++    // Read from file
++    const filePath = args[0];
++    const content = fs.readFileSync(filePath, 'utf-8');
++    const lines = content.split('\n').filter(line => line.trim());
++    
++    for (const line of lines) {
++      parser.parseEvent(line);
++    }
++  } else {
++    // Read from stdin
++    const readline = await import('readline');
++    const rl = readline.createInterface({
++      input: process.stdin,
++      output: process.stdout,
++      terminal: false,
++    });
++
++    for await (const line of rl) {
++      if (line.trim()) {
++        parser.parseEvent(line);
++      }
++    }
++  }
++
++  parser.close();
++  console.log('\nGo test results written to reports/');
++}
++
++main().catch((err) => {
++  console.error('Error:', err);
++  process.exit(1);
++});
