@@ -188,23 +188,28 @@ DEBUG=1 MK_DEBUG_MODULES=executor MK_DEBUG_LEVEL=debug npm run dev
 
 ### MCP Server for Laminar
 
-The project includes an MCP (Model Context Protocol) server for exposing Laminar test logs and digests:
+The project includes an MCP (Model Context Protocol) server for exposing Laminar test logs and digests to AI agents and tools.
 
 **Location:** [src/mcp/laminar/server.ts](src/mcp/laminar/server.ts)
 
 **Features:**
 - **Resources:** Exposes `summary.jsonl` and digest files as MCP resources
-- **Tools:** Provides `query_logs`, `get_digest`, and `list_failures` tools
+- **12 MCP Tools:** Complete test execution, querying, and digest management
+- **Focus Overlay:** Ephemeral digest rule overlay for temporary filtering
 - **Protocol:** Standard MCP protocol for AI agent integration
+- **JSON Contracts:** Fully type-safe input/output schemas with validation
+- **Error Model:** Structured errors with codes, messages, and context
+- **Idempotence:** All operations are safe to retry
 
-**Usage:**
+#### Quick Start
 
 ```typescript
 import { createLaminarServer } from './src/mcp/laminar/server.js';
 
 const server = await createLaminarServer({
   reportsDir: 'reports',
-  summaryFile: 'reports/summary.jsonl'
+  summaryFile: 'reports/summary.jsonl',
+  configFile: 'laminar.config.json'
 });
 
 // List available resources
@@ -217,14 +222,151 @@ const summary = await server.readResource('laminar://summary');
 const failures = await server.callTool('list_failures', {});
 ```
 
-**Resources:**
-- `laminar://summary` - Test summary JSONL file
-- `laminar://digest/{caseName}` - Digest JSON for specific failed test
+#### Resources
 
-**Tools:**
-- `query_logs` - Query test event logs with filters (caseName, level, event, limit)
+- `laminar://summary` - Test summary JSONL file (all test results)
+- `laminar://digest/{caseName}` - Digest JSON for specific failed test case
+
+#### MCP Tools (12)
+
+**Test Execution:**
+- `run` - Execute tests with options for suite, case, and flake detection
+  - Input: `{ suite?: string, case?: string, flakeDetect?: boolean, flakeRuns?: number }`
+  - Output: `{ exitCode: number, message: string }`
+
+**Digest Rule Management:**
+- `rules.get` - Get current digest rules from laminar.config.json
+  - Input: `{}` (no parameters)
+  - Output: `{ config: DigestConfig }`
+- `rules.set` - Update digest rules in laminar.config.json (persistent)
+  - Input: `{ config: DigestConfig }` (required)
+  - Output: `{ success: boolean, message: string }`
+
+**Digest Generation:**
+- `digest.generate` - Generate digests for specific cases or all failing cases
+  - Input: `{ cases?: string[] }` (optional, all failures if omitted)
+  - Output: `{ count: number, message: string }`
+
+**Log Access:**
+- `logs.case.get` - Retrieve per-case JSONL logs
+  - Input: `{ caseName: string }` (required)
+  - Output: `{ logs: string }` (raw JSONL content)
+- `query` / `query_logs` - Query test event logs with filters (aliases)
+  - Input: `{ caseName?: string, level?: string, event?: string, limit?: number }`
+  - Output: `{ events: DigestEvent[], totalCount: number }`
+  - Default limit: 100, max: 1000
+
+**Failure Analysis:**
+- `repro` - Get reproduction commands for failures
+  - Input: `{ caseName?: string }` (optional, all failures if omitted)
+  - Output: `{ commands: ReproCommand[] }` (vitest + logq commands)
 - `get_digest` - Get digest for a specific failed test case
+  - Input: `{ caseName: string }` (required)
+  - Output: `{ digest: DigestOutput | null }`
 - `list_failures` - List all failed test cases from summary
+  - Input: `{}` (no parameters)
+  - Output: `{ failures: SummaryEntry[] }`
+
+**Focus Overlay (Ephemeral Rules):**
+- `focus.overlay.set` - Set ephemeral focus overlay rules (non-persistent)
+  - Input: `{ rules: DigestRule[] }` (required)
+  - Output: `{ success: boolean, message: string }`
+  - Use case: Temporary filtering without modifying config file
+- `focus.overlay.clear` - Clear all ephemeral focus overlay rules
+  - Input: `{}` (no parameters)
+  - Output: `{ success: boolean, message: string }`
+- `focus.overlay.get` - Get current ephemeral focus overlay rules
+  - Input: `{}` (no parameters)
+  - Output: `{ rules: DigestRule[] }`
+
+#### Error Handling
+
+All operations use structured error codes:
+- `INVALID_INPUT` - Invalid input parameters (with validation details)
+- `RESOURCE_NOT_FOUND` - Resource URI not found
+- `TOOL_NOT_FOUND` - Tool name not recognized
+- `IO_ERROR` - File system operation failed
+- `PARSE_ERROR` - JSON parsing failed
+- `INTERNAL_ERROR` - Unexpected internal error
+
+Error format:
+```json
+{
+  "error": {
+    "code": "INVALID_INPUT",
+    "message": "caseName is required and must be a string",
+    "details": { "received": null }
+  }
+}
+```
+
+#### Common Workflows
+
+**Workflow 1: Run tests and analyze failures**
+```typescript
+// 1. Run tests
+await server.callTool('run', { suite: 'my-suite' });
+
+// 2. List failures
+const failures = await server.callTool('list_failures', {});
+
+// 3. Get digest for specific failure
+const digest = await server.callTool('get_digest', { 
+  caseName: 'my-suite/failing-test' 
+});
+
+// 4. Get repro commands
+const repro = await server.callTool('repro', { 
+  caseName: 'my-suite/failing-test' 
+});
+```
+
+**Workflow 2: Focus overlay for temporary filtering**
+```typescript
+// 1. Set temporary overlay rules to focus on errors only
+await server.callTool('focus.overlay.set', {
+  rules: [
+    { match: { lvl: 'error' }, actions: [{ type: 'include' }] },
+    { match: { evt: 'assert.fail' }, actions: [{ type: 'slice', window: 5 }] }
+  ]
+});
+
+// 2. Generate digests with overlay rules
+await server.callTool('digest.generate', {});
+
+// 3. Clear overlay when done
+await server.callTool('focus.overlay.clear', {});
+```
+
+**Workflow 3: Query and filter logs**
+```typescript
+// 1. Query all error events for a test
+const errors = await server.callTool('query', {
+  caseName: 'topology.spec/rewire',
+  level: 'error',
+  limit: 50
+});
+
+// 2. Query specific event types
+const assertions = await server.callTool('query', {
+  caseName: 'topology.spec/rewire',
+  event: 'assert.fail'
+});
+```
+
+**Workflow 4: Flake detection**
+```typescript
+// Run tests with flake detection (5 runs)
+const result = await server.callTool('run', {
+  flakeDetect: true,
+  flakeRuns: 5
+});
+
+// Check stability report
+// (saved to reports/stability-report.json)
+```
+
+See [docs/testing/laminar.md](docs/testing/laminar.md#mcp-server-integration) for complete MCP integration examples and tool schemas.
 
 ### Cross-Language Test Ingest
 

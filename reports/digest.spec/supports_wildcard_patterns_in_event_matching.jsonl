@@ -1,3 +1,3 @@
-{"ts":1760294318320,"lvl":"info","case":"supports wildcard patterns in event matching","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760294318321,"lvl":"info","case":"supports wildcard patterns in event matching","phase":"execution","evt":"test.run"}
-{"ts":1760294318322,"lvl":"info","case":"supports wildcard patterns in event matching","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760297274615,"lvl":"info","case":"supports wildcard patterns in event matching","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760297274616,"lvl":"info","case":"supports wildcard patterns in event matching","phase":"execution","evt":"test.run"}
+{"ts":1760297274617,"lvl":"info","case":"supports wildcard patterns in event matching","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

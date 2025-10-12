@@ -1,0 +1,3 @@
+{"ts":1760295631127,"lvl":"info","case":"uses default flakeRuns value","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760295631128,"lvl":"info","case":"uses default flakeRuns value","phase":"execution","evt":"test.run"}
+{"ts":1760295631129,"lvl":"info","case":"uses default flakeRuns value","phase":"teardown","evt":"case.end","payload":{"duration":4838,"status":"passed"}}

@@ -58,8 +58,12 @@ export interface DigestOutput {
 }
 export declare class DigestGenerator {
     private config;
+    private overlayRules;
     private codeframeExtractor;
     constructor(config?: DigestConfig);
+    setOverlayRules(rules: DigestRule[]): void;
+    clearOverlayRules(): void;
+    getOverlayRules(): DigestRule[];
     static loadConfig(configPath?: string): DigestConfig;
     generateDigest(caseName: string, status: 'pass' | 'fail' | 'skip', duration: number, location: string, artifactURI: string, error?: string): Promise<DigestOutput | null>;
     private loadEvents;

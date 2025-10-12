@@ -926,3 +926,817 @@ Code frames appear in the **Code Frames** section of the markdown digest, after 
 
 ## Branding Notes
 Laminar fits the project’s physical‑manifold metaphor: smooth, predictable flow with clear gauges and valves for control.
+
+## MCP Server Integration
+
+### Overview
+
+Laminar provides a full-featured MCP (Model Context Protocol) server for AI agent integration. The server exposes test artifacts, logs, and digests through a standard protocol that AI agents and tools can consume.
+
+**Key Features:**
+- 12 MCP tools for test execution, querying, and analysis
+- Resources for accessing summary and digest files
+- Focus overlay system for ephemeral digest rule management
+- Type-safe JSON schemas with validation
+- Structured error handling with detailed context
+
+### Server Setup
+
+```typescript
+import { createLaminarServer } from './src/mcp/laminar/server.js';
+
+const server = await createLaminarServer({
+  reportsDir: 'reports',              // Test artifact directory
+  summaryFile: 'reports/summary.jsonl', // Summary JSONL file
+  configFile: 'laminar.config.json'    // Digest rules config
+});
+
+await server.start();
+// Laminar MCP Server started
+// Reports directory: reports
+// Summary file: reports/summary.jsonl
+// Config file: laminar.config.json
+// Available resources: 15
+// Available tools: 12
+```
+
+### MCP Resources
+
+Resources are read-only URIs that expose test artifacts:
+
+#### `laminar://summary`
+- **Type:** JSONL stream
+- **Content:** One-line summaries for all test cases
+- **Schema:** `{ status, duration, location, artifactURI, error?, testName? }`
+
+```typescript
+const summary = await server.readResource('laminar://summary');
+// Returns raw JSONL content
+```
+
+#### `laminar://digest/{caseName}`
+- **Type:** JSON object
+- **Content:** Structured digest for a failed test case
+- **Schema:** `DigestOutput` (see digest section)
+
+```typescript
+const digest = await server.readResource('laminar://digest/kernel.spec/connect_moves_data_1_1');
+// Returns digest JSON
+```
+
+### MCP Tools Reference
+
+#### 1. `run` - Execute Tests
+
+Run tests with optional filters and flake detection.
+
+**Input Schema:**
+```json
+{
+  "suite": "string (optional)",
+  "case": "string (optional)",
+  "flakeDetect": "boolean (optional, default: false)",
+  "flakeRuns": "number (optional, default: 5)"
+}
+```
+
+**Output Schema:**
+```json
+{
+  "exitCode": "number",
+  "message": "string"
+}
+```
+
+**Examples:**
+```typescript
+// Run all tests
+await server.callTool('run', {});
+
+// Run specific suite
+await server.callTool('run', { suite: 'kernel.spec' });
+
+// Run specific test
+await server.callTool('run', { case: 'connect moves data 1:1' });
+
+// Run with flake detection
+await server.callTool('run', { 
+  flakeDetect: true, 
+  flakeRuns: 10 
+});
+```
+
+#### 2. `rules.get` - Get Digest Rules
+
+Retrieve current digest rules from `laminar.config.json`.
+
+**Input Schema:**
+```json
+{}
+```
+
+**Output Schema:**
+```json
+{
+  "config": "DigestConfig"
+}
+```
+
+**Example:**
+```typescript
+const result = await server.callTool('rules.get', {});
+console.log(result.config.rules);
+// [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }]
+```
+
+#### 3. `rules.set` - Update Digest Rules
+
+Persist digest rules to `laminar.config.json`.
+
+**Input Schema:**
+```json
+{
+  "config": "DigestConfig (required)"
+}
+```
+
+**Output Schema:**
+```json
+{
+  "success": "boolean",
+  "message": "string"
+}
+```
+
+**Example:**
+```typescript
+await server.callTool('rules.set', {
+  config: {
+    enabled: true,
+    budget: { kb: 10, lines: 200 },
+    rules: [
+      { 
+        match: { lvl: 'error' }, 
+        actions: [{ type: 'include' }],
+        priority: 10
+      }
+    ]
+  }
+});
+```
+
+#### 4. `digest.generate` - Generate Digests
+
+Create digest files for failed test cases.
+
+**Input Schema:**
+```json
+{
+  "cases": "string[] (optional, all failures if omitted)"
+}
+```
+
+**Output Schema:**
+```json
+{
+  "count": "number",
+  "message": "string"
+}
+```
+
+**Examples:**
+```typescript
+// Generate for all failures
+await server.callTool('digest.generate', {});
+// { count: 5, message: "Generated 5 digest(s)" }
+
+// Generate for specific cases
+await server.callTool('digest.generate', { 
+  cases: ['kernel.spec/connect_moves_data_1_1', 'topology.spec/rewire'] 
+});
+```
+
+#### 5. `logs.case.get` - Get Case Logs
+
+Retrieve raw JSONL logs for a test case.
+
+**Input Schema:**
+```json
+{
+  "caseName": "string (required)"
+}
+```
+
+**Output Schema:**
+```json
+{
+  "logs": "string (JSONL content)"
+}
+```
+
+**Example:**
+```typescript
+const result = await server.callTool('logs.case.get', { 
+  caseName: 'kernel.spec/connect_moves_data_1_1' 
+});
+console.log(result.logs);
+// Raw JSONL: one event per line
+```
+
+#### 6. `query` / `query_logs` - Query Event Logs
+
+Filter and query test events with multiple criteria.
+
+**Input Schema:**
+```json
+{
+  "caseName": "string (optional)",
+  "level": "string (optional, 'error' | 'warn' | 'info' | 'debug')",
+  "event": "string (optional, event type filter)",
+  "limit": "number (optional, default: 100, max: 1000)"
+}
+```
+
+**Output Schema:**
+```json
+{
+  "events": "DigestEvent[]",
+  "totalCount": "number"
+}
+```
+
+**Examples:**
+```typescript
+// Query all error events
+const errors = await server.callTool('query', {
+  caseName: 'topology.spec/rewire',
+  level: 'error'
+});
+
+// Query specific event type
+const assertions = await server.callTool('query', {
+  caseName: 'topology.spec/rewire',
+  event: 'assert.fail',
+  limit: 50
+});
+
+// Query with limit
+const recent = await server.callTool('query', {
+  caseName: 'topology.spec/rewire',
+  limit: 10
+});
+```
+
+**Validation:**
+- `limit` must be between 1 and 1000
+- Invalid parameters throw `McpError` with `INVALID_INPUT` code
+
+#### 7. `repro` - Get Reproduction Commands
+
+Generate commands to reproduce test failures.
+
+**Input Schema:**
+```json
+{
+  "caseName": "string (optional, all failures if omitted)"
+}
+```
+
+**Output Schema:**
+```json
+{
+  "commands": [
+    {
+      "testName": "string",
+      "testFile": "string",
+      "vitestCommand": "string",
+      "logCommand": "string"
+    }
+  ]
+}
+```
+
+**Example:**
+```typescript
+const result = await server.callTool('repro', { 
+  caseName: 'topology.spec/rewire' 
+});
+
+console.log(result.commands[0]);
+// {
+//   testName: "topology rewire",
+//   testFile: "tests/topology.spec.ts",
+//   vitestCommand: 'vitest run --reporter=verbose --pool=threads "tests/topology.spec.ts" -t "topology rewire"',
+//   logCommand: 'npm run logq -- reports/topology.spec/rewire.jsonl'
+// }
+```
+
+#### 8. `get_digest` - Get Test Digest
+
+Retrieve structured digest for a failed test.
+
+**Input Schema:**
+```json
+{
+  "caseName": "string (required)"
+}
+```
+
+**Output Schema:**
+```json
+{
+  "digest": "DigestOutput | null"
+}
+```
+
+**Example:**
+```typescript
+const result = await server.callTool('get_digest', { 
+  caseName: 'topology.spec/rewire' 
+});
+
+if (result.digest) {
+  console.log(result.digest.summary);
+  console.log(result.digest.suspects);
+  console.log(result.digest.events);
+}
+```
+
+#### 9. `list_failures` - List Failed Tests
+
+Get all failed test cases from summary.
+
+**Input Schema:**
+```json
+{}
+```
+
+**Output Schema:**
+```json
+{
+  "failures": [
+    {
+      "status": "fail",
+      "duration": "number",
+      "location": "string",
+      "artifactURI": "string",
+      "error": "string (optional)",
+      "testName": "string (optional)"
+    }
+  ]
+}
+```
+
+**Example:**
+```typescript
+const result = await server.callTool('list_failures', {});
+result.failures.forEach(f => {
+  console.log(`FAIL: ${f.testName} (${f.duration}ms)`);
+  console.log(`  Location: ${f.location}`);
+  console.log(`  Logs: ${f.artifactURI}`);
+  console.log(`  Error: ${f.error}`);
+});
+```
+
+#### 10. `focus.overlay.set` - Set Focus Overlay
+
+Set ephemeral digest rules that override persistent config (non-persistent, runtime only).
+
+**Input Schema:**
+```json
+{
+  "rules": "DigestRule[] (required)"
+}
+```
+
+**Output Schema:**
+```json
+{
+  "success": "boolean",
+  "message": "string"
+}
+```
+
+**Example:**
+```typescript
+await server.callTool('focus.overlay.set', {
+  rules: [
+    { 
+      match: { lvl: 'error' }, 
+      actions: [{ type: 'include' }],
+      priority: 10
+    },
+    { 
+      match: { evt: 'assert.fail' }, 
+      actions: [
+        { type: 'include' },
+        { type: 'slice', window: 10 }
+      ],
+      priority: 9
+    }
+  ]
+});
+// { success: true, message: "Set 2 overlay rule(s)" }
+```
+
+**Use Cases:**
+- Temporary focus on specific event types without modifying config
+- Debugging sessions requiring different digest filters
+- Agent-driven dynamic filtering based on failure patterns
+
+#### 11. `focus.overlay.clear` - Clear Focus Overlay
+
+Remove all ephemeral overlay rules.
+
+**Input Schema:**
+```json
+{}
+```
+
+**Output Schema:**
+```json
+{
+  "success": "boolean",
+  "message": "string"
+}
+```
+
+**Example:**
+```typescript
+await server.callTool('focus.overlay.clear', {});
+// { success: true, message: "Cleared overlay rules" }
+```
+
+#### 12. `focus.overlay.get` - Get Focus Overlay
+
+Retrieve current ephemeral overlay rules.
+
+**Input Schema:**
+```json
+{}
+```
+
+**Output Schema:**
+```json
+{
+  "rules": "DigestRule[]"
+}
+```
+
+**Example:**
+```typescript
+const result = await server.callTool('focus.overlay.get', {});
+console.log(result.rules);
+// [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }]
+```
+
+### Error Handling
+
+All MCP tools return structured errors on failure:
+
+**Error Codes:**
+- `INVALID_INPUT` - Invalid parameters (missing required fields, type mismatch, out of range)
+- `RESOURCE_NOT_FOUND` - Resource URI not found
+- `TOOL_NOT_FOUND` - Unknown tool name
+- `IO_ERROR` - File system operation failed
+- `PARSE_ERROR` - JSON parsing failed
+- `INTERNAL_ERROR` - Unexpected internal error
+
+**Error Format:**
+```typescript
+{
+  error: {
+    code: 'INVALID_INPUT',
+    message: 'caseName is required and must be a string',
+    details: { received: null }
+  }
+}
+```
+
+**Error Handling Example:**
+```typescript
+try {
+  await server.callTool('get_digest', {});
+} catch (error) {
+  if (error instanceof McpError) {
+    console.error(`Error [${error.code}]: ${error.message}`);
+    console.error('Details:', error.details);
+  }
+}
+// Error [INVALID_INPUT]: caseName is required and must be a string
+// Details: { received: undefined }
+```
+
+### Agent Integration Workflows
+
+#### Workflow 1: Automated Test Triage
+
+AI agent analyzes test failures and generates reports.
+
+```typescript
+// 1. Run tests
+const runResult = await server.callTool('run', {});
+
+if (runResult.exitCode !== 0) {
+  // 2. List all failures
+  const failures = await server.callTool('list_failures', {});
+  
+  // 3. Generate digests for all failures
+  await server.callTool('digest.generate', {});
+  
+  // 4. Analyze each failure
+  for (const failure of failures.failures) {
+    const caseName = failure.artifactURI
+      .replace('reports/', '')
+      .replace('.jsonl', '');
+    
+    // Get digest
+    const digest = await server.callTool('get_digest', { caseName });
+    
+    // Get repro commands
+    const repro = await server.callTool('repro', { caseName });
+    
+    // Agent analyzes digest.suspects and generates report
+    console.log(`Analyzing: ${failure.testName}`);
+    console.log(`Top suspect: ${digest.digest.suspects[0]}`);
+    console.log(`Repro: ${repro.commands[0].vitestCommand}`);
+  }
+}
+```
+
+#### Workflow 2: Focus Overlay for Deep Debugging
+
+Agent temporarily changes digest filters to focus on specific patterns.
+
+```typescript
+// 1. Set focus overlay for worker-related events
+await server.callTool('focus.overlay.set', {
+  rules: [
+    { 
+      match: { evt: /^worker\./ }, 
+      actions: [{ type: 'include' }],
+      priority: 10
+    },
+    { 
+      match: { path: 'tests/worker/' }, 
+      actions: [{ type: 'include' }],
+      priority: 9
+    }
+  ]
+});
+
+// 2. Regenerate digests with overlay
+await server.callTool('digest.generate', { 
+  cases: ['worker.spec/lifecycle'] 
+});
+
+// 3. Analyze focused digest
+const digest = await server.callTool('get_digest', { 
+  caseName: 'worker.spec/lifecycle' 
+});
+
+// 4. Clear overlay
+await server.callTool('focus.overlay.clear', {});
+```
+
+#### Workflow 3: Incremental Query and Analysis
+
+Agent queries logs incrementally to avoid token limits.
+
+```typescript
+// 1. Query error events first
+const errors = await server.callTool('query', {
+  caseName: 'topology.spec/rewire',
+  level: 'error',
+  limit: 10
+});
+
+// 2. If error found, query context around correlation ID
+const errorCorr = errors.events[0].corr;
+
+// Use logq for correlation context
+// (MCP doesn't expose correlation queries directly)
+
+// 3. Query specific event types for deeper analysis
+const workerEvents = await server.callTool('query', {
+  caseName: 'topology.spec/rewire',
+  event: 'worker.ready',
+  limit: 20
+});
+
+// 4. Build timeline from incremental queries
+const timeline = [...errors.events, ...workerEvents.events]
+  .sort((a, b) => a.ts - b.ts);
+```
+
+#### Workflow 4: Persistent Rule Management
+
+Agent updates digest rules based on failure patterns.
+
+```typescript
+// 1. Get current rules
+const current = await server.callTool('rules.get', {});
+
+// 2. Analyze failures to determine new patterns
+const failures = await server.callTool('list_failures', {});
+
+// Agent detects common pattern: worker.exit errors
+
+// 3. Add new rule to config
+const newConfig = {
+  ...current.config,
+  rules: [
+    ...current.config.rules,
+    {
+      match: { evt: 'worker.exit', lvl: 'error' },
+      actions: [
+        { type: 'include' },
+        { type: 'slice', window: 20 }
+      ],
+      priority: 8
+    }
+  ]
+};
+
+// 4. Persist updated rules
+await server.callTool('rules.set', { config: newConfig });
+
+// 5. Regenerate digests with new rules
+await server.callTool('digest.generate', {});
+```
+
+### Tool Schemas (TypeScript Interfaces)
+
+```typescript
+// DigestRule - Used by rules.set, rules.get, focus.overlay.set
+interface DigestRule {
+  match: {
+    evt?: string | string[];    // Event type pattern(s)
+    lvl?: 'error' | 'warn' | 'info' | 'debug';
+    phase?: 'arrange' | 'act' | 'assert' | 'teardown';
+    case?: string | string[];   // Test case pattern(s)
+    path?: string | string[];   // File path pattern(s)
+  };
+  actions: Array<
+    | { type: 'include' }
+    | { type: 'slice'; window: number }
+    | { type: 'redact'; field: string | string[] }
+    | { type: 'priority'; level: number }
+    | { type: 'codeframe'; contextLines?: number }
+  >;
+  priority?: number;  // 0-10, higher = evaluated first
+}
+
+// DigestConfig - Used by rules.set, rules.get
+interface DigestConfig {
+  enabled?: boolean;
+  budget?: {
+    kb?: number;
+    events?: number;
+    cases?: number;
+  };
+  rules?: DigestRule[];
+}
+
+// DigestEvent - Used by query, query_logs output
+interface DigestEvent {
+  ts: number;         // Epoch ms
+  lvl: 'info' | 'warn' | 'error' | 'debug';
+  case: string;       // Test case name
+  phase: 'arrange' | 'act' | 'assert' | 'teardown';
+  evt: string;        // Event type
+  id?: string;        // Event ID
+  corr?: string;      // Correlation ID
+  path?: string;      // Source location (file:line)
+  payload?: unknown;  // Event-specific data
+}
+
+// DigestOutput - Used by get_digest output
+interface DigestOutput {
+  summary: {
+    total: number;
+    included: number;
+    excluded?: number;
+  };
+  suspects?: Array<{
+    ts: number;
+    lvl: string;
+    evt: string;
+    score: number;
+    reasons: string[];
+  }>;
+  events: DigestEvent[];
+  codeframes?: Array<{
+    file: string;
+    line: number;
+    column?: number;
+    context: {
+      before: string[];
+      focus: string;
+      after: string[];
+    };
+  }>;
+}
+
+// ReproCommand - Used by repro output
+interface ReproCommand {
+  testName: string;
+  testFile: string;
+  vitestCommand: string;
+  logCommand: string;
+}
+
+// SummaryEntry - Used by list_failures output
+interface SummaryEntry {
+  status: 'pass' | 'fail' | 'skip';
+  duration: number;
+  location: string;
+  artifactURI: string;
+  error?: string;
+  testName?: string;
+}
+```
+
+### Focus Overlay Deep Dive
+
+The focus overlay system provides ephemeral digest rule management without modifying the persistent config file.
+
+**Key Characteristics:**
+- **Non-persistent:** Overlay rules exist only in memory, cleared on server restart
+- **Override behavior:** Overlay rules are applied AFTER persistent rules
+- **Independent:** Changing overlay doesn't affect `laminar.config.json`
+- **Atomic operations:** Set/clear/get are immediate, no file I/O
+
+**Use Cases:**
+1. **Debugging sessions:** Focus on specific event patterns without config changes
+2. **Agent-driven filtering:** AI agents dynamically adjust filters based on failure analysis
+3. **Temporary experiments:** Try different digest rules without persisting changes
+4. **Multi-tenant scenarios:** Different agents can use different overlays (if server instances isolated)
+
+**Workflow Example:**
+```typescript
+// Agent analyzing a complex failure
+async function debugComplexFailure(caseName: string) {
+  // Save current overlay state
+  const originalOverlay = await server.callTool('focus.overlay.get', {});
+  
+  try {
+    // Phase 1: Focus on errors only
+    await server.callTool('focus.overlay.set', {
+      rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }]
+    });
+    const errorDigest = await server.callTool('get_digest', { caseName });
+    
+    // Phase 2: Focus on worker events
+    await server.callTool('focus.overlay.set', {
+      rules: [{ match: { evt: /^worker\./ }, actions: [{ type: 'include' }] }]
+    });
+    const workerDigest = await server.callTool('get_digest', { caseName });
+    
+    // Phase 3: Combine insights
+    const analysis = analyzeDigests(errorDigest, workerDigest);
+    
+    return analysis;
+  } finally {
+    // Restore original overlay
+    if (originalOverlay.rules.length > 0) {
+      await server.callTool('focus.overlay.set', { rules: originalOverlay.rules });
+    } else {
+      await server.callTool('focus.overlay.clear', {});
+    }
+  }
+}
+```
+
+**Overlay vs Persistent Rules:**
+
+| Feature | Persistent (`rules.set`) | Overlay (`focus.overlay.set`) |
+|---------|-------------------------|-------------------------------|
+| Storage | `laminar.config.json` | Memory only |
+| Lifetime | Until file deleted/modified | Until server restart or cleared |
+| Scope | All digest generation | All digest generation (overrides persistent) |
+| Use case | Long-term project defaults | Temporary debugging/analysis |
+| Modification | Requires file write | In-memory only |
+
+### MCP Server Configuration
+
+**Server Options:**
+```typescript
+interface McpServerConfig {
+  reportsDir?: string;    // Default: 'reports'
+  summaryFile?: string;   // Default: 'reports/summary.jsonl'
+  configFile?: string;    // Default: 'laminar.config.json'
+}
+```
+
+**Environment Integration:**
+- Server reads `laminar.config.json` on startup
+- Digest generator loads rules from config file
+- Focus overlay is initialized empty on server start
+
+**Best Practices:**
+1. **Config file location:** Keep `laminar.config.json` in repo root for version control
+2. **Reports directory:** Use gitignore for `reports/` to avoid committing artifacts
+3. **Error handling:** Always wrap tool calls in try-catch for `McpError`
+4. **Idempotency:** Tools are safe to retry on network failures
+5. **Resource limits:** Use `limit` parameter in `query` to avoid large responses

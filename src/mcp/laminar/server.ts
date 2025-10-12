@@ -1,8 +1,55 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { DigestEvent, DigestOutput } from '../../digest/generator.js';
+import { spawnSync } from 'node:child_process';
+import { DigestEvent, DigestOutput, DigestConfig, DigestGenerator, DigestRule, generateAllDigests, generateDigestsForCases } from '../../digest/generator.js';
 
 export type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
+
+export enum McpErrorCode {
+  INVALID_INPUT = 'INVALID_INPUT',
+  RESOURCE_NOT_FOUND = 'RESOURCE_NOT_FOUND',
+  TOOL_NOT_FOUND = 'TOOL_NOT_FOUND',
+  IO_ERROR = 'IO_ERROR',
+  PARSE_ERROR = 'PARSE_ERROR',
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+}
+
+export class McpError extends Error {
+  constructor(
+    public code: McpErrorCode,
+    message: string,
+    public details?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = 'McpError';
+  }
+
+  toJson(): Json {
+    return {
+      error: {
+        code: this.code as string,
+        message: this.message,
+        details: (this.details || null) as Json,
+      },
+    } as Json;
+  }
+}
+
+export interface JsonSchema {
+  type: string;
+  properties?: Record<string, JsonSchemaProperty>;
+  required?: string[];
+  additionalProperties?: boolean;
+}
+
+export interface JsonSchemaProperty {
+  type: string;
+  description?: string;
+  default?: unknown;
+  enum?: string[];
+  minimum?: number;
+  maximum?: number;
+}
 
 export interface McpResource {
   uri: string;
@@ -14,16 +61,128 @@ export interface McpResource {
 export interface McpTool {
   name: string;
   description: string;
-  inputSchema: {
-    type: 'object';
-    properties: Record<string, unknown>;
-    required?: string[];
-  };
+  inputSchema: JsonSchema;
+}
+
+export interface QueryLogsInput {
+  caseName?: string;
+  level?: string;
+  event?: string;
+  limit?: number;
+}
+
+export interface QueryLogsOutput {
+  events: DigestEvent[];
+  totalCount: number;
+}
+
+export interface GetDigestInput {
+  caseName: string;
+}
+
+export interface GetDigestOutput {
+  digest: DigestOutput | null;
+}
+
+export interface ListFailuresInput {
+  // No input parameters
+}
+
+export interface ListFailuresOutput {
+  failures: SummaryEntry[];
+}
+
+export interface RunInput {
+  suite?: string;
+  case?: string;
+  flakeDetect?: boolean;
+  flakeRuns?: number;
+}
+
+export interface RunOutput {
+  exitCode: number;
+  message: string;
+}
+
+export interface RulesGetInput {
+  // No input parameters
+}
+
+export interface RulesGetOutput {
+  config: DigestConfig;
+}
+
+export interface RulesSetInput {
+  config: DigestConfig;
+}
+
+export interface RulesSetOutput {
+  success: boolean;
+  message: string;
+}
+
+export interface DigestGenerateInput {
+  cases?: string[];
+}
+
+export interface DigestGenerateOutput {
+  count: number;
+  message: string;
+}
+
+export interface FocusOverlaySetInput {
+  rules: DigestRule[];
+}
+
+export interface FocusOverlaySetOutput {
+  success: boolean;
+  message: string;
+}
+
+export interface FocusOverlayClearInput {
+  // No input parameters
+}
+
+export interface FocusOverlayClearOutput {
+  success: boolean;
+  message: string;
+}
+
+export interface FocusOverlayGetInput {
+  // No input parameters
+}
+
+export interface FocusOverlayGetOutput {
+  rules: DigestRule[];
+}
+
+export interface LogsCaseGetInput {
+  caseName: string;
+}
+
+export interface LogsCaseGetOutput {
+  logs: string;
+}
+
+export interface ReproInput {
+  caseName?: string;
+}
+
+export interface ReproOutput {
+  commands: ReproCommand[];
+}
+
+export interface ReproCommand {
+  testName: string;
+  testFile: string;
+  vitestCommand: string;
+  logCommand: string;
 }
 
 export interface McpServerConfig {
   reportsDir?: string;
   summaryFile?: string;
+  configFile?: string;
 }
 
 export interface SummaryEntry {
@@ -32,27 +191,134 @@ export interface SummaryEntry {
   location: string;
   artifactURI: string;
   error?: string;
-}
-
-export interface QueryLogsParams {
-  caseName?: string;
-  level?: string;
-  event?: string;
-  limit?: number;
-}
-
-export interface QueryLogsResult {
-  events: DigestEvent[];
-  totalCount: number;
+  testName?: string;
 }
 
 export class LaminarMcpServer {
   private reportsDir: string;
   private summaryFile: string;
+  private configFile: string;
+  private digestGenerator: DigestGenerator | null = null;
 
   constructor(config: McpServerConfig = {}) {
     this.reportsDir = config.reportsDir || 'reports';
     this.summaryFile = config.summaryFile || path.join(this.reportsDir, 'summary.jsonl');
+    this.configFile = config.configFile || 'laminar.config.json';
+  }
+
+  private getDigestGenerator(): DigestGenerator {
+    if (!this.digestGenerator) {
+      const config = DigestGenerator.loadConfig(this.configFile);
+      this.digestGenerator = new DigestGenerator(config);
+    }
+    return this.digestGenerator;
+  }
+
+  // ============================================================================
+  // Input Validation
+  // ============================================================================
+
+  private validateQueryLogsInput(input: unknown): QueryLogsInput {
+    if (typeof input !== 'object' || input === null) {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'Input must be an object',
+        { received: typeof input }
+      );
+    }
+
+    const params = input as Record<string, unknown>;
+
+    if (params.caseName !== undefined && typeof params.caseName !== 'string') {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'caseName must be a string',
+        { received: typeof params.caseName }
+      );
+    }
+
+    if (params.level !== undefined && typeof params.level !== 'string') {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'level must be a string',
+        { received: typeof params.level }
+      );
+    }
+
+    if (params.event !== undefined && typeof params.event !== 'string') {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'event must be a string',
+        { received: typeof params.event }
+      );
+    }
+
+    if (params.limit !== undefined) {
+      if (typeof params.limit !== 'number') {
+        throw new McpError(
+          McpErrorCode.INVALID_INPUT,
+          'limit must be a number',
+          { received: typeof params.limit }
+        );
+      }
+      if (params.limit < 1 || params.limit > 1000) {
+        throw new McpError(
+          McpErrorCode.INVALID_INPUT,
+          'limit must be between 1 and 1000',
+          { received: params.limit }
+        );
+      }
+    }
+
+    return {
+      caseName: params.caseName as string | undefined,
+      level: params.level as string | undefined,
+      event: params.event as string | undefined,
+      limit: params.limit as number | undefined,
+    };
+  }
+
+  private validateGetDigestInput(input: unknown): GetDigestInput {
+    if (typeof input !== 'object' || input === null) {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'Input must be an object',
+        { received: typeof input }
+      );
+    }
+
+    const params = input as Record<string, unknown>;
+
+    if (!params.caseName || typeof params.caseName !== 'string') {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'caseName is required and must be a string',
+        { received: params.caseName }
+      );
+    }
+
+    if (params.caseName.trim() === '') {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'caseName cannot be empty',
+        { received: params.caseName }
+      );
+    }
+
+    return {
+      caseName: params.caseName,
+    };
+  }
+
+  private validateListFailuresInput(input: unknown): ListFailuresInput {
+    if (typeof input !== 'object' || input === null) {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'Input must be an object',
+        { received: typeof input }
+      );
+    }
+    return {};
   }
 
   listResources(): McpResource[] {
@@ -83,6 +349,121 @@ export class LaminarMcpServer {
 
   listTools(): McpTool[] {
     return [
+      {
+        name: 'run',
+        description: 'Execute tests with options for suite, case, and flake detection',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            suite: {
+              type: 'string',
+              description: 'Test suite/file to run (optional)',
+            },
+            case: {
+              type: 'string',
+              description: 'Specific test case name to run (optional)',
+            },
+            flakeDetect: {
+              type: 'boolean',
+              description: 'Enable flake detection mode (default: false)',
+              default: false,
+            },
+            flakeRuns: {
+              type: 'number',
+              description: 'Number of runs for flake detection (default: 5)',
+              default: 5,
+            },
+          },
+        },
+      },
+      {
+        name: 'rules.get',
+        description: 'Get current digest rules from laminar.config.json',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'rules.set',
+        description: 'Update digest rules in laminar.config.json',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            config: {
+              type: 'object',
+              description: 'Digest configuration object',
+            },
+          },
+          required: ['config'],
+        },
+      },
+      {
+        name: 'digest.generate',
+        description: 'Generate digests for specific cases or all failing cases',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            cases: {
+              type: 'array',
+              description: 'Array of case names to generate digests for (optional, all failures if omitted)',
+            },
+          },
+        },
+      },
+      {
+        name: 'logs.case.get',
+        description: 'Retrieve per-case JSONL logs',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            caseName: {
+              type: 'string',
+              description: 'Name of the test case',
+            },
+          },
+          required: ['caseName'],
+        },
+      },
+      {
+        name: 'query',
+        description: 'Query logs with filters (alias for query_logs)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            caseName: {
+              type: 'string',
+              description: 'Filter by test case name',
+            },
+            level: {
+              type: 'string',
+              description: 'Filter by log level (error, warn, info, debug)',
+            },
+            event: {
+              type: 'string',
+              description: 'Filter by event type',
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum number of events to return',
+              default: 100,
+            },
+          },
+        },
+      },
+      {
+        name: 'repro',
+        description: 'Get reproduction commands for failures',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            caseName: {
+              type: 'string',
+              description: 'Specific case name to get repro command for (optional)',
+            },
+          },
+        },
+      },
       {
         name: 'query_logs',
         description: 'Query test event logs with filters',
@@ -131,6 +512,36 @@ export class LaminarMcpServer {
           properties: {},
         },
       },
+      {
+        name: 'focus.overlay.set',
+        description: 'Set ephemeral focus overlay rules (non-persistent)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            rules: {
+              type: 'array',
+              description: 'Array of digest rules for the overlay',
+            },
+          },
+          required: ['rules'],
+        },
+      },
+      {
+        name: 'focus.overlay.clear',
+        description: 'Clear all ephemeral focus overlay rules',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'focus.overlay.get',
+        description: 'Get current ephemeral focus overlay rules',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
     ];
   }
 
@@ -149,16 +560,225 @@ export class LaminarMcpServer {
   }
 
   async callTool(name: string, args: Json): Promise<Json> {
-    switch (name) {
-      case 'query_logs':
-        return this.queryLogs(args as QueryLogsParams) as unknown as Json;
-      case 'get_digest':
-        return this.getDigest((args as { caseName: string }).caseName) as unknown as Json;
-      case 'list_failures':
-        return this.listFailures() as unknown as Json;
-      default:
-        throw new Error(`Unknown tool: ${name}`);
+    try {
+      switch (name) {
+        case 'run':
+          return (await this.run(args as unknown as RunInput)) as unknown as Json;
+        case 'rules.get':
+          return (await this.rulesGet(args as unknown as RulesGetInput)) as unknown as Json;
+        case 'rules.set':
+          return (await this.rulesSet(args as unknown as RulesSetInput)) as unknown as Json;
+        case 'digest.generate':
+          return (await this.digestGenerate(args as unknown as DigestGenerateInput)) as unknown as Json;
+        case 'logs.case.get':
+          return (await this.logsCaseGet(args as unknown as LogsCaseGetInput)) as unknown as Json;
+        case 'query':
+        case 'query_logs': {
+          const input = this.validateQueryLogsInput(args);
+          const result = await this.queryLogs(input);
+          return result as unknown as Json;
+        }
+        case 'repro':
+          return (await this.repro(args as unknown as ReproInput)) as unknown as Json;
+        case 'get_digest': {
+          const input = this.validateGetDigestInput(args);
+          const result = await this.getDigest(input.caseName);
+          return { digest: result } as unknown as Json;
+        }
+        case 'list_failures': {
+          this.validateListFailuresInput(args);
+          const result = await this.listFailures();
+          return { failures: result } as unknown as Json;
+        }
+        case 'focus.overlay.set':
+          return (await this.focusOverlaySet(args as unknown as FocusOverlaySetInput)) as unknown as Json;
+        case 'focus.overlay.clear':
+          return (await this.focusOverlayClear(args as unknown as FocusOverlayClearInput)) as unknown as Json;
+        case 'focus.overlay.get':
+          return (await this.focusOverlayGet(args as unknown as FocusOverlayGetInput)) as unknown as Json;
+        default:
+          throw new McpError(
+            McpErrorCode.TOOL_NOT_FOUND,
+            `Unknown tool: ${name}`,
+            { tool: name }
+          );
+      }
+    } catch (error) {
+      if (error instanceof McpError) {
+        throw error;
+      }
+      throw new McpError(
+        McpErrorCode.INTERNAL_ERROR,
+        `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`,
+        { tool: name }
+      );
     }
+  }
+
+  private async run(params: RunInput): Promise<RunOutput> {
+    const { suite, case: caseName, flakeDetect = false, flakeRuns = 5 } = params;
+
+    const args = ['run', 'lam', '--'];
+    
+    if (flakeDetect) {
+      args.push('run', '--lane', 'ci', '--flake-detect', flakeRuns.toString());
+    } else {
+      args.push('run', '--lane', 'auto');
+      
+      if (suite) {
+        args.push('--filter', suite);
+      } else if (caseName) {
+        args.push('--filter', caseName);
+      }
+    }
+
+    const result = spawnSync('npm', args, {
+      stdio: 'pipe',
+      encoding: 'utf-8',
+    });
+
+    return {
+      exitCode: result.status || 0,
+      message: result.status === 0 ? 'Tests completed successfully' : 'Tests failed',
+    };
+  }
+
+  private async rulesGet(params: RulesGetInput): Promise<RulesGetOutput> {
+    if (fs.existsSync(this.configFile)) {
+      const content = fs.readFileSync(this.configFile, 'utf-8');
+      const config = JSON.parse(content) as DigestConfig;
+      return { config };
+    }
+    
+    return { config: {} };
+  }
+
+  private async rulesSet(params: RulesSetInput): Promise<RulesSetOutput> {
+    try {
+      const content = JSON.stringify(params.config, null, 2);
+      fs.writeFileSync(this.configFile, content);
+      return {
+        success: true,
+        message: `Updated ${this.configFile}`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update config',
+      };
+    }
+  }
+
+  private async digestGenerate(params: DigestGenerateInput): Promise<DigestGenerateOutput> {
+    try {
+      const generator = this.getDigestGenerator();
+      let count = 0;
+      
+      if (!fs.existsSync(this.summaryFile)) {
+        return {
+          count: 0,
+          message: 'No summary.jsonl found',
+        };
+      }
+
+      const content = fs.readFileSync(this.summaryFile, 'utf-8');
+      const lines = content.trim().split('\n').filter(Boolean);
+      
+      const casesToProcess = params.cases && params.cases.length > 0 
+        ? new Set(params.cases as string[])
+        : null;
+
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          const caseName = entry.artifactURI ? path.basename(entry.artifactURI, '.jsonl') : '';
+          
+          if (casesToProcess && !casesToProcess.has(caseName)) {
+            continue;
+          }
+          
+          if (entry.status === 'fail' && entry.artifactURI) {
+            const digest = await generator.generateDigest(
+              caseName,
+              entry.status,
+              entry.duration,
+              entry.location,
+              entry.artifactURI,
+              entry.error
+            );
+
+            if (digest) {
+              const outputDir = path.dirname(entry.artifactURI);
+              await generator.writeDigest(digest, outputDir);
+              count++;
+            }
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      return {
+        count,
+        message: count === 0 ? 'No failing test cases found' : `Generated ${count} digest(s)`,
+      };
+    } catch (error) {
+      return {
+        count: 0,
+        message: error instanceof Error ? error.message : 'Failed to generate digests',
+      };
+    }
+  }
+
+  private async logsCaseGet(params: LogsCaseGetInput): Promise<LogsCaseGetOutput> {
+    const logPath = this.findLogPath(params.caseName);
+    
+    if (!logPath || !fs.existsSync(logPath)) {
+      return { logs: '' };
+    }
+    
+    const logs = fs.readFileSync(logPath, 'utf-8');
+    return { logs };
+  }
+
+  private async repro(params: ReproInput): Promise<ReproOutput> {
+    if (!fs.existsSync(this.summaryFile)) {
+      return { commands: [] };
+    }
+
+    const content = fs.readFileSync(this.summaryFile, 'utf-8');
+    const lines = content.trim().split('\n').filter(Boolean);
+    const entries: SummaryEntry[] = lines.map(line => JSON.parse(line));
+
+    let failures = entries.filter(entry => entry.status === 'fail');
+    
+    if (params.caseName) {
+      failures = failures.filter(f => {
+        const caseName = f.artifactURI ? path.basename(f.artifactURI, '.jsonl') : '';
+        return caseName === params.caseName;
+      });
+    }
+
+    const commands: ReproCommand[] = failures.map(failure => {
+      const testFile = failure.location.split(':')[0];
+      const testName = this.extractTestName(failure.artifactURI);
+      const artifactPath = failure.artifactURI;
+
+      return {
+        testName,
+        testFile,
+        vitestCommand: `vitest run --reporter=verbose --pool=threads "${testFile}" -t "${testName}"`,
+        logCommand: `npm run logq -- ${artifactPath}`,
+      };
+    });
+
+    return { commands };
+  }
+
+  private extractTestName(artifactURI: string): string {
+    const parts = artifactURI.split('/');
+    const filename = parts[parts.length - 1];
+    return filename.replace('.jsonl', '').replace(/_/g, ' ');
   }
 
   private readSummary(): string | null {
@@ -215,7 +835,7 @@ export class LaminarMcpServer {
     return results;
   }
 
-  private async queryLogs(params: QueryLogsParams): Promise<QueryLogsResult> {
+  private async queryLogs(params: QueryLogsInput): Promise<QueryLogsOutput> {
     const { caseName, level, event, limit = 100 } = params;
     const events: DigestEvent[] = [];
 
@@ -317,10 +937,49 @@ export class LaminarMcpServer {
     return failures;
   }
 
+  private async focusOverlaySet(params: FocusOverlaySetInput): Promise<FocusOverlaySetOutput> {
+    try {
+      const generator = this.getDigestGenerator();
+      generator.setOverlayRules(params.rules);
+      return {
+        success: true,
+        message: `Set ${params.rules.length} overlay rule(s)`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to set overlay rules',
+      };
+    }
+  }
+
+  private async focusOverlayClear(params: FocusOverlayClearInput): Promise<FocusOverlayClearOutput> {
+    try {
+      const generator = this.getDigestGenerator();
+      generator.clearOverlayRules();
+      return {
+        success: true,
+        message: 'Cleared overlay rules',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to clear overlay rules',
+      };
+    }
+  }
+
+  private async focusOverlayGet(params: FocusOverlayGetInput): Promise<FocusOverlayGetOutput> {
+    const generator = this.getDigestGenerator();
+    const rules = generator.getOverlayRules();
+    return { rules };
+  }
+
   async start(): Promise<void> {
     console.log('Laminar MCP Server started');
     console.log(`Reports directory: ${this.reportsDir}`);
     console.log(`Summary file: ${this.summaryFile}`);
+    console.log(`Config file: ${this.configFile}`);
     console.log('');
     console.log('Available resources:', this.listResources().length);
     console.log('Available tools:', this.listTools().length);

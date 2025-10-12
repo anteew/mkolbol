@@ -1,3 +1,3 @@
-{"ts":1760294318323,"lvl":"info","case":"recognizes Go test.fail events in rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760294318324,"lvl":"info","case":"recognizes Go test.fail events in rules","phase":"execution","evt":"test.run"}
-{"ts":1760294318325,"lvl":"info","case":"recognizes Go test.fail events in rules","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760297274617,"lvl":"info","case":"recognizes Go test.fail events in rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760297274618,"lvl":"info","case":"recognizes Go test.fail events in rules","phase":"execution","evt":"test.run"}
+{"ts":1760297274619,"lvl":"info","case":"recognizes Go test.fail events in rules","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

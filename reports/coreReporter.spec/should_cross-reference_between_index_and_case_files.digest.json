@@ -1,0 +1,157 @@
+{
+  "case": "should_cross-reference_between_index_and_case_files",
+  "status": "fail",
+  "duration": 3,
+  "location": "/srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:0",
+  "error": "expected +0 to be 1 // Object.is equality",
+  "summary": {
+    "totalEvents": 4,
+    "includedEvents": 2,
+    "redactedFields": 0,
+    "budgetUsed": 2396,
+    "budgetLimit": 10240
+  },
+  "suspects": [
+    {
+      "ts": 1760295605853,
+      "lvl": "error",
+      "case": "should cross-reference between index and case files",
+      "phase": "teardown",
+      "evt": "case.end",
+      "payload": {
+        "duration": 3,
+        "status": "failed"
+      },
+      "score": 80,
+      "reasons": [
+        "error level",
+        "close proximity to failure"
+      ]
+    },
+    {
+      "ts": 1760295605852,
+      "lvl": "error",
+      "case": "should cross-reference between index and case files",
+      "phase": "execution",
+      "evt": "test.error",
+      "payload": {
+        "message": "expected +0 to be 1 // Object.is equality",
+        "stack": "AssertionError: expected +0 to be 1 // Object.is equality\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:261:47\n    at Array.forEach (<anonymous>)\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:253:39\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:135:14\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:60:26\n    at runTest (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:781:17)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runFiles (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:958:5)"
+      },
+      "score": 79.99,
+      "reasons": [
+        "error level",
+        "close proximity to failure"
+      ]
+    },
+    {
+      "ts": 1760295605851,
+      "lvl": "info",
+      "case": "should cross-reference between index and case files",
+      "phase": "execution",
+      "evt": "test.run",
+      "score": 29.98,
+      "reasons": [
+        "close proximity to failure"
+      ]
+    },
+    {
+      "ts": 1760295605850,
+      "lvl": "info",
+      "case": "should cross-reference between index and case files",
+      "phase": "setup",
+      "evt": "case.begin",
+      "env": {
+        "nodeVersion": "v24.9.0",
+        "platform": "linux",
+        "arch": "x64",
+        "os": "Linux 6.8.0-85-generic",
+        "seed": 42,
+        "envVars": {
+          "NODE_ENV": "test",
+          "TEST_SEED": "42",
+          "LAMINAR_DEBUG": "1",
+          "LAMINAR_SUITE": "coreReporter.spec",
+          "LAMINAR_CASE": "should_have_matching_test_count_between_index_and_summary"
+        }
+      },
+      "seed": 42,
+      "score": 29.97,
+      "reasons": [
+        "close proximity to failure"
+      ]
+    }
+  ],
+  "codeframes": [
+    {
+      "file": "/srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts",
+      "line": 261,
+      "column": 47,
+      "source": [
+        "          ",
+        "          const endEvent = events.find(e => e.evt === 'case.end');",
+        "          expect(endEvent?.payload?.duration).toBe(entry.duration);",
+        "        }",
+        "      });"
+      ],
+      "context": {
+        "before": [
+          "          ",
+          "          const endEvent = events.find(e => e.evt === 'case.end');"
+        ],
+        "focus": "          expect(endEvent?.payload?.duration).toBe(entry.duration);",
+        "after": [
+          "        }",
+          "      });"
+        ]
+      }
+    },
+    {
+      "file": "/srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts",
+      "line": 253,
+      "column": 39,
+      "source": [
+        "",
+        "    it('should cross-reference between index and case files', () => {",
+        "      indexData.artifacts.slice(0, 5).forEach((entry) => {",
+        "        if (entry.artifacts.caseFile) {",
+        "          expect(fs.existsSync(entry.artifacts.caseFile)).toBe(true);"
+      ],
+      "context": {
+        "before": [
+          "",
+          "    it('should cross-reference between index and case files', () => {"
+        ],
+        "focus": "      indexData.artifacts.slice(0, 5).forEach((entry) => {",
+        "after": [
+          "        if (entry.artifacts.caseFile) {",
+          "          expect(fs.existsSync(entry.artifacts.caseFile)).toBe(true);"
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "ts": 1760295605852,
+      "lvl": "error",
+      "case": "should cross-reference between index and case files",
+      "phase": "execution",
+      "evt": "test.error",
+      "payload": {
+        "message": "expected +0 to be 1 // Object.is equality",
+        "stack": "AssertionError: expected +0 to be 1 // Object.is equality\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:261:47\n    at Array.forEach (<anonymous>)\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:253:39\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:135:14\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:60:26\n    at runTest (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:781:17)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runFiles (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:958:5)"
+      }
+    },
+    {
+      "ts": 1760295605853,
+      "lvl": "error",
+      "case": "should cross-reference between index and case files",
+      "phase": "teardown",
+      "evt": "case.end",
+      "payload": {
+        "duration": 3,
+        "status": "failed"
+      }
+    }
+  ]
+}

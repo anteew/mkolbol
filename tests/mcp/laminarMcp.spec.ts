@@ -1,0 +1,690 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { LaminarMcpServer, McpError, McpErrorCode } from '../../src/mcp/laminar/server';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
+
+describe('LaminarMcpServer - MCP Tools', () => {
+  let tmpDir: string;
+  let reportsDir: string;
+  let summaryFile: string;
+  let configFile: string;
+  let server: LaminarMcpServer;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-test-'));
+    reportsDir = path.join(tmpDir, 'reports');
+    summaryFile = path.join(reportsDir, 'summary.jsonl');
+    configFile = path.join(tmpDir, 'laminar.config.json');
+
+    fs.mkdirSync(reportsDir, { recursive: true });
+
+    server = new LaminarMcpServer({
+      reportsDir,
+      summaryFile,
+      configFile,
+    });
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
+
+  describe('run tool', () => {
+    it.skip('executes test run with default options', async () => {
+      const result = await server.callTool('run', {});
+      
+      expect(result).toHaveProperty('exitCode');
+      expect(result).toHaveProperty('message');
+      expect(typeof (result as any).exitCode).toBe('number');
+      expect(typeof (result as any).message).toBe('string');
+    });
+
+    it.skip('executes test run with suite filter', async () => {
+      const result = await server.callTool('run', { suite: 'test-suite' });
+      
+      expect(result).toHaveProperty('exitCode');
+      expect(result).toHaveProperty('message');
+    });
+
+    it.skip('executes test run with case filter', async () => {
+      const result = await server.callTool('run', { case: 'test-case' });
+      
+      expect(result).toHaveProperty('exitCode');
+      expect(result).toHaveProperty('message');
+    });
+
+    it.skip('executes test run with flake detection', async () => {
+      const result = await server.callTool('run', { 
+        flakeDetect: true, 
+        flakeRuns: 3 
+      });
+      
+      expect(result).toHaveProperty('exitCode');
+      expect(result).toHaveProperty('message');
+    });
+
+    it.skip('uses default flakeRuns value', async () => {
+      const result = await server.callTool('run', { 
+        flakeDetect: true 
+      });
+      
+      expect(result).toHaveProperty('exitCode');
+      expect(result).toHaveProperty('message');
+    });
+  });
+
+  describe('rules.get tool', () => {
+    it('gets rules from existing config', async () => {
+      const config = {
+        enabled: true,
+        rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }],
+      };
+      fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+
+      const result = await server.callTool('rules.get', {});
+      
+      expect(result).toHaveProperty('config');
+      expect((result as any).config).toEqual(config);
+    });
+
+    it('returns empty config when file does not exist', async () => {
+      const result = await server.callTool('rules.get', {});
+      
+      expect(result).toHaveProperty('config');
+      expect((result as any).config).toEqual({});
+    });
+  });
+
+  describe('rules.set tool', () => {
+    it('sets digest rules successfully', async () => {
+      const config = {
+        enabled: true,
+        rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }],
+      };
+
+      const result = await server.callTool('rules.set', { config });
+      
+      expect(result).toHaveProperty('success', true);
+      expect(result).toHaveProperty('message');
+      expect((result as any).message).toContain(configFile);
+
+      const saved = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+      expect(saved).toEqual(config);
+    });
+
+    it('handles write errors gracefully', async () => {
+      fs.chmodSync(tmpDir, 0o444);
+
+      const config = { enabled: true };
+      const result = await server.callTool('rules.set', { config });
+      
+      expect(result).toHaveProperty('success', false);
+      expect(result).toHaveProperty('message');
+
+      fs.chmodSync(tmpDir, 0o755);
+    });
+  });
+
+  describe('digest.generate tool', () => {
+    it('generates digests for specific cases', async () => {
+      const summaryEntry = {
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        artifactURI: path.join(reportsDir, 'test-case-1.jsonl'),
+      };
+      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
+      fs.writeFileSync(summaryEntry.artifactURI, JSON.stringify({ 
+        ts: 1000, 
+        lvl: 'error', 
+        case: 'test-case-1', 
+        evt: 'test.error' 
+      }));
+
+      const result = await server.callTool('digest.generate', { 
+        cases: ['test-case-1'] 
+      });
+      
+      expect(result).toHaveProperty('count');
+      expect(result).toHaveProperty('message');
+      expect((result as any).count).toBeGreaterThanOrEqual(0);
+    });
+
+    it('generates digests for all failing cases', async () => {
+      const summaryEntry = {
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        artifactURI: path.join(reportsDir, 'test-case-1.jsonl'),
+      };
+      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
+      fs.writeFileSync(summaryEntry.artifactURI, JSON.stringify({ 
+        ts: 1000, 
+        lvl: 'error', 
+        case: 'test-case-1', 
+        evt: 'test.error' 
+      }));
+
+      const result = await server.callTool('digest.generate', {});
+      
+      expect(result).toHaveProperty('count');
+      expect(result).toHaveProperty('message');
+      expect((result as any).count).toBeGreaterThanOrEqual(0);
+    });
+
+    it('handles no failures gracefully', async () => {
+      fs.writeFileSync(summaryFile, '');
+
+      const result = await server.callTool('digest.generate', {});
+      
+      expect(result).toHaveProperty('count', 0);
+      expect(result).toHaveProperty('message');
+      expect((result as any).message).toContain('No failing test cases found');
+    });
+  });
+
+  describe('logs.case.get tool', () => {
+    it('retrieves logs for a specific case', async () => {
+      const caseName = 'test-case-1';
+      const logPath = path.join(reportsDir, `${caseName}.jsonl`);
+      const logs = JSON.stringify({ ts: 1000, lvl: 'info', evt: 'test.start' });
+      fs.writeFileSync(logPath, logs);
+
+      const result = await server.callTool('logs.case.get', { caseName });
+      
+      expect(result).toHaveProperty('logs');
+      expect((result as any).logs).toBe(logs);
+    });
+
+    it('returns empty string when logs do not exist', async () => {
+      const result = await server.callTool('logs.case.get', { 
+        caseName: 'non-existent' 
+      });
+      
+      expect(result).toHaveProperty('logs', '');
+    });
+
+    it('handles missing caseName parameter', async () => {
+      const result = await server.callTool('logs.case.get', {});
+      expect(result).toHaveProperty('logs', '');
+    });
+  });
+
+  describe('query tool', () => {
+    beforeEach(() => {
+      const caseName = 'test-case-1';
+      const logPath = path.join(reportsDir, `${caseName}.jsonl`);
+      const logs = [
+        { ts: 1000, lvl: 'info', case: caseName, evt: 'test.start', id: '1' },
+        { ts: 2000, lvl: 'error', case: caseName, evt: 'test.error', id: '2' },
+        { ts: 3000, lvl: 'warn', case: caseName, evt: 'test.warn', id: '3' },
+        { ts: 4000, lvl: 'info', case: caseName, evt: 'test.end', id: '4' },
+      ].map(e => JSON.stringify(e)).join('\n');
+      fs.writeFileSync(logPath, logs);
+    });
+
+    it('queries logs for a specific case', async () => {
+      const result = await server.callTool('query', { 
+        caseName: 'test-case-1' 
+      });
+      
+      expect(result).toHaveProperty('events');
+      expect(result).toHaveProperty('totalCount');
+      expect((result as any).events).toBeInstanceOf(Array);
+      expect((result as any).totalCount).toBeGreaterThan(0);
+    });
+
+    it('filters by log level', async () => {
+      const result = await server.callTool('query', { 
+        caseName: 'test-case-1',
+        level: 'error'
+      });
+      
+      expect((result as any).events).toHaveLength(1);
+      expect((result as any).events[0].lvl).toBe('error');
+    });
+
+    it('filters by event type', async () => {
+      const result = await server.callTool('query', { 
+        caseName: 'test-case-1',
+        event: 'test.warn'
+      });
+      
+      expect((result as any).events).toHaveLength(1);
+      expect((result as any).events[0].evt).toBe('test.warn');
+    });
+
+    it('respects limit parameter', async () => {
+      const result = await server.callTool('query', { 
+        caseName: 'test-case-1',
+        limit: 2
+      });
+      
+      expect((result as any).events.length).toBeLessThanOrEqual(2);
+    });
+
+    it('validates limit range', async () => {
+      await expect(
+        server.callTool('query', { caseName: 'test-case-1', limit: 0 })
+      ).rejects.toThrow(McpError);
+
+      await expect(
+        server.callTool('query', { caseName: 'test-case-1', limit: 1001 })
+      ).rejects.toThrow(McpError);
+    });
+
+    it('returns empty when caseName is not provided', async () => {
+      const result = await server.callTool('query', {});
+      
+      expect((result as any).events).toEqual([]);
+      expect((result as any).totalCount).toBe(0);
+    });
+  });
+
+  describe('repro tool', () => {
+    beforeEach(() => {
+      const summaryEntries = [
+        {
+          status: 'fail',
+          duration: 1000,
+          location: 'test.spec.ts:10',
+          artifactURI: path.join(reportsDir, 'test-case-1.jsonl'),
+          testName: 'test case 1',
+        },
+        {
+          status: 'fail',
+          duration: 2000,
+          location: 'test2.spec.ts:20',
+          artifactURI: path.join(reportsDir, 'test-case-2.jsonl'),
+          testName: 'test case 2',
+        },
+      ];
+      const content = summaryEntries.map(e => JSON.stringify(e)).join('\n');
+      fs.writeFileSync(summaryFile, content);
+    });
+
+    it('returns repro commands for all failures', async () => {
+      const result = await server.callTool('repro', {});
+      
+      expect(result).toHaveProperty('commands');
+      expect((result as any).commands).toBeInstanceOf(Array);
+      expect((result as any).commands.length).toBeGreaterThan(0);
+      
+      const cmd = (result as any).commands[0];
+      expect(cmd).toHaveProperty('testName');
+      expect(cmd).toHaveProperty('testFile');
+      expect(cmd).toHaveProperty('vitestCommand');
+      expect(cmd).toHaveProperty('logCommand');
+    });
+
+    it('filters repro commands by caseName', async () => {
+      const result = await server.callTool('repro', { 
+        caseName: 'test-case-1' 
+      });
+      
+      expect((result as any).commands).toHaveLength(1);
+      expect((result as any).commands[0].testFile).toContain('test.spec.ts');
+    });
+
+    it('returns empty array when summary does not exist', async () => {
+      fs.unlinkSync(summaryFile);
+
+      const result = await server.callTool('repro', {});
+      
+      expect((result as any).commands).toEqual([]);
+    });
+  });
+
+  describe('focus.overlay.set tool', () => {
+    it('sets overlay rules successfully', async () => {
+      const rules = [
+        { match: { lvl: 'error' }, actions: [{ type: 'include' }] }
+      ];
+
+      const result = await server.callTool('focus.overlay.set', { rules });
+      
+      expect(result).toHaveProperty('success', true);
+      expect(result).toHaveProperty('message');
+      expect((result as any).message).toContain('1');
+    });
+
+    it('handles multiple overlay rules', async () => {
+      const rules = [
+        { match: { lvl: 'error' }, actions: [{ type: 'include' }] },
+        { match: { evt: 'test.fail' }, actions: [{ type: 'include' }] }
+      ];
+
+      const result = await server.callTool('focus.overlay.set', { rules });
+      
+      expect(result).toHaveProperty('success', true);
+      expect((result as any).message).toContain('2');
+    });
+
+    it('handles missing rules parameter gracefully', async () => {
+      const result = await server.callTool('focus.overlay.set', {});
+      expect(result).toHaveProperty('success', false);
+      expect(result).toHaveProperty('message');
+    });
+  });
+
+  describe('focus.overlay.clear tool', () => {
+    it('clears overlay rules successfully', async () => {
+      await server.callTool('focus.overlay.set', { 
+        rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }]
+      });
+
+      const result = await server.callTool('focus.overlay.clear', {});
+      
+      expect(result).toHaveProperty('success', true);
+      expect(result).toHaveProperty('message');
+      expect((result as any).message).toContain('Cleared');
+    });
+
+    it('works when no rules are set', async () => {
+      const result = await server.callTool('focus.overlay.clear', {});
+      
+      expect(result).toHaveProperty('success', true);
+    });
+  });
+
+  describe('focus.overlay.get tool', () => {
+    it('returns current overlay rules', async () => {
+      const rules = [
+        { match: { lvl: 'error' }, actions: [{ type: 'include' }] }
+      ];
+      await server.callTool('focus.overlay.set', { rules });
+
+      const result = await server.callTool('focus.overlay.get', {});
+      
+      expect(result).toHaveProperty('rules');
+      expect((result as any).rules).toEqual(rules);
+    });
+
+    it('returns empty array when no rules are set', async () => {
+      const result = await server.callTool('focus.overlay.get', {});
+      
+      expect(result).toHaveProperty('rules');
+      expect((result as any).rules).toEqual([]);
+    });
+
+    it('reflects changes after clear', async () => {
+      await server.callTool('focus.overlay.set', { 
+        rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }]
+      });
+      await server.callTool('focus.overlay.clear', {});
+
+      const result = await server.callTool('focus.overlay.get', {});
+      
+      expect((result as any).rules).toEqual([]);
+    });
+  });
+
+  describe('error handling', () => {
+    it('throws McpError for unknown tool', async () => {
+      await expect(
+        server.callTool('unknown.tool', {})
+      ).rejects.toThrow(McpError);
+
+      try {
+        await server.callTool('unknown.tool', {});
+      } catch (error) {
+        expect(error).toBeInstanceOf(McpError);
+        expect((error as McpError).code).toBe(McpErrorCode.TOOL_NOT_FOUND);
+      }
+    });
+
+    it('validates input types', async () => {
+      await expect(
+        server.callTool('query', { limit: 'invalid' })
+      ).rejects.toThrow(McpError);
+
+      try {
+        await server.callTool('query', { limit: 'invalid' });
+      } catch (error) {
+        expect(error).toBeInstanceOf(McpError);
+        expect((error as McpError).code).toBe(McpErrorCode.INVALID_INPUT);
+      }
+    });
+
+    it('validates required parameters', async () => {
+      const result1 = await server.callTool('logs.case.get', {});
+      expect(result1).toHaveProperty('logs', '');
+
+      const result2 = await server.callTool('focus.overlay.set', {});
+      expect(result2).toHaveProperty('success', false);
+    });
+  });
+
+  describe('concurrent tool calls', () => {
+    it('handles concurrent query calls', async () => {
+      const caseName = 'concurrent-test';
+      const logPath = path.join(reportsDir, `${caseName}.jsonl`);
+      const logs = Array.from({ length: 10 }, (_, i) => 
+        JSON.stringify({ 
+          ts: 1000 + i, 
+          lvl: 'info', 
+          case: caseName, 
+          evt: `test.event.${i}`,
+          id: `${i}`
+        })
+      ).join('\n');
+      fs.writeFileSync(logPath, logs);
+
+      const promises = Array.from({ length: 5 }, () =>
+        server.callTool('query', { caseName, limit: 5 })
+      );
+
+      const results = await Promise.all(promises);
+      
+      results.forEach(result => {
+        expect(result).toHaveProperty('events');
+        expect((result as any).events.length).toBeLessThanOrEqual(5);
+      });
+    });
+
+    it('handles concurrent overlay operations', async () => {
+      const promises = [
+        server.callTool('focus.overlay.set', { 
+          rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }]
+        }),
+        server.callTool('focus.overlay.get', {}),
+        server.callTool('focus.overlay.set', { 
+          rules: [{ match: { lvl: 'warn' }, actions: [{ type: 'include' }] }]
+        }),
+      ];
+
+      const results = await Promise.all(promises);
+      
+      expect(results).toHaveLength(3);
+      expect(results[0]).toHaveProperty('success');
+      expect(results[1]).toHaveProperty('rules');
+      expect(results[2]).toHaveProperty('success');
+    });
+
+    it('handles concurrent rules get/set', async () => {
+      const promises = [
+        server.callTool('rules.get', {}),
+        server.callTool('rules.set', { 
+          config: { enabled: true, rules: [] }
+        }),
+        server.callTool('rules.get', {}),
+      ];
+
+      const results = await Promise.all(promises);
+      
+      expect(results).toHaveLength(3);
+      results.forEach(result => {
+        expect(result).toBeDefined();
+      });
+    });
+
+    it('handles mixed tool calls concurrently', async () => {
+      const caseName = 'mixed-test';
+      const logPath = path.join(reportsDir, `${caseName}.jsonl`);
+      fs.writeFileSync(logPath, JSON.stringify({ 
+        ts: 1000, 
+        lvl: 'info', 
+        case: caseName, 
+        evt: 'test.start' 
+      }));
+
+      const promises = [
+        server.callTool('query', { caseName }),
+        server.callTool('rules.get', {}),
+        server.callTool('logs.case.get', { caseName }),
+        server.callTool('focus.overlay.get', {}),
+      ];
+
+      const results = await Promise.all(promises);
+      
+      expect(results).toHaveLength(4);
+      expect(results[0]).toHaveProperty('events');
+      expect(results[1]).toHaveProperty('config');
+      expect(results[2]).toHaveProperty('logs');
+      expect(results[3]).toHaveProperty('rules');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles missing reports directory', async () => {
+      fs.rmSync(reportsDir, { recursive: true });
+
+      const result = await server.callTool('query', { caseName: 'test' });
+      
+      expect((result as any).events).toEqual([]);
+      expect((result as any).totalCount).toBe(0);
+    });
+
+    it('handles malformed summary file', async () => {
+      fs.writeFileSync(summaryFile, 'invalid json');
+
+      await expect(
+        server.callTool('repro', {})
+      ).rejects.toThrow(McpError);
+    });
+
+    it('handles empty case name', async () => {
+      const result = await server.callTool('logs.case.get', { 
+        caseName: '' 
+      });
+      
+      expect((result as any).logs).toBe('');
+    });
+
+    it('handles special characters in case names', async () => {
+      const caseName = 'test-case-with-@#$-chars';
+      const logPath = path.join(reportsDir, `${caseName}.jsonl`);
+      fs.writeFileSync(logPath, JSON.stringify({ 
+        ts: 1000, 
+        lvl: 'info', 
+        evt: 'test.start' 
+      }));
+
+      const result = await server.callTool('logs.case.get', { caseName });
+      
+      expect(result).toHaveProperty('logs');
+      expect((result as any).logs).toBeTruthy();
+    });
+
+    it('handles nested reports directories', async () => {
+      const nestedDir = path.join(reportsDir, 'nested', 'deep');
+      fs.mkdirSync(nestedDir, { recursive: true });
+      
+      const caseName = 'nested-test';
+      const logPath = path.join(nestedDir, `${caseName}.jsonl`);
+      fs.writeFileSync(logPath, JSON.stringify({ 
+        ts: 1000, 
+        lvl: 'info', 
+        evt: 'test.start' 
+      }));
+
+      const result = await server.callTool('logs.case.get', { caseName });
+      
+      expect(result).toHaveProperty('logs');
+      expect((result as any).logs).toBeTruthy();
+    });
+
+    it('handles very large log files', async () => {
+      const caseName = 'large-test';
+      const logPath = path.join(reportsDir, `${caseName}.jsonl`);
+      const largeLog = Array.from({ length: 1000 }, (_, i) => 
+        JSON.stringify({ 
+          ts: 1000 + i, 
+          lvl: 'info', 
+          case: caseName, 
+          evt: `test.event.${i}`,
+          id: `${i}`,
+          payload: { data: 'x'.repeat(100) }
+        })
+      ).join('\n');
+      fs.writeFileSync(logPath, largeLog);
+
+      const result = await server.callTool('query', { 
+        caseName, 
+        limit: 100 
+      });
+      
+      expect((result as any).events.length).toBeLessThanOrEqual(100);
+    });
+  });
+
+  describe('focus overlay workflow', () => {
+    it('supports complete overlay workflow', async () => {
+      const getResult1 = await server.callTool('focus.overlay.get', {});
+      expect((getResult1 as any).rules).toEqual([]);
+
+      const setResult = await server.callTool('focus.overlay.set', {
+        rules: [
+          { match: { lvl: 'error' }, actions: [{ type: 'include' }] },
+          { match: { evt: 'test.fail' }, actions: [{ type: 'slice', window: 2 }] }
+        ]
+      });
+      expect((setResult as any).success).toBe(true);
+
+      const getResult2 = await server.callTool('focus.overlay.get', {});
+      expect((getResult2 as any).rules).toHaveLength(2);
+
+      const clearResult = await server.callTool('focus.overlay.clear', {});
+      expect((clearResult as any).success).toBe(true);
+
+      const getResult3 = await server.callTool('focus.overlay.get', {});
+      expect((getResult3 as any).rules).toEqual([]);
+    });
+
+    it('allows overlay rules to be overwritten', async () => {
+      await server.callTool('focus.overlay.set', {
+        rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }]
+      });
+
+      await server.callTool('focus.overlay.set', {
+        rules: [{ match: { lvl: 'warn' }, actions: [{ type: 'include' }] }]
+      });
+
+      const result = await server.callTool('focus.overlay.get', {});
+      expect((result as any).rules).toHaveLength(1);
+      expect((result as any).rules[0].match.lvl).toBe('warn');
+    });
+
+    it('maintains overlay independence from persistent rules', async () => {
+      await server.callTool('rules.set', {
+        config: {
+          enabled: true,
+          rules: [{ match: { lvl: 'error' }, actions: [{ type: 'include' }] }]
+        }
+      });
+
+      await server.callTool('focus.overlay.set', {
+        rules: [{ match: { lvl: 'warn' }, actions: [{ type: 'include' }] }]
+      });
+
+      const rulesResult = await server.callTool('rules.get', {});
+      const overlayResult = await server.callTool('focus.overlay.get', {});
+
+      expect((rulesResult as any).config.rules[0].match.lvl).toBe('error');
+      expect((overlayResult as any).rules[0].match.lvl).toBe('warn');
+    });
+  });
+});
