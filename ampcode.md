@@ -2,16 +2,13 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "MCP-A", "parallel": true,  "tasks": ["T2701", "T2702"] },
-    { "id": "MCP-B", "parallel": true,  "depends_on": ["MCP-A"], "tasks": ["T2703", "T2704"] },
-    { "id": "MCP-C", "parallel": false, "depends_on": ["MCP-B"], "tasks": ["T2705"] }
+    { "id": "RP-A", "parallel": true,  "tasks": ["T2801", "T2802"] },
+    { "id": "RP-B", "parallel": false, "depends_on": ["RP-A"], "tasks": ["T2803"] }
   ],
   "tasks": [
-    { "id": "T2701", "agent": "susan-1", "title": "MCP: implement tools (run, rules.get/set, digest.generate, logs.case.get, query, repro)", "allowedFiles": ["src/mcp/laminar/server.ts", "scripts/**"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2701_mcp-tools.patch"] },
-    { "id": "T2702", "agent": "susan-2", "title": "MCP: JSON contracts + error model + idempotence", "allowedFiles": ["src/mcp/laminar/server.ts", "README.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2702_mcp-contracts.patch"] },
-    { "id": "T2703", "agent": "susan-3", "title": "MCP: focus overlays (ephemeral rules via MCP)", "allowedFiles": ["src/digest/generator.ts", "src/mcp/laminar/server.ts"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2703_mcp-focus-overlays.patch"] },
-    { "id": "T2704", "agent": "susan-4", "title": "Tests: MCP tool happy/edge paths + concurrency", "allowedFiles": ["tests/mcp/laminarMcp.spec.ts"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T2704_tests-mcp.patch"] },
-    { "id": "T2705", "agent": "susan-5", "title": "Docs: MCP usage examples + tool schemas", "allowedFiles": ["README.md", "docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2705_docs-mcp.patch"] }
+    { "id": "T2801", "agent": "susan-1", "title": "Digest: rule packs + extends (node-defaults, go-defaults)", "allowedFiles": ["src/digest/generator.ts", "docs/testing/laminar.md"], "verify": ["npm run build", "npm run test:ci || true"], "deliverables": ["patches/DIFF_T2801_digest-rulepacks.patch"] },
+    { "id": "T2802", "agent": "susan-2", "title": "Redaction presets + secret scanning (JWT/AWS/URLs) with opt-outs", "allowedFiles": ["src/digest/generator.ts", "docs/testing/laminar.md"], "verify": ["npm run build", "npm run test:ci || true"], "deliverables": ["patches/DIFF_T2802_digest-redaction-presets.patch"] },
+    { "id": "T2803", "agent": "susan-3", "title": "Tests: rule packs + redaction work across Node/Go fixtures", "allowedFiles": ["tests/digest/rulepacks.spec.ts", "tests/fixtures/**"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T2803_tests-rulepacks.patch"] }
   ]
 }
 ```
