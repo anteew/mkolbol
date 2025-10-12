@@ -1,0 +1,3 @@
+{"ts":1760291940104,"lvl":"info","case":"handles events without optional fields","phase":"setup","evt":"case.begin"}
+{"ts":1760291940105,"lvl":"info","case":"handles events without optional fields","phase":"execution","evt":"test.run"}
+{"ts":1760291940106,"lvl":"info","case":"handles events without optional fields","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

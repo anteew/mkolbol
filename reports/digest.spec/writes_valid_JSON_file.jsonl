@@ -1,0 +1,3 @@
+{"ts":1760291940101,"lvl":"info","case":"writes valid JSON file","phase":"setup","evt":"case.begin"}
+{"ts":1760291940102,"lvl":"info","case":"writes valid JSON file","phase":"execution","evt":"test.run"}
+{"ts":1760291940103,"lvl":"info","case":"writes valid JSON file","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

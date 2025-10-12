@@ -1,0 +1,3 @@
+{"ts":1760291940375,"lvl":"info","case":"split: order preservation across destinations","phase":"setup","evt":"case.begin"}
+{"ts":1760291940376,"lvl":"info","case":"split: order preservation across destinations","phase":"execution","evt":"test.run"}
+{"ts":1760291940377,"lvl":"info","case":"split: order preservation across destinations","phase":"teardown","evt":"case.end","payload":{"duration":87,"status":"passed"}}

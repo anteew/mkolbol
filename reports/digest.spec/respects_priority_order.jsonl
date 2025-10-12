@@ -1,0 +1,3 @@
+{"ts":1760291940102,"lvl":"info","case":"respects priority order","phase":"setup","evt":"case.begin"}
+{"ts":1760291940103,"lvl":"info","case":"respects priority order","phase":"execution","evt":"test.run"}
+{"ts":1760291940104,"lvl":"info","case":"respects priority order","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}

@@ -1,0 +1,3 @@
+{"ts":1760291942220,"lvl":"info","case":"should support restartNode","phase":"setup","evt":"case.begin"}
+{"ts":1760291942221,"lvl":"info","case":"should support restartNode","phase":"execution","evt":"test.run"}
+{"ts":1760291942222,"lvl":"info","case":"should support restartNode","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

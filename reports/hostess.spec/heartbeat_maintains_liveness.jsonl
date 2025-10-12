@@ -1,0 +1,3 @@
+{"ts":1760291940377,"lvl":"info","case":"heartbeat maintains liveness","phase":"setup","evt":"case.begin"}
+{"ts":1760291940378,"lvl":"info","case":"heartbeat maintains liveness","phase":"execution","evt":"test.run"}
+{"ts":1760291940379,"lvl":"info","case":"heartbeat maintains liveness","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

@@ -1,0 +1,3 @@
+{"ts":1760291940119,"lvl":"info","case":"returns consistent value for same module","phase":"setup","evt":"case.begin"}
+{"ts":1760291940120,"lvl":"info","case":"returns consistent value for same module","phase":"execution","evt":"test.run"}
+{"ts":1760291940121,"lvl":"info","case":"returns consistent value for same module","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}

@@ -1,0 +1,3 @@
+{"ts":1760291940181,"lvl":"info","case":"should render raw ANSI to stdout","phase":"setup","evt":"case.begin"}
+{"ts":1760291940182,"lvl":"info","case":"should render raw ANSI to stdout","phase":"execution","evt":"test.run"}
+{"ts":1760291940183,"lvl":"info","case":"should render raw ANSI to stdout","phase":"teardown","evt":"case.end","payload":{"duration":23,"status":"passed"}}

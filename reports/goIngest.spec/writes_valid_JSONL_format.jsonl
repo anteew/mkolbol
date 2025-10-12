@@ -1,0 +1,3 @@
+{"ts":1760291940091,"lvl":"info","case":"writes valid JSONL format","phase":"setup","evt":"case.begin"}
+{"ts":1760291940092,"lvl":"info","case":"writes valid JSONL format","phase":"execution","evt":"test.run"}
+{"ts":1760291940093,"lvl":"info","case":"writes valid JSONL format","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}

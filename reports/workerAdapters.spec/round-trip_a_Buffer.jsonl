@@ -1,0 +1,3 @@
+{"ts":1760291940118,"lvl":"info","case":"round-trip a Buffer","phase":"setup","evt":"case.begin"}
+{"ts":1760291940119,"lvl":"info","case":"round-trip a Buffer","phase":"execution","evt":"test.run"}
+{"ts":1760291940120,"lvl":"info","case":"round-trip a Buffer","phase":"teardown","evt":"case.end","payload":{"duration":5,"status":"passed"}}

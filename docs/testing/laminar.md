@@ -23,9 +23,209 @@ Every event is a single JSON object per line with stable keys:
 - `payload`: object (domain‑specific)
 
 ## Artifacts & Layout
-- `reports/summary.jsonl` — one line per test (status, duration, pointers)
-- `reports/<suite>/<case>.jsonl` — event stream for the case
-- `reports/<suite>/<case>.snap/` — optional golden snapshots (transcripts)
+
+### Directory Structure
+```
+reports/
+├── index.json                          # Manifest of all test artifacts
+├── summary.jsonl                       # One-line summaries (status, duration, URIs)
+└── <suite>/                            # Per test-suite directories
+    ├── <case>.jsonl                    # Event stream for each test case
+    ├── <case>.digest.json              # Structured digest (on failure)
+    ├── <case>.digest.md                # Human-readable digest (on failure)
+    └── <case>.snap/                    # Optional golden snapshots
+```
+
+### Core Files
+
+**`reports/index.json`** — Artifact manifest with cross-references:
+- Generated on test completion
+- Maps each test to its artifacts
+- Provides timestamp, status, location metadata
+- Enables discovery of all test outputs
+
+**`reports/summary.jsonl`** — JSONL stream with one entry per test:
+- Test status (pass/fail/skip)
+- Duration in milliseconds
+- Source location (file:line)
+- Artifact URI pointer
+- Error message (if failed)
+
+**`reports/<suite>/<case>.jsonl`** — Per-case event stream:
+- Test lifecycle events (begin → run → end)
+- Error events with stack traces (on failure)
+- Debug events (if `LAMINAR_DEBUG=1`)
+- Uses standard event envelope schema
+
+### index.json Structure
+
+The index manifest provides a complete catalog of test artifacts:
+
+```json
+{
+  "generated": "2025-10-12T17:37:43.104Z",
+  "totalTests": 151,
+  "artifacts": [
+    {
+      "testName": "connect moves data 1:1",
+      "status": "pass",
+      "duration": 6,
+      "location": "/srv/repos0/mkolbol/tests/kernel.spec.ts:45",
+      "timestamp": "2025-10-12T17:37:41.027Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/kernel.spec/connect_moves_data_1_1.jsonl",
+        "digestFile": "reports/kernel.spec/connect_moves_data_1_1.digest.json"
+      }
+    }
+  ]
+}
+```
+
+**Fields:**
+- `generated`: ISO 8601 timestamp when index was created
+- `totalTests`: Count of test cases (matches `artifacts.length`)
+- `artifacts[]`: Array of test artifact entries
+
+**Per-artifact entry:**
+- `testName`: Human-readable test name
+- `status`: 'pass' | 'fail' | 'skip'
+- `duration`: Execution time in milliseconds
+- `location`: Source file path with line number
+- `timestamp`: ISO 8601 timestamp when test completed
+- `artifacts.summary`: Path to summary.jsonl (always present)
+- `artifacts.caseFile`: Path to per-case JSONL (always present)
+- `artifacts.digestFile`: Path to digest (only if failed and digest generated)
+
+### Per-Case JSONL Lifecycle
+
+Every test case JSONL file contains a predictable event sequence:
+
+**1. Test Begin (`case.begin`)**
+```json
+{
+  "ts": 1760290661027,
+  "lvl": "info",
+  "case": "connect moves data 1:1",
+  "phase": "setup",
+  "evt": "case.begin"
+}
+```
+
+**2. Test Execution (`test.run`)**
+```json
+{
+  "ts": 1760290661028,
+  "lvl": "info",
+  "case": "connect moves data 1:1",
+  "phase": "execution",
+  "evt": "test.run"
+}
+```
+
+**3. Error Events (if test failed)**
+```json
+{
+  "ts": 1760290661029,
+  "lvl": "error",
+  "case": "topology rewire",
+  "phase": "execution",
+  "evt": "test.error",
+  "payload": {
+    "message": "Expected value to be 42, got 40",
+    "stack": "Error: ...\n  at tests/topology.spec.ts:61:5"
+  }
+}
+```
+
+**4. Test End (`case.end`)**
+```json
+{
+  "ts": 1760290661029,
+  "lvl": "info",
+  "case": "connect moves data 1:1",
+  "phase": "teardown",
+  "evt": "case.end",
+  "payload": {
+    "duration": 6,
+    "status": "passed"
+  }
+}
+```
+
+**Note:** Failed tests have `"lvl": "error"` and `"status": "failed"` in the `case.end` event.
+
+### Artifact Guarantees
+
+Laminar guarantees the following invariants for all test runs:
+
+**✓ Always Present:**
+- `reports/index.json` — exists after any test run
+- `reports/summary.jsonl` — exists after any test run
+- `reports/<suite>/<case>.jsonl` — exists for every test case
+- `case.begin` event — first event in every case JSONL
+- `case.end` event — last event in every case JSONL
+
+**✓ Chronological Ordering:**
+- Timestamps (`ts`) are monotonically increasing within each case JSONL
+- Events appear in execution order (setup → execution → teardown)
+
+**✓ Cross-References:**
+- `index.json` entries reference valid `caseFile` paths
+- All `caseFile` paths exist on disk
+- `summary.jsonl` `artifactURI` matches `index.json` `caseFile`
+
+**✓ Failed Test Additions:**
+- `test.error` events appear before `case.end` (if errors exist)
+- `case.end` has `"lvl": "error"` for failed tests
+- `case.end.payload.status` is 'failed' for failed tests
+
+**⚠ Conditional:**
+- `digestFile` — only present if test failed AND digests were generated
+- Debug events — only present if `LAMINAR_DEBUG=1` was set
+
+### Reading Artifacts (Examples)
+
+**List all test results:**
+```typescript
+import * as fs from 'fs';
+
+const index = JSON.parse(fs.readFileSync('reports/index.json', 'utf-8'));
+index.artifacts.forEach(test => {
+  console.log(`${test.status.toUpperCase()} ${test.duration}ms ${test.testName}`);
+});
+```
+
+**Find failures:**
+```typescript
+const failures = index.artifacts.filter(t => t.status === 'fail');
+failures.forEach(fail => {
+  console.log(`FAIL: ${fail.testName} → ${fail.artifacts.caseFile}`);
+});
+```
+
+**Read case events:**
+```typescript
+const caseEvents = fs.readFileSync('reports/kernel.spec/connect_moves_data_1_1.jsonl', 'utf-8')
+  .trim()
+  .split('\n')
+  .map(line => JSON.parse(line));
+
+const errors = caseEvents.filter(e => e.lvl === 'error');
+console.log(`Found ${errors.length} error events`);
+```
+
+**Query with logq CLI:**
+```bash
+# Show all failures
+logq lvl=error reports/summary.jsonl
+
+# Show events around correlation ID
+logq --around corr=abc123 --window 10 reports/kernel.spec/connect_moves_data_1_1.jsonl
+
+# Find specific event types
+logq evt=test.error reports/**/*.jsonl
+```
 
 ## CLI: logq
 A tiny CLI to slice/filter JSONL by fields and windows.

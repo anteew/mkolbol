@@ -1,0 +1,3 @@
+{"ts":1760291940090,"lvl":"info","case":"validates Laminar event structure","phase":"setup","evt":"case.begin"}
+{"ts":1760291940091,"lvl":"info","case":"validates Laminar event structure","phase":"execution","evt":"test.run"}
+{"ts":1760291940092,"lvl":"info","case":"validates Laminar event structure","phase":"teardown","evt":"case.end","payload":{"duration":6,"status":"passed"}}

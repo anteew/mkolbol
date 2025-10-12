@@ -1,0 +1,3 @@
+{"ts":1760291940047,"lvl":"info","case":"should have at least one artifact entry","phase":"setup","evt":"case.begin"}
+{"ts":1760291940048,"lvl":"info","case":"should have at least one artifact entry","phase":"execution","evt":"test.run"}
+{"ts":1760291940049,"lvl":"info","case":"should have at least one artifact entry","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}

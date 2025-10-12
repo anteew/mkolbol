@@ -1,0 +1,3 @@
+{"ts":1760291940179,"lvl":"info","case":"should handle carriage return","phase":"setup","evt":"case.begin"}
+{"ts":1760291940180,"lvl":"info","case":"should handle carriage return","phase":"execution","evt":"test.run"}
+{"ts":1760291940181,"lvl":"info","case":"should handle carriage return","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}

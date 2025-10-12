@@ -34,9 +34,47 @@ Examples:
 }
 
 function readSummary(): any[] {
+  const indexPath = 'reports/index.json';
+  if (fs.existsSync(indexPath)) {
+    try {
+      const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+      return index.artifacts || [];
+    } catch (err) {
+      console.error('Failed to parse index.json, falling back to summary.jsonl');
+    }
+  }
+  
   const p = 'reports/summary.jsonl';
   if (!fs.existsSync(p)) return [];
   return fs.readFileSync(p, 'utf-8').trim().split(/\n+/).map(l => { try { return JSON.parse(l); } catch { return undefined; } }).filter(Boolean);
+}
+
+function findTestInIndex(caseId: string): any {
+  const indexPath = 'reports/index.json';
+  if (!fs.existsSync(indexPath)) return null;
+  
+  try {
+    const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+    const artifacts = index.artifacts || [];
+    
+    // Normalize caseId: suite/test_name format
+    const parts = caseId.split('/');
+    if (parts.length !== 2) return null;
+    
+    const [suite, testName] = parts;
+    const normalized = testName.replace(/_/g, ' ');
+    
+    return artifacts.find((a: any) => {
+      const entryLocation = a.location || '';
+      const entryTestName = a.testName || '';
+      return entryLocation.includes(suite) && (
+        entryTestName === normalized ||
+        entryTestName.replace(/\s+/g, '_') === testName
+      );
+    });
+  } catch (err) {
+    return null;
+  }
 }
 
 async function main() {
@@ -80,7 +118,28 @@ async function main() {
       const entries = readSummary();
       if (!entries.length) { console.log('No summary found. Run `lam run` first.'); break; }
       for (const e of entries) {
-        console.log(`${e.status.toUpperCase()} ${e.duration}ms ${e.location} → ${e.artifactURI||''}`);
+        const status = (e.status || 'unknown').toUpperCase();
+        const duration = e.duration || 0;
+        const location = e.location || '';
+        const testName = e.testName || '';
+        
+        // Check for digest file
+        let digestLink = '';
+        if (e.artifacts?.digestFile && fs.existsSync(e.artifacts.digestFile)) {
+          digestLink = ` [digest: ${e.artifacts.digestFile}]`;
+        } else {
+          // Try to find digest file based on caseFile path
+          const caseFile = e.artifacts?.caseFile || e.artifactURI || '';
+          if (caseFile.endsWith('.jsonl')) {
+            const digestPath = caseFile.replace('.jsonl', '.digest.md');
+            if (fs.existsSync(digestPath)) {
+              digestLink = ` [digest: ${digestPath}]`;
+            }
+          }
+        }
+        
+        const artifactURI = e.artifactURI || e.artifacts?.caseFile || '';
+        console.log(`${status} ${duration}ms ${location} → ${artifactURI}${digestLink}`);
       }
       break;
     }
@@ -90,14 +149,58 @@ async function main() {
       const around = (args.get('around') as string) || 'assert.fail';
       const window = (args.get('window') as string) || '50';
       
-      const digestPath = `reports/${caseId}.digest.md`;
-      if (fs.existsSync(digestPath)) {
+      // Find test in index.json to get digest path and case file
+      const testEntry = findTestInIndex(caseId);
+      let digestPath: string | undefined;
+      let caseFile: string | undefined;
+      
+      if (testEntry?.artifacts?.caseFile) {
+        caseFile = testEntry.artifacts.caseFile;
+      } else {
+        // Fallback: construct from caseId
+        const parts = caseId.split('/');
+        if (parts.length === 2) {
+          const [suite, test] = parts;
+          caseFile = `reports/${suite}/${test}.jsonl`;
+        }
+      }
+      
+      // Try to find digest file
+      if (testEntry?.artifacts?.digestFile && fs.existsSync(testEntry.artifacts.digestFile)) {
+        digestPath = testEntry.artifacts.digestFile;
+      } else if (caseFile && caseFile.endsWith('.jsonl')) {
+        // Derive digest path from case file
+        const derived = caseFile.replace('.jsonl', '.digest.md');
+        if (fs.existsSync(derived)) {
+          digestPath = derived;
+        }
+      }
+      
+      if (!digestPath) {
+        // Final fallback: try common patterns
+        const parts = caseId.split('/');
+        if (parts.length === 2) {
+          const [suite, test] = parts;
+          const candidates = [
+            `reports/${suite}/${test}.digest.md`,
+            `reports/${caseId}.digest.md`,
+          ];
+          digestPath = candidates.find(p => fs.existsSync(p));
+        }
+      }
+      
+      if (digestPath && fs.existsSync(digestPath)) {
         console.log('=== DIGEST ===');
         console.log(fs.readFileSync(digestPath, 'utf-8'));
         console.log('\n=== FULL LOG ===');
       }
       
-      sh('npm', ['run','logq','--','case', caseId, '--around', around, '--window', window]);
+      if (!caseFile || !fs.existsSync(caseFile)) {
+        console.error(`Case file not found for ${caseId}`);
+        process.exit(1);
+      }
+      
+      sh('npm', ['run','logq','--','--around', around, '--window', window, caseFile]);
       break;
     }
     case 'digest': {

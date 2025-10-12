@@ -1,0 +1,3 @@
+{"ts":1760291940100,"lvl":"info","case":"generates digest from synthetic logs with failures","phase":"setup","evt":"case.begin"}
+{"ts":1760291940101,"lvl":"info","case":"generates digest from synthetic logs with failures","phase":"execution","evt":"test.run"}
+{"ts":1760291940102,"lvl":"info","case":"generates digest from synthetic logs with failures","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}

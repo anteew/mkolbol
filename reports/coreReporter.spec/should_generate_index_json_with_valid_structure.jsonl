@@ -1,0 +1,3 @@
+{"ts":1760291940046,"lvl":"info","case":"should generate index.json with valid structure","phase":"setup","evt":"case.begin"}
+{"ts":1760291940047,"lvl":"info","case":"should generate index.json with valid structure","phase":"execution","evt":"test.run"}
+{"ts":1760291940048,"lvl":"info","case":"should generate index.json with valid structure","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

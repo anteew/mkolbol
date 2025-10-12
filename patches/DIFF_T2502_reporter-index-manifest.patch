@@ -1,0 +1,91 @@
+diff --git a/src/test/reporter/jsonlReporter.ts b/src/test/reporter/jsonlReporter.ts
+index cc304e2..9471fe0 100644
+--- a/src/test/reporter/jsonlReporter.ts
++++ b/src/test/reporter/jsonlReporter.ts
+@@ -10,11 +10,33 @@ interface TestSummary {
+   error?: string;
+ }
+ 
++interface ArtifactIndexEntry {
++  testName: string;
++  status: 'pass' | 'fail' | 'skip';
++  duration: number;
++  location: string;
++  timestamp: string;
++  artifacts: {
++    summary: string;
++    caseFile?: string;
++    digestFile?: string;
++  };
++}
++
++interface ArtifactIndex {
++  generated: string;
++  totalTests: number;
++  artifacts: ArtifactIndexEntry[];
++}
++
+ export default class JSONLReporter implements Reporter {
+   private ctx!: Vitest;
+   private summaryPath = 'reports/summary.jsonl';
++  private indexPath = 'reports/index.json';
+   private summaryStream?: fs.WriteStream;
+   private processedTests = new Set<string>();
++  private indexEntries: ArtifactIndexEntry[] = [];
++  private caseStreams = new Map<string, fs.WriteStream>();
+ 
+   onInit(ctx: Vitest): void {
+     this.ctx = ctx;
+@@ -24,6 +46,7 @@ export default class JSONLReporter implements Reporter {
+       fs.unlinkSync(this.summaryPath);
+     }
+     this.summaryStream = fs.createWriteStream(this.summaryPath, { flags: 'a' });
++    this.indexEntries = [];
+   }
+ 
+   onCollected(): void {
+@@ -38,6 +61,12 @@ export default class JSONLReporter implements Reporter {
+     if (this.summaryStream) {
+       this.summaryStream.end();
+     }
++    // Close all per-case streams
++    for (const stream of this.caseStreams.values()) {
++      stream.end();
++    }
++    this.caseStreams.clear();
++    this.generateIndex();
+   }
+ 
+   private processFiles(files: File[]): void {
+@@ -98,5 +127,31 @@ export default class JSONLReporter implements Reporter {
+     if (this.summaryStream) {
+       this.summaryStream.write(JSON.stringify(summary) + '\n');
+     }
++
++    const suitePath = file ? path.basename(file.filepath, path.extname(file.filepath)) : 'unknown';
++    const digestPath = `reports/${suitePath}/digest.jsonl`;
++    
++    this.indexEntries.push({
++      testName: task.name,
++      status: state,
++      duration,
++      location,
++      timestamp: new Date().toISOString(),
++      artifacts: {
++        summary: this.summaryPath,
++        caseFile: artifactURI,
++        digestFile: fs.existsSync(digestPath) ? digestPath : undefined,
++      },
++    });
++  }
++
++  private generateIndex(): void {
++    const index: ArtifactIndex = {
++      generated: new Date().toISOString(),
++      totalTests: this.indexEntries.length,
++      artifacts: this.indexEntries,
++    };
++
++    fs.writeFileSync(this.indexPath, JSON.stringify(index, null, 2));
+   }
+ }

@@ -1,0 +1,3 @@
+{"ts":1760291940050,"lvl":"info","case":"should have chronological timestamps","phase":"setup","evt":"case.begin"}
+{"ts":1760291940051,"lvl":"info","case":"should have chronological timestamps","phase":"execution","evt":"test.run"}
+{"ts":1760291940052,"lvl":"info","case":"should have chronological timestamps","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}
