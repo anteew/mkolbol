@@ -1,3 +1,3 @@
-{"ts":1760303321323,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760303321324,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"execution","evt":"test.run"}
-{"ts":1760303321325,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
+{"ts":1760304682174,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
+{"ts":1760304682175,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"execution","evt":"test.run"}
+{"ts":1760304682176,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}

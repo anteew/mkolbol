@@ -1,3 +1,3 @@
-{"ts":1760303321312,"lvl":"info","case":"queries logs for a specific case","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760303321313,"lvl":"info","case":"queries logs for a specific case","phase":"execution","evt":"test.run"}
-{"ts":1760303321314,"lvl":"info","case":"queries logs for a specific case","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
+{"ts":1760304680296,"lvl":"info","case":"queries logs for a specific case","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
+{"ts":1760304680297,"lvl":"info","case":"queries logs for a specific case","phase":"execution","evt":"test.run"}
+{"ts":1760304680298,"lvl":"info","case":"queries logs for a specific case","phase":"teardown","evt":"case.end","payload":{"duration":5,"status":"passed"}}

@@ -2,6 +2,61 @@
 
 Laminar is a branded, structured testing system for flow‑based applications. It produces compact human summaries and deep JSONL artifacts that agents and humans can query precisely without blowing token budgets.
 
+## Quickstart (5 Minutes)
+
+### Installation
+
+```bash
+# Install via npm
+npm install mkolbol
+
+# Or use npx (no installation)
+npx mkolbol lam init
+```
+
+### First Test Run
+
+```bash
+# 1. Initialize config
+npx lam init
+
+# 2. Run your tests
+npx lam run --lane auto
+
+# 3. View summary
+npx lam summary
+```
+
+### Analyze Failures
+
+```bash
+# Generate digests for all failures
+npx lam digest
+
+# Show specific test details with context
+npx lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 10
+
+# Get reproduction commands
+npx lam repro
+```
+
+### Basic Commands
+
+| Command | Purpose |
+|---------|---------|
+| `lam init` | Scaffold laminar.config.json |
+| `lam run` | Execute tests with structured logging |
+| `lam summary` | List all test results |
+| `lam digest` | Generate failure digests |
+| `lam show` | Inspect test artifacts |
+| `lam repro` | Get repro commands |
+
+**Quick Tips:**
+- All test artifacts go to `reports/` directory
+- Use `reports/summary.jsonl` for quick failure scan
+- Per-case logs in `reports/<suite>/<case>.jsonl`
+- Digests auto-generated on failure (see below for configuration)
+
 ## Why Laminar
 - Token‑cheap: short summaries, deep artifacts on disk
 - Deterministic: seeded, no flaky sleeps, reproducible
@@ -233,6 +288,12 @@ The `lam` CLI provides comprehensive test management and analysis capabilities.
 
 ### Commands
 
+#### Project Setup
+- `lam init [--template <t>] [--dry-run] [--force]` — scaffold laminar.config.json
+  - `--template`: Choose template (node-defaults, go-defaults, minimal)
+  - `--dry-run`: Preview config without writing files
+  - `--force`: Overwrite existing config
+
 #### Test Execution
 - `lam run [--lane ci|pty|auto] [--filter <pattern>]` — run tests
 - `lam summary` — list all test results from latest run
@@ -250,6 +311,72 @@ The `lam` CLI provides comprehensive test management and analysis capabilities.
 - `lam ingest --go [--from-file <path> | --cmd "<command>"]` — ingest Go test results
 - `lam ingest --pytest [--from-file <path> | --cmd "<command>"]` — ingest pytest JSON results
 - `lam ingest --junit <file>` — ingest JUnit XML test results
+
+### lam init — Project Scaffolding
+
+Initialize Laminar configuration in your project with sensible defaults:
+
+```bash
+# Quick start with node defaults
+npx lam init
+
+# Preview config without creating files
+npx lam init --dry-run
+
+# Use minimal template
+npx lam init --template minimal
+
+# Use Go defaults for Go projects
+npx lam init --template go-defaults
+
+# Overwrite existing config
+npx lam init --force
+```
+
+**What it does:**
+1. Creates `laminar.config.json` with chosen template
+2. Adds `reports/` to `.gitignore` if not already present
+3. Won't overwrite existing config without `--force` flag
+
+**Available Templates:**
+- `node-defaults` (default): Includes error capture, assert.fail with context, worker events, and codeframes
+- `go-defaults`: Optimized for Go test.fail events with codeframes
+- `minimal`: Basic error-only capture
+
+**Template: node-defaults**
+```json
+{
+  "enabled": true,
+  "budget": {
+    "kb": 10,
+    "lines": 200
+  },
+  "rules": [
+    {
+      "match": { "lvl": "error" },
+      "actions": [
+        { "type": "include" },
+        { "type": "codeframe", "contextLines": 2 }
+      ],
+      "priority": 10
+    },
+    {
+      "match": { "evt": "assert.fail" },
+      "actions": [
+        { "type": "include" },
+        { "type": "slice", "window": 10 },
+        { "type": "codeframe", "contextLines": 2 }
+      ],
+      "priority": 9
+    },
+    {
+      "match": { "evt": ["worker.ready", "worker.exit", "worker.error"] },
+      "actions": [{ "type": "include" }],
+      "priority": 7
+    }
+  ]
+}
+```
 
 ### lam ingest — Cross-Language Test Integration
 

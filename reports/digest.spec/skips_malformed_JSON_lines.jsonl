@@ -1,3 +1,3 @@
-{"ts":1760303318690,"lvl":"info","case":"skips malformed JSON lines","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760303318691,"lvl":"info","case":"skips malformed JSON lines","phase":"execution","evt":"test.run"}
-{"ts":1760303318692,"lvl":"info","case":"skips malformed JSON lines","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760304679692,"lvl":"info","case":"skips malformed JSON lines","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
+{"ts":1760304679693,"lvl":"info","case":"skips malformed JSON lines","phase":"execution","evt":"test.run"}
+{"ts":1760304679694,"lvl":"info","case":"skips malformed JSON lines","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

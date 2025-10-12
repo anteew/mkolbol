@@ -1,3 +1,3 @@
-{"ts":1760303318735,"lvl":"info","case":"respects enabled=false flag","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760303318736,"lvl":"info","case":"respects enabled=false flag","phase":"execution","evt":"test.run"}
-{"ts":1760303318737,"lvl":"info","case":"respects enabled=false flag","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760304699981,"lvl":"info","case":"respects enabled=false flag","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42","LAMINAR_DEBUG":"1","LAMINAR_SUITE":"redaction.spec","LAMINAR_CASE":"redacts_secrets_in_arrays"}},"seed":42}
+{"ts":1760304699982,"lvl":"info","case":"respects enabled=false flag","phase":"execution","evt":"test.run"}
+{"ts":1760304699983,"lvl":"info","case":"respects enabled=false flag","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

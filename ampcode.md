@@ -1,17 +1,53 @@
 ```json
 {
   "ampcode": "v1",
+  "notes": "Do not branch/commit/push — VEGA handles git.",
   "waves": [
-    { "id": "IG2-A", "parallel": true,  "tasks": ["T3201", "T3202"] },
-    { "id": "IG2-B", "parallel": true,  "depends_on": ["IG2-A"], "tasks": ["T3203", "T3204"] },
-    { "id": "IG2-C", "parallel": false, "depends_on": ["IG2-B"], "tasks": ["T3205"] }
+    { "id": "PKG-A", "parallel": true,  "tasks": ["T4101", "T4105"] },
+    { "id": "PKG-B", "parallel": true,  "depends_on": ["PKG-A"], "tasks": ["T4102", "T4103"] },
+    { "id": "PKG-C", "parallel": false, "depends_on": ["PKG-B"], "tasks": ["T4104"] }
   ],
   "tasks": [
-    { "id": "T3201", "agent": "susan-1", "title": "Pytest ingest adapter (pytest JSON → Laminar JSONL)", "allowedFiles": ["scripts/ingest-pytest.ts", "tests/fixtures/pytest/**", "docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T3201_ingest-pytest.patch"] },
-    { "id": "T3202", "agent": "susan-2", "title": "JUnit ingest adapter (JUnit XML → Laminar JSONL)", "allowedFiles": ["scripts/ingest-junit.ts", "tests/fixtures/junit/**", "docs/testing/laminar.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T3202_ingest-junit.patch"] },
-    { "id": "T3203", "agent": "susan-3", "title": "CLI: lam ingest --py|--junit integration + options", "allowedFiles": ["scripts/lam.ts", "README.md"], "verify": ["npm run lam -- --help"], "deliverables": ["patches/DIFF_T3203_cli-ingest-py-junit.patch"] },
-    { "id": "T3204", "agent": "susan-4", "title": "Tests: cross-language ingest (Pytest/JUnit fixtures → JSONL + summary)", "allowedFiles": ["tests/ingest/pytestIngest.spec.ts", "tests/ingest/junitIngest.spec.ts", "tests/fixtures/**", "reports/**"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T3204_tests-ingest-py-junit.patch"] },
-    { "id": "T3205", "agent": "susan-5", "title": "Docs: Cross-language ingest usage and examples (Pytest/JUnit)", "allowedFiles": ["docs/testing/laminar.md", "README.md"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T3205_docs-ingest-py-junit.patch"] }
+    {
+      "id": "T4101",
+      "agent": "susan-1",
+      "title": "Packaging: npx entry + bin script",
+      "allowedFiles": ["package.json", "README.md"],
+      "verify": ["jq -r '.bin? // "none"' package.json", "npm run build"],
+      "deliverables": ["patches/DIFF_T4101_pkg-npx-bin.patch"]
+    },
+    {
+      "id": "T4102",
+      "agent": "susan-2",
+      "title": "CLI: lam init scaffolding (laminar.config.json)",
+      "allowedFiles": ["scripts/lam.ts", "src/init/scaffold.ts", "docs/testing/laminar.md"],
+      "verify": ["npm run lam -- init --dry-run"],
+      "deliverables": ["patches/DIFF_T4102_cli-init-scaffold.patch"]
+    },
+    {
+      "id": "T4103",
+      "agent": "susan-3",
+      "title": "CI: GitHub Actions sample workflow publishing reports/",
+      "allowedFiles": [".github/workflows/laminar.yml", "README.md"],
+      "verify": ["test -f .github/workflows/laminar.yml && echo ok"],
+      "deliverables": ["patches/DIFF_T4103_ci-gha-workflow.patch"]
+    },
+    {
+      "id": "T4104",
+      "agent": "susan-4",
+      "title": "Docs: Quickstart (README front page + laminar.md)",
+      "allowedFiles": ["README.md", "docs/testing/laminar.md"],
+      "verify": ["grep -q 'Quickstart' README.md"],
+      "deliverables": ["patches/DIFF_T4104_docs-quickstart.patch"]
+    },
+    {
+      "id": "T4105",
+      "agent": "susan-5",
+      "title": "CLI polish: lam --help reflects init + npx",
+      "allowedFiles": ["scripts/lam.ts"],
+      "verify": ["npm run lam -- --help"],
+      "deliverables": ["patches/DIFF_T4105_cli-help-polish.patch"]
+    }
   ]
 }
 ```

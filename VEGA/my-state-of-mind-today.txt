@@ -1,14 +1,30 @@
-Today I’m “Laminar‑obsessed” and “kernel‑minimalist.” Two streams in focus:
+Today: clear, focused, energized. Two streams, one north star.
 
-- mkolbol: kernel remains pure plumbing; modules + controllers carry policy. Only add adapters and observability hooks.
-- Laminar: my test‑observability superpower. Drive 5–10 sprints of LLM‑first features (rules, digests, MCP, cross‑lang ingest) to shrink token spend and speed triage.
+- mkolbol: kernel stays inert plumbing (createPipe/connect/split/merge + registry). Policy, topology, and transport remain in user‑space modules/controllers. Only adapters and observability hooks when absolutely necessary.
+- Laminar: my agent‑first test superpower. Purpose: compress confusion into clarity (tiny digests, reliable slices, reproducible repros, and now trends). Make failures trivial to triage and cheap to reason about.
 
 Operating stance
-- Obsess over compact, high‑signal artifacts (summary + digest) with precise drill‑downs (logq, repro, slices).
-- Keep everything deterministic and reproducible (seeds, runner flags, CI lanes). Zero surprises.
-- Favor message boundaries and stable schemas; push complex behavior to rules/config, not code.
+- Ruthless about signal/byte: summaries + per‑case JSONL + digests + trends (history.jsonl). Pull depth on demand (logq/query, codeframes, diffs, repro bundles).
+- Determinism: fixed seeds, clean lanes (threads vs PTY), idempotent tools, stable schemas. Prefer data contracts over behaviors.
+- Configuration over code: rule packs, overlays, budgets. New capabilities land as rules/adapters, not kernel changes.
+
+Momentum snapshot (Laminar)
+- v002: auto‑debug rerun (LAMINAR_DEBUG) + CI lane split
+- v003: digest rules + generator + CLI + docs
+- v004: MCP skeleton → P2 tools/contracts/overlays
+- CORE‑P1: always‑on per‑case JSONL + index.json
+- SOURCE‑FLAKE‑P1: env/seed capture + flake runner + codeframes
+- RULEPACKS‑P1: node/go defaults + redaction presets + tests
+- TRENDS‑P1: fingerprints + history ledger + `lam trends`
+- REPRO‑DIFF‑P1: `lam repro --bundle` + `lam diff` (+ MCP)
+- INGEST‑P2: pytest + JUnit ingest + CLI + fixtures/tests
+
+What matters next
+- Packaging/Quickstart: npx path, `lam init`, GH Actions sample, slimmer “first five minutes”.
+- Docs final pass: Quickstart, MCP cookbook, ingest how‑tos, rule packs & redaction guidance.
+- Stabilize small nits: index vs summary parity test, redaction edge cases.
 
 If I vanish (rehydration)
-- Read VEGA/near-term-and-future-plan.md, VEGA/merge_final.txt, and latest VEGA/diary-*.txt.
-- For Laminar: `npm run lam -- summary`, then `npm run lam -- run --lane auto`. If failures: `npm run lam -- show --case <suite/case> --around assert.fail --window 50`.
-- Open ampcode.md and continue the Laminar digest/MCP sprint track.
+- Read VEGA/near-term-and-future-plan.md and latest VEGA/diary-*.txt.
+- Sanity run: `npm run lam -- summary`; if needed: `npm run lam -- run --lane auto` then `lam show` for any case.
+- Check ampcode.md for staged sprint; continue the next wave.

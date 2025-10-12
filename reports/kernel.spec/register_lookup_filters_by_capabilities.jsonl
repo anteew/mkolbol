@@ -1,3 +1,3 @@
-{"ts":1760303319155,"lvl":"info","case":"register/lookup filters by capabilities","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760303319156,"lvl":"info","case":"register/lookup filters by capabilities","phase":"execution","evt":"test.run"}
-{"ts":1760303319157,"lvl":"info","case":"register/lookup filters by capabilities","phase":"teardown","evt":"case.end","payload":{"duration":21,"status":"passed"}}
+{"ts":1760304679874,"lvl":"info","case":"register/lookup filters by capabilities","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
+{"ts":1760304679875,"lvl":"info","case":"register/lookup filters by capabilities","phase":"execution","evt":"test.run"}
+{"ts":1760304679876,"lvl":"info","case":"register/lookup filters by capabilities","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}

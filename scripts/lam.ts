@@ -6,6 +6,7 @@ import { ingestPytestJSON } from './ingest-pytest.js';
 import { ingestJUnit } from './ingest-junit.js';
 import { DigestDiffEngine } from '../src/digest/diff.js';
 import { bundleRepro } from './repro-bundle.js';
+import { scaffold, printScaffoldPreview } from '../src/init/scaffold.js';
 
 function sh(cmd: string, args: string[], env: Record<string, string> = {}) {
   const res = spawnSync(cmd, args, { stdio: 'inherit', env: { ...process.env, ...env } });
@@ -13,41 +14,89 @@ function sh(cmd: string, args: string[], env: Record<string, string> = {}) {
 }
 
 function printHelp() {
-  console.log(`Laminar CLI
+  const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+  console.log(`Laminar CLI v${pkg.version}
+Stream-based test execution and failure analysis toolkit
 
-Usage:
-  lam run [--lane ci|pty|auto] [--filter <vitest-pattern>]
-  lam summary
-  lam show --case <suite/case> [--around <pattern>] [--window <n>]
-  lam digest [--cases <case1,case2,...>]
-  lam diff <digest1> <digest2> [--output <path>] [--format json|markdown]
-  lam repro --bundle [--case <case-name>]
-  lam ingest --go [--from-file <path> | --cmd "<command>"]
-  lam ingest --py|--pytest [--from-file <path> | --cmd "<command>"]
-  lam ingest --junit [--from-file <path> | --cmd "<command>"]
-  lam rules get
-  lam rules set --file <path> | --inline '<json>'
-  lam trends [--since <timestamp>] [--until <timestamp>] [--top <n>]
+USAGE
+  lam <command> [options]
+  npx lam <command> [options]
 
-Examples:
-  lam run --lane auto
-  lam summary
+CONFIGURATION
+  init [--template <t>] [--dry-run] [--force]
+                                            Initialize Laminar in your project (creates config & setup)
+                                            --template: node-defaults (default), go-defaults, minimal
+                                            --dry-run: Preview without writing files
+                                            --force: Overwrite existing config
+
+TEST EXECUTION
+  run [--lane ci|pty|auto] [--filter <p>]  Run tests with Laminar instrumentation
+                                            --lane: execution mode (auto=smart detection)
+                                            --filter: vitest pattern to run specific tests
+
+ANALYSIS & REPORTING
+  summary                                   Show test results summary from last run
+  show --case <suite/case>                  Display detailed logs for a specific test case
+       [--around <pattern>]                 Context pattern to search for (default: assert.fail)
+       [--window <n>]                       Lines of context around pattern (default: 50)
+  digest [--cases <case1,case2,...>]        Generate failure digests for test cases
+                                            If --cases omitted, digests all failed tests
+  diff <digest1> <digest2>                  Compare two digest files
+       [--output <path>]                    Save comparison to file
+       [--format json|markdown]             Output format (default: json)
+  trends [--since <ts>] [--until <ts>]      Show failure trends over time
+         [--top <n>]                        Number of top offenders to display (default: 10)
+
+DEBUGGING
+  repro --bundle [--case <case-name>]       Bundle reproduction artifacts for debugging
+                                            If --case omitted, bundles all failing tests
+
+INGEST (External Test Frameworks)
+  ingest --go [--from-file <path> | --cmd "<command>"]
+                                            Import Go test results (go test -json)
+  ingest --py|--pytest [--from-file <path> | --cmd "<command>"]
+                                            Import pytest JSON reports
+  ingest --junit [--from-file <path> | --cmd "<command>"]
+                                            Import JUnit XML results
+
+CONFIGURATION MANAGEMENT
+  rules get                                 Display current Laminar rules config
+  rules set --file <path> | --inline '<json>'
+                                            Update Laminar rules configuration
+
+EXAMPLES
+  # Quick start
+  npx lam init                              # Initialize Laminar with node-defaults template
+  npx lam init --dry-run                    # Preview config without creating
+  npx lam init --template go-defaults       # Initialize for Go projects
+  lam run --lane auto                       # Run tests with auto-detection
+  lam summary                               # View results
+
+  # Focused testing
+  lam run --lane ci --filter "kernel"       # Run only kernel tests
   lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 50
-  lam digest
-  lam digest --cases kernel.spec/connect_moves_data_1_1,kernel.spec/another_case
-  lam diff reports/case1.digest.json reports/case2.digest.json
-  lam diff reports/case1.digest.json reports/case2.digest.json --output diff.md --format markdown
-  lam repro --bundle
-  lam repro --bundle --case kernel.spec/connect_moves_data_1_1
-  lam ingest --go --from-file go-test-output.json
+
+  # Analysis workflows
+  lam digest                                # Digest all failures
+  lam digest --cases kernel.spec/case1,kernel.spec/case2
+  lam diff reports/case1.digest.json reports/case2.digest.json --format markdown
+  lam trends --top 10 --since 2025-10-01
+
+  # External framework integration
   lam ingest --go --cmd "go test -json ./..."
-  lam ingest --py --from-file pytest-report.json
-  lam ingest --pytest --cmd "pytest --json-report --json-report-file=/dev/stdout"
-  lam ingest --junit --from-file junit-results.xml
+  lam ingest --pytest --from-file pytest-report.json
   lam ingest --junit --cmd "mvn test"
+
+  # Debugging support
+  lam repro --bundle --case kernel.spec/failing_test
+
+  # Configuration
   lam rules get
   lam rules set --inline '{"budget":{"kb":2}}'
-  lam trends --top 10 --since 2025-10-01
+
+LEARN MORE
+  Documentation: https://github.com/anteew/mkolbol
+  Report issues: https://github.com/anteew/mkolbol/issues
 `);
 }
 
@@ -109,6 +158,26 @@ async function main() {
   }
 
   switch (cmd) {
+    case 'init': {
+      const template = (args.get('template') as string) || 'node-defaults';
+      const dryRun = args.get('dry-run') === true || args.get('dryrun') === true;
+      const force = args.get('force') === true;
+
+      const result = scaffold({
+        template: template as any,
+        dryRun,
+        force,
+        silent: false,
+      });
+
+      if (dryRun) {
+        printScaffoldPreview(result);
+      } else if (!result.success) {
+        console.error(`Error: ${result.message}`);
+        process.exit(1);
+      }
+      break;
+    }
     case 'run': {
       const lane = (args.get('lane') as string) || 'auto';
       const filter = args.get('filter') as (string|undefined);
@@ -393,18 +462,33 @@ async function main() {
         location?: string;
         errorMessage?: string;
       }
+
+      function normalize(raw: any): HistoryEntry | undefined {
+        try {
+          const ts = typeof raw.ts === 'number'
+            ? raw.ts
+            : raw.timestamp
+              ? Date.parse(raw.timestamp)
+              : (typeof raw.time === 'number' ? raw.time : undefined);
+          if (!ts || Number.isNaN(ts)) return undefined;
+          const caseName = raw.caseName || raw.testName || raw.name || 'unknown.case';
+          const status: 'fail' | 'pass' | 'skip' = (raw.status || 'pass');
+          const location = raw.location || raw.file || undefined;
+          const fingerprint = raw.fingerprint || raw.fp || '';
+          const errorMessage = raw.errorMessage || raw.error || undefined;
+          return { ts, fingerprint, caseName, status, location, errorMessage };
+        } catch {
+          return undefined;
+        }
+      }
       
       const entries: HistoryEntry[] = fs.readFileSync(historyPath, 'utf-8')
         .trim()
         .split(/\n+/)
-        .map(line => {
-          try {
-            return JSON.parse(line);
-          } catch {
-            return undefined;
-          }
-        })
-        .filter(Boolean);
+        .map(line => { try { return JSON.parse(line); } catch { return undefined; } })
+        .filter(Boolean)
+        .map((raw: any) => normalize(raw))
+        .filter((v): v is HistoryEntry => Boolean(v));
       
       const filtered = entries.filter(e => e.ts >= sinceTs && e.ts <= untilTs);
       
@@ -487,4 +571,3 @@ async function main() {
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
-
