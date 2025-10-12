@@ -2,13 +2,13 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "RP-A", "parallel": true,  "tasks": ["T2801", "T2802"] },
-    { "id": "RP-B", "parallel": false, "depends_on": ["RP-A"], "tasks": ["T2803"] }
+    { "id": "TR-A", "parallel": true,  "tasks": ["T2901", "T2902"] },
+    { "id": "TR-B", "parallel": false, "depends_on": ["TR-A"], "tasks": ["T2903"] }
   ],
   "tasks": [
-    { "id": "T2801", "agent": "susan-1", "title": "Digest: rule packs + extends (node-defaults, go-defaults)", "allowedFiles": ["src/digest/generator.ts", "docs/testing/laminar.md"], "verify": ["npm run build", "npm run test:ci || true"], "deliverables": ["patches/DIFF_T2801_digest-rulepacks.patch"] },
-    { "id": "T2802", "agent": "susan-2", "title": "Redaction presets + secret scanning (JWT/AWS/URLs) with opt-outs", "allowedFiles": ["src/digest/generator.ts", "docs/testing/laminar.md"], "verify": ["npm run build", "npm run test:ci || true"], "deliverables": ["patches/DIFF_T2802_digest-redaction-presets.patch"] },
-    { "id": "T2803", "agent": "susan-3", "title": "Tests: rule packs + redaction work across Node/Go fixtures", "allowedFiles": ["tests/digest/rulepacks.spec.ts", "tests/fixtures/**"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T2803_tests-rulepacks.patch"] }
+    { "id": "T2901", "agent": "susan-1", "title": "Failure fingerprinting + history ledger (history.jsonl)", "allowedFiles": ["src/digest/fingerprint.ts", "scripts/laminar-run.ts", "scripts/lam.ts"], "verify": ["npm run build"], "deliverables": ["patches/DIFF_T2901_fingerprint-history.patch"] },
+    { "id": "T2902", "agent": "susan-2", "title": "CLI: lam trends (top offenders, first/last seen)", "allowedFiles": ["scripts/lam.ts", "docs/testing/laminar.md"], "verify": ["npm run lam -- --help"], "deliverables": ["patches/DIFF_T2902_cli-trends.patch"] },
+    { "id": "T2903", "agent": "susan-3", "title": "Tests: synthetic regression history + trend outputs", "allowedFiles": ["tests/laminar/trends.spec.ts", "tests/fixtures/**", "reports/**"], "verify": ["npm run test:ci || true"], "deliverables": ["patches/DIFF_T2903_tests-trends.patch"] }
   ]
 }
 ```
