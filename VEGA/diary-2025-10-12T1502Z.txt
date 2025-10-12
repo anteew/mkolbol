@@ -1,0 +1,18 @@
+Diary — 2025-10-12T15:02Z
+
+Context
+- Laminar v002 landed: auto-debug rerun (laminar:run) re-executes failing tests with LAMINAR_DEBUG=1 and writes structured JSONL. CI split stabilized (threads lane + PTY lane). Debug API (mkolbol) added with env-driven toggles; hooks emit only when enabled.
+
+What’s merged
+- ControlBus/Controller/Executor/Hostess test-mode instrumentation; Debug API + helpers; CI scripts (test:ci, test:pty, laminar:run). Docs under docs/testing/laminar.md.
+
+Branching
+- Pulled main; created laminar-v003 for next work.
+
+Near-term next
+- Laminar v003: rules + digest (laminar.config.json) to generate compact per-failure digests (LLM-friendly) with slices and suspects; add `laminar:digest` + doc.
+- Hostess control endpoints (type + coordinates) in guest book (remaining from earlier plan).
+- Process-mode adapters (Unix/TCP) + blue/green, then optional NATS adapter.
+
+Vibe
+- Optimize for agent workflows: small summaries, precise artifacts, zero-click debug reruns. Keep kernel inert; policy at edges.

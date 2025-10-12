@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
+import { generateAllDigests } from '../src/digest/generator.js';
 
 type SummaryEntry = {
   status: 'pass'|'fail'|'skip';
@@ -65,6 +66,14 @@ async function main() {
       overall = run('vitest', ['run', '--pool=threads', file, '--reporter=./dist/test/reporter/jsonlReporter.js'], env) || overall;
     }
   }
+
+  // Auto-generate digests for failures
+  console.log('\nGenerating digests for failed tests...');
+  const digestCount = await generateAllDigests();
+  if (digestCount > 0) {
+    console.log(`Generated ${digestCount} digest(s) in reports/ directory`);
+  }
+
   process.exit(overall);
 }
 

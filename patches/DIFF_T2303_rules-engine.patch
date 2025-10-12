@@ -1,0 +1,1929 @@
+diff --git a/VEGA/diary-2025-10-12T1502Z.txt b/VEGA/diary-2025-10-12T1502Z.txt
+new file mode 100644
+index 0000000..a2a97e2
+--- /dev/null
++++ b/VEGA/diary-2025-10-12T1502Z.txt
+@@ -0,0 +1,18 @@
++Diary — 2025-10-12T15:02Z
++
++Context
++- Laminar v002 landed: auto-debug rerun (laminar:run) re-executes failing tests with LAMINAR_DEBUG=1 and writes structured JSONL. CI split stabilized (threads lane + PTY lane). Debug API (mkolbol) added with env-driven toggles; hooks emit only when enabled.
++
++What’s merged
++- ControlBus/Controller/Executor/Hostess test-mode instrumentation; Debug API + helpers; CI scripts (test:ci, test:pty, laminar:run). Docs under docs/testing/laminar.md.
++
++Branching
++- Pulled main; created laminar-v003 for next work.
++
++Near-term next
++- Laminar v003: rules + digest (laminar.config.json) to generate compact per-failure digests (LLM-friendly) with slices and suspects; add `laminar:digest` + doc.
++- Hostess control endpoints (type + coordinates) in guest book (remaining from earlier plan).
++- Process-mode adapters (Unix/TCP) + blue/green, then optional NATS adapter.
++
++Vibe
++- Optimize for agent workflows: small summaries, precise artifacts, zero-click debug reruns. Keep kernel inert; policy at edges.
+diff --git a/dist/digest/generator.d.ts b/dist/digest/generator.d.ts
+new file mode 100644
+index 0000000..1c8c917
+--- /dev/null
++++ b/dist/digest/generator.d.ts
+@@ -0,0 +1,65 @@
++export interface DigestConfig {
++    budget?: {
++        kb?: number;
++        lines?: number;
++    };
++    rules?: DigestRule[];
++    enabled?: boolean;
++}
++export interface DigestRule {
++    match: {
++        evt?: string | string[];
++        lvl?: string | string[];
++        phase?: string | string[];
++        case?: string | string[];
++        path?: string | string[];
++    };
++    actions: DigestAction[];
++    priority?: number;
++}
++export interface DigestAction {
++    type: 'include' | 'slice' | 'redact';
++    window?: number;
++    field?: string | string[];
++}
++export interface DigestEvent {
++    ts: number;
++    lvl: string;
++    case: string;
++    phase?: string;
++    evt: string;
++    id?: string;
++    corr?: string;
++    path?: string;
++    payload?: unknown;
++}
++export interface DigestOutput {
++    case: string;
++    status: 'fail';
++    duration: number;
++    location: string;
++    error?: string;
++    summary: {
++        totalEvents: number;
++        includedEvents: number;
++        redactedFields: number;
++        budgetUsed: number;
++        budgetLimit: number;
++    };
++    events: DigestEvent[];
++}
++export declare class DigestGenerator {
++    private config;
++    constructor(config?: DigestConfig);
++    static loadConfig(configPath?: string): DigestConfig;
++    generateDigest(caseName: string, status: 'pass' | 'fail' | 'skip', duration: number, location: string, artifactURI: string, error?: string): Promise<DigestOutput | null>;
++    private loadEvents;
++    private applyRules;
++    private matchEvent;
++    private matchPattern;
++    private enforceBudget;
++    writeDigest(digest: DigestOutput, outputDir?: string): Promise<void>;
++    private formatMarkdown;
++}
++export declare function generateAllDigests(configPath?: string): Promise<number>;
++//# sourceMappingURL=generator.d.ts.map
+\ No newline at end of file
+diff --git a/dist/digest/generator.d.ts.map b/dist/digest/generator.d.ts.map
+new file mode 100644
+index 0000000..f7ad818
+--- /dev/null
++++ b/dist/digest/generator.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"generator.d.ts","sourceRoot":"","sources":["../../src/digest/generator.ts"],"names":[],"mappings":"AAGA,MAAM,WAAW,YAAY;IAC3B,MAAM,CAAC,EAAE;QACP,EAAE,CAAC,EAAE,MAAM,CAAC;QACZ,KAAK,CAAC,EAAE,MAAM,CAAC;KAChB,CAAC;IACF,KAAK,CAAC,EAAE,UAAU,EAAE,CAAC;IACrB,OAAO,CAAC,EAAE,OAAO,CAAC;CACnB;AAED,MAAM,WAAW,UAAU;IACzB,KAAK,EAAE;QACL,GAAG,CAAC,EAAE,MAAM,GAAG,MAAM,EAAE,CAAC;QACxB,GAAG,CAAC,EAAE,MAAM,GAAG,MAAM,EAAE,CAAC;QACxB,KAAK,CAAC,EAAE,MAAM,GAAG,MAAM,EAAE,CAAC;QAC1B,IAAI,CAAC,EAAE,MAAM,GAAG,MAAM,EAAE,CAAC;QACzB,IAAI,CAAC,EAAE,MAAM,GAAG,MAAM,EAAE,CAAC;KAC1B,CAAC;IACF,OAAO,EAAE,YAAY,EAAE,CAAC;IACxB,QAAQ,CAAC,EAAE,MAAM,CAAC;CACnB;AAED,MAAM,WAAW,YAAY;IAC3B,IAAI,EAAE,SAAS,GAAG,OAAO,GAAG,QAAQ,CAAC;IACrC,MAAM,CAAC,EAAE,MAAM,CAAC;IAChB,KAAK,CAAC,EAAE,MAAM,GAAG,MAAM,EAAE,CAAC;CAC3B;AAED,MAAM,WAAW,WAAW;IAC1B,EAAE,EAAE,MAAM,CAAC;IACX,GAAG,EAAE,MAAM,CAAC;IACZ,IAAI,EAAE,MAAM,CAAC;IACb,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,GAAG,EAAE,MAAM,CAAC;IACZ,EAAE,CAAC,EAAE,MAAM,CAAC;IACZ,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,OAAO,CAAC,EAAE,OAAO,CAAC;CACnB;AAED,MAAM,WAAW,YAAY;IAC3B,IAAI,EAAE,MAAM,CAAC;IACb,MAAM,EAAE,MAAM,CAAC;IACf,QAAQ,EAAE,MAAM,CAAC;IACjB,QAAQ,EAAE,MAAM,CAAC;IACjB,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,OAAO,EAAE;QACP,WAAW,EAAE,MAAM,CAAC;QACpB,cAAc,EAAE,MAAM,CAAC;QACvB,cAAc,EAAE,MAAM,CAAC;QACvB,UAAU,EAAE,MAAM,CAAC;QACnB,WAAW,EAAE,MAAM,CAAC;KACrB,CAAC;IACF,MAAM,EAAE,WAAW,EAAE,CAAC;CACvB;AAsBD,qBAAa,eAAe;IAC1B,OAAO,CAAC,MAAM,CAAe;gBAEjB,MAAM,CAAC,EAAE,YAAY;IAIjC,MAAM,CAAC,UAAU,CAAC,UAAU,GAAE,MAA8B,GAAG,YAAY;IAYrE,cAAc,CAClB,QAAQ,EAAE,MAAM,EAChB,MAAM,EAAE,MAAM,GAAG,MAAM,GAAG,MAAM,EAChC,QAAQ,EAAE,MAAM,EAChB,QAAQ,EAAE,MAAM,EAChB,WAAW,EAAE,MAAM,EACnB,KAAK,CAAC,EAAE,MAAM,GACb,OAAO,CAAC,YAAY,GAAG,IAAI,CAAC;IAiC/B,OAAO,CAAC,UAAU;IAoBlB,OAAO,CAAC,UAAU;IAwDlB,OAAO,CAAC,UAAU;IA6BlB,OAAO,CAAC,YAAY;IAUpB,OAAO,CAAC,aAAa;IAwBf,WAAW,CAAC,MAAM,EAAE,YAAY,EAAE,SAAS,GAAE,MAAkB,GAAG,OAAO,CAAC,IAAI,CAAC;IAYrF,OAAO,CAAC,cAAc;CA8BvB;AAED,wBAAsB,kBAAkB,CAAC,UAAU,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,MAAM,CAAC,CAyC7E"}
+\ No newline at end of file
+diff --git a/dist/digest/generator.js b/dist/digest/generator.js
+new file mode 100644
+index 0000000..5dcc77b
+--- /dev/null
++++ b/dist/digest/generator.js
+@@ -0,0 +1,260 @@
++import * as fs from 'node:fs';
++import * as path from 'node:path';
++const DEFAULT_CONFIG = {
++    budget: {
++        kb: 10,
++        lines: 200,
++    },
++    enabled: true,
++    rules: [
++        {
++            match: { lvl: 'error' },
++            actions: [{ type: 'include' }],
++            priority: 10,
++        },
++        {
++            match: { evt: 'assert.fail' },
++            actions: [{ type: 'include' }, { type: 'slice', window: 10 }],
++            priority: 9,
++        },
++    ],
++};
++export class DigestGenerator {
++    config;
++    constructor(config) {
++        this.config = config || DEFAULT_CONFIG;
++    }
++    static loadConfig(configPath = 'laminar.config.json') {
++        if (fs.existsSync(configPath)) {
++            try {
++                const content = fs.readFileSync(configPath, 'utf-8');
++                return JSON.parse(content);
++            }
++            catch (e) {
++                console.warn(`Failed to load ${configPath}, using defaults:`, e);
++            }
++        }
++        return DEFAULT_CONFIG;
++    }
++    async generateDigest(caseName, status, duration, location, artifactURI, error) {
++        if (status !== 'fail') {
++            return null;
++        }
++        if (!this.config.enabled) {
++            return null;
++        }
++        const events = this.loadEvents(artifactURI);
++        const processedEvents = this.applyRules(events);
++        const budgetedEvents = this.enforceBudget(processedEvents);
++        const budgetLimit = (this.config.budget?.kb || 10) * 1024;
++        const budgetUsed = JSON.stringify(budgetedEvents).length;
++        return {
++            case: caseName,
++            status: 'fail',
++            duration,
++            location,
++            error,
++            summary: {
++                totalEvents: events.length,
++                includedEvents: budgetedEvents.length,
++                redactedFields: 0,
++                budgetUsed,
++                budgetLimit,
++            },
++            events: budgetedEvents,
++        };
++    }
++    loadEvents(artifactURI) {
++        if (!fs.existsSync(artifactURI)) {
++            return [];
++        }
++        const content = fs.readFileSync(artifactURI, 'utf-8');
++        const lines = content.trim().split('\n').filter(Boolean);
++        const events = [];
++        for (const line of lines) {
++            try {
++                events.push(JSON.parse(line));
++            }
++            catch (e) {
++                console.warn('Failed to parse event:', line);
++            }
++        }
++        return events;
++    }
++    applyRules(events) {
++        if (!this.config.rules || this.config.rules.length === 0) {
++            return events;
++        }
++        const included = new Set();
++        const redactedFields = new Map();
++        const rules = [...this.config.rules].sort((a, b) => (b.priority || 0) - (a.priority || 0));
++        for (const rule of rules) {
++            for (let i = 0; i < events.length; i++) {
++                if (this.matchEvent(events[i], rule.match)) {
++                    for (const action of rule.actions) {
++                        if (action.type === 'include') {
++                            included.add(i);
++                        }
++                        else if (action.type === 'slice' && action.window) {
++                            const window = action.window;
++                            for (let j = Math.max(0, i - window); j < Math.min(events.length, i + window + 1); j++) {
++                                included.add(j);
++                            }
++                        }
++                        else if (action.type === 'redact' && action.field) {
++                            const fields = Array.isArray(action.field) ? action.field : [action.field];
++                            if (!redactedFields.has(i)) {
++                                redactedFields.set(i, new Set());
++                            }
++                            fields.forEach(f => redactedFields.get(i).add(f));
++                        }
++                    }
++                }
++            }
++        }
++        if (included.size === 0) {
++            return events;
++        }
++        const result = Array.from(included)
++            .sort((a, b) => a - b)
++            .map(idx => {
++            const event = { ...events[idx] };
++            if (redactedFields.has(idx)) {
++                const fieldsToRedact = redactedFields.get(idx);
++                for (const field of fieldsToRedact) {
++                    if (field === 'payload' && event.payload) {
++                        event.payload = '[REDACTED]';
++                    }
++                    else if (field in event) {
++                        event[field] = '[REDACTED]';
++                    }
++                }
++            }
++            return event;
++        });
++        return result;
++    }
++    matchEvent(event, match) {
++        if (match.evt) {
++            const evtMatch = Array.isArray(match.evt) ? match.evt : [match.evt];
++            if (!this.matchPattern(event.evt, evtMatch))
++                return false;
++        }
++        if (match.lvl) {
++            const lvlMatch = Array.isArray(match.lvl) ? match.lvl : [match.lvl];
++            if (!this.matchPattern(event.lvl, lvlMatch))
++                return false;
++        }
++        if (match.phase) {
++            const phaseMatch = Array.isArray(match.phase) ? match.phase : [match.phase];
++            if (!event.phase || !this.matchPattern(event.phase, phaseMatch))
++                return false;
++        }
++        if (match.case) {
++            const caseMatch = Array.isArray(match.case) ? match.case : [match.case];
++            if (!this.matchPattern(event.case, caseMatch))
++                return false;
++        }
++        if (match.path) {
++            const pathMatch = Array.isArray(match.path) ? match.path : [match.path];
++            if (!event.path || !this.matchPattern(event.path, pathMatch))
++                return false;
++        }
++        return true;
++    }
++    matchPattern(value, patterns) {
++        return patterns.some(pattern => {
++            if (pattern.includes('*')) {
++                const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
++                return regex.test(value);
++            }
++            return value === pattern;
++        });
++    }
++    enforceBudget(events) {
++        const budgetKb = this.config.budget?.kb || 10;
++        const budgetLines = this.config.budget?.lines || 200;
++        const budgetBytes = budgetKb * 1024;
++        if (events.length <= budgetLines) {
++            const size = JSON.stringify(events).length;
++            if (size <= budgetBytes) {
++                return events;
++            }
++        }
++        let currentEvents = events.slice(0, Math.min(events.length, budgetLines));
++        while (currentEvents.length > 0) {
++            const size = JSON.stringify(currentEvents).length;
++            if (size <= budgetBytes) {
++                break;
++            }
++            currentEvents = currentEvents.slice(0, currentEvents.length - 1);
++        }
++        return currentEvents;
++    }
++    async writeDigest(digest, outputDir = 'reports') {
++        const digestJsonPath = path.join(outputDir, `${digest.case}.digest.json`);
++        const digestMdPath = path.join(outputDir, `${digest.case}.digest.md`);
++        fs.mkdirSync(outputDir, { recursive: true });
++        fs.writeFileSync(digestJsonPath, JSON.stringify(digest, null, 2));
++        const md = this.formatMarkdown(digest);
++        fs.writeFileSync(digestMdPath, md);
++    }
++    formatMarkdown(digest) {
++        const lines = [];
++        lines.push(`# Digest: ${digest.case}`);
++        lines.push('');
++        lines.push(`**Status**: ${digest.status}`);
++        lines.push(`**Duration**: ${digest.duration}ms`);
++        lines.push(`**Location**: ${digest.location}`);
++        if (digest.error) {
++            lines.push(`**Error**: ${digest.error}`);
++        }
++        lines.push('');
++        lines.push('## Summary');
++        lines.push(`- Total Events: ${digest.summary.totalEvents}`);
++        lines.push(`- Included Events: ${digest.summary.includedEvents}`);
++        lines.push(`- Budget Used: ${digest.summary.budgetUsed} / ${digest.summary.budgetLimit} bytes`);
++        lines.push('');
++        if (digest.events.length > 0) {
++            lines.push('## Events');
++            lines.push('```json');
++            for (const evt of digest.events) {
++                lines.push(JSON.stringify(evt));
++            }
++            lines.push('```');
++        }
++        return lines.join('\n');
++    }
++}
++export async function generateAllDigests(configPath) {
++    const summaryPath = 'reports/summary.jsonl';
++    if (!fs.existsSync(summaryPath)) {
++        console.log('No summary.jsonl found');
++        return 0;
++    }
++    const config = DigestGenerator.loadConfig(configPath);
++    const generator = new DigestGenerator(config);
++    const content = fs.readFileSync(summaryPath, 'utf-8');
++    const lines = content.trim().split('\n').filter(Boolean);
++    let count = 0;
++    for (const line of lines) {
++        try {
++            const entry = JSON.parse(line);
++            if (entry.status === 'fail' && entry.artifactURI) {
++                const caseName = path.basename(entry.artifactURI, '.jsonl');
++                const digest = await generator.generateDigest(caseName, entry.status, entry.duration, entry.location, entry.artifactURI, entry.error);
++                if (digest) {
++                    const outputDir = path.dirname(entry.artifactURI);
++                    await generator.writeDigest(digest, outputDir);
++                    console.log(`✓ Generated digest for ${caseName}`);
++                    count++;
++                }
++            }
++        }
++        catch (e) {
++            console.warn('Failed to process entry:', line, e);
++        }
++    }
++    return count;
++}
++//# sourceMappingURL=generator.js.map
+\ No newline at end of file
+diff --git a/dist/digest/generator.js.map b/dist/digest/generator.js.map
+new file mode 100644
+index 0000000..860fc1e
+--- /dev/null
++++ b/dist/digest/generator.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"generator.js","sourceRoot":"","sources":["../../src/digest/generator.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/docs/testing/laminar.schema.json b/docs/testing/laminar.schema.json
+new file mode 100644
+index 0000000..6c85f78
+--- /dev/null
++++ b/docs/testing/laminar.schema.json
+@@ -0,0 +1,160 @@
++{
++  "$schema": "http://json-schema.org/draft-07/schema#",
++  "$id": "https://github.com/anteew/mkolbol/docs/testing/laminar.schema.json",
++  "title": "Laminar Digest Rules Configuration",
++  "description": "Schema for digest rules configuration controlling test artifact aggregation and filtering",
++  "type": "object",
++  "properties": {
++    "budget": {
++      "description": "Size limits for digest output",
++      "type": "object",
++      "properties": {
++        "kb": {
++          "description": "Maximum digest size in kilobytes",
++          "type": "number",
++          "minimum": 0,
++          "exclusiveMinimum": true
++        },
++        "events": {
++          "description": "Maximum number of events to include",
++          "type": "integer",
++          "minimum": 1
++        },
++        "cases": {
++          "description": "Maximum number of test cases to include",
++          "type": "integer",
++          "minimum": 1
++        }
++      },
++      "additionalProperties": false
++    },
++    "rules": {
++      "description": "Ordered list of match/action rules for filtering and transforming events",
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": ["match", "action"],
++        "properties": {
++          "match": {
++            "description": "Pattern to match against events",
++            "type": "object",
++            "properties": {
++              "evt": {
++                "description": "Event type pattern (supports wildcards: *)",
++                "type": "string"
++              },
++              "phase": {
++                "description": "Test phase to match",
++                "type": "string",
++                "enum": ["arrange", "act", "assert", "teardown"]
++              },
++              "lvl": {
++                "description": "Log level to match",
++                "type": "string",
++                "enum": ["info", "warn", "error"]
++              },
++              "case": {
++                "description": "Test case pattern (supports wildcards: *)",
++                "type": "string"
++              },
++              "path": {
++                "description": "File path pattern (supports wildcards: *)",
++                "type": "string"
++              }
++            },
++            "additionalProperties": false,
++            "minProperties": 1
++          },
++          "action": {
++            "description": "Action to take when match succeeds",
++            "type": "object",
++            "required": ["type"],
++            "properties": {
++              "type": {
++                "description": "Action type",
++                "type": "string",
++                "enum": ["include", "slice", "redact", "priority"]
++              },
++              "window": {
++                "description": "Number of events before/after match (for slice action)",
++                "type": "integer",
++                "minimum": 0
++              },
++              "fields": {
++                "description": "Fields to redact (for redact action)",
++                "type": "array",
++                "items": {
++                  "type": "string"
++                },
++                "minItems": 1
++              },
++              "level": {
++                "description": "Priority level (for priority action): higher = more important",
++                "type": "integer",
++                "minimum": 0,
++                "maximum": 10
++              }
++            },
++            "additionalProperties": false,
++            "allOf": [
++              {
++                "if": {
++                  "properties": { "type": { "const": "slice" } }
++                },
++                "then": {
++                  "required": ["window"]
++                }
++              },
++              {
++                "if": {
++                  "properties": { "type": { "const": "redact" } }
++                },
++                "then": {
++                  "required": ["fields"]
++                }
++              },
++              {
++                "if": {
++                  "properties": { "type": { "const": "priority" } }
++                },
++                "then": {
++                  "required": ["level"]
++                }
++              }
++            ]
++          },
++          "name": {
++            "description": "Optional human-readable rule name",
++            "type": "string"
++          },
++          "enabled": {
++            "description": "Toggle to enable/disable this rule",
++            "type": "boolean",
++            "default": true
++          }
++        },
++        "additionalProperties": false
++      }
++    },
++    "defaults": {
++      "description": "Default behavior when no rules match",
++      "type": "object",
++      "properties": {
++        "action": {
++          "description": "Default action for unmatched events",
++          "type": "string",
++          "enum": ["include", "exclude"]
++        },
++        "priority": {
++          "description": "Default priority level for events",
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 10,
++          "default": 5
++        }
++      },
++      "additionalProperties": false
++    }
++  },
++  "additionalProperties": false
++}
+diff --git a/package.json b/package.json
+index f0ee9c4..90676a9 100644
+--- a/package.json
++++ b/package.json
+@@ -34,6 +34,7 @@
+     "logq": "tsx scripts/logq.ts",
+     "repro": "tsx scripts/repro.ts",
+     "laminar:run": "tsx scripts/laminar-run.ts",
++    "laminar:digest": "tsx scripts/digest.ts",
+     "dev": "node --enable-source-maps dist/examples/basic-topology.js",
+     "dev:split": "node --enable-source-maps dist/examples/split-topology.js",
+     "dev:merge": "node --enable-source-maps dist/examples/merge-topology.js",
+diff --git a/patches/DIFF_T2301_rules-schema-docs.patch b/patches/DIFF_T2301_rules-schema-docs.patch
+new file mode 100644
+index 0000000..be082c3
+--- /dev/null
++++ b/patches/DIFF_T2301_rules-schema-docs.patch
+@@ -0,0 +1,365 @@
++diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
++index e2486c4..dc61804 100644
++--- a/docs/testing/laminar.md
+++++ b/docs/testing/laminar.md
++@@ -125,5 +125,194 @@ CI runs tests in two separate jobs to handle PTY isolation requirements:
++ - `npm run test:pty` — test only PTY tests (slow, sequential)
++ - Repro: `node scripts/repro.ts` prints exact filters and `logq` slices
++ 
+++## CLI (Humans)
+++
+++Laminar ships a tiny CLI to mirror what agents do:
+++
+++Commands:
+++- `npm run lam -- run --lane auto|ci|pty [--filter <pattern>]`
+++- `npm run lam -- summary`
+++- `npm run lam -- show --case <suite/case> [--around <pattern>] [--window <n>]`
+++- `npm run lam -- rules get`
+++- `npm run lam -- rules set --file <path> | --inline '<json>'`
+++
+++Examples:
+++- `npm run lam -- run --lane auto`
+++- `npm run lam -- summary`
+++- `npm run lam -- show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 50`
+++- `npm run lam -- rules get`
+++- `npm run lam -- rules set --inline '{"budget":{"kb":2}}'`
+++
+++## Digest Rules Configuration
+++
+++Digest rules control how test artifacts are aggregated, filtered, and prioritized. Rules use a match/action pattern to transform event streams into compact, token-efficient summaries.
+++
+++### Schema
+++
+++See [laminar.schema.json](laminar.schema.json) for the complete JSON Schema definition.
+++
+++### Configuration Structure
+++
+++```jsonc
+++{
+++  // Size limits for digest output
+++  "budget": {
+++    "kb": 50,           // max digest size in kilobytes
+++    "events": 1000,     // max number of events
+++    "cases": 100        // max number of test cases
+++  },
+++  
+++  // Ordered list of match/action rules
+++  "rules": [
+++    {
+++      "name": "include-failures",      // optional human-readable name
+++      "enabled": true,                 // toggle to disable rule
+++      "match": {
+++        "lvl": "error"                 // match error-level events
+++      },
+++      "action": {
+++        "type": "include"              // always include in digest
+++      }
+++    }
+++  ],
+++  
+++  // Default behavior for unmatched events
+++  "defaults": {
+++    "action": "exclude",               // exclude events by default
+++    "priority": 5                      // default priority level (0-10)
+++  }
+++}
+++```
+++
+++### Match Patterns
+++
+++Match patterns support the following fields:
+++
+++- **`evt`**: Event type pattern (supports `*` wildcard, e.g., `"worker.*"`)
+++- **`phase`**: Test phase (`"arrange"` | `"act"` | `"assert"` | `"teardown"`)
+++- **`lvl`**: Log level (`"info"` | `"warn"` | `"error"`)
+++- **`case`**: Test case pattern (supports `*` wildcard, e.g., `"topology.*"`)
+++- **`path`**: File path pattern (supports `*` wildcard, e.g., `"tests/worker/*.spec.ts"`)
+++
+++All fields are optional, but at least one must be specified. Multiple fields are AND-ed together.
+++
+++### Action Types
+++
+++#### `include`
+++Always include matching events in the digest (no additional fields required).
+++
+++```json
+++{
+++  "match": { "lvl": "error" },
+++  "action": { "type": "include" }
+++}
+++```
+++
+++#### `slice`
+++Include matching event plus surrounding context window.
+++
+++```json
+++{
+++  "match": { "evt": "assert.fail" },
+++  "action": {
+++    "type": "slice",
+++    "window": 25  // ±25 events around match
+++  }
+++}
+++```
+++
+++#### `redact`
+++Redact specific fields from matching events (useful for sensitive data).
+++
+++```json
+++{
+++  "match": { "evt": "auth.*" },
+++  "action": {
+++    "type": "redact",
+++    "fields": ["payload.token", "payload.secret"]
+++  }
+++}
+++```
+++
+++#### `priority`
+++Assign priority level to matching events (0-10, higher = more important). When budget limits are reached, lower-priority events are dropped first.
+++
+++```json
+++{
+++  "match": { "phase": "assert" },
+++  "action": {
+++    "type": "priority",
+++    "level": 9  // high priority for assertions
+++  }
+++}
+++```
+++
+++### Complete Example
+++
+++```json
+++{
+++  "budget": {
+++    "kb": 100,
+++    "events": 2000
+++  },
+++  "rules": [
+++    {
+++      "name": "critical-failures",
+++      "match": { "lvl": "error" },
+++      "action": { "type": "priority", "level": 10 }
+++    },
+++    {
+++      "name": "assertion-context",
+++      "match": { "evt": "assert.*" },
+++      "action": { "type": "slice", "window": 50 }
+++    },
+++    {
+++      "name": "redact-secrets",
+++      "match": { "evt": "*.auth" },
+++      "action": { "type": "redact", "fields": ["payload.token"] }
+++    },
+++    {
+++      "name": "worker-lifecycle",
+++      "match": { "evt": "worker.*", "phase": "act" },
+++      "action": { "type": "include" }
+++    },
+++    {
+++      "name": "skip-verbose-arrange",
+++      "enabled": false,
+++      "match": { "phase": "arrange", "evt": "topology.*" },
+++      "action": { "type": "priority", "level": 2 }
+++    }
+++  ],
+++  "defaults": {
+++    "action": "include",
+++    "priority": 5
+++  }
+++}
+++```
+++
+++### Usage
+++
+++**Get current rules:**
+++```bash
+++npm run lam -- rules get
+++```
+++
+++**Set rules from file:**
+++```bash
+++npm run lam -- rules set --file laminar.config.json
+++```
+++
+++**Set rules inline:**
+++```bash
+++npm run lam -- rules set --inline '{"budget":{"kb":50},"rules":[{"match":{"lvl":"error"},"action":{"type":"include"}}]}'
+++```
+++
+++### Rule Evaluation
+++
+++1. Rules are evaluated in order (first match wins)
+++2. If no rule matches, default action is applied
+++3. Priority-based pruning happens after all rules are evaluated
+++4. Budget limits are enforced as final step
+++
++ ## Branding Notes
++ Laminar fits the project’s physical‑manifold metaphor: smooth, predictable flow with clear gauges and valves for control.
++diff --git a/docs/testing/laminar.schema.json b/docs/testing/laminar.schema.json
++new file mode 100644
++index 0000000..6c85f78
++--- /dev/null
+++++ b/docs/testing/laminar.schema.json
++@@ -0,0 +1,160 @@
+++{
+++  "$schema": "http://json-schema.org/draft-07/schema#",
+++  "$id": "https://github.com/anteew/mkolbol/docs/testing/laminar.schema.json",
+++  "title": "Laminar Digest Rules Configuration",
+++  "description": "Schema for digest rules configuration controlling test artifact aggregation and filtering",
+++  "type": "object",
+++  "properties": {
+++    "budget": {
+++      "description": "Size limits for digest output",
+++      "type": "object",
+++      "properties": {
+++        "kb": {
+++          "description": "Maximum digest size in kilobytes",
+++          "type": "number",
+++          "minimum": 0,
+++          "exclusiveMinimum": true
+++        },
+++        "events": {
+++          "description": "Maximum number of events to include",
+++          "type": "integer",
+++          "minimum": 1
+++        },
+++        "cases": {
+++          "description": "Maximum number of test cases to include",
+++          "type": "integer",
+++          "minimum": 1
+++        }
+++      },
+++      "additionalProperties": false
+++    },
+++    "rules": {
+++      "description": "Ordered list of match/action rules for filtering and transforming events",
+++      "type": "array",
+++      "items": {
+++        "type": "object",
+++        "required": ["match", "action"],
+++        "properties": {
+++          "match": {
+++            "description": "Pattern to match against events",
+++            "type": "object",
+++            "properties": {
+++              "evt": {
+++                "description": "Event type pattern (supports wildcards: *)",
+++                "type": "string"
+++              },
+++              "phase": {
+++                "description": "Test phase to match",
+++                "type": "string",
+++                "enum": ["arrange", "act", "assert", "teardown"]
+++              },
+++              "lvl": {
+++                "description": "Log level to match",
+++                "type": "string",
+++                "enum": ["info", "warn", "error"]
+++              },
+++              "case": {
+++                "description": "Test case pattern (supports wildcards: *)",
+++                "type": "string"
+++              },
+++              "path": {
+++                "description": "File path pattern (supports wildcards: *)",
+++                "type": "string"
+++              }
+++            },
+++            "additionalProperties": false,
+++            "minProperties": 1
+++          },
+++          "action": {
+++            "description": "Action to take when match succeeds",
+++            "type": "object",
+++            "required": ["type"],
+++            "properties": {
+++              "type": {
+++                "description": "Action type",
+++                "type": "string",
+++                "enum": ["include", "slice", "redact", "priority"]
+++              },
+++              "window": {
+++                "description": "Number of events before/after match (for slice action)",
+++                "type": "integer",
+++                "minimum": 0
+++              },
+++              "fields": {
+++                "description": "Fields to redact (for redact action)",
+++                "type": "array",
+++                "items": {
+++                  "type": "string"
+++                },
+++                "minItems": 1
+++              },
+++              "level": {
+++                "description": "Priority level (for priority action): higher = more important",
+++                "type": "integer",
+++                "minimum": 0,
+++                "maximum": 10
+++              }
+++            },
+++            "additionalProperties": false,
+++            "allOf": [
+++              {
+++                "if": {
+++                  "properties": { "type": { "const": "slice" } }
+++                },
+++                "then": {
+++                  "required": ["window"]
+++                }
+++              },
+++              {
+++                "if": {
+++                  "properties": { "type": { "const": "redact" } }
+++                },
+++                "then": {
+++                  "required": ["fields"]
+++                }
+++              },
+++              {
+++                "if": {
+++                  "properties": { "type": { "const": "priority" } }
+++                },
+++                "then": {
+++                  "required": ["level"]
+++                }
+++              }
+++            ]
+++          },
+++          "name": {
+++            "description": "Optional human-readable rule name",
+++            "type": "string"
+++          },
+++          "enabled": {
+++            "description": "Toggle to enable/disable this rule",
+++            "type": "boolean",
+++            "default": true
+++          }
+++        },
+++        "additionalProperties": false
+++      }
+++    },
+++    "defaults": {
+++      "description": "Default behavior when no rules match",
+++      "type": "object",
+++      "properties": {
+++        "action": {
+++          "description": "Default action for unmatched events",
+++          "type": "string",
+++          "enum": ["include", "exclude"]
+++        },
+++        "priority": {
+++          "description": "Default priority level for events",
+++          "type": "integer",
+++          "minimum": 0,
+++          "maximum": 10,
+++          "default": 5
+++        }
+++      },
+++      "additionalProperties": false
+++    }
+++  },
+++  "additionalProperties": false
+++}
+diff --git a/patches/DIFF_T2302_digest-generator.patch b/patches/DIFF_T2302_digest-generator.patch
+new file mode 100644
+index 0000000..6d569bb
+--- /dev/null
++++ b/patches/DIFF_T2302_digest-generator.patch
+@@ -0,0 +1,364 @@
++diff --git a/package.json b/package.json
++index f0ee9c4..90676a9 100644
++--- a/package.json
+++++ b/package.json
++@@ -34,6 +34,7 @@
++     "logq": "tsx scripts/logq.ts",
++     "repro": "tsx scripts/repro.ts",
++     "laminar:run": "tsx scripts/laminar-run.ts",
+++    "laminar:digest": "tsx scripts/digest.ts",
++     "dev": "node --enable-source-maps dist/examples/basic-topology.js",
++     "dev:split": "node --enable-source-maps dist/examples/split-topology.js",
++     "dev:merge": "node --enable-source-maps dist/examples/merge-topology.js",
++diff --git a/scripts/digest.ts b/scripts/digest.ts
++new file mode 100644
++index 0000000..8003107
++--- /dev/null
+++++ b/scripts/digest.ts
++@@ -0,0 +1,22 @@
+++#!/usr/bin/env tsx
+++import { generateAllDigests } from '../src/digest/generator.js';
+++
+++async function main() {
+++  console.log('Laminar Digest Generator');
+++  console.log('========================\n');
+++
+++  const configPath = process.argv[2] || 'laminar.config.json';
+++  
+++  const count = await generateAllDigests(configPath);
+++  
+++  if (count === 0) {
+++    console.log('\nNo failing test cases found.');
+++  } else {
+++    console.log(`\nGenerated ${count} digest(s).`);
+++  }
+++}
+++
+++main().catch((err) => {
+++  console.error('Error:', err);
+++  process.exit(1);
+++});
++diff --git a/src/digest/generator.ts b/src/digest/generator.ts
++new file mode 100644
++index 0000000..5aeb168
++--- /dev/null
+++++ b/src/digest/generator.ts
++@@ -0,0 +1,318 @@
+++import * as fs from 'node:fs';
+++import * as path from 'node:path';
+++
+++export interface DigestConfig {
+++  budget?: {
+++    kb?: number;
+++    lines?: number;
+++  };
+++  rules?: DigestRule[];
+++  enabled?: boolean;
+++}
+++
+++export interface DigestRule {
+++  match: {
+++    evt?: string | string[];
+++    lvl?: string | string[];
+++    phase?: string | string[];
+++  };
+++  actions: DigestAction[];
+++  priority?: number;
+++}
+++
+++export interface DigestAction {
+++  type: 'include' | 'slice' | 'redact';
+++  window?: number;
+++  field?: string;
+++}
+++
+++export interface DigestEvent {
+++  ts: number;
+++  lvl: string;
+++  case: string;
+++  phase?: string;
+++  evt: string;
+++  id?: string;
+++  corr?: string;
+++  path?: string;
+++  payload?: unknown;
+++}
+++
+++export interface DigestOutput {
+++  case: string;
+++  status: 'fail';
+++  duration: number;
+++  location: string;
+++  error?: string;
+++  summary: {
+++    totalEvents: number;
+++    includedEvents: number;
+++    redactedFields: number;
+++    budgetUsed: number;
+++    budgetLimit: number;
+++  };
+++  events: DigestEvent[];
+++}
+++
+++const DEFAULT_CONFIG: DigestConfig = {
+++  budget: {
+++    kb: 10,
+++    lines: 200,
+++  },
+++  enabled: true,
+++  rules: [
+++    {
+++      match: { lvl: 'error' },
+++      actions: [{ type: 'include' }],
+++      priority: 100,
+++    },
+++    {
+++      match: { evt: 'assert.fail' },
+++      actions: [{ type: 'include' }, { type: 'slice', window: 10 }],
+++      priority: 90,
+++    },
+++  ],
+++};
+++
+++export class DigestGenerator {
+++  private config: DigestConfig;
+++
+++  constructor(config?: DigestConfig) {
+++    this.config = config || DEFAULT_CONFIG;
+++  }
+++
+++  static loadConfig(configPath: string = 'laminar.config.json'): DigestConfig {
+++    if (fs.existsSync(configPath)) {
+++      try {
+++        const content = fs.readFileSync(configPath, 'utf-8');
+++        return JSON.parse(content);
+++      } catch (e) {
+++        console.warn(`Failed to load ${configPath}, using defaults:`, e);
+++      }
+++    }
+++    return DEFAULT_CONFIG;
+++  }
+++
+++  async generateDigest(
+++    caseName: string,
+++    status: 'pass' | 'fail' | 'skip',
+++    duration: number,
+++    location: string,
+++    artifactURI: string,
+++    error?: string
+++  ): Promise<DigestOutput | null> {
+++    if (status !== 'fail') {
+++      return null;
+++    }
+++
+++    if (!this.config.enabled) {
+++      return null;
+++    }
+++
+++    const events = this.loadEvents(artifactURI);
+++    const processedEvents = this.applyRules(events);
+++    const budgetedEvents = this.enforceBudget(processedEvents);
+++
+++    const budgetLimit = (this.config.budget?.kb || 10) * 1024;
+++    const budgetUsed = JSON.stringify(budgetedEvents).length;
+++
+++    return {
+++      case: caseName,
+++      status: 'fail',
+++      duration,
+++      location,
+++      error,
+++      summary: {
+++        totalEvents: events.length,
+++        includedEvents: budgetedEvents.length,
+++        redactedFields: 0,
+++        budgetUsed,
+++        budgetLimit,
+++      },
+++      events: budgetedEvents,
+++    };
+++  }
+++
+++  private loadEvents(artifactURI: string): DigestEvent[] {
+++    if (!fs.existsSync(artifactURI)) {
+++      return [];
+++    }
+++
+++    const content = fs.readFileSync(artifactURI, 'utf-8');
+++    const lines = content.trim().split('\n').filter(Boolean);
+++    const events: DigestEvent[] = [];
+++
+++    for (const line of lines) {
+++      try {
+++        events.push(JSON.parse(line));
+++      } catch (e) {
+++        console.warn('Failed to parse event:', line);
+++      }
+++    }
+++
+++    return events;
+++  }
+++
+++  private applyRules(events: DigestEvent[]): DigestEvent[] {
+++    if (!this.config.rules || this.config.rules.length === 0) {
+++      return events;
+++    }
+++
+++    const included = new Set<number>();
+++    const rules = [...this.config.rules].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+++
+++    for (const rule of rules) {
+++      for (let i = 0; i < events.length; i++) {
+++        if (this.matchEvent(events[i], rule.match)) {
+++          for (const action of rule.actions) {
+++            if (action.type === 'include') {
+++              included.add(i);
+++            } else if (action.type === 'slice' && action.window) {
+++              const window = action.window;
+++              for (let j = Math.max(0, i - window); j < Math.min(events.length, i + window + 1); j++) {
+++                included.add(j);
+++              }
+++            }
+++          }
+++        }
+++      }
+++    }
+++
+++    if (included.size === 0) {
+++      return events;
+++    }
+++
+++    return Array.from(included)
+++      .sort((a, b) => a - b)
+++      .map(idx => events[idx]);
+++  }
+++
+++  private matchEvent(event: DigestEvent, match: DigestRule['match']): boolean {
+++    if (match.evt) {
+++      const evtMatch = Array.isArray(match.evt) ? match.evt : [match.evt];
+++      if (!evtMatch.includes(event.evt)) return false;
+++    }
+++
+++    if (match.lvl) {
+++      const lvlMatch = Array.isArray(match.lvl) ? match.lvl : [match.lvl];
+++      if (!lvlMatch.includes(event.lvl)) return false;
+++    }
+++
+++    if (match.phase) {
+++      const phaseMatch = Array.isArray(match.phase) ? match.phase : [match.phase];
+++      if (!event.phase || !phaseMatch.includes(event.phase)) return false;
+++    }
+++
+++    return true;
+++  }
+++
+++  private enforceBudget(events: DigestEvent[]): DigestEvent[] {
+++    const budgetKb = this.config.budget?.kb || 10;
+++    const budgetLines = this.config.budget?.lines || 200;
+++    const budgetBytes = budgetKb * 1024;
+++
+++    if (events.length <= budgetLines) {
+++      const size = JSON.stringify(events).length;
+++      if (size <= budgetBytes) {
+++        return events;
+++      }
+++    }
+++
+++    let currentEvents = events.slice(0, Math.min(events.length, budgetLines));
+++    while (currentEvents.length > 0) {
+++      const size = JSON.stringify(currentEvents).length;
+++      if (size <= budgetBytes) {
+++        break;
+++      }
+++      currentEvents = currentEvents.slice(0, currentEvents.length - 1);
+++    }
+++
+++    return currentEvents;
+++  }
+++
+++  async writeDigest(digest: DigestOutput, outputDir: string = 'reports'): Promise<void> {
+++    const digestJsonPath = path.join(outputDir, `${digest.case}.digest.json`);
+++    const digestMdPath = path.join(outputDir, `${digest.case}.digest.md`);
+++
+++    fs.mkdirSync(outputDir, { recursive: true });
+++
+++    fs.writeFileSync(digestJsonPath, JSON.stringify(digest, null, 2));
+++
+++    const md = this.formatMarkdown(digest);
+++    fs.writeFileSync(digestMdPath, md);
+++  }
+++
+++  private formatMarkdown(digest: DigestOutput): string {
+++    const lines: string[] = [];
+++
+++    lines.push(`# Digest: ${digest.case}`);
+++    lines.push('');
+++    lines.push(`**Status**: ${digest.status}`);
+++    lines.push(`**Duration**: ${digest.duration}ms`);
+++    lines.push(`**Location**: ${digest.location}`);
+++    if (digest.error) {
+++      lines.push(`**Error**: ${digest.error}`);
+++    }
+++    lines.push('');
+++
+++    lines.push('## Summary');
+++    lines.push(`- Total Events: ${digest.summary.totalEvents}`);
+++    lines.push(`- Included Events: ${digest.summary.includedEvents}`);
+++    lines.push(`- Budget Used: ${digest.summary.budgetUsed} / ${digest.summary.budgetLimit} bytes`);
+++    lines.push('');
+++
+++    if (digest.events.length > 0) {
+++      lines.push('## Events');
+++      lines.push('```json');
+++      for (const evt of digest.events) {
+++        lines.push(JSON.stringify(evt));
+++      }
+++      lines.push('```');
+++    }
+++
+++    return lines.join('\n');
+++  }
+++}
+++
+++export async function generateAllDigests(configPath?: string): Promise<number> {
+++  const summaryPath = 'reports/summary.jsonl';
+++  if (!fs.existsSync(summaryPath)) {
+++    console.log('No summary.jsonl found');
+++    return 0;
+++  }
+++
+++  const config = DigestGenerator.loadConfig(configPath);
+++  const generator = new DigestGenerator(config);
+++
+++  const content = fs.readFileSync(summaryPath, 'utf-8');
+++  const lines = content.trim().split('\n').filter(Boolean);
+++
+++  let count = 0;
+++  for (const line of lines) {
+++    try {
+++      const entry = JSON.parse(line);
+++      if (entry.status === 'fail' && entry.artifactURI) {
+++        const caseName = path.basename(entry.artifactURI, '.jsonl');
+++        const digest = await generator.generateDigest(
+++          caseName,
+++          entry.status,
+++          entry.duration,
+++          entry.location,
+++          entry.artifactURI,
+++          entry.error
+++        );
+++
+++        if (digest) {
+++          const outputDir = path.dirname(entry.artifactURI);
+++          await generator.writeDigest(digest, outputDir);
+++          console.log(`✓ Generated digest for ${caseName}`);
+++          count++;
+++        }
+++      }
+++    } catch (e) {
+++      console.warn('Failed to process entry:', line, e);
+++    }
+++  }
+++
+++  return count;
+++}
+diff --git a/reports/summary.jsonl b/reports/summary.jsonl
+index 0c82dbe..ce50c4f 100644
+--- a/reports/summary.jsonl
++++ b/reports/summary.jsonl
+@@ -1,9 +1,73 @@
+-{"status":"pass","duration":116,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_spawn_PTY_process.jsonl"}
+-{"status":"pass","duration":407,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_pipe_data_bidirectionally.jsonl"}
+-{"status":"pass","duration":107,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_handle_resize.jsonl"}
+-{"status":"pass","duration":204,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_send_signals.jsonl"}
+-{"status":"pass","duration":303,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_handle_process_exit.jsonl"}
+-{"status":"pass","duration":104,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_register_PTY_server_with_Hostess.jsonl"}
+-{"status":"pass","duration":406,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_work_with_basic_shell__bash_.jsonl"}
+-{"status":"pass","duration":507,"location":"/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0","artifactURI":"reports/ptyServerWrapper.spec/should_handle_interactive_commands.jsonl"}
+-{"status":"pass","duration":609,"location":"/srv/repos0/mkolbol/tests/integration/multiModalOutput.spec.ts:0","artifactURI":"reports/multiModalOutput.spec/should_split_PTY_output_to_2__renderers.jsonl"}
++{"status":"pass","duration":3,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_parse_regular_characters.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_newlines.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_carriage_return.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_parse_ANSI_cursor_movement__CUP_.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_color_codes__SGR_.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_color_reset.jsonl"}
++{"status":"pass","duration":34,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_screen_clearing__ED_.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_line_clearing__EL_.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_cursor_up__CUU_.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_cursor_down__CUD_.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_cursor_forward__CUF_.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_cursor_back__CUB_.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_line_wrapping.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_scrolling.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_tabs.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0","artifactURI":"reports/ansiParser.spec/should_handle_backspace.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/archived/mcp-kernel/tests/router.test.ts:0","artifactURI":"reports/router.test/initialize.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/archived/mcp-kernel/tests/router.test.ts:0","artifactURI":"reports/router.test/tools_resources_list_read.jsonl"}
++{"status":"pass","duration":3,"location":"/srv/repos0/mkolbol/tests/golden/sample.spec.ts:0","artifactURI":"reports/sample.spec/should_create_and_compare_snapshots_with_masking.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/golden/sample.spec.ts:0","artifactURI":"reports/sample.spec/should_detect_mismatches.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/golden/sample.spec.ts:0","artifactURI":"reports/sample.spec/should_support_custom_mask_rules.jsonl"}
++{"status":"pass","duration":7,"location":"/srv/repos0/mkolbol/tests/worker/workerAdapters.spec.ts:0","artifactURI":"reports/workerAdapters.spec/round-trip_a_control_frame.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/worker/workerAdapters.spec.ts:0","artifactURI":"reports/workerAdapters.spec/round-trip_a_Buffer.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/worker/workerAdapters.spec.ts:0","artifactURI":"reports/workerAdapters.spec/assert_handshake_event_structure.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/returns_false_when_module_is_not_enabled.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/returns_consistent_value_for_same_module.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/returns_false_when_config_is_disabled.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/checks_module_against_config_modules_when_enabled.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/does_not_emit_when_on___returns_false.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/emit_returns_immediately_when_module_is_disabled.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/shouldEmit_returns_false_when_module_is_disabled.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/emits_to_console_when_module_is_enabled.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/respects_debug_level_filtering.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/emits_formatted_output_to_console.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/handles_emit_without_payload.jsonl"}
++{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0","artifactURI":"reports/debug-api.spec/shouldEmit_respects_level_hierarchy.jsonl"}
++{"status":"pass","duration":6,"location":"/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0","artifactURI":"reports/kernel.spec/connect_moves_data_1_1.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0","artifactURI":"reports/kernel.spec/split_fans_out_to_multiple_destinations.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0","artifactURI":"reports/kernel.spec/merge_combines_multiple_sources_into_one_destination.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0","artifactURI":"reports/kernel.spec/register_lookup_filters_by_capabilities.jsonl"}
++{"status":"pass","duration":3,"location":"/srv/repos0/mkolbol/tests/renderers/passthroughRenderer.spec.ts:0","artifactURI":"reports/passthroughRenderer.spec/should_render_raw_ANSI_to_stdout.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/renderers/passthroughRenderer.spec.ts:0","artifactURI":"reports/passthroughRenderer.spec/should_handle_ANSI_escape_sequences.jsonl"}
++{"status":"pass","duration":5,"location":"/srv/repos0/mkolbol/tests/renderers/loggerRenderer.spec.ts:0","artifactURI":"reports/loggerRenderer.spec/should_write_all_data_to_log_file.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/renderers/loggerRenderer.spec.ts:0","artifactURI":"reports/loggerRenderer.spec/should_append_to_existing_log_file.jsonl"}
++{"status":"pass","duration":74,"location":"/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0","artifactURI":"reports/invariants.spec/split__all_destinations_receive_identical_data.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0","artifactURI":"reports/stateManager.spec/adds_nodes_and_emits_events.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0","artifactURI":"reports/stateManager.spec/connects_and_emits_connected.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0","artifactURI":"reports/stateManager.spec/split_and_merge_emit_events.jsonl"}
++{"status":"pass","duration":21,"location":"/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0","artifactURI":"reports/stateManager.spec/validator_enforces_directionality_when_set.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0","artifactURI":"reports/stateManager.spec/exporters_produce_strings.jsonl"}
++{"status":"pass","duration":42,"location":"/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0","artifactURI":"reports/externalServerWrapper.spec/should_spawn_a_simple_process.jsonl"}
++{"status":"pass","duration":11,"location":"/srv/repos0/mkolbol/test/hostess.spec.ts:0","artifactURI":"reports/hostess.spec/registers_and_queries_by_capabilities.jsonl"}
++{"status":"pass","duration":5,"location":"/srv/repos0/mkolbol/test/hostess.spec.ts:0","artifactURI":"reports/hostess.spec/marks_in-use_and_back_to_available.jsonl"}
++{"status":"pass","duration":3,"location":"/srv/repos0/mkolbol/test/hostess.spec.ts:0","artifactURI":"reports/hostess.spec/evicts_after_missed_heartbeats.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/test/hostess.spec.ts:0","artifactURI":"reports/hostess.spec/heartbeat_maintains_liveness.jsonl"}
++{"status":"pass","duration":22,"location":"/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0","artifactURI":"reports/executor.spec/should_load_configuration.jsonl"}
++{"status":"pass","duration":17,"location":"/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0","artifactURI":"reports/executor.spec/should_throw_if_up___called_without_load__.jsonl"}
++{"status":"pass","duration":59,"location":"/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0","artifactURI":"reports/executor.spec/should_instantiate_modules_and_register_with_hostess.jsonl"}
++{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0","artifactURI":"reports/executor.spec/should_wire_connections_via_StateManager.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0","artifactURI":"reports/executor.spec/should_support_restartNode.jsonl"}
++{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0","artifactURI":"reports/executor.spec/should_throw_on_restartNode_for_non-existent_node.jsonl"}
++{"status":"pass","duration":46,"location":"/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0","artifactURI":"reports/invariants.spec/merge__all_source_data_reaches_destination.jsonl"}
++{"status":"pass","duration":240,"location":"/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0","artifactURI":"reports/invariants.spec/merge__no_data_loss_with_concurrent_writes.jsonl"}
++{"status":"pass","duration":1225,"location":"/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0","artifactURI":"reports/invariants.spec/split-then-merge__roundtrip_preserves_all_data.jsonl"}
++{"status":"pass","duration":7,"location":"/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0","artifactURI":"reports/invariants.spec/empty_split__source_with_zero_destinations_completes.jsonl"}
++{"status":"pass","duration":3,"location":"/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0","artifactURI":"reports/invariants.spec/empty_merge__destination_with_zero_sources_completes.jsonl"}
++{"status":"pass","duration":255,"location":"/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0","artifactURI":"reports/externalServerWrapper.spec/should_handle_environment_variables.jsonl"}
++{"status":"pass","duration":58,"location":"/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0","artifactURI":"reports/externalServerWrapper.spec/should_register_with_Hostess_on_spawn.jsonl"}
++{"status":"pass","duration":52,"location":"/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0","artifactURI":"reports/externalServerWrapper.spec/should_gracefully_shutdown_with_SIGTERM.jsonl"}
++{"status":"pass","duration":527,"location":"/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0","artifactURI":"reports/externalServerWrapper.spec/should_restart_on_failure_with__on-failure__policy.jsonl"}
++{"status":"pass","duration":331,"location":"/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0","artifactURI":"reports/externalServerWrapper.spec/should_not_restart_with__never__policy.jsonl"}
++{"status":"pass","duration":533,"location":"/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0","artifactURI":"reports/externalServerWrapper.spec/should_respect_maxRestarts_limit.jsonl"}
++{"status":"pass","duration":32,"location":"/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0","artifactURI":"reports/externalServerWrapper.spec/should_provide_process_info.jsonl"}
+diff --git a/scripts/digest.ts b/scripts/digest.ts
+new file mode 100644
+index 0000000..8003107
+--- /dev/null
++++ b/scripts/digest.ts
+@@ -0,0 +1,22 @@
++#!/usr/bin/env tsx
++import { generateAllDigests } from '../src/digest/generator.js';
++
++async function main() {
++  console.log('Laminar Digest Generator');
++  console.log('========================\n');
++
++  const configPath = process.argv[2] || 'laminar.config.json';
++  
++  const count = await generateAllDigests(configPath);
++  
++  if (count === 0) {
++    console.log('\nNo failing test cases found.');
++  } else {
++    console.log(`\nGenerated ${count} digest(s).`);
++  }
++}
++
++main().catch((err) => {
++  console.error('Error:', err);
++  process.exit(1);
++});
+diff --git a/scripts/lam.ts b/scripts/lam.ts
+new file mode 100644
+index 0000000..12f5357
+--- /dev/null
++++ b/scripts/lam.ts
+@@ -0,0 +1,116 @@
++#!/usr/bin/env node
++import { spawnSync } from 'node:child_process';
++import * as fs from 'node:fs';
++
++function sh(cmd: string, args: string[], env: Record<string, string> = {}) {
++  const res = spawnSync(cmd, args, { stdio: 'inherit', env: { ...process.env, ...env } });
++  return res.status ?? 0;
++}
++
++function printHelp() {
++  console.log(`Laminar CLI
++
++Usage:
++  lam run [--lane ci|pty|auto] [--filter <vitest-pattern>]
++  lam summary
++  lam show --case <suite/case> [--around <pattern>] [--window <n>]
++  lam rules get
++  lam rules set --file <path> | --inline '<json>'
++
++Examples:
++  lam run --lane auto
++  lam summary
++  lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 50
++  lam rules get
++  lam rules set --inline '{"budget":{"kb":2}}'
++`);
++}
++
++function readSummary(): any[] {
++  const p = 'reports/summary.jsonl';
++  if (!fs.existsSync(p)) return [];
++  return fs.readFileSync(p, 'utf-8').trim().split(/\n+/).map(l => { try { return JSON.parse(l); } catch { return undefined; } }).filter(Boolean);
++}
++
++async function main() {
++  const [,, cmd, ...rest] = process.argv;
++  const args = new Map<string,string|true>();
++  for (let i=0; i<rest.length; i++) {
++    const a = rest[i];
++    if (a.startsWith('--')) {
++      const k = a.slice(2);
++      const v = rest[i+1] && !rest[i+1].startsWith('--') ? (rest[i+1]) : true;
++      if (v !== true) i++;
++      args.set(k, v as any);
++    }
++  }
++
++  switch (cmd) {
++    case 'run': {
++      const lane = (args.get('lane') as string) || 'auto';
++      const filter = args.get('filter') as (string|undefined);
++      if (lane === 'auto') {
++        if (filter) {
++          // auto with filter: run threaded, then debug rerun single file
++          sh('vitest', ['run', '--pool=threads', '--reporter=./dist/test/reporter/jsonlReporter.js', '--filter', filter]);
++          sh('npm', ['run','laminar:run']);
++        } else {
++          sh('npm', ['run','laminar:run']);
++        }
++      } else if (lane === 'ci') {
++        const a = ['run','test:ci'];
++        if (filter) a.push('--', '--filter', filter);
++        sh('npm', a);
++      } else if (lane === 'pty') {
++        sh('npm', ['run','test:pty']);
++      } else {
++        console.error('Unknown lane. Use ci|pty|auto');
++        process.exit(1);
++      }
++      break;
++    }
++    case 'summary': {
++      const entries = readSummary();
++      if (!entries.length) { console.log('No summary found. Run `lam run` first.'); break; }
++      for (const e of entries) {
++        console.log(`${e.status.toUpperCase()} ${e.duration}ms ${e.location} → ${e.artifactURI||''}`);
++      }
++      break;
++    }
++    case 'show': {
++      const caseId = args.get('case') as string;
++      if (!caseId) { console.error('lam show --case <suite/case> [--around <pattern>] [--window <n>]'); process.exit(1); }
++      const around = (args.get('around') as string) || 'assert.fail';
++      const window = (args.get('window') as string) || '50';
++      sh('npm', ['run','logq','--','case', caseId, '--around', around, '--window', window]);
++      break;
++    }
++    case 'rules': {
++      const sub = rest[0];
++      if (sub === 'get') {
++        if (fs.existsSync('laminar.config.json')) {
++          process.stdout.write(fs.readFileSync('laminar.config.json','utf-8'));
++        } else {
++          console.log('{}');
++        }
++      } else if (sub === 'set') {
++        const file = args.get('file') as string|undefined;
++        const inline = args.get('inline') as string|undefined;
++        if (!file && !inline) { console.error('lam rules set --file <path> | --inline \"{...}\"'); process.exit(1); }
++        const content = file ? fs.readFileSync(file,'utf-8') : inline!;
++        JSON.parse(content); // validate
++        fs.writeFileSync('laminar.config.json', content);
++        console.log('Updated laminar.config.json');
++      } else {
++        printHelp();
++        process.exit(1);
++      }
++      break;
++    }
++    default:
++      printHelp();
++  }
++}
++
++main().catch(e => { console.error(e); process.exit(1); });
++
+diff --git a/scripts/laminar-run.ts b/scripts/laminar-run.ts
+index 0e2676f..6aad0c3 100644
+--- a/scripts/laminar-run.ts
++++ b/scripts/laminar-run.ts
+@@ -1,5 +1,6 @@
+ import { spawnSync } from 'node:child_process';
+ import * as fs from 'node:fs';
++import { generateAllDigests } from '../src/digest/generator.js';
+ 
+ type SummaryEntry = {
+   status: 'pass'|'fail'|'skip';
+@@ -65,6 +66,14 @@ async function main() {
+       overall = run('vitest', ['run', '--pool=threads', file, '--reporter=./dist/test/reporter/jsonlReporter.js'], env) || overall;
+     }
+   }
++
++  // Auto-generate digests for failures
++  console.log('\nGenerating digests for failed tests...');
++  const digestCount = await generateAllDigests();
++  if (digestCount > 0) {
++    console.log(`Generated ${digestCount} digest(s) in reports/ directory`);
++  }
++
+   process.exit(overall);
+ }
+ 
+diff --git a/src/digest/generator.ts b/src/digest/generator.ts
+new file mode 100644
+index 0000000..dd862c1
+--- /dev/null
++++ b/src/digest/generator.ts
+@@ -0,0 +1,362 @@
++import * as fs from 'node:fs';
++import * as path from 'node:path';
++
++export interface DigestConfig {
++  budget?: {
++    kb?: number;
++    lines?: number;
++  };
++  rules?: DigestRule[];
++  enabled?: boolean;
++}
++
++export interface DigestRule {
++  match: {
++    evt?: string | string[];
++    lvl?: string | string[];
++    phase?: string | string[];
++    case?: string | string[];
++    path?: string | string[];
++  };
++  actions: DigestAction[];
++  priority?: number;
++}
++
++export interface DigestAction {
++  type: 'include' | 'slice' | 'redact';
++  window?: number;
++  field?: string | string[];
++}
++
++export interface DigestEvent {
++  ts: number;
++  lvl: string;
++  case: string;
++  phase?: string;
++  evt: string;
++  id?: string;
++  corr?: string;
++  path?: string;
++  payload?: unknown;
++}
++
++export interface DigestOutput {
++  case: string;
++  status: 'fail';
++  duration: number;
++  location: string;
++  error?: string;
++  summary: {
++    totalEvents: number;
++    includedEvents: number;
++    redactedFields: number;
++    budgetUsed: number;
++    budgetLimit: number;
++  };
++  events: DigestEvent[];
++}
++
++const DEFAULT_CONFIG: DigestConfig = {
++  budget: {
++    kb: 10,
++    lines: 200,
++  },
++  enabled: true,
++  rules: [
++    {
++      match: { lvl: 'error' },
++      actions: [{ type: 'include' }],
++      priority: 10,
++    },
++    {
++      match: { evt: 'assert.fail' },
++      actions: [{ type: 'include' }, { type: 'slice', window: 10 }],
++      priority: 9,
++    },
++  ],
++};
++
++export class DigestGenerator {
++  private config: DigestConfig;
++
++  constructor(config?: DigestConfig) {
++    this.config = config || DEFAULT_CONFIG;
++  }
++
++  static loadConfig(configPath: string = 'laminar.config.json'): DigestConfig {
++    if (fs.existsSync(configPath)) {
++      try {
++        const content = fs.readFileSync(configPath, 'utf-8');
++        return JSON.parse(content);
++      } catch (e) {
++        console.warn(`Failed to load ${configPath}, using defaults:`, e);
++      }
++    }
++    return DEFAULT_CONFIG;
++  }
++
++  async generateDigest(
++    caseName: string,
++    status: 'pass' | 'fail' | 'skip',
++    duration: number,
++    location: string,
++    artifactURI: string,
++    error?: string
++  ): Promise<DigestOutput | null> {
++    if (status !== 'fail') {
++      return null;
++    }
++
++    if (!this.config.enabled) {
++      return null;
++    }
++
++    const events = this.loadEvents(artifactURI);
++    const processedEvents = this.applyRules(events);
++    const budgetedEvents = this.enforceBudget(processedEvents);
++
++    const budgetLimit = (this.config.budget?.kb || 10) * 1024;
++    const budgetUsed = JSON.stringify(budgetedEvents).length;
++
++    return {
++      case: caseName,
++      status: 'fail',
++      duration,
++      location,
++      error,
++      summary: {
++        totalEvents: events.length,
++        includedEvents: budgetedEvents.length,
++        redactedFields: 0,
++        budgetUsed,
++        budgetLimit,
++      },
++      events: budgetedEvents,
++    };
++  }
++
++  private loadEvents(artifactURI: string): DigestEvent[] {
++    if (!fs.existsSync(artifactURI)) {
++      return [];
++    }
++
++    const content = fs.readFileSync(artifactURI, 'utf-8');
++    const lines = content.trim().split('\n').filter(Boolean);
++    const events: DigestEvent[] = [];
++
++    for (const line of lines) {
++      try {
++        events.push(JSON.parse(line));
++      } catch (e) {
++        console.warn('Failed to parse event:', line);
++      }
++    }
++
++    return events;
++  }
++
++  private applyRules(events: DigestEvent[]): DigestEvent[] {
++    if (!this.config.rules || this.config.rules.length === 0) {
++      return events;
++    }
++
++    const included = new Set<number>();
++    const redactedFields = new Map<number, Set<string>>();
++    const rules = [...this.config.rules].sort((a, b) => (b.priority || 0) - (a.priority || 0));
++
++    for (const rule of rules) {
++      for (let i = 0; i < events.length; i++) {
++        if (this.matchEvent(events[i], rule.match)) {
++          for (const action of rule.actions) {
++            if (action.type === 'include') {
++              included.add(i);
++            } else if (action.type === 'slice' && action.window) {
++              const window = action.window;
++              for (let j = Math.max(0, i - window); j < Math.min(events.length, i + window + 1); j++) {
++                included.add(j);
++              }
++            } else if (action.type === 'redact' && action.field) {
++              const fields = Array.isArray(action.field) ? action.field : [action.field];
++              if (!redactedFields.has(i)) {
++                redactedFields.set(i, new Set());
++              }
++              fields.forEach(f => redactedFields.get(i)!.add(f));
++            }
++          }
++        }
++      }
++    }
++
++    if (included.size === 0) {
++      return events;
++    }
++
++    const result = Array.from(included)
++      .sort((a, b) => a - b)
++      .map(idx => {
++        const event = { ...events[idx] };
++        if (redactedFields.has(idx)) {
++          const fieldsToRedact = redactedFields.get(idx)!;
++          for (const field of fieldsToRedact) {
++            if (field === 'payload' && event.payload) {
++              event.payload = '[REDACTED]';
++            } else if (field in event) {
++              (event as any)[field] = '[REDACTED]';
++            }
++          }
++        }
++        return event;
++      });
++
++    return result;
++  }
++
++  private matchEvent(event: DigestEvent, match: DigestRule['match']): boolean {
++    if (match.evt) {
++      const evtMatch = Array.isArray(match.evt) ? match.evt : [match.evt];
++      if (!this.matchPattern(event.evt, evtMatch)) return false;
++    }
++
++    if (match.lvl) {
++      const lvlMatch = Array.isArray(match.lvl) ? match.lvl : [match.lvl];
++      if (!this.matchPattern(event.lvl, lvlMatch)) return false;
++    }
++
++    if (match.phase) {
++      const phaseMatch = Array.isArray(match.phase) ? match.phase : [match.phase];
++      if (!event.phase || !this.matchPattern(event.phase, phaseMatch)) return false;
++    }
++
++    if (match.case) {
++      const caseMatch = Array.isArray(match.case) ? match.case : [match.case];
++      if (!this.matchPattern(event.case, caseMatch)) return false;
++    }
++
++    if (match.path) {
++      const pathMatch = Array.isArray(match.path) ? match.path : [match.path];
++      if (!event.path || !this.matchPattern(event.path, pathMatch)) return false;
++    }
++
++    return true;
++  }
++
++  private matchPattern(value: string, patterns: string[]): boolean {
++    return patterns.some(pattern => {
++      if (pattern.includes('*')) {
++        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
++        return regex.test(value);
++      }
++      return value === pattern;
++    });
++  }
++
++  private enforceBudget(events: DigestEvent[]): DigestEvent[] {
++    const budgetKb = this.config.budget?.kb || 10;
++    const budgetLines = this.config.budget?.lines || 200;
++    const budgetBytes = budgetKb * 1024;
++
++    if (events.length <= budgetLines) {
++      const size = JSON.stringify(events).length;
++      if (size <= budgetBytes) {
++        return events;
++      }
++    }
++
++    let currentEvents = events.slice(0, Math.min(events.length, budgetLines));
++    while (currentEvents.length > 0) {
++      const size = JSON.stringify(currentEvents).length;
++      if (size <= budgetBytes) {
++        break;
++      }
++      currentEvents = currentEvents.slice(0, currentEvents.length - 1);
++    }
++
++    return currentEvents;
++  }
++
++  async writeDigest(digest: DigestOutput, outputDir: string = 'reports'): Promise<void> {
++    const digestJsonPath = path.join(outputDir, `${digest.case}.digest.json`);
++    const digestMdPath = path.join(outputDir, `${digest.case}.digest.md`);
++
++    fs.mkdirSync(outputDir, { recursive: true });
++
++    fs.writeFileSync(digestJsonPath, JSON.stringify(digest, null, 2));
++
++    const md = this.formatMarkdown(digest);
++    fs.writeFileSync(digestMdPath, md);
++  }
++
++  private formatMarkdown(digest: DigestOutput): string {
++    const lines: string[] = [];
++
++    lines.push(`# Digest: ${digest.case}`);
++    lines.push('');
++    lines.push(`**Status**: ${digest.status}`);
++    lines.push(`**Duration**: ${digest.duration}ms`);
++    lines.push(`**Location**: ${digest.location}`);
++    if (digest.error) {
++      lines.push(`**Error**: ${digest.error}`);
++    }
++    lines.push('');
++
++    lines.push('## Summary');
++    lines.push(`- Total Events: ${digest.summary.totalEvents}`);
++    lines.push(`- Included Events: ${digest.summary.includedEvents}`);
++    lines.push(`- Budget Used: ${digest.summary.budgetUsed} / ${digest.summary.budgetLimit} bytes`);
++    lines.push('');
++
++    if (digest.events.length > 0) {
++      lines.push('## Events');
++      lines.push('```json');
++      for (const evt of digest.events) {
++        lines.push(JSON.stringify(evt));
++      }
++      lines.push('```');
++    }
++
++    return lines.join('\n');
++  }
++}
++
++export async function generateAllDigests(configPath?: string): Promise<number> {
++  const summaryPath = 'reports/summary.jsonl';
++  if (!fs.existsSync(summaryPath)) {
++    console.log('No summary.jsonl found');
++    return 0;
++  }
++
++  const config = DigestGenerator.loadConfig(configPath);
++  const generator = new DigestGenerator(config);
++
++  const content = fs.readFileSync(summaryPath, 'utf-8');
++  const lines = content.trim().split('\n').filter(Boolean);
++
++  let count = 0;
++  for (const line of lines) {
++    try {
++      const entry = JSON.parse(line);
++      if (entry.status === 'fail' && entry.artifactURI) {
++        const caseName = path.basename(entry.artifactURI, '.jsonl');
++        const digest = await generator.generateDigest(
++          caseName,
++          entry.status,
++          entry.duration,
++          entry.location,
++          entry.artifactURI,
++          entry.error
++        );
++
++        if (digest) {
++          const outputDir = path.dirname(entry.artifactURI);
++          await generator.writeDigest(digest, outputDir);
++          console.log(`✓ Generated digest for ${caseName}`);
++          count++;
++        }
++      }
++    } catch (e) {
++      console.warn('Failed to process entry:', line, e);
++    }
++  }
++
++  return count;
++}

@@ -5,31 +5,28 @@ Owner: VEGA
 
 ## Near Term (next 1–2 sessions)
 
-1) Worker-mode + Adapters (Phase 1)
-- Add ControlBusAdapter + PipeAdapter interfaces
-- Implement worker-backed adapters (MessagePort) for control + data pipes
-- Executor runMode 'worker' (spawn worker, transfer ports, handshake)
-- Demo: mixed inproc + worker servers under same wiring
+Laminar v003 — Digest Rules + Generator
+- Add laminar.config.json schema (match/actions: include/slice/redact/priority; budget; toggles)
+- Implement digest generator (JSON + MD) with suspect scoring (proximity/density/corr)
+- Integrate with laminar:run (auto-generate on fail)
+- Extend CLI: `lam digest`, `lam show` upgrades
 
-2) Hostess Control Endpoints
-- Include control endpoint metadata (type + coordinates) in Hostess registration
-- E.g., { control: { kind: 'worker-port'|'unix'|'tcp'|'nats'|'mqtt'|'inproc', coord: '…', topicPrefix?: '…' } }
+Laminar v004 — MCP Skeleton
+- Add MCP server for Laminar (tools: run, digest.generate, rules.get/set, logs.case.get, query, repro)
+- Return compact JSON for agent workflows
 
-3) Examples + Docs
-- Update example config to use runMode (inproc + worker)
-- Brief doc: control envelope, topics, endpoints, adapters
-- Verify npm scripts (dev:control-bus, executor demos)
+Laminar v005 — Cross-language Ingest
+- Ingest shim for Go: `go test -json` → Laminar JSONL
+- Document minimal integration patterns
 
 ## Next (following sessions)
 
-4) Process-mode (Phase 2)
-- Unix/TCP adapters for control + pipes
-- Executor runMode 'process' with restart policy and blue/green cutover
-- Demo: zero-downtime swap from v1→v2
+mkolbol — Hostess Control Endpoints
+- Include control endpoint metadata (type + coordinates) in Hostess registration for each server
 
-5) Broker Adapter (optional)
-- NATS adapter for ControlBus (subjects, request/reply), toggle via config
-- Preserve current inproc default for demos
+Process-mode (Phase 2)
+- Unix/TCP adapters for control + pipes; Executor runMode 'process' with blue/green cutover
+- Optional: NATS adapter later for ControlBus
 
 ## Future / Parking Lot
 

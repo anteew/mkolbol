@@ -125,5 +125,180 @@ CI runs tests in two separate jobs to handle PTY isolation requirements:
 - `npm run test:pty` — test only PTY tests (slow, sequential)
 - Repro: `node scripts/repro.ts` prints exact filters and `logq` slices
 
+## Digest Rules: Smart Failure Summarization
+
+### Concept & Benefits
+Digest rules filter and aggregate test failures into compact, token-efficient summaries. Instead of dumping thousands of JSONL events, digests apply declarative rules to:
+
+- **Reduce noise**: Include only events matching failure patterns (errors, assertions, correlations)
+- **Preserve context**: Slice windows around critical events (±10 events near assert.fail)
+- **Protect secrets**: Redact sensitive fields (credentials, tokens) from artifacts
+- **Fit budgets**: Enforce KB/line limits for LLM prompts and human review
+
+A digest is generated per failed test, written as `.digest.json` (structured) and `.digest.md` (human readable).
+
+### Configuration: laminar.config.json
+Place in repo root. Uses JSON Schema at docs/testing/laminar.schema.json.
+
+```json
+{
+  "enabled": true,
+  "budget": {
+    "kb": 10,
+    "lines": 200
+  },
+  "rules": [
+    {
+      "match": { "lvl": "error" },
+      "actions": [{ "type": "include" }],
+      "priority": 10
+    },
+    {
+      "match": { "evt": "assert.fail" },
+      "actions": [
+        { "type": "include" },
+        { "type": "slice", "window": 10 }
+      ],
+      "priority": 9
+    }
+  ]
+}
+```
+
+**Fields**:
+- `enabled` (bool): toggle digest generation globally
+- `budget.kb`: max output size in kilobytes
+- `budget.lines`: max event count
+- `rules[]`: ordered match/action pairs (applied by priority)
+
+### Rule Structure
+Each rule has:
+- `match`: pattern object (AND semantics; all must match)
+- `actions`: array of transformations (applied in order)
+- `priority`: higher = evaluated first (0–10)
+
+**Match Patterns** (all optional; string or array):
+- `evt`: event name(s), e.g., 'assert.fail', ['worker.ready', 'worker.exit']
+- `lvl`: log level(s), e.g., 'error', ['error', 'warn']
+- `phase`: test phase(s), e.g., 'assert', ['act', 'assert']
+- `case`: test case pattern(s), e.g., 'topology.rewire'
+- `path`: file path pattern(s), e.g., 'tests/worker/'
+
+**Action Types**:
+- `include`: add event to digest
+- `slice`: include ±N events around match (requires `window`)
+- `redact`: mask fields (requires `field` string or array)
+
+### Common Rule Examples
+
+**Capture all errors**:
+```json
+{ "match": { "lvl": "error" }, "actions": [{ "type": "include" }], "priority": 10 }
+```
+
+**Assertion failures with context**:
+```json
+{
+  "match": { "evt": "assert.fail" },
+  "actions": [
+    { "type": "include" },
+    { "type": "slice", "window": 10 }
+  ],
+  "priority": 9
+}
+```
+
+**Worker lifecycle events**:
+```json
+{
+  "match": { "evt": ["worker.ready", "worker.exit", "worker.error"] },
+  "actions": [{ "type": "include" }],
+  "priority": 7
+}
+```
+
+**Redact secrets from topology events**:
+```json
+{
+  "match": { "evt": "topology.snapshot" },
+  "actions": [
+    { "type": "include" },
+    { "type": "redact", "field": ["apiKey", "token"] }
+  ],
+  "priority": 5
+}
+```
+
+**Include specific test phases**:
+```json
+{
+  "match": { "phase": ["assert", "teardown"] },
+  "actions": [{ "type": "include" }],
+  "priority": 6
+}
+```
+
+### Suspect Scoring
+For failed tests, digest identifies top 5 "suspect" events using heuristic scoring:
+
+**Score Components**:
+- **Level**: error +50, warn +20
+- **Temporal proximity**: +30 → 0 (decays with distance from failure timestamp)
+- **Correlation**: +40 if event shares `corr` ID with failure
+- **Repetition**: +2 per similar event within 5s (max +20)
+
+**Example suspects**:
+```json
+{
+  "suspects": [
+    {
+      "ts": 1728756789123,
+      "lvl": "error",
+      "evt": "worker.exit",
+      "score": 110,
+      "reasons": ["error_level", "temporal_proximity", "corr_match"]
+    }
+  ]
+}
+```
+
+Suspects appear at the top of `.digest.md` for quick human triage.
+
+### CLI Usage
+
+**Generate digests** for all failed tests:
+```bash
+lam digest
+```
+
+**Generate for specific cases**:
+```bash
+lam digest --cases kernel.spec/connect_moves_data_1_1,topology.spec/rewire_edges
+```
+
+**Show single test artifact** with optional slicing:
+```bash
+lam show --case kernel.spec/connect_moves_data_1_1
+lam show --case topology.spec/rewire --around assert.fail --window 50
+```
+
+**Output**:
+- `reports/<suite>/<case>.digest.json` — structured digest (for agents)
+- `reports/<suite>/<case>.digest.md` — markdown digest (for humans)
+- `reports/<suite>/<case>.jsonl` — full event stream (raw artifact)
+
+**Typical workflow**:
+1. `npm test` — runs tests, writes JSONL artifacts
+2. `lam digest` — generates digests for failures
+3. `lam show --case <id>` — inspect specific failure with context
+
+### Integration with CI
+Digests are token-efficient for LLM review:
+- 10KB budget = ~2500 tokens (vs. 50KB+ raw JSONL)
+- Suspects surface root cause without manual log diving
+- Redaction prevents credential leaks in artifacts
+
+Attach `.digest.md` to CI failure notifications; agents can request `.digest.json` for structured analysis.
+
 ## Branding Notes
 Laminar fits the project’s physical‑manifold metaphor: smooth, predictable flow with clear gauges and valves for control.

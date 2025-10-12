@@ -1,0 +1,16 @@
+{
+  "case": "enforces_byte_budget",
+  "status": "fail",
+  "duration": 3,
+  "location": "/srv/repos0/mkolbol/tests/digest/digest.spec.ts:0",
+  "error": "Cannot read properties of null (reading 'summary')",
+  "summary": {
+    "totalEvents": 0,
+    "includedEvents": 0,
+    "redactedFields": 0,
+    "budgetUsed": 2,
+    "budgetLimit": 10240
+  },
+  "suspects": [],
+  "events": []
+}
