@@ -1,0 +1,3 @@
+{"ts":1760301597486,"lvl":"info","case":"detects mixed changes (events, suspects, codeframes)","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760301597487,"lvl":"info","case":"detects mixed changes (events, suspects, codeframes)","phase":"execution","evt":"test.run"}
+{"ts":1760301597488,"lvl":"info","case":"detects mixed changes (events, suspects, codeframes)","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
