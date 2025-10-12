@@ -2,7 +2,8 @@ Primer — what to do next (after context compaction)
 
 - Recenter: read VEGA/WHO_AM_I.md and my-state-of-mind-today.txt.
 - Skim docs/rfcs/stream-kernel/00-index.md and src/kernel/Kernel.ts.
-- Open VEGA/ampcode.md and pick the top task.
+- Open VEGA/near-term-and-future-plan.md for current priorities.
+- Open ampcode.md on the active branch and pick the top task.
 
 Taste cues
 - Kernel stays tiny: only pipes + registry. No semantics in core.
@@ -14,8 +15,12 @@ If stalled
 - Write a one-sentence WHY at hot edges or in the PR.
 - Prefer small PR-sized diffs; wire tests before changing semantics.
 
-Laminar-focused rehydration (v003 track)
-- Run: `npm run lam -- summary` to see last run.
-- If failures: `npm run lam -- run --lane auto` then `npm run lam -- show --case <suite/case> --around assert.fail --window 50`.
-- Open ampcode.md and execute SB-LAM-DIGEST-P1 waves (rules schema, digest generator, CLI, tests, docs).
-- Keep kernel changes minimal; all debug/observability via Laminar + instrumentation hooks.
+Laminar-focused rehydration (post‑Trends + Repro/Diff + Ingest P2)
+- Sanity: `npm run lam -- summary`.
+- Spot checks:
+  - `npm run lam -- trends --top 10`
+  - `npm run lam -- diff reports/<suite>/<case>.digest.json reports/<suite>/<case>.digest.json`
+  - `npm run lam -- repro --bundle --case <suite/case>` (bundle in `reports/bundles/...`)
+  - `npm run lam -- ingest --pytest --from-file tests/fixtures/pytest/sample-report.json`
+  - `npm run lam -- ingest --junit --from-file tests/fixtures/junit/with-failures.xml`
+- Continue with the staged sprint in ampcode.md (Packaging/Quickstart → Docs Final → Stabilization).

@@ -5,36 +5,37 @@ Owner: VEGA
 
 ## Near Term (next 1–2 sessions)
 
-Laminar v003 — Digest Rules + Generator
-- Add laminar.config.json schema (match/actions: include/slice/redact/priority; budget; toggles)
-- Implement digest generator (JSON + MD) with suspect scoring (proximity/density/corr)
-- Integrate with laminar:run (auto-generate on fail)
-- Extend CLI: `lam digest`, `lam show` upgrades
+Laminar Packaging/Quickstart (SB‑LAM‑PKG‑QUICKSTART‑P1)
+- npx entry (`npx laminar`), local bin script, and `lam init` to scaffold laminar.config.json with defaults (rule packs + redaction presets)
+- GitHub Actions sample workflow (threads lane + optional PTY lane) publishing `reports/` artifacts and a brief `lam summary` to job summary
+- README front‑page Quickstart with copy‑paste commands
 
-Laminar v004 — MCP Skeleton
-- Add MCP server for Laminar (tools: run, digest.generate, rules.get/set, logs.case.get, query, repro)
-- Return compact JSON for agent workflows
+Laminar Docs Final (SB‑LAM‑DOCS‑FINAL‑P1)
+- MCP cookbook (tool calls + JSON contracts + examples)
+- Cross‑language ingest how‑tos (Go/Pytest/JUnit) with minimal fixtures
+- Rule pack presets + redaction guidance; budgets and overlays (focus rules) patterns
 
-Laminar v005 — Cross-language Ingest
-- Ingest shim for Go: `go test -json` → Laminar JSONL
-- Document minimal integration patterns
+Laminar Stabilization (mini)
+- Address “matching test count between index and summary” parity nit
+- Expand redaction tests for corner cases; document safe test fixture patterns
 
 ## Next (following sessions)
 
 mkolbol — Hostess Control Endpoints
 - Include control endpoint metadata (type + coordinates) in Hostess registration for each server
 
-Process-mode (Phase 2)
+Process‑mode (Phase 2)
 - Unix/TCP adapters for control + pipes; Executor runMode 'process' with blue/green cutover
 - Optional: NATS adapter later for ControlBus
 
 ## Future / Parking Lot
 
-- Mux transform (N→1, setActive) for tmux-like switching without rewiring
-- Router + gossip announcements (multi-hop envelopes, hop counts)
+- Digest diffs at scale (delta heuristics, budget‑aware attachments)
+- Trend UIs (ASCII summaries; optional web panel later)
+- Mux transform (N→1, setActive) for tmux‑like switching without rewiring
+- Router + gossip announcements (multi‑hop envelopes, hop counts)
 - LLDP/probe/beacon servers (connectivity knowledge)
 - Pipe Meter transform (flow/latency counters) with metrics topics
-- Golden transcript tests for demos
 - Serial/TCP bridge server; VPN overlay experiment
 - Process isolation hardening; worker harness pattern
 

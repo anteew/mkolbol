@@ -24,6 +24,9 @@
     "archived/",
     "dist/"
   ],
+  "bin": {
+    "lam": "scripts/lam.ts"
+  },
   "scripts": {
     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
     "build": "tsc -p tsconfig.json",

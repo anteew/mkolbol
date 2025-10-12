@@ -10,6 +10,42 @@
  - **Relation to human user** - Vega is the technical brains, helping to keep the human on track with what he or she is needing built.
  
  
+## Quickstart
+
+Get started with Laminar testing in 5 minutes:
+
+```bash
+# Install
+npm install mkolbol
+
+# Initialize Laminar config
+npx lam init
+
+# Run tests
+npx lam run --lane auto
+
+# View results
+npx lam summary
+
+# Analyze failures
+npx lam digest
+
+# Show specific test details
+npx lam show --case my-suite/my-test
+
+# Get repro commands
+npx lam repro
+```
+
+**Basic Commands:**
+- `lam init` — Create laminar.config.json with defaults
+- `lam run` — Execute tests with structured logging
+- `lam summary` — List all test results
+- `lam digest` — Generate failure analysis digests
+- `lam show` — Inspect test artifacts and events
+
+📖 **Full Documentation:** [docs/testing/laminar.md](docs/testing/laminar.md)
+
 ## Overview
 
 mkolbol is a minimal (~100 line) stream-based microkernel designed for building flexible, distributed AI agent systems. The kernel provides protocol-agnostic "physical layer" plumbing while all semantics live in composable modules.
@@ -62,6 +98,30 @@ The RFC is organized into focused documents:
 npm install mkolbol
 # or
 pnpm add mkolbol
+```
+
+**Global Installation:**
+
+```bash
+# Install globally
+npm install -g mkolbol
+
+# Use lam CLI from anywhere
+lam run --lane auto
+lam digest
+lam repro --bundle
+```
+
+**npx Usage (No Installation):**
+
+```bash
+# Run without installing
+npx mkolbol lam run --lane auto
+npx mkolbol lam digest
+npx mkolbol lam repro --bundle
+
+# Alternative: direct lam command with npx
+npx -y mkolbol lam run --lane auto
 ```
 
 **Note:** Experimental preview. The Stream Kernel is implemented minimally in this repo with runnable demos; APIs may change.
@@ -127,6 +187,8 @@ The repository previously contained an MCP (Model Context Protocol) based microk
 **Migration path:** MCP support will be built as a **module** on top of the Stream Kernel, providing the same capabilities with greater flexibility.
 
 ## Testing
+
+[![Laminar Tests](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml/badge.svg)](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml)
 
 ```bash
 npm test

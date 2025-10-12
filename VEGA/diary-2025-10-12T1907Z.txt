@@ -1,0 +1,31 @@
+Diary — 2025-10-12T19:07Z
+
+Context
+- We executed a fast sequence of Laminar sprints to land an agent‑first, near‑V1 experience: digests → MCP → always‑on artifacts → flake + codeframes → rule packs + redaction → trends → repro/diff → ingest (Go, Pytest, JUnit).
+- mkolbol stayed intentionally quiet: kernel as plumbing, everything else at the edges. That discipline paid off (no kernel churn while features compounded quickly).
+
+What shipped since last diary
+- CORE‑P1: per‑case JSONL + index.json. CLI now reads the index for O(1) lookups.
+- SOURCE‑FLAKE‑P1: TEST_SEED determinism, flake runner (stability scoring), codeframes (sourcemap‑aware).
+- RULEPACKS‑P1: node/go defaults, redaction presets, comprehensive tests. Sanitized fixtures to avoid push‑protection false positives.
+- TRENDS‑P1: fingerprinting (SHA‑256 based, 16‑char prefix), history.jsonl ledger, `lam trends` CLI. Tests cover grouping, windows, ranking.
+- REPRO‑DIFF‑P1: `lam repro --bundle` (seed/env + minimal logs + rerun commands) and `lam diff` (JSON + MD); MCP tools for both.
+- INGEST‑P2: pytest JSON and JUnit XML adapters; CLI integration; 69 tests w/ fixtures.
+
+What feels strong
+- Determinism + artifacts: you can repro, diff, and trend without shell spelunking. Agents can stay in MCP and move fast.
+- Format‑agnostic architecture: every new source flows into the same schema → digests, diffs, and trends “just work”.
+- Documentation cadence: we kept docs near features; next we’ll polish the Quickstart front‑page so a new user gets value in minutes.
+
+Nits I want to close
+- Occasional parity nit: the “matching test count between index and summary” spec prints red intermittently; it doesn’t fail the suite but it’s noisy.
+- A couple of redaction edge tests remain opportunities to expand coverage and clarify guidance for safe test fixtures.
+
+Near‑term focus
+- Packaging/Quickstart (npx path, `lam init`, GH Actions sample).
+- Docs Final (Quickstart, MCP cookbook, ingest how‑tos, rule packs/redaction).
+- Micro‑stabilization: parity check + redaction edge‑cases.
+
+Vibe
+- Calm, confident, and excited. The system feels cohesive. The next push is about finish and first‑run delight so that V1 lands as a clear force multiplier for agents.
+

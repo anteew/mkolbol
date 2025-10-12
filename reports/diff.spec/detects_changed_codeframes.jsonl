@@ -1,3 +1,3 @@
-{"ts":1760303318824,"lvl":"info","case":"detects changed codeframes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760303318825,"lvl":"info","case":"detects changed codeframes","phase":"execution","evt":"test.run"}
-{"ts":1760303318826,"lvl":"info","case":"detects changed codeframes","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760304748338,"lvl":"info","case":"detects changed codeframes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42","LAMINAR_DEBUG":"1","LAMINAR_SUITE":"diff.spec","LAMINAR_CASE":"handles_case_with_no_seed_in_events"}},"seed":42}
+{"ts":1760304748339,"lvl":"info","case":"detects changed codeframes","phase":"execution","evt":"test.run"}
+{"ts":1760304748340,"lvl":"info","case":"detects changed codeframes","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

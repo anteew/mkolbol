@@ -1,0 +1,641 @@
+diff --git a/README.md b/README.md
+index 724e610..ce0b04c 100644
+--- a/README.md
++++ b/README.md
+@@ -10,6 +10,42 @@
+  - **Relation to human user** - Vega is the technical brains, helping to keep the human on track with what he or she is needing built.
+  
+  
++## Quickstart
++
++Get started with Laminar testing in 5 minutes:
++
++```bash
++# Install
++npm install mkolbol
++
++# Initialize Laminar config
++npx lam init
++
++# Run tests
++npx lam run --lane auto
++
++# View results
++npx lam summary
++
++# Analyze failures
++npx lam digest
++
++# Show specific test details
++npx lam show --case my-suite/my-test
++
++# Get repro commands
++npx lam repro
++```
++
++**Basic Commands:**
++- `lam init` — Create laminar.config.json with defaults
++- `lam run` — Execute tests with structured logging
++- `lam summary` — List all test results
++- `lam digest` — Generate failure analysis digests
++- `lam show` — Inspect test artifacts and events
++
++📖 **Full Documentation:** [docs/testing/laminar.md](docs/testing/laminar.md)
++
+ ## Overview
+ 
+ mkolbol is a minimal (~100 line) stream-based microkernel designed for building flexible, distributed AI agent systems. The kernel provides protocol-agnostic "physical layer" plumbing while all semantics live in composable modules.
+@@ -64,6 +100,30 @@ npm install mkolbol
+ pnpm add mkolbol
+ ```
+ 
++**Global Installation:**
++
++```bash
++# Install globally
++npm install -g mkolbol
++
++# Use lam CLI from anywhere
++lam run --lane auto
++lam digest
++lam repro --bundle
++```
++
++**npx Usage (No Installation):**
++
++```bash
++# Run without installing
++npx mkolbol lam run --lane auto
++npx mkolbol lam digest
++npx mkolbol lam repro --bundle
++
++# Alternative: direct lam command with npx
++npx -y mkolbol lam run --lane auto
++```
++
+ **Note:** Experimental preview. The Stream Kernel is implemented minimally in this repo with runnable demos; APIs may change.
+ 
+ Requirements
+@@ -128,6 +188,8 @@ The repository previously contained an MCP (Model Context Protocol) based microk
+ 
+ ## Testing
+ 
++[![Laminar Tests](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml/badge.svg)](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml)
++
+ ```bash
+ npm test
+ # or  
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index cfecd70..b5385cc 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -2,6 +2,61 @@
+ 
+ Laminar is a branded, structured testing system for flow‑based applications. It produces compact human summaries and deep JSONL artifacts that agents and humans can query precisely without blowing token budgets.
+ 
++## Quickstart (5 Minutes)
++
++### Installation
++
++```bash
++# Install via npm
++npm install mkolbol
++
++# Or use npx (no installation)
++npx mkolbol lam init
++```
++
++### First Test Run
++
++```bash
++# 1. Initialize config
++npx lam init
++
++# 2. Run your tests
++npx lam run --lane auto
++
++# 3. View summary
++npx lam summary
++```
++
++### Analyze Failures
++
++```bash
++# Generate digests for all failures
++npx lam digest
++
++# Show specific test details with context
++npx lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 10
++
++# Get reproduction commands
++npx lam repro
++```
++
++### Basic Commands
++
++| Command | Purpose |
++|---------|---------|
++| `lam init` | Scaffold laminar.config.json |
++| `lam run` | Execute tests with structured logging |
++| `lam summary` | List all test results |
++| `lam digest` | Generate failure digests |
++| `lam show` | Inspect test artifacts |
++| `lam repro` | Get repro commands |
++
++**Quick Tips:**
++- All test artifacts go to `reports/` directory
++- Use `reports/summary.jsonl` for quick failure scan
++- Per-case logs in `reports/<suite>/<case>.jsonl`
++- Digests auto-generated on failure (see below for configuration)
++
+ ## Why Laminar
+ - Token‑cheap: short summaries, deep artifacts on disk
+ - Deterministic: seeded, no flaky sleeps, reproducible
+@@ -233,6 +288,12 @@ The `lam` CLI provides comprehensive test management and analysis capabilities.
+ 
+ ### Commands
+ 
++#### Project Setup
++- `lam init [--template <t>] [--dry-run] [--force]` — scaffold laminar.config.json
++  - `--template`: Choose template (node-defaults, go-defaults, minimal)
++  - `--dry-run`: Preview config without writing files
++  - `--force`: Overwrite existing config
++
+ #### Test Execution
+ - `lam run [--lane ci|pty|auto] [--filter <pattern>]` — run tests
+ - `lam summary` — list all test results from latest run
+@@ -251,6 +312,72 @@ The `lam` CLI provides comprehensive test management and analysis capabilities.
+ - `lam ingest --pytest [--from-file <path> | --cmd "<command>"]` — ingest pytest JSON results
+ - `lam ingest --junit <file>` — ingest JUnit XML test results
+ 
++### lam init — Project Scaffolding
++
++Initialize Laminar configuration in your project with sensible defaults:
++
++```bash
++# Quick start with node defaults
++npx lam init
++
++# Preview config without creating files
++npx lam init --dry-run
++
++# Use minimal template
++npx lam init --template minimal
++
++# Use Go defaults for Go projects
++npx lam init --template go-defaults
++
++# Overwrite existing config
++npx lam init --force
++```
++
++**What it does:**
++1. Creates `laminar.config.json` with chosen template
++2. Adds `reports/` to `.gitignore` if not already present
++3. Won't overwrite existing config without `--force` flag
++
++**Available Templates:**
++- `node-defaults` (default): Includes error capture, assert.fail with context, worker events, and codeframes
++- `go-defaults`: Optimized for Go test.fail events with codeframes
++- `minimal`: Basic error-only capture
++
++**Template: node-defaults**
++```json
++{
++  "enabled": true,
++  "budget": {
++    "kb": 10,
++    "lines": 200
++  },
++  "rules": [
++    {
++      "match": { "lvl": "error" },
++      "actions": [
++        { "type": "include" },
++        { "type": "codeframe", "contextLines": 2 }
++      ],
++      "priority": 10
++    },
++    {
++      "match": { "evt": "assert.fail" },
++      "actions": [
++        { "type": "include" },
++        { "type": "slice", "window": 10 },
++        { "type": "codeframe", "contextLines": 2 }
++      ],
++      "priority": 9
++    },
++    {
++      "match": { "evt": ["worker.ready", "worker.exit", "worker.error"] },
++      "actions": [{ "type": "include" }],
++      "priority": 7
++    }
++  ]
++}
++```
++
+ ### lam ingest — Cross-Language Test Integration
+ 
+ Converts test results from other frameworks into Laminar JSONL format.
+diff --git a/scripts/lam.ts b/scripts/lam.ts
+old mode 100644
+new mode 100755
+index 42501ef..5ed1d25
+--- a/scripts/lam.ts
++++ b/scripts/lam.ts
+@@ -6,6 +6,7 @@ import { ingestPytestJSON } from './ingest-pytest.js';
+ import { ingestJUnit } from './ingest-junit.js';
+ import { DigestDiffEngine } from '../src/digest/diff.js';
+ import { bundleRepro } from './repro-bundle.js';
++import { scaffold, printScaffoldPreview } from '../src/init/scaffold.js';
+ 
+ function sh(cmd: string, args: string[], env: Record<string, string> = {}) {
+   const res = spawnSync(cmd, args, { stdio: 'inherit', env: { ...process.env, ...env } });
+@@ -13,41 +14,89 @@ function sh(cmd: string, args: string[], env: Record<string, string> = {}) {
+ }
+ 
+ function printHelp() {
+-  console.log(`Laminar CLI
++  const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
++  console.log(`Laminar CLI v${pkg.version}
++Stream-based test execution and failure analysis toolkit
+ 
+-Usage:
+-  lam run [--lane ci|pty|auto] [--filter <vitest-pattern>]
+-  lam summary
+-  lam show --case <suite/case> [--around <pattern>] [--window <n>]
+-  lam digest [--cases <case1,case2,...>]
+-  lam diff <digest1> <digest2> [--output <path>] [--format json|markdown]
+-  lam repro --bundle [--case <case-name>]
+-  lam ingest --go [--from-file <path> | --cmd "<command>"]
+-  lam ingest --py|--pytest [--from-file <path> | --cmd "<command>"]
+-  lam ingest --junit [--from-file <path> | --cmd "<command>"]
+-  lam rules get
+-  lam rules set --file <path> | --inline '<json>'
+-  lam trends [--since <timestamp>] [--until <timestamp>] [--top <n>]
++USAGE
++  lam <command> [options]
++  npx lam <command> [options]
++
++CONFIGURATION
++  init [--template <t>] [--dry-run] [--force]
++                                            Initialize Laminar in your project (creates config & setup)
++                                            --template: node-defaults (default), go-defaults, minimal
++                                            --dry-run: Preview without writing files
++                                            --force: Overwrite existing config
++
++TEST EXECUTION
++  run [--lane ci|pty|auto] [--filter <p>]  Run tests with Laminar instrumentation
++                                            --lane: execution mode (auto=smart detection)
++                                            --filter: vitest pattern to run specific tests
++
++ANALYSIS & REPORTING
++  summary                                   Show test results summary from last run
++  show --case <suite/case>                  Display detailed logs for a specific test case
++       [--around <pattern>]                 Context pattern to search for (default: assert.fail)
++       [--window <n>]                       Lines of context around pattern (default: 50)
++  digest [--cases <case1,case2,...>]        Generate failure digests for test cases
++                                            If --cases omitted, digests all failed tests
++  diff <digest1> <digest2>                  Compare two digest files
++       [--output <path>]                    Save comparison to file
++       [--format json|markdown]             Output format (default: json)
++  trends [--since <ts>] [--until <ts>]      Show failure trends over time
++         [--top <n>]                        Number of top offenders to display (default: 10)
++
++DEBUGGING
++  repro --bundle [--case <case-name>]       Bundle reproduction artifacts for debugging
++                                            If --case omitted, bundles all failing tests
++
++INGEST (External Test Frameworks)
++  ingest --go [--from-file <path> | --cmd "<command>"]
++                                            Import Go test results (go test -json)
++  ingest --py|--pytest [--from-file <path> | --cmd "<command>"]
++                                            Import pytest JSON reports
++  ingest --junit [--from-file <path> | --cmd "<command>"]
++                                            Import JUnit XML results
++
++CONFIGURATION MANAGEMENT
++  rules get                                 Display current Laminar rules config
++  rules set --file <path> | --inline '<json>'
++                                            Update Laminar rules configuration
+ 
+-Examples:
+-  lam run --lane auto
+-  lam summary
++EXAMPLES
++  # Quick start
++  npx lam init                              # Initialize Laminar with node-defaults template
++  npx lam init --dry-run                    # Preview config without creating
++  npx lam init --template go-defaults       # Initialize for Go projects
++  lam run --lane auto                       # Run tests with auto-detection
++  lam summary                               # View results
++
++  # Focused testing
++  lam run --lane ci --filter "kernel"       # Run only kernel tests
+   lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 50
+-  lam digest
+-  lam digest --cases kernel.spec/connect_moves_data_1_1,kernel.spec/another_case
+-  lam diff reports/case1.digest.json reports/case2.digest.json
+-  lam diff reports/case1.digest.json reports/case2.digest.json --output diff.md --format markdown
+-  lam repro --bundle
+-  lam repro --bundle --case kernel.spec/connect_moves_data_1_1
+-  lam ingest --go --from-file go-test-output.json
++
++  # Analysis workflows
++  lam digest                                # Digest all failures
++  lam digest --cases kernel.spec/case1,kernel.spec/case2
++  lam diff reports/case1.digest.json reports/case2.digest.json --format markdown
++  lam trends --top 10 --since 2025-10-01
++
++  # External framework integration
+   lam ingest --go --cmd "go test -json ./..."
+-  lam ingest --py --from-file pytest-report.json
+-  lam ingest --pytest --cmd "pytest --json-report --json-report-file=/dev/stdout"
+-  lam ingest --junit --from-file junit-results.xml
++  lam ingest --pytest --from-file pytest-report.json
+   lam ingest --junit --cmd "mvn test"
++
++  # Debugging support
++  lam repro --bundle --case kernel.spec/failing_test
++
++  # Configuration
+   lam rules get
+   lam rules set --inline '{"budget":{"kb":2}}'
+-  lam trends --top 10 --since 2025-10-01
++
++LEARN MORE
++  Documentation: https://github.com/anteew/mkolbol
++  Report issues: https://github.com/anteew/mkolbol/issues
+ `);
+ }
+ 
+@@ -109,6 +158,26 @@ async function main() {
+   }
+ 
+   switch (cmd) {
++    case 'init': {
++      const template = (args.get('template') as string) || 'node-defaults';
++      const dryRun = args.get('dry-run') === true || args.get('dryrun') === true;
++      const force = args.get('force') === true;
++
++      const result = scaffold({
++        template: template as any,
++        dryRun,
++        force,
++        silent: false,
++      });
++
++      if (dryRun) {
++        printScaffoldPreview(result);
++      } else if (!result.success) {
++        console.error(`Error: ${result.message}`);
++        process.exit(1);
++      }
++      break;
++    }
+     case 'run': {
+       const lane = (args.get('lane') as string) || 'auto';
+       const filter = args.get('filter') as (string|undefined);
+@@ -393,18 +462,33 @@ async function main() {
+         location?: string;
+         errorMessage?: string;
+       }
++
++      function normalize(raw: any): HistoryEntry | undefined {
++        try {
++          const ts = typeof raw.ts === 'number'
++            ? raw.ts
++            : raw.timestamp
++              ? Date.parse(raw.timestamp)
++              : (typeof raw.time === 'number' ? raw.time : undefined);
++          if (!ts || Number.isNaN(ts)) return undefined;
++          const caseName = raw.caseName || raw.testName || raw.name || 'unknown.case';
++          const status: 'fail' | 'pass' | 'skip' = (raw.status || 'pass');
++          const location = raw.location || raw.file || undefined;
++          const fingerprint = raw.fingerprint || raw.fp || '';
++          const errorMessage = raw.errorMessage || raw.error || undefined;
++          return { ts, fingerprint, caseName, status, location, errorMessage };
++        } catch {
++          return undefined;
++        }
++      }
+       
+       const entries: HistoryEntry[] = fs.readFileSync(historyPath, 'utf-8')
+         .trim()
+         .split(/\n+/)
+-        .map(line => {
+-          try {
+-            return JSON.parse(line);
+-          } catch {
+-            return undefined;
+-          }
+-        })
+-        .filter(Boolean);
++        .map(line => { try { return JSON.parse(line); } catch { return undefined; } })
++        .filter(Boolean)
++        .map((raw: any) => normalize(raw))
++        .filter((v): v is HistoryEntry => Boolean(v));
+       
+       const filtered = entries.filter(e => e.ts >= sinceTs && e.ts <= untilTs);
+       
+@@ -487,4 +571,3 @@ async function main() {
+ }
+ 
+ main().catch(e => { console.error(e); process.exit(1); });
+-
+diff --git a/src/init/scaffold.ts b/src/init/scaffold.ts
+new file mode 100644
+index 0000000..f484dd2
+--- /dev/null
++++ b/src/init/scaffold.ts
+@@ -0,0 +1,190 @@
++import * as fs from 'node:fs';
++import * as path from 'node:path';
++
++export interface ScaffoldOptions {
++  template?: 'node-defaults' | 'go-defaults' | 'minimal';
++  dryRun?: boolean;
++  force?: boolean;
++  silent?: boolean;
++}
++
++interface ScaffoldResult {
++  success: boolean;
++  configPath: string;
++  configContent: string;
++  gitignoreUpdated: boolean;
++  message: string;
++}
++
++const TEMPLATES = {
++  'node-defaults': {
++    enabled: true,
++    budget: {
++      kb: 10,
++      lines: 200,
++    },
++    rules: [
++      {
++        match: { lvl: 'error' },
++        actions: [{ type: 'include' }, { type: 'codeframe', contextLines: 2 }],
++        priority: 10,
++      },
++      {
++        match: { evt: 'assert.fail' },
++        actions: [
++          { type: 'include' },
++          { type: 'slice', window: 10 },
++          { type: 'codeframe', contextLines: 2 },
++        ],
++        priority: 9,
++      },
++      {
++        match: { evt: ['worker.ready', 'worker.exit', 'worker.error'] },
++        actions: [{ type: 'include' }],
++        priority: 7,
++      },
++    ],
++  },
++  'go-defaults': {
++    enabled: true,
++    budget: {
++      kb: 10,
++      lines: 200,
++    },
++    rules: [
++      {
++        match: { lvl: 'error' },
++        actions: [{ type: 'include' }, { type: 'codeframe', contextLines: 2 }],
++        priority: 10,
++      },
++      {
++        match: { evt: 'test.fail' },
++        actions: [
++          { type: 'include' },
++          { type: 'slice', window: 10 },
++          { type: 'codeframe', contextLines: 2 },
++        ],
++        priority: 9,
++      },
++      {
++        match: { phase: ['teardown', 'cleanup'] },
++        actions: [{ type: 'include' }],
++        priority: 6,
++      },
++    ],
++  },
++  minimal: {
++    enabled: true,
++    budget: {
++      kb: 10,
++      lines: 200,
++    },
++    rules: [
++      {
++        match: { lvl: 'error' },
++        actions: [{ type: 'include' }],
++        priority: 10,
++      },
++    ],
++  },
++};
++
++export function scaffold(options: ScaffoldOptions = {}): ScaffoldResult {
++  const template = options.template || 'node-defaults';
++  const configPath = 'laminar.config.json';
++  const dryRun = options.dryRun ?? false;
++  const force = options.force ?? false;
++  const silent = options.silent ?? false;
++
++  // Check if config already exists
++  if (fs.existsSync(configPath) && !force) {
++    return {
++      success: false,
++      configPath,
++      configContent: '',
++      gitignoreUpdated: false,
++      message: `${configPath} already exists. Use --force to overwrite.`,
++    };
++  }
++
++  // Get template content
++  const templateData = TEMPLATES[template];
++  if (!templateData) {
++    return {
++      success: false,
++      configPath,
++      configContent: '',
++      gitignoreUpdated: false,
++      message: `Unknown template: ${template}. Available: ${Object.keys(TEMPLATES).join(', ')}`,
++    };
++  }
++
++  const configContent = JSON.stringify(templateData, null, 2);
++
++  // Dry run: just show what would be created
++  if (dryRun) {
++    return {
++      success: true,
++      configPath,
++      configContent,
++      gitignoreUpdated: false,
++      message: `[DRY RUN] Would create ${configPath} with template: ${template}`,
++    };
++  }
++
++  // Write config file
++  try {
++    fs.writeFileSync(configPath, configContent + '\n', 'utf-8');
++  } catch (err) {
++    return {
++      success: false,
++      configPath,
++      configContent,
++      gitignoreUpdated: false,
++      message: `Failed to write ${configPath}: ${err}`,
++    };
++  }
++
++  // Update .gitignore if needed
++  let gitignoreUpdated = false;
++  const gitignorePath = '.gitignore';
++  
++  if (fs.existsSync(gitignorePath)) {
++    const gitignoreContent = fs.readFileSync(gitignorePath, 'utf-8');
++    const entries = gitignoreContent.split('\n');
++    
++    const needsReports = !entries.some(line => line.trim() === 'reports/' || line.trim() === 'reports');
++    
++    if (needsReports) {
++      const updatedContent = gitignoreContent.trimEnd() + '\nreports/\n';
++      fs.writeFileSync(gitignorePath, updatedContent, 'utf-8');
++      gitignoreUpdated = true;
++    }
++  }
++
++  const messages: string[] = [`Created ${configPath} with template: ${template}`];
++  if (gitignoreUpdated) {
++    messages.push('Updated .gitignore to include reports/');
++  }
++
++  if (!silent) {
++    console.log(`✓ ${messages.join('\n✓ ')}`);
++  }
++
++  return {
++    success: true,
++    configPath,
++    configContent,
++    gitignoreUpdated,
++    message: messages.join('\n'),
++  };
++}
++
++export function printScaffoldPreview(result: ScaffoldResult): void {
++  if (result.success && result.configContent) {
++    console.log(`\n=== ${result.configPath} ===`);
++    console.log(result.configContent);
++    console.log('');
++  }
++  console.log(result.message);
++}

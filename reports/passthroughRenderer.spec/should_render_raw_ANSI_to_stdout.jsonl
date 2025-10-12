@@ -1,3 +1,3 @@
-{"ts":1760303319157,"lvl":"info","case":"should render raw ANSI to stdout","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760303319158,"lvl":"info","case":"should render raw ANSI to stdout","phase":"execution","evt":"test.run"}
-{"ts":1760303319159,"lvl":"info","case":"should render raw ANSI to stdout","phase":"teardown","evt":"case.end","payload":{"duration":7,"status":"passed"}}
+{"ts":1760304679877,"lvl":"info","case":"should render raw ANSI to stdout","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
+{"ts":1760304679878,"lvl":"info","case":"should render raw ANSI to stdout","phase":"execution","evt":"test.run"}
+{"ts":1760304679879,"lvl":"info","case":"should render raw ANSI to stdout","phase":"teardown","evt":"case.end","payload":{"duration":19,"status":"passed"}}
