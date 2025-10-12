@@ -1,0 +1,95 @@
+{
+  "metadata": {
+    "bundleVersion": "1.0.0",
+    "generated": "2025-10-12T20:21:15.247Z",
+    "testName": "should have matching test count between index and summary",
+    "testFile": "/srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts",
+    "status": "fail",
+    "duration": 9
+  },
+  "environment": {
+    "nodeVersion": "v24.9.0",
+    "platform": "linux x64"
+  },
+  "failure": {
+    "errorMessage": "expected 1 to be greater than or equal to 48",
+    "errorEvents": [
+      {
+        "ts": 1760297274576,
+        "lvl": "error",
+        "case": "should have matching test count between index and summary",
+        "phase": "execution",
+        "evt": "test.error",
+        "payload": {
+          "message": "expected 1 to be greater than or equal to 48",
+          "stack": "AssertionError: expected 1 to be greater than or equal to 48\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:240:35\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:135:14\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:60:26\n    at runTest (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:781:17)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runFiles (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:958:5)\n    at startTests (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:967:3)\n    at file:///srv/repos0/mkolbol/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7"
+        }
+      },
+      {
+        "ts": 1760297274577,
+        "lvl": "error",
+        "case": "should have matching test count between index and summary",
+        "phase": "teardown",
+        "evt": "case.end",
+        "payload": {
+          "duration": 9,
+          "status": "failed"
+        }
+      }
+    ],
+    "contextEvents": [
+      {
+        "ts": 1760297274574,
+        "lvl": "info",
+        "case": "should have matching test count between index and summary",
+        "phase": "setup",
+        "evt": "case.begin",
+        "env": {
+          "nodeVersion": "v24.9.0",
+          "platform": "linux",
+          "arch": "x64",
+          "os": "Linux 6.8.0-85-generic",
+          "seed": 42,
+          "envVars": {
+            "NODE_ENV": "test"
+          }
+        },
+        "seed": 42
+      },
+      {
+        "ts": 1760297274575,
+        "lvl": "info",
+        "case": "should have matching test count between index and summary",
+        "phase": "execution",
+        "evt": "test.run"
+      },
+      {
+        "ts": 1760297274576,
+        "lvl": "error",
+        "case": "should have matching test count between index and summary",
+        "phase": "execution",
+        "evt": "test.error",
+        "payload": {
+          "message": "expected 1 to be greater than or equal to 48",
+          "stack": "AssertionError: expected 1 to be greater than or equal to 48\n    at /srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts:240:35\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:135:14\n    at file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:60:26\n    at runTest (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:781:17)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runSuite (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:909:15)\n    at runFiles (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:958:5)\n    at startTests (file:///srv/repos0/mkolbol/node_modules/@vitest/runner/dist/index.js:967:3)\n    at file:///srv/repos0/mkolbol/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7"
+        }
+      },
+      {
+        "ts": 1760297274577,
+        "lvl": "error",
+        "case": "should have matching test count between index and summary",
+        "phase": "teardown",
+        "evt": "case.end",
+        "payload": {
+          "duration": 9,
+          "status": "failed"
+        }
+      }
+    ]
+  },
+  "reproduction": {
+    "vitestCommand": "vitest run --reporter=verbose --pool=threads \"/srv/repos0/mkolbol/tests/laminar/coreReporter.spec.ts\" -t \"should have matching test count between index and summary\"",
+    "logCommand": "npm run logq -- reports/coreReporter.spec/should_have_matching_test_count_between_index_and_summary.jsonl",
+    "digestFile": "reports/coreReporter.spec/should_have_matching_test_count_between_index_and_summary.digest.md"
+  }
+}

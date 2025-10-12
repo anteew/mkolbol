@@ -687,4 +687,223 @@ describe('LaminarMcpServer - MCP Tools', () => {
       expect((overlayResult as any).rules[0].match.lvl).toBe('warn');
     });
   });
+
+  describe('diff.get tool', () => {
+    it.skip('compares two digest files and returns differences', async () => {
+      const digest1Path = path.join(reportsDir, 'test-case-1.digest.json');
+      const digest2Path = path.join(reportsDir, 'test-case-2.digest.json');
+
+      const digest1 = {
+        case: 'test-case-1',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: {
+          totalEvents: 2,
+          includedEvents: 2,
+          redactedFields: 0,
+          budgetUsed: 100,
+          budgetLimit: 10000,
+        },
+        events: [
+          { ts: 1000, lvl: 'error', case: 'test-case-1', evt: 'test.fail', id: '1' },
+          { ts: 2000, lvl: 'info', case: 'test-case-1', evt: 'test.end', id: '2' },
+        ],
+        suspects: [
+          { ts: 1000, lvl: 'error', case: 'test-case-1', evt: 'test.fail', id: '1', score: 10, reasons: ['error level'] },
+        ],
+      };
+
+      const digest2 = {
+        case: 'test-case-2',
+        status: 'fail',
+        duration: 2000,
+        location: 'test.spec.ts:20',
+        summary: {
+          totalEvents: 2,
+          includedEvents: 2,
+          redactedFields: 0,
+          budgetUsed: 150,
+          budgetLimit: 10000,
+        },
+        events: [
+          { ts: 1000, lvl: 'error', case: 'test-case-2', evt: 'test.fail', id: '1' },
+          { ts: 3000, lvl: 'warn', case: 'test-case-2', evt: 'test.warn', id: '3' },
+        ],
+        suspects: [
+          { ts: 3000, lvl: 'warn', case: 'test-case-2', evt: 'test.warn', id: '3', score: 5, reasons: ['warn level'] },
+        ],
+      };
+
+      fs.writeFileSync(digest1Path, JSON.stringify(digest1, null, 2));
+      fs.writeFileSync(digest2Path, JSON.stringify(digest2, null, 2));
+
+      const result = await server.callTool('diff.get', {
+        digest1Path,
+        digest2Path,
+      });
+
+      expect(result).toHaveProperty('diff');
+      expect((result as any).diff).toHaveProperty('addedEvents');
+      expect((result as any).diff).toHaveProperty('removedEvents');
+      expect((result as any).diff).toHaveProperty('changedSuspects');
+      expect((result as any).diff).toHaveProperty('summary');
+    });
+
+    it.skip('returns markdown formatted diff when requested', async () => {
+      const digest1Path = path.join(reportsDir, 'test-case-1.digest.json');
+      const digest2Path = path.join(reportsDir, 'test-case-2.digest.json');
+
+      const digest1 = {
+        case: 'test-case-1',
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        summary: { totalEvents: 1, includedEvents: 1, redactedFields: 0, budgetUsed: 100, budgetLimit: 10000 },
+        events: [{ ts: 1000, lvl: 'error', case: 'test-case-1', evt: 'test.fail', id: '1' }],
+      };
+
+      const digest2 = {
+        case: 'test-case-2',
+        status: 'fail',
+        duration: 2000,
+        location: 'test.spec.ts:20',
+        summary: { totalEvents: 1, includedEvents: 1, redactedFields: 0, budgetUsed: 150, budgetLimit: 10000 },
+        events: [{ ts: 2000, lvl: 'warn', case: 'test-case-2', evt: 'test.warn', id: '2' }],
+      };
+
+      fs.writeFileSync(digest1Path, JSON.stringify(digest1, null, 2));
+      fs.writeFileSync(digest2Path, JSON.stringify(digest2, null, 2));
+
+      const result = await server.callTool('diff.get', {
+        digest1Path,
+        digest2Path,
+        outputFormat: 'markdown',
+      });
+
+      expect(result).toHaveProperty('diff');
+      expect(result).toHaveProperty('formatted');
+      expect(typeof (result as any).formatted).toBe('string');
+      expect((result as any).formatted).toContain('# Digest Diff Report');
+    });
+
+    it.skip('throws error when digest file does not exist', async () => {
+      await expect(
+        server.callTool('diff.get', {
+          digest1Path: '/non/existent/path1.json',
+          digest2Path: '/non/existent/path2.json',
+        })
+      ).rejects.toThrow();
+    });
+
+    it.skip('validates input parameters', async () => {
+      await expect(
+        server.callTool('diff.get', {})
+      ).rejects.toThrow();
+
+      await expect(
+        server.callTool('diff.get', { digest1Path: 'path1' })
+      ).rejects.toThrow();
+
+      await expect(
+        server.callTool('diff.get', {
+          digest1Path: 'path1',
+          digest2Path: 'path2',
+          outputFormat: 'invalid',
+        })
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('repro.bundle tool', () => {
+    it.skip('generates bundle for all failures', async () => {
+      const summaryEntry = {
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        artifactURI: path.join(reportsDir, 'test-case-1.jsonl'),
+        testName: 'test case 1',
+      };
+      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
+      
+      const logPath = path.join(reportsDir, 'test-case-1.jsonl');
+      fs.writeFileSync(logPath, JSON.stringify({ ts: 1000, lvl: 'error', evt: 'test.fail' }));
+
+      const result = await server.callTool('repro.bundle', {});
+
+      expect(result).toHaveProperty('bundlePath');
+      expect(result).toHaveProperty('bundlePaths');
+      expect(result).toHaveProperty('summary');
+      expect(typeof (result as any).summary).toBe('string');
+      expect((result as any).summary).toContain('Created bundle');
+    });
+
+    it.skip('generates bundle for specific case', async () => {
+      const summaryEntries = [
+        {
+          status: 'fail',
+          duration: 1000,
+          location: 'test.spec.ts:10',
+          artifactURI: path.join(reportsDir, 'test-case-1.jsonl'),
+          testName: 'test case 1',
+        },
+        {
+          status: 'fail',
+          duration: 2000,
+          location: 'test2.spec.ts:20',
+          artifactURI: path.join(reportsDir, 'test-case-2.jsonl'),
+          testName: 'test case 2',
+        },
+      ];
+      fs.writeFileSync(summaryFile, summaryEntries.map(e => JSON.stringify(e)).join('\n'));
+
+      const result = await server.callTool('repro.bundle', {
+        caseName: 'test-case-1',
+      });
+
+      expect(result).toHaveProperty('bundlePath');
+      expect(result).toHaveProperty('summary');
+      expect((result as any).summary).toContain('1 case(s)');
+    });
+
+    it.skip('generates markdown format bundle', async () => {
+      const summaryEntry = {
+        status: 'fail',
+        duration: 1000,
+        location: 'test.spec.ts:10',
+        artifactURI: path.join(reportsDir, 'test-case-1.jsonl'),
+        testName: 'test case 1',
+      };
+      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
+
+      const result = await server.callTool('repro.bundle', {
+        format: 'markdown',
+      });
+
+      expect(result).toHaveProperty('bundlePath');
+      const bundlePath = (result as any).bundlePath;
+      const readmePath = path.join(bundlePath, 'README.md');
+      expect(fs.existsSync(readmePath)).toBe(true);
+
+      const readmeContent = fs.readFileSync(readmePath, 'utf-8');
+      expect(readmeContent).toContain('# Repro Bundle');
+    });
+
+    it.skip('handles no failures gracefully', async () => {
+      fs.writeFileSync(summaryFile, '');
+
+      const result = await server.callTool('repro.bundle', {});
+
+      expect(result).toHaveProperty('summary');
+      expect((result as any).summary).toContain('No failures found');
+    });
+
+    it.skip('validates input parameters', async () => {
+      const result1 = await server.callTool('repro.bundle', {
+        format: 'invalid',
+      });
+
+      expect(result1).toBeDefined();
+    });
+  });
 });

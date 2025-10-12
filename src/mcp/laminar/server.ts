@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { DigestEvent, DigestOutput, DigestConfig, DigestGenerator, DigestRule, generateAllDigests, generateDigestsForCases } from '../../digest/generator.js';
+import { DigestEvent, DigestOutput, DigestConfig, DigestGenerator, DigestRule, SuspectEvent, generateAllDigests, generateDigestsForCases } from '../../digest/generator.js';
 
 export type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
 
@@ -164,6 +164,40 @@ export interface LogsCaseGetOutput {
   logs: string;
 }
 
+export interface DiffGetInput {
+  digest1Path: string;
+  digest2Path: string;
+  outputFormat?: 'json' | 'markdown';
+}
+
+export interface DiffGetOutput {
+  diff: {
+    addedEvents: DigestEvent[];
+    removedEvents: DigestEvent[];
+    changedSuspects: {
+      added: SuspectEvent[];
+      removed: SuspectEvent[];
+    };
+    summary: {
+      totalAddedEvents: number;
+      totalRemovedEvents: number;
+      totalChangedSuspects: number;
+    };
+  };
+  formatted?: string;
+}
+
+export interface ReproBundleInput {
+  caseName?: string;
+  format?: 'json' | 'markdown';
+}
+
+export interface ReproBundleOutput {
+  bundlePath?: string;
+  bundlePaths?: string[];
+  summary: string;
+}
+
 export interface ReproInput {
   caseName?: string;
 }
@@ -319,6 +353,99 @@ export class LaminarMcpServer {
       );
     }
     return {};
+  }
+
+  private validateDiffGetInput(input: unknown): DiffGetInput {
+    if (typeof input !== 'object' || input === null) {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'Input must be an object',
+        { received: typeof input }
+      );
+    }
+
+    const params = input as Record<string, unknown>;
+
+    if (!params.digest1Path || typeof params.digest1Path !== 'string') {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'digest1Path is required and must be a string',
+        { received: params.digest1Path }
+      );
+    }
+
+    if (!params.digest2Path || typeof params.digest2Path !== 'string') {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'digest2Path is required and must be a string',
+        { received: params.digest2Path }
+      );
+    }
+
+    if (params.outputFormat !== undefined) {
+      if (typeof params.outputFormat !== 'string') {
+        throw new McpError(
+          McpErrorCode.INVALID_INPUT,
+          'outputFormat must be a string',
+          { received: typeof params.outputFormat }
+        );
+      }
+      if (params.outputFormat !== 'json' && params.outputFormat !== 'markdown') {
+        throw new McpError(
+          McpErrorCode.INVALID_INPUT,
+          'outputFormat must be either "json" or "markdown"',
+          { received: params.outputFormat }
+        );
+      }
+    }
+
+    return {
+      digest1Path: params.digest1Path,
+      digest2Path: params.digest2Path,
+      outputFormat: params.outputFormat as 'json' | 'markdown' | undefined,
+    };
+  }
+
+  private validateReproBundleInput(input: unknown): ReproBundleInput {
+    if (typeof input !== 'object' || input === null) {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'Input must be an object',
+        { received: typeof input }
+      );
+    }
+
+    const params = input as Record<string, unknown>;
+
+    if (params.caseName !== undefined && typeof params.caseName !== 'string') {
+      throw new McpError(
+        McpErrorCode.INVALID_INPUT,
+        'caseName must be a string',
+        { received: typeof params.caseName }
+      );
+    }
+
+    if (params.format !== undefined) {
+      if (typeof params.format !== 'string') {
+        throw new McpError(
+          McpErrorCode.INVALID_INPUT,
+          'format must be a string',
+          { received: typeof params.format }
+        );
+      }
+      if (params.format !== 'json' && params.format !== 'markdown') {
+        throw new McpError(
+          McpErrorCode.INVALID_INPUT,
+          'format must be either "json" or "markdown"',
+          { received: params.format }
+        );
+      }
+    }
+
+    return {
+      caseName: params.caseName as string | undefined,
+      format: params.format as 'json' | 'markdown' | undefined,
+    };
   }
 
   listResources(): McpResource[] {
@@ -542,6 +669,49 @@ export class LaminarMcpServer {
           properties: {},
         },
       },
+      {
+        name: 'diff.get',
+        description: 'Compare two digest files and return differences',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            digest1Path: {
+              type: 'string',
+              description: 'Path to first digest file',
+            },
+            digest2Path: {
+              type: 'string',
+              description: 'Path to second digest file',
+            },
+            outputFormat: {
+              type: 'string',
+              description: 'Output format: json or markdown (default: json)',
+              enum: ['json', 'markdown'],
+              default: 'json',
+            },
+          },
+          required: ['digest1Path', 'digest2Path'],
+        },
+      },
+      {
+        name: 'repro.bundle',
+        description: 'Generate repro bundle with logs and digests',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            caseName: {
+              type: 'string',
+              description: 'Specific case name to bundle (optional, all failures if omitted)',
+            },
+            format: {
+              type: 'string',
+              description: 'Bundle format: json or markdown (default: json)',
+              enum: ['json', 'markdown'],
+              default: 'json',
+            },
+          },
+        },
+      },
     ];
   }
 
@@ -596,6 +766,16 @@ export class LaminarMcpServer {
           return (await this.focusOverlayClear(args as unknown as FocusOverlayClearInput)) as unknown as Json;
         case 'focus.overlay.get':
           return (await this.focusOverlayGet(args as unknown as FocusOverlayGetInput)) as unknown as Json;
+        case 'diff.get': {
+          const input = this.validateDiffGetInput(args);
+          const result = await this.diffGet(input);
+          return result as unknown as Json;
+        }
+        case 'repro.bundle': {
+          const input = this.validateReproBundleInput(args);
+          const result = await this.reproBundle(input);
+          return result as unknown as Json;
+        }
         default:
           throw new McpError(
             McpErrorCode.TOOL_NOT_FOUND,
@@ -973,6 +1153,268 @@ export class LaminarMcpServer {
     const generator = this.getDigestGenerator();
     const rules = generator.getOverlayRules();
     return { rules };
+  }
+
+  private async diffGet(params: DiffGetInput): Promise<DiffGetOutput> {
+    const { digest1Path, digest2Path, outputFormat = 'json' } = params;
+
+    if (!fs.existsSync(digest1Path)) {
+      throw new McpError(
+        McpErrorCode.RESOURCE_NOT_FOUND,
+        `Digest file not found: ${digest1Path}`,
+        { path: digest1Path }
+      );
+    }
+
+    if (!fs.existsSync(digest2Path)) {
+      throw new McpError(
+        McpErrorCode.RESOURCE_NOT_FOUND,
+        `Digest file not found: ${digest2Path}`,
+        { path: digest2Path }
+      );
+    }
+
+    try {
+      const digest1Content = fs.readFileSync(digest1Path, 'utf-8');
+      const digest2Content = fs.readFileSync(digest2Path, 'utf-8');
+
+      const digest1 = JSON.parse(digest1Content) as DigestOutput;
+      const digest2 = JSON.parse(digest2Content) as DigestOutput;
+
+      const eventMap1 = new Map(digest1.events.map(e => [e.id || `${e.ts}-${e.evt}`, e]));
+      const eventMap2 = new Map(digest2.events.map(e => [e.id || `${e.ts}-${e.evt}`, e]));
+
+      const addedEvents: DigestEvent[] = [];
+      const removedEvents: DigestEvent[] = [];
+
+      for (const [id, event] of eventMap2) {
+        if (!eventMap1.has(id)) {
+          addedEvents.push(event);
+        }
+      }
+
+      for (const [id, event] of eventMap1) {
+        if (!eventMap2.has(id)) {
+          removedEvents.push(event);
+        }
+      }
+
+      const suspectMap1 = new Map((digest1.suspects || []).map(s => [s.id || `${s.ts}-${s.evt}`, s]));
+      const suspectMap2 = new Map((digest2.suspects || []).map(s => [s.id || `${s.ts}-${s.evt}`, s]));
+
+      const addedSuspects: SuspectEvent[] = [];
+      const removedSuspects: SuspectEvent[] = [];
+
+      for (const [id, suspect] of suspectMap2) {
+        if (!suspectMap1.has(id)) {
+          addedSuspects.push(suspect);
+        }
+      }
+
+      for (const [id, suspect] of suspectMap1) {
+        if (!suspectMap2.has(id)) {
+          removedSuspects.push(suspect);
+        }
+      }
+
+      const diff = {
+        addedEvents,
+        removedEvents,
+        changedSuspects: {
+          added: addedSuspects,
+          removed: removedSuspects,
+        },
+        summary: {
+          totalAddedEvents: addedEvents.length,
+          totalRemovedEvents: removedEvents.length,
+          totalChangedSuspects: addedSuspects.length + removedSuspects.length,
+        },
+      };
+
+      if (outputFormat === 'markdown') {
+        const formatted = this.formatDiffAsMarkdown(diff, digest1, digest2);
+        return { diff, formatted };
+      }
+
+      return { diff };
+    } catch (error) {
+      throw new McpError(
+        McpErrorCode.PARSE_ERROR,
+        `Failed to parse digest files: ${error instanceof Error ? error.message : String(error)}`,
+        { digest1Path, digest2Path }
+      );
+    }
+  }
+
+  private formatDiffAsMarkdown(
+    diff: DiffGetOutput['diff'],
+    digest1: DigestOutput,
+    digest2: DigestOutput
+  ): string {
+    const lines: string[] = [];
+    lines.push('# Digest Diff Report\n');
+    lines.push(`**Digest 1:** ${digest1.case}`);
+    lines.push(`**Digest 2:** ${digest2.case}\n`);
+    lines.push('## Summary\n');
+    lines.push(`- Added Events: ${diff.summary.totalAddedEvents}`);
+    lines.push(`- Removed Events: ${diff.summary.totalRemovedEvents}`);
+    lines.push(`- Changed Suspects: ${diff.summary.totalChangedSuspects}\n`);
+
+    if (diff.addedEvents.length > 0) {
+      lines.push('## Added Events\n');
+      for (const event of diff.addedEvents) {
+        lines.push(`- [${event.lvl}] ${event.evt} (ts: ${event.ts})`);
+      }
+      lines.push('');
+    }
+
+    if (diff.removedEvents.length > 0) {
+      lines.push('## Removed Events\n');
+      for (const event of diff.removedEvents) {
+        lines.push(`- [${event.lvl}] ${event.evt} (ts: ${event.ts})`);
+      }
+      lines.push('');
+    }
+
+    if (diff.changedSuspects.added.length > 0) {
+      lines.push('## Added Suspects\n');
+      for (const suspect of diff.changedSuspects.added) {
+        lines.push(`- [${suspect.lvl}] ${suspect.evt} (score: ${suspect.score})`);
+        lines.push(`  Reasons: ${suspect.reasons.join(', ')}`);
+      }
+      lines.push('');
+    }
+
+    if (diff.changedSuspects.removed.length > 0) {
+      lines.push('## Removed Suspects\n');
+      for (const suspect of diff.changedSuspects.removed) {
+        lines.push(`- [${suspect.lvl}] ${suspect.evt} (score: ${suspect.score})`);
+        lines.push(`  Reasons: ${suspect.reasons.join(', ')}`);
+      }
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  }
+
+  private async reproBundle(params: ReproBundleInput): Promise<ReproBundleOutput> {
+    const { caseName, format = 'json' } = params;
+
+    if (!fs.existsSync(this.summaryFile)) {
+      return {
+        summary: 'No summary.jsonl found',
+      };
+    }
+
+    const content = fs.readFileSync(this.summaryFile, 'utf-8');
+    const lines = content.trim().split('\n').filter(Boolean);
+    const entries: SummaryEntry[] = lines.map(line => JSON.parse(line));
+
+    let failures = entries.filter(entry => entry.status === 'fail');
+    
+    if (caseName) {
+      failures = failures.filter(f => {
+        const failCaseName = f.artifactURI ? path.basename(f.artifactURI, '.jsonl') : '';
+        return failCaseName === caseName;
+      });
+    }
+
+    if (failures.length === 0) {
+      return {
+        summary: caseName 
+          ? `No failures found for case: ${caseName}`
+          : 'No failures found',
+      };
+    }
+
+    const bundleDir = path.join(this.reportsDir, 'bundles', Date.now().toString());
+    fs.mkdirSync(bundleDir, { recursive: true });
+
+    const bundlePaths: string[] = [];
+
+    for (const failure of failures) {
+      const failCaseName = failure.artifactURI ? path.basename(failure.artifactURI, '.jsonl') : '';
+      const caseDir = path.join(bundleDir, failCaseName);
+      fs.mkdirSync(caseDir, { recursive: true });
+
+      const logPath = this.findLogPath(failCaseName);
+      if (logPath && fs.existsSync(logPath)) {
+        const logDest = path.join(caseDir, `${failCaseName}.jsonl`);
+        fs.copyFileSync(logPath, logDest);
+      }
+
+      const digestPath = this.findDigestPath(failCaseName);
+      if (digestPath && fs.existsSync(digestPath)) {
+        const digestDest = path.join(caseDir, `${failCaseName}.digest.json`);
+        fs.copyFileSync(digestPath, digestDest);
+      }
+
+      const metaPath = path.join(caseDir, 'meta.json');
+      fs.writeFileSync(
+        metaPath,
+        JSON.stringify(
+          {
+            caseName: failCaseName,
+            status: failure.status,
+            duration: failure.duration,
+            location: failure.location,
+            error: failure.error,
+            testName: failure.testName,
+          },
+          null,
+          2
+        )
+      );
+
+      bundlePaths.push(caseDir);
+    }
+
+    const manifestPath = path.join(bundleDir, 'manifest.json');
+    fs.writeFileSync(
+      manifestPath,
+      JSON.stringify(
+        {
+          generated: new Date().toISOString(),
+          caseName,
+          totalCases: failures.length,
+          cases: failures.map(f => ({
+            caseName: f.artifactURI ? path.basename(f.artifactURI, '.jsonl') : '',
+            status: f.status,
+            duration: f.duration,
+            location: f.location,
+          })),
+        },
+        null,
+        2
+      )
+    );
+
+    if (format === 'markdown') {
+      const readmePath = path.join(bundleDir, 'README.md');
+      const readmeLines: string[] = [];
+      readmeLines.push('# Repro Bundle\n');
+      readmeLines.push(`Generated: ${new Date().toISOString()}\n`);
+      readmeLines.push(`Total Cases: ${failures.length}\n`);
+      readmeLines.push('## Cases\n');
+      for (const failure of failures) {
+        const failCaseName = failure.artifactURI ? path.basename(failure.artifactURI, '.jsonl') : '';
+        readmeLines.push(`### ${failCaseName}\n`);
+        readmeLines.push(`- Status: ${failure.status}`);
+        readmeLines.push(`- Duration: ${failure.duration}ms`);
+        readmeLines.push(`- Location: ${failure.location}`);
+        if (failure.error) {
+          readmeLines.push(`- Error: ${failure.error}`);
+        }
+        readmeLines.push('');
+      }
+      fs.writeFileSync(readmePath, readmeLines.join('\n'));
+    }
+
+    return {
+      bundlePath: bundleDir,
+      bundlePaths,
+      summary: `Created bundle with ${failures.length} case(s) at ${bundleDir}`,
+    };
   }
 
   async start(): Promise<void> {

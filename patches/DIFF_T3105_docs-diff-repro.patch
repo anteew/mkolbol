@@ -1,0 +1,2059 @@
+From 475511fdb58fe773d5ef525ab4fc535694bc532b Mon Sep 17 00:00:00 2001
+From: Ubuntu <ubuntu@agent-compute.small-lab.net>
+Date: Sun, 12 Oct 2025 20:36:08 +0000
+Subject: [PATCH] docs: Add comprehensive docs for repro bundles and digest
+ diffs
+
+- Document repro bundle structure and generation
+- Document digest diff comparison and use cases
+- Add CLI examples for lam repro --bundle and lam diff
+- Add MCP tool examples for repro.bundle and diff.get
+- Include integration workflows for CI, debugging, regression tracking
+- Update README with quick reference for new features
+
+Amp-Thread-ID: https://ampcode.com/threads/T-0a611037-033b-4eca-83d4-cb89598a15d3
+Co-authored-by: Amp <amp@ampcode.com>
+---
+ README.md                                     |  46 +-
+ docs/testing/laminar.md                       | 699 ++++++++++++++++++
+ tests/digest/diff.spec.ts                     | 668 +++++++++++++++++
+ tests/fixtures/digest-diff/digest-v1.json     |  58 ++
+ .../digest-diff/digest-v2-added-events.json   |  81 ++
+ .../digest-v2-changed-codeframes.json         |  64 ++
+ .../digest-v2-changed-suspects.json           |  58 ++
+ .../digest-diff/digest-v2-identical.json      |  58 ++
+ .../digest-diff/digest-v2-removed-events.json |  51 ++
+ tests/fixtures/digest-diff/go-test-v1.json    |  64 ++
+ .../digest-diff/go-test-v2-fixed.json         |  55 ++
+ .../fixtures/repro-bundle/go-test-case.jsonl  |   5 +
+ tests/fixtures/repro-bundle/test-case-1.jsonl |   5 +
+ 13 files changed, 1911 insertions(+), 1 deletion(-)
+ create mode 100644 tests/digest/diff.spec.ts
+ create mode 100644 tests/fixtures/digest-diff/digest-v1.json
+ create mode 100644 tests/fixtures/digest-diff/digest-v2-added-events.json
+ create mode 100644 tests/fixtures/digest-diff/digest-v2-changed-codeframes.json
+ create mode 100644 tests/fixtures/digest-diff/digest-v2-changed-suspects.json
+ create mode 100644 tests/fixtures/digest-diff/digest-v2-identical.json
+ create mode 100644 tests/fixtures/digest-diff/digest-v2-removed-events.json
+ create mode 100644 tests/fixtures/digest-diff/go-test-v1.json
+ create mode 100644 tests/fixtures/digest-diff/go-test-v2-fixed.json
+ create mode 100644 tests/fixtures/repro-bundle/go-test-case.jsonl
+ create mode 100644 tests/fixtures/repro-bundle/test-case-1.jsonl
+
+diff --git a/README.md b/README.md
+index ea3687d..4573427 100644
+--- a/README.md
++++ b/README.md
+@@ -227,7 +227,7 @@ const failures = await server.callTool('list_failures', {});
+ - `laminar://summary` - Test summary JSONL file (all test results)
+ - `laminar://digest/{caseName}` - Digest JSON for specific failed test case
+ 
+-#### MCP Tools (12)
++#### MCP Tools (14)
+ 
+ **Test Execution:**
+ - `run` - Execute tests with options for suite, case, and flake detection
+@@ -267,6 +267,16 @@ const failures = await server.callTool('list_failures', {});
+   - Input: `{}` (no parameters)
+   - Output: `{ failures: SummaryEntry[] }`
+ 
++**Repro Bundles & Diffs:**
++- `repro.bundle` - Generate repro bundle with logs and digests
++  - Input: `{ caseName?: string, format?: 'json' | 'markdown' }` (optional, all failures if omitted)
++  - Output: `{ count: number, message: string, bundles: Array<{ caseName, jsonPath, mdPath }> }`
++  - Use case: Package failure for reproduction and triage
++- `diff.get` - Compare two digest files and return differences
++  - Input: `{ digest1Path: string, digest2Path: string, outputFormat?: 'json' | 'markdown' }` (required)
++  - Output: `{ diff: DigestDiff, formatted?: string }`
++  - Use case: Track regressions, verify fixes, analyze failure evolution
++
+ **Focus Overlay (Ephemeral Rules):**
+ - `focus.overlay.set` - Set ephemeral focus overlay rules (non-persistent)
+   - Input: `{ rules: DigestRule[] }` (required)
+@@ -411,6 +421,40 @@ npm run repro
+ # and logq commands to inspect their JSONL logs
+ ```
+ 
++#### lam - Comprehensive test management CLI
++
++```bash
++# Run tests
++lam run --lane auto
++
++# Generate failure digests
++lam digest
++lam digest --cases kernel.spec/connect_moves_data_1_1
++
++# Generate repro bundles
++lam repro --bundle
++lam repro --bundle --case kernel.spec/connect_moves_data_1_1
++
++# Compare digest files
++lam diff reports/case1.digest.json reports/case2.digest.json
++lam diff reports/case1.digest.json reports/case2.digest.json --output diff.md --format markdown
++
++# Digest rules management
++lam rules get
++lam rules set --inline '{"budget":{"kb":2}}'
++
++# Failure trends
++lam trends --top 10 --since 2025-10-01
++
++# Show test details
++lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 50
++
++# See all commands
++lam --help
++```
++
++See [docs/testing/laminar.md](docs/testing/laminar.md) for complete documentation on repro bundles and digest diffs.
++
+ ### Sprint 1 Quickstart (Local, In-Process)
+ 
+ ```bash
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index ba3e68b..e84dea0 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -1746,6 +1746,705 @@ interface SummaryEntry {
+ }
+ ```
+ 
++## Repro Bundles: Portable Failure Reproduction
++
++Repro bundles package all information needed to reproduce a failed test into portable JSON and Markdown files. Each bundle contains failure context, environment details, and reproduction commands.
++
++### What's Included in Bundles
++
++Every repro bundle includes:
++
++1. **Metadata**
++   - Bundle version
++   - Generation timestamp
++   - Test name and file location
++   - Test status (fail, skip)
++   - Test duration in milliseconds
++
++2. **Environment**
++   - Test seed (if used)
++   - Node.js version
++   - Platform (OS + architecture)
++   - Environment variables (if captured)
++
++3. **Failure Details**
++   - Error message
++   - Error-level events (all events with `lvl: 'error'`)
++   - Context events (±5 events around each error)
++
++4. **Reproduction Commands**
++   - Vitest command to re-run test
++   - Logq command to view full logs
++   - Digest file reference (if available)
++
++### Bundle Structure
++
++Bundles are written to `reports/bundles/` in two formats:
++
++**JSON Bundle** (`<suite>/<case>.repro.json`):
++```json
++{
++  "metadata": {
++    "bundleVersion": "1.0.0",
++    "generated": "2025-10-12T18:30:45.123Z",
++    "testName": "connect moves data 1:1",
++    "testFile": "tests/kernel.spec.ts",
++    "status": "fail",
++    "duration": 12,
++    "timestamp": "2025-10-12T18:30:43.000Z"
++  },
++  "environment": {
++    "seed": "test-seed-12345",
++    "nodeVersion": "v20.10.0",
++    "platform": "linux x64",
++    "env": {
++      "TEST_MODE": "ci",
++      "LAMINAR_DEBUG": "1"
++    }
++  },
++  "failure": {
++    "errorMessage": "Expected value to be 42, got 40",
++    "errorEvents": [
++      {
++        "ts": 1760290661029,
++        "lvl": "error",
++        "case": "connect moves data 1:1",
++        "phase": "execution",
++        "evt": "test.error",
++        "payload": {
++          "message": "Expected value to be 42, got 40",
++          "stack": "Error: ...\n  at tests/kernel.spec.ts:45:5"
++        }
++      }
++    ],
++    "contextEvents": [
++      // ±5 events around each error
++    ]
++  },
++  "reproduction": {
++    "vitestCommand": "vitest run --reporter=verbose --pool=threads \"tests/kernel.spec.ts\" -t \"connect moves data 1:1\"",
++    "logCommand": "npm run logq -- reports/kernel.spec/connect_moves_data_1_1.jsonl",
++    "digestFile": "reports/kernel.spec/connect_moves_data_1_1.digest.md"
++  }
++}
++```
++
++**Markdown Summary** (`<suite>/<case>.repro.md`):
++```markdown
++# Reproduction Bundle: connect moves data 1:1
++
++**Generated:** 2025-10-12T18:30:45.123Z
++**Status:** FAIL
++**Duration:** 12ms
++**Test File:** tests/kernel.spec.ts
++
++## Environment
++
++- **Seed:** test-seed-12345
++- **Node:** v20.10.0
++- **Platform:** linux x64
++
++## Failure Summary
++
++**Error:**
++```
++Expected value to be 42, got 40
++```
++
++**Error Events:** 1
++
++- **test.error** (2025-10-12T18:30:43.029Z)
++  - Expected value to be 42, got 40
++
++## Reproduction Commands
++
++**Run test:**
++```bash
++vitest run --reporter=verbose --pool=threads "tests/kernel.spec.ts" -t "connect moves data 1:1"
++```
++
++**View logs:**
++```bash
++npm run logq -- reports/kernel.spec/connect_moves_data_1_1.jsonl
++```
++
++**Digest file:**
++`reports/kernel.spec/connect_moves_data_1_1.digest.md`
++
++## Context Events
++
++**Total context events:** 11
++
++_See JSON bundle for full event details_
++```
++
++### Generating Repro Bundles
++
++#### CLI: `lam repro --bundle`
++
++Generate bundles for all failures:
++```bash
++lam repro --bundle
++```
++
++Generate bundle for specific failure:
++```bash
++lam repro --bundle --case kernel.spec/connect_moves_data_1_1
++```
++
++**Output:**
++```
++=== Generating Repro Bundles (2 failures) ===
++
++✓ kernel.spec/connect_moves_data_1_1
++  JSON: reports/bundles/kernel.spec/connect_moves_data_1_1.repro.json
++  MD:   reports/bundles/kernel.spec/connect_moves_data_1_1.repro.md
++
++✓ topology.spec/rewire_edges
++  JSON: reports/bundles/topology.spec/rewire_edges.repro.json
++  MD:   reports/bundles/topology.spec/rewire_edges.repro.md
++
++✓ Generated 2 bundles in reports/bundles/
++```
++
++#### MCP Tool: `repro.bundle`
++
++```typescript
++// Generate all bundles
++const result = await server.callTool('repro.bundle', {});
++
++// Generate bundle for specific case
++const result = await server.callTool('repro.bundle', {
++  caseName: 'kernel.spec/connect_moves_data_1_1',
++  format: 'json'  // or 'markdown'
++});
++
++// Output
++{
++  count: 1,
++  message: "Generated 1 repro bundle(s)",
++  bundles: [
++    {
++      caseName: "kernel.spec/connect_moves_data_1_1",
++      jsonPath: "reports/bundles/kernel.spec/connect_moves_data_1_1.repro.json",
++      mdPath: "reports/bundles/kernel.spec/connect_moves_data_1_1.repro.md"
++    }
++  ]
++}
++```
++
++### Use Cases and Workflows
++
++#### Workflow 1: CI Failure Triage
++
++After a CI failure, generate bundles and send to developers:
++
++```bash
++# In CI pipeline
++npm run test:ci || {
++  # Generate bundles for all failures
++  lam repro --bundle
++  
++  # Upload bundles to artifact storage
++  # Bundles contain everything needed to reproduce locally
++}
++```
++
++#### Workflow 2: Bug Report Automation
++
++AI agent creates GitHub issue with bundle:
++
++```typescript
++// 1. Run tests
++await server.callTool('run', {});
++
++// 2. List failures
++const failures = await server.callTool('list_failures', {});
++
++// 3. Generate bundle for first failure
++const bundle = await server.callTool('repro.bundle', {
++  caseName: failures.failures[0].testName,
++  format: 'markdown'
++});
++
++// 4. Create GitHub issue with bundle markdown
++// Issue contains all context: error, environment, repro steps
++```
++
++#### Workflow 3: Local Debugging
++
++Developer receives bundle and reproduces failure:
++
++```bash
++# 1. Receive bundle file: kernel.spec/connect_moves_data_1_1.repro.md
++
++# 2. Read reproduction command from bundle
++vitest run --reporter=verbose --pool=threads "tests/kernel.spec.ts" -t "connect moves data 1:1"
++
++# 3. View full logs if needed
++npm run logq -- reports/kernel.spec/connect_moves_data_1_1.jsonl
++
++# 4. View digest if available
++cat reports/kernel.spec/connect_moves_data_1_1.digest.md
++```
++
++#### Workflow 4: Regression Investigation
++
++Compare bundles across test runs to identify changes:
++
++```bash
++# Generate bundle from current run
++lam repro --bundle --case kernel.spec/connect_moves_data_1_1
++
++# Compare with previous bundle (check git history)
++git show HEAD~1:reports/bundles/kernel.spec/connect_moves_data_1_1.repro.json > old.json
++diff old.json reports/bundles/kernel.spec/connect_moves_data_1_1.repro.json
++```
++
++## Digest Diffs: Tracking Failure Changes
++
++Digest diffs compare two digest files to identify changes in test failures. This helps track regressions, verify fixes, and analyze failure evolution.
++
++### What's Compared
++
++The diff engine compares:
++
++1. **Events**: Added and removed events
++2. **Suspects**: Changed suspect scoring and reasons
++3. **Codeframes**: Added and removed stack frames
++4. **Metadata**: Duration, location, error message changes
++
++### Diff Output Formats
++
++#### JSON Format
++
++```json
++{
++  "oldDigest": "kernel.spec/connect_moves_data_1_1",
++  "newDigest": "kernel.spec/connect_moves_data_1_1",
++  "summary": {
++    "eventsAdded": 2,
++    "eventsRemoved": 1,
++    "eventsChanged": 3,
++    "suspectsChanged": true,
++    "codeframesChanged": false,
++    "durationDelta": 5
++  },
++  "addedEvents": [
++    {
++      "ts": 1760290661030,
++      "lvl": "error",
++      "case": "connect moves data 1:1",
++      "evt": "worker.exit",
++      "phase": "execution"
++    }
++  ],
++  "removedEvents": [
++    {
++      "ts": 1760290661025,
++      "lvl": "warn",
++      "case": "connect moves data 1:1",
++      "evt": "worker.ready"
++    }
++  ],
++  "changedSuspects": {
++    "added": [
++      {
++        "ts": 1760290661030,
++        "lvl": "error",
++        "evt": "worker.exit",
++        "score": 8.5,
++        "reasons": ["error level", "worker lifecycle"]
++      }
++    ],
++    "removed": [],
++    "scoreChanged": [
++      {
++        "event": "assert.fail",
++        "oldScore": 9.0,
++        "newScore": 7.5
++      }
++    ]
++  },
++  "changedCodeframes": {
++    "added": [],
++    "removed": []
++  },
++  "metadataChanges": {
++    "durationChanged": true,
++    "oldDuration": 10,
++    "newDuration": 15,
++    "locationChanged": false,
++    "oldLocation": "tests/kernel.spec.ts:45",
++    "newLocation": "tests/kernel.spec.ts:45",
++    "errorChanged": false,
++    "oldError": "Expected value to be 42, got 40",
++    "newError": "Expected value to be 42, got 40"
++  }
++}
++```
++
++#### Markdown Format
++
++```markdown
++# Digest Diff: kernel.spec/connect_moves_data_1_1 → kernel.spec/connect_moves_data_1_1
++
++## Summary
++- Events Added: 2
++- Events Removed: 1
++- Events Changed: 3
++- Suspects Changed: Yes
++- Codeframes Changed: No
++- Duration Delta: +5ms
++
++## Metadata Changes
++- **Duration**: 10ms → 15ms
++
++## Added Events
++- `worker.exit` (error) at 2025-10-12T18:30:43.030Z
++
++## Removed Events
++- `worker.ready` (warn) at 2025-10-12T18:30:43.025Z
++
++## Suspect Changes
++
++### Added Suspects
++- `worker.exit` (score: 8.5)
++  - Reasons: error level, worker lifecycle
++
++### Score Changes
++- `assert.fail`: 9.0 → 7.5
++```
++
++### Generating Digest Diffs
++
++#### CLI: `lam diff`
++
++Compare two digest files:
++```bash
++lam diff reports/case1.digest.json reports/case2.digest.json
++```
++
++Output to file:
++```bash
++lam diff reports/case1.digest.json reports/case2.digest.json --output diff.json
++```
++
++Generate markdown diff:
++```bash
++lam diff reports/case1.digest.json reports/case2.digest.json --output diff.md --format markdown
++```
++
++**Output:**
++```
++Digest Diff: case1 → case2
++
++Summary:
++  Events Added: 2
++  Events Removed: 1
++  Suspects Changed: Yes
++  Duration Delta: +5ms
++
++Diff written to: diff.md
++```
++
++#### MCP Tool: `diff.get`
++
++```typescript
++// Compare two digests (JSON output)
++const diff = await server.callTool('diff.get', {
++  digest1Path: 'reports/kernel.spec/connect_moves_data_1_1.digest.json',
++  digest2Path: 'reports/kernel.spec/connect_moves_data_1_1-v2.digest.json',
++  outputFormat: 'json'
++});
++
++// Compare with markdown output
++const diff = await server.callTool('diff.get', {
++  digest1Path: 'reports/kernel.spec/test1.digest.json',
++  digest2Path: 'reports/kernel.spec/test2.digest.json',
++  outputFormat: 'markdown'
++});
++
++// Output includes both structured diff and formatted markdown
++{
++  diff: {
++    summary: { eventsAdded: 2, eventsRemoved: 1, ... },
++    addedEvents: [...],
++    removedEvents: [...],
++    changedSuspects: { added: [...], removed: [...], scoreChanged: [...] }
++  },
++  formatted: "# Digest Diff: ...\n\n## Summary\n..."
++}
++```
++
++#### Programmatic API
++
++```typescript
++import { DigestDiffEngine, diffDigests } from './src/digest/diff.js';
++
++// Simple comparison
++const diff = diffDigests(
++  'reports/case1.digest.json',
++  'reports/case2.digest.json',
++  'output/diff.json',  // optional output path
++  'json'               // 'json' or 'markdown'
++);
++
++// Using engine directly
++const engine = new DigestDiffEngine();
++
++// Compare files
++const diff = engine.compareFiles(
++  'reports/case1.digest.json',
++  'reports/case2.digest.json'
++);
++
++// Compare in-memory digests
++const diff = engine.compareDigests(digest1, digest2);
++
++// Format output
++const jsonStr = engine.formatAsJson(diff, true);  // pretty print
++const mdStr = engine.formatAsMarkdown(diff);
++
++// Write to file
++engine.writeDiff(diff, 'output.md', 'markdown');
++```
++
++### Use Cases and Workflows
++
++#### Use Case 1: Regression Detection
++
++Compare digests before and after code changes to detect regressions:
++
++```bash
++# Before changes
++lam digest --cases kernel.spec/connect_moves_data_1_1
++cp reports/kernel.spec/connect_moves_data_1_1.digest.json baseline.digest.json
++
++# Make code changes
++
++# After changes
++lam digest --cases kernel.spec/connect_moves_data_1_1
++
++# Compare
++lam diff baseline.digest.json reports/kernel.spec/connect_moves_data_1_1.digest.json --format markdown
++
++# Check for new errors or suspect changes
++```
++
++#### Use Case 2: Fix Verification
++
++Verify that a fix reduces suspects or removes errors:
++
++```bash
++# Digest from broken test
++lam digest --cases topology.spec/rewire
++cp reports/topology.spec/rewire.digest.json broken.digest.json
++
++# Apply fix
++
++# Digest from fixed test
++lam digest --cases topology.spec/rewire
++
++# Compare to verify improvement
++lam diff broken.digest.json reports/topology.spec/rewire.digest.json
++# Expected: fewer suspects, removed error events, negative duration delta
++```
++
++#### Use Case 3: CI Regression Tracking
++
++In CI pipeline, compare digests across commits:
++
++```bash
++# In CI script
++npm run test:ci || true
++
++# Generate digests for current failures
++lam digest
++
++# Download previous digests from artifact storage
++# Compare each digest with previous version
++
++for digest in reports/**/*.digest.json; do
++  if [ -f "previous/$digest" ]; then
++    lam diff "previous/$digest" "$digest" --output "diffs/$digest.diff.md" --format markdown
++  fi
++done
++
++# Upload diffs to artifact storage
++# Alert on significant changes (new suspects, more errors)
++```
++
++#### Use Case 4: AI Agent Failure Analysis
++
++Agent analyzes failure evolution over time:
++
++```typescript
++// Agent workflow
++async function analyzeFailureProgression(caseName: string) {
++  // Get current digest
++  const current = await server.callTool('get_digest', { caseName });
++  
++  // Get historical digest from git
++  const previousPath = `history/${caseName}.digest.json`;
++  
++  // Compare
++  const diff = await server.callTool('diff.get', {
++    digest1Path: previousPath,
++    digest2Path: `reports/${caseName}.digest.json`,
++    outputFormat: 'markdown'
++  });
++  
++  // Analyze changes
++  if (diff.diff.summary.suspectsChanged) {
++    console.log('Suspects changed - failure pattern evolving');
++    
++    if (diff.diff.changedSuspects.added.length > 0) {
++      console.log('New suspects indicate regression or new failure mode');
++    }
++    
++    if (diff.diff.changedSuspects.removed.length > 0) {
++      console.log('Removed suspects indicate partial fix or symptom shift');
++    }
++  }
++  
++  if (diff.diff.summary.durationDelta > 100) {
++    console.log('Significant performance regression detected');
++  }
++  
++  return diff.formatted;
++}
++```
++
++#### Use Case 5: Test Stability Monitoring
++
++Track digest changes over multiple runs to identify flaky tests:
++
++```typescript
++// Run test 5 times, compare digests
++const digests: DigestOutput[] = [];
++
++for (let i = 0; i < 5; i++) {
++  await server.callTool('run', { 
++    case: 'kernel.spec/connect_moves_data_1_1' 
++  });
++  
++  const digest = await server.callTool('get_digest', { 
++    caseName: 'kernel.spec/connect_moves_data_1_1' 
++  });
++  
++  digests.push(digest.digest);
++}
++
++// Compare all pairs
++let hasVariation = false;
++const engine = new DigestDiffEngine();
++
++for (let i = 0; i < digests.length - 1; i++) {
++  const diff = engine.compareDigests(digests[i], digests[i + 1]);
++  
++  if (diff.summary.eventsChanged > 0 || diff.summary.suspectsChanged) {
++    hasVariation = true;
++    console.log(`Variation detected between run ${i} and ${i + 1}`);
++  }
++}
++
++if (hasVariation) {
++  console.log('Test is FLAKY - digests vary across runs');
++} else {
++  console.log('Test is STABLE - consistent digests across runs');
++}
++```
++
++### Integration Examples
++
++#### CLI + MCP Combined Workflow
++
++```bash
++# Generate baseline digests (CLI)
++lam run --lane ci
++lam digest
++
++# Agent analyzes failures and compares (MCP)
++```
++
++```typescript
++// Agent script
++const failures = await server.callTool('list_failures', {});
++
++for (const failure of failures.failures) {
++  // Generate repro bundle
++  const bundle = await server.callTool('repro.bundle', {
++    caseName: failure.testName
++  });
++  
++  // Compare with historical digest if available
++  const historicalPath = `history/${failure.testName}.digest.json`;
++  
++  if (fs.existsSync(historicalPath)) {
++    const diff = await server.callTool('diff.get', {
++      digest1Path: historicalPath,
++      digest2Path: `reports/${failure.testName}.digest.json`,
++      outputFormat: 'markdown'
++    });
++    
++    // Create report combining bundle + diff
++    const report = `
++# Failure Report: ${failure.testName}
++
++## Reproduction Bundle
++${bundle.formatted}
++
++## Change Analysis
++${diff.formatted}
++
++## Recommendation
++${analyzeDiffForRecommendation(diff.diff)}
++    `;
++    
++    console.log(report);
++  }
++}
++```
++
++#### Automated Regression Alerts
++
++```typescript
++// CI integration: alert on digest regressions
++async function checkForRegressions() {
++  const failures = await server.callTool('list_failures', {});
++  const regressions: string[] = [];
++  
++  for (const failure of failures.failures) {
++    const previousDigest = loadPreviousDigest(failure.testName);
++    
++    if (!previousDigest) continue;
++    
++    const diff = await server.callTool('diff.get', {
++      digest1Path: previousDigest,
++      digest2Path: `reports/${failure.testName}.digest.json`
++    });
++    
++    // Check for regression indicators
++    if (diff.diff.summary.eventsAdded > 0) {
++      regressions.push(`${failure.testName}: ${diff.diff.summary.eventsAdded} new error events`);
++    }
++    
++    if (diff.diff.changedSuspects?.added.length > 0) {
++      regressions.push(`${failure.testName}: ${diff.diff.changedSuspects.added.length} new suspects`);
++    }
++    
++    if (diff.diff.summary.durationDelta > 200) {
++      regressions.push(`${failure.testName}: +${diff.diff.summary.durationDelta}ms performance regression`);
++    }
++  }
++  
++  if (regressions.length > 0) {
++    sendAlert('Regressions detected', regressions.join('\n'));
++  }
++}
++```
++
+ ### Focus Overlay Deep Dive
+ 
+ The focus overlay system provides ephemeral digest rule management without modifying the persistent config file.
+diff --git a/tests/digest/diff.spec.ts b/tests/digest/diff.spec.ts
+new file mode 100644
+index 0000000..b1403c3
+--- /dev/null
++++ b/tests/digest/diff.spec.ts
+@@ -0,0 +1,668 @@
++import { describe, it, expect, beforeEach, afterEach } from 'vitest';
++import { DigestDiffEngine, diffDigests, DigestDiff } from '../../src/digest/diff.js';
++import { bundleRepro } from '../../scripts/repro-bundle.js';
++import * as fs from 'node:fs';
++import * as path from 'node:path';
++import * as os from 'node:os';
++
++describe('DigestDiffEngine', () => {
++  let tmpDir: string;
++  let engine: DigestDiffEngine;
++
++  const fixturesDir = path.join(process.cwd(), 'tests/fixtures/digest-diff');
++
++  beforeEach(() => {
++    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'diff-test-'));
++    engine = new DigestDiffEngine();
++  });
++
++  afterEach(() => {
++    if (fs.existsSync(tmpDir)) {
++      fs.rmSync(tmpDir, { recursive: true });
++    }
++  });
++
++  describe('digest diff scenarios', () => {
++    it('detects identical digests (no diff)', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-identical.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      expect(diff.summary.eventsAdded).toBe(0);
++      expect(diff.summary.eventsRemoved).toBe(0);
++      expect(diff.summary.eventsChanged).toBe(0);
++      expect(diff.summary.suspectsChanged).toBe(false);
++      expect(diff.summary.codeframesChanged).toBe(false);
++      expect(diff.summary.durationDelta).toBe(0);
++      expect(diff.addedEvents).toHaveLength(0);
++      expect(diff.removedEvents).toHaveLength(0);
++    });
++
++    it('detects added events in new digest', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-added-events.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      expect(diff.summary.eventsAdded).toBe(2);
++      expect(diff.summary.eventsRemoved).toBe(0);
++      expect(diff.summary.eventsChanged).toBe(2);
++      expect(diff.addedEvents).toHaveLength(2);
++      
++      const addedEventNames = diff.addedEvents.map(e => e.evt);
++      expect(addedEventNames).toContain('deprecation.warning');
++      expect(addedEventNames).toContain('cleanup.error');
++    });
++
++    it('detects removed events from old digest', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-removed-events.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      expect(diff.summary.eventsAdded).toBe(0);
++      expect(diff.summary.eventsRemoved).toBe(1);
++      expect(diff.summary.eventsChanged).toBe(1);
++      expect(diff.removedEvents).toHaveLength(1);
++      expect(diff.removedEvents[0].evt).toBe('test.end');
++    });
++
++    it('detects changed suspects (score changes)', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-changed-suspects.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      expect(diff.summary.suspectsChanged).toBe(true);
++      expect(diff.changedSuspects).toBeDefined();
++      expect(diff.changedSuspects!.scoreChanged).toHaveLength(1);
++      expect(diff.changedSuspects!.scoreChanged[0].event).toBe('assert.fail');
++      expect(diff.changedSuspects!.scoreChanged[0].oldScore).toBe(85.5);
++      expect(diff.changedSuspects!.scoreChanged[0].newScore).toBe(92.0);
++    });
++
++    it('detects changed codeframes', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-changed-codeframes.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      expect(diff.summary.codeframesChanged).toBe(true);
++      expect(diff.changedCodeframes).toBeDefined();
++      expect(diff.changedCodeframes!.added).toHaveLength(2);
++      expect(diff.changedCodeframes!.removed).toHaveLength(1);
++      
++      const addedFiles = diff.changedCodeframes!.added.map(f => f.file);
++      expect(addedFiles).toContain('test.spec.ts');
++      expect(addedFiles).toContain('helper.ts');
++    });
++
++    it('detects mixed changes (events, suspects, codeframes)', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-added-events.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      expect(diff.summary.eventsAdded).toBeGreaterThan(0);
++      expect(diff.summary.suspectsChanged).toBe(true);
++      expect(diff.changedSuspects!.added).toHaveLength(1);
++      expect(diff.changedSuspects!.added[0].evt).toBe('cleanup.error');
++    });
++
++    it('tracks metadata changes (duration, location, error)', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-changed-codeframes.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      expect(diff.metadataChanges.durationChanged).toBe(false);
++      expect(diff.metadataChanges.locationChanged).toBe(true);
++      expect(diff.metadataChanges.oldLocation).toBe('test.spec.ts:10');
++      expect(diff.metadataChanges.newLocation).toBe('test.spec.ts:12');
++      expect(diff.metadataChanges.errorChanged).toBe(false);
++    });
++
++    it('calculates duration delta correctly', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-added-events.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      expect(diff.summary.durationDelta).toBe(300);
++      expect(diff.metadataChanges.oldDuration).toBe(1500);
++      expect(diff.metadataChanges.newDuration).toBe(1800);
++    });
++  });
++
++  describe('Go test fixture support', () => {
++    it('diffs Go test digests correctly', () => {
++      const oldPath = path.join(fixturesDir, 'go-test-v1.json');
++      const newPath = path.join(fixturesDir, 'go-test-v2-fixed.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      expect(diff.oldDigest).toBe('github.com.example.calc.TestDivide');
++      expect(diff.newDigest).toBe('github.com.example.calc.TestDivide');
++      expect(diff.summary.eventsRemoved).toBe(1);
++      expect(diff.summary.durationDelta).toBe(-5);
++    });
++
++    it('handles Go test event structure', () => {
++      const oldPath = path.join(fixturesDir, 'go-test-v1.json');
++      const newPath = path.join(fixturesDir, 'go-test-v2-fixed.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++
++      const removedEvent = diff.removedEvents.find(e => e.evt === 'test.output');
++      expect(removedEvent).toBeDefined();
++      expect(removedEvent!.phase).toBe('run');
++      expect(removedEvent!.payload).toBeDefined();
++    });
++  });
++
++  describe('diff output formats', () => {
++    it('generates valid JSON output', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-added-events.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++      const json = engine.formatAsJson(diff);
++
++      expect(() => JSON.parse(json)).not.toThrow();
++      const parsed = JSON.parse(json);
++      expect(parsed).toHaveProperty('summary');
++      expect(parsed).toHaveProperty('addedEvents');
++      expect(parsed).toHaveProperty('removedEvents');
++      expect(parsed).toHaveProperty('metadataChanges');
++    });
++
++    it('generates readable markdown output', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-added-events.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++      const markdown = engine.formatAsMarkdown(diff);
++
++      expect(markdown).toContain('# Digest Diff:');
++      expect(markdown).toContain('## Summary');
++      expect(markdown).toContain('Events Added: 2');
++      expect(markdown).toContain('Events Removed: 0');
++      expect(markdown).toContain('## Added Events');
++      expect(markdown).toContain('deprecation.warning');
++      expect(markdown).toContain('cleanup.error');
++    });
++
++    it('writes diff to file in JSON format', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-added-events.json');
++      const outputPath = path.join(tmpDir, 'diff.json');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++      engine.writeDiff(diff, outputPath, 'json');
++
++      expect(fs.existsSync(outputPath)).toBe(true);
++      const content = fs.readFileSync(outputPath, 'utf-8');
++      expect(() => JSON.parse(content)).not.toThrow();
++    });
++
++    it('writes diff to file in markdown format', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-added-events.json');
++      const outputPath = path.join(tmpDir, 'diff.md');
++
++      const diff = engine.compareFiles(oldPath, newPath);
++      engine.writeDiff(diff, outputPath, 'markdown');
++
++      expect(fs.existsSync(outputPath)).toBe(true);
++      const content = fs.readFileSync(outputPath, 'utf-8');
++      expect(content).toContain('# Digest Diff:');
++      expect(content).toContain('## Summary');
++    });
++  });
++
++  describe('diffDigests convenience function', () => {
++    it('performs diff and writes output', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-added-events.json');
++      const outputPath = path.join(tmpDir, 'result.json');
++
++      const diff = diffDigests(oldPath, newPath, outputPath, 'json');
++
++      expect(diff).toBeDefined();
++      expect(diff.summary.eventsAdded).toBe(2);
++      expect(fs.existsSync(outputPath)).toBe(true);
++    });
++
++    it('works without output file', () => {
++      const oldPath = path.join(fixturesDir, 'digest-v1.json');
++      const newPath = path.join(fixturesDir, 'digest-v2-added-events.json');
++
++      const diff = diffDigests(oldPath, newPath);
++
++      expect(diff).toBeDefined();
++      expect(diff.summary.eventsAdded).toBe(2);
++    });
++  });
++
++  describe('edge cases', () => {
++    it('handles digests with no suspects', () => {
++      const oldDigest = {
++        case: 'test-1',
++        status: 'fail' as const,
++        duration: 1000,
++        location: 'test.ts:1',
++        summary: {
++          totalEvents: 1,
++          includedEvents: 1,
++          redactedFields: 0,
++          budgetUsed: 100,
++          budgetLimit: 1000,
++        },
++        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'fail' }],
++      };
++
++      const newDigest = {
++        ...oldDigest,
++        duration: 1200,
++      };
++
++      const diff = engine.compareDigests(oldDigest, newDigest);
++
++      expect(diff.changedSuspects).toBeDefined();
++      expect(diff.changedSuspects!.added).toHaveLength(0);
++      expect(diff.changedSuspects!.removed).toHaveLength(0);
++      expect(diff.changedSuspects!.scoreChanged).toHaveLength(0);
++    });
++
++    it('handles digests with no codeframes', () => {
++      const oldDigest = {
++        case: 'test-1',
++        status: 'fail' as const,
++        duration: 1000,
++        location: 'test.ts:1',
++        summary: {
++          totalEvents: 1,
++          includedEvents: 1,
++          redactedFields: 0,
++          budgetUsed: 100,
++          budgetLimit: 1000,
++        },
++        events: [{ ts: 1000, lvl: 'error', case: 'test-1', evt: 'fail' }],
++      };
++
++      const newDigest = {
++        ...oldDigest,
++        duration: 1200,
++      };
++
++      const diff = engine.compareDigests(oldDigest, newDigest);
++
++      expect(diff.changedCodeframes).toBeDefined();
++      expect(diff.changedCodeframes!.added).toHaveLength(0);
++      expect(diff.changedCodeframes!.removed).toHaveLength(0);
++    });
++  });
++});
++
++describe('Repro Bundle', () => {
++  let tmpDir: string;
++  let reportsDir: string;
++  let summaryFile: string;
++
++  beforeEach(() => {
++    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'repro-test-'));
++    reportsDir = path.join(tmpDir, 'reports');
++    summaryFile = path.join(reportsDir, 'summary.jsonl');
++    fs.mkdirSync(reportsDir, { recursive: true });
++  });
++
++  afterEach(() => {
++    if (fs.existsSync(tmpDir)) {
++      fs.rmSync(tmpDir, { recursive: true });
++    }
++  });
++
++  describe('bundle contents validation', () => {
++    it('includes seed and environment information', async () => {
++      const fixturesDir = path.join(process.cwd(), 'tests/fixtures/repro-bundle');
++      const artifactPath = path.join(reportsDir, 'test-case-1.jsonl');
++      fs.copyFileSync(
++        path.join(fixturesDir, 'test-case-1.jsonl'),
++        artifactPath
++      );
++
++      const summaryEntry = {
++        status: 'fail',
++        duration: 1500,
++        location: 'test.spec.ts:10',
++        artifactURI: 'reports/test-case-1.jsonl',
++        testName: 'test case 1',
++        error: 'Expected 2 to be 3',
++      };
++      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
++
++      const originalCwd = process.cwd();
++      process.chdir(tmpDir);
++
++      try {
++        await bundleRepro();
++
++        const bundlePath = path.join(reportsDir, 'bundles/test-case-1.repro.json');
++        expect(fs.existsSync(bundlePath)).toBe(true);
++
++        const bundle = JSON.parse(fs.readFileSync(bundlePath, 'utf-8'));
++
++        expect(bundle.environment).toBeDefined();
++        expect(bundle.environment.seed).toBeDefined();
++        expect(bundle.environment.seed).toBe('test-seed-123');
++        expect(bundle.environment.nodeVersion).toBeDefined();
++        expect(bundle.environment.platform).toBeDefined();
++      } finally {
++        process.chdir(originalCwd);
++      }
++    });
++
++    it('includes minimal logs (not full logs)', async () => {
++      const fixturesDir = path.join(process.cwd(), 'tests/fixtures/repro-bundle');
++      const artifactPath = path.join(reportsDir, 'test-case-1.jsonl');
++      fs.copyFileSync(
++        path.join(fixturesDir, 'test-case-1.jsonl'),
++        artifactPath
++      );
++
++      const summaryEntry = {
++        status: 'fail',
++        duration: 1500,
++        location: 'test.spec.ts:10',
++        artifactURI: 'reports/test-case-1.jsonl',
++        testName: 'test case 1',
++        error: 'Expected 2 to be 3',
++      };
++      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
++
++      const originalCwd = process.cwd();
++      process.chdir(tmpDir);
++
++      try {
++        await bundleRepro();
++
++        const bundlePath = path.join(reportsDir, 'bundles/test-case-1.repro.json');
++        const bundle = JSON.parse(fs.readFileSync(bundlePath, 'utf-8'));
++
++        expect(bundle.failure.errorEvents).toBeDefined();
++        expect(bundle.failure.errorEvents.length).toBeGreaterThan(0);
++        expect(bundle.failure.errorEvents.length).toBeLessThanOrEqual(5);
++        
++        expect(bundle.failure.contextEvents).toBeDefined();
++        const totalLogLines = fs.readFileSync(artifactPath, 'utf-8').split('\n').filter(Boolean).length;
++        expect(bundle.failure.contextEvents.length).toBeLessThanOrEqual(totalLogLines);
++      } finally {
++        process.chdir(originalCwd);
++      }
++    });
++
++    it('includes valid reproduction commands', async () => {
++      const fixturesDir = path.join(process.cwd(), 'tests/fixtures/repro-bundle');
++      const artifactPath = path.join(reportsDir, 'test-case-1.jsonl');
++      fs.copyFileSync(
++        path.join(fixturesDir, 'test-case-1.jsonl'),
++        artifactPath
++      );
++
++      const summaryEntry = {
++        status: 'fail',
++        duration: 1500,
++        location: 'test.spec.ts:10',
++        artifactURI: 'reports/test-case-1.jsonl',
++        testName: 'test case 1',
++        error: 'Expected 2 to be 3',
++      };
++      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
++
++      const originalCwd = process.cwd();
++      process.chdir(tmpDir);
++
++      try {
++        await bundleRepro();
++
++        const bundlePath = path.join(reportsDir, 'bundles/test-case-1.repro.json');
++        const bundle = JSON.parse(fs.readFileSync(bundlePath, 'utf-8'));
++
++        expect(bundle.reproduction).toBeDefined();
++        expect(bundle.reproduction.vitestCommand).toBeDefined();
++        expect(bundle.reproduction.vitestCommand).toContain('vitest run');
++        expect(bundle.reproduction.vitestCommand).toContain('test.spec.ts');
++        expect(bundle.reproduction.vitestCommand).toContain('test case 1');
++        
++        expect(bundle.reproduction.logCommand).toBeDefined();
++        expect(bundle.reproduction.logCommand).toContain('npm run logq');
++      } finally {
++        process.chdir(originalCwd);
++      }
++    });
++
++    it('includes complete metadata', async () => {
++      const fixturesDir = path.join(process.cwd(), 'tests/fixtures/repro-bundle');
++      const artifactPath = path.join(reportsDir, 'test-case-1.jsonl');
++      fs.copyFileSync(
++        path.join(fixturesDir, 'test-case-1.jsonl'),
++        artifactPath
++      );
++
++      const summaryEntry = {
++        status: 'fail',
++        duration: 1500,
++        location: 'test.spec.ts:10',
++        artifactURI: 'reports/test-case-1.jsonl',
++        testName: 'test case 1',
++        error: 'Expected 2 to be 3',
++        timestamp: '2024-10-12T10:00:00.000Z',
++      };
++      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
++
++      const originalCwd = process.cwd();
++      process.chdir(tmpDir);
++
++      try {
++        await bundleRepro();
++
++        const bundlePath = path.join(reportsDir, 'bundles/test-case-1.repro.json');
++        const bundle = JSON.parse(fs.readFileSync(bundlePath, 'utf-8'));
++
++        expect(bundle.metadata).toBeDefined();
++        expect(bundle.metadata.bundleVersion).toBe('1.0.0');
++        expect(bundle.metadata.generated).toBeDefined();
++        expect(bundle.metadata.testName).toBe('test case 1');
++        expect(bundle.metadata.testFile).toBe('test.spec.ts');
++        expect(bundle.metadata.status).toBe('fail');
++        expect(bundle.metadata.duration).toBe(1500);
++        expect(bundle.metadata.timestamp).toBe('2024-10-12T10:00:00.000Z');
++      } finally {
++        process.chdir(originalCwd);
++      }
++    });
++
++    it('creates both JSON and markdown outputs', async () => {
++      const fixturesDir = path.join(process.cwd(), 'tests/fixtures/repro-bundle');
++      const artifactPath = path.join(reportsDir, 'test-case-1.jsonl');
++      fs.copyFileSync(
++        path.join(fixturesDir, 'test-case-1.jsonl'),
++        artifactPath
++      );
++
++      const summaryEntry = {
++        status: 'fail',
++        duration: 1500,
++        location: 'test.spec.ts:10',
++        artifactURI: 'reports/test-case-1.jsonl',
++        testName: 'test case 1',
++        error: 'Expected 2 to be 3',
++      };
++      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
++
++      const originalCwd = process.cwd();
++      process.chdir(tmpDir);
++
++      try {
++        await bundleRepro();
++
++        const jsonPath = path.join(reportsDir, 'bundles/test-case-1.repro.json');
++        const mdPath = path.join(reportsDir, 'bundles/test-case-1.repro.md');
++
++        expect(fs.existsSync(jsonPath)).toBe(true);
++        expect(fs.existsSync(mdPath)).toBe(true);
++
++        const mdContent = fs.readFileSync(mdPath, 'utf-8');
++        expect(mdContent).toContain('# Reproduction Bundle:');
++        expect(mdContent).toContain('## Environment');
++        expect(mdContent).toContain('## Failure Summary');
++        expect(mdContent).toContain('## Reproduction Commands');
++      } finally {
++        process.chdir(originalCwd);
++      }
++    });
++  });
++
++  describe('Go test fixture support', () => {
++    it('handles Go test case bundles', async () => {
++      const fixturesDir = path.join(process.cwd(), 'tests/fixtures/repro-bundle');
++      const artifactPath = path.join(reportsDir, 'go-test-case.jsonl');
++      fs.copyFileSync(
++        path.join(fixturesDir, 'go-test-case.jsonl'),
++        artifactPath
++      );
++
++      const summaryEntry = {
++        status: 'fail',
++        duration: 90,
++        location: 'github.com/example/calc/TestDivide',
++        artifactURI: 'reports/go-test-case.jsonl',
++        testName: 'TestDivide',
++        error: 'division by zero',
++      };
++      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
++
++      const originalCwd = process.cwd();
++      process.chdir(tmpDir);
++
++      try {
++        await bundleRepro();
++
++        const bundlePath = path.join(reportsDir, 'bundles/go-test-case.repro.json');
++        expect(fs.existsSync(bundlePath)).toBe(true);
++
++        const bundle = JSON.parse(fs.readFileSync(bundlePath, 'utf-8'));
++
++        expect(bundle.metadata.testName).toBe('TestDivide');
++        expect(bundle.environment.seed).toBe('go-seed-456');
++        expect(bundle.failure.errorEvents).toBeDefined();
++        expect(bundle.failure.errorEvents.some((e: any) => e.evt === 'test.fail')).toBe(true);
++      } finally {
++        process.chdir(originalCwd);
++      }
++    });
++
++    it('extracts Go test phase information', async () => {
++      const fixturesDir = path.join(process.cwd(), 'tests/fixtures/repro-bundle');
++      const artifactPath = path.join(reportsDir, 'go-test-case.jsonl');
++      fs.copyFileSync(
++        path.join(fixturesDir, 'go-test-case.jsonl'),
++        artifactPath
++      );
++
++      const summaryEntry = {
++        status: 'fail',
++        duration: 90,
++        location: 'github.com/example/calc/TestDivide',
++        artifactURI: 'reports/go-test-case.jsonl',
++        testName: 'TestDivide',
++        error: 'division by zero',
++      };
++      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
++
++      const originalCwd = process.cwd();
++      process.chdir(tmpDir);
++
++      try {
++        await bundleRepro();
++
++        const bundlePath = path.join(reportsDir, 'bundles/go-test-case.repro.json');
++        const bundle = JSON.parse(fs.readFileSync(bundlePath, 'utf-8'));
++
++        const failEvent = bundle.failure.errorEvents.find((e: any) => e.evt === 'test.fail');
++        expect(failEvent).toBeDefined();
++        expect(failEvent.phase).toBe('complete');
++        expect(failEvent.payload.package).toBe('github.com/example/calc');
++      } finally {
++        process.chdir(originalCwd);
++      }
++    });
++  });
++
++  describe('edge cases', () => {
++    it('handles missing artifact file gracefully', async () => {
++      const summaryEntry = {
++        status: 'fail',
++        duration: 1500,
++        location: 'test.spec.ts:10',
++        artifactURI: 'reports/missing.jsonl',
++        testName: 'test case 1',
++        error: 'Error',
++      };
++      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
++
++      const originalCwd = process.cwd();
++      process.chdir(tmpDir);
++
++      try {
++        await bundleRepro();
++
++        const bundlePath = path.join(reportsDir, 'bundles/missing.repro.json');
++        expect(fs.existsSync(bundlePath)).toBe(true);
++
++        const bundle = JSON.parse(fs.readFileSync(bundlePath, 'utf-8'));
++        expect(bundle.failure.errorEvents).toHaveLength(0);
++        expect(bundle.failure.contextEvents).toHaveLength(0);
++      } finally {
++        process.chdir(originalCwd);
++      }
++    });
++
++    it('handles case with no seed in events', async () => {
++      const artifactPath = path.join(reportsDir, 'no-seed.jsonl');
++      fs.writeFileSync(artifactPath, JSON.stringify({
++        ts: 1000,
++        lvl: 'error',
++        case: 'no-seed',
++        evt: 'test.error',
++      }));
++
++      const summaryEntry = {
++        status: 'fail',
++        duration: 1000,
++        location: 'test.spec.ts:10',
++        artifactURI: 'reports/no-seed.jsonl',
++        testName: 'no seed test',
++        error: 'Error',
++      };
++      fs.writeFileSync(summaryFile, JSON.stringify(summaryEntry));
++
++      const originalCwd = process.cwd();
++      process.chdir(tmpDir);
++
++      try {
++        await bundleRepro();
++
++        const bundlePath = path.join(reportsDir, 'bundles/no-seed.repro.json');
++        const bundle = JSON.parse(fs.readFileSync(bundlePath, 'utf-8'));
++
++        expect(bundle.environment).toBeDefined();
++        expect(bundle.environment.nodeVersion).toBeDefined();
++        expect(bundle.environment.platform).toBeDefined();
++      } finally {
++        process.chdir(originalCwd);
++      }
++    });
++  });
++});
+diff --git a/tests/fixtures/digest-diff/digest-v1.json b/tests/fixtures/digest-diff/digest-v1.json
+new file mode 100644
+index 0000000..d88f468
+--- /dev/null
++++ b/tests/fixtures/digest-diff/digest-v1.json
+@@ -0,0 +1,58 @@
++{
++  "case": "test-case-1",
++  "status": "fail",
++  "duration": 1500,
++  "location": "test.spec.ts:10",
++  "error": "Expected 2 to be 3",
++  "summary": {
++    "totalEvents": 5,
++    "includedEvents": 3,
++    "redactedFields": 0,
++    "budgetUsed": 512,
++    "budgetLimit": 10240
++  },
++  "events": [
++    {
++      "ts": 1000,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.start",
++      "id": "1"
++    },
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 }
++    },
++    {
++      "ts": 2500,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.end",
++      "id": "3"
++    }
++  ],
++  "suspects": [
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 },
++      "score": 85.5,
++      "reasons": ["error level", "failure event"]
++    }
++  ],
++  "codeframes": [
++    {
++      "file": "test.spec.ts",
++      "line": 10,
++      "column": 5,
++      "snippet": "expect(result).toBe(3);"
++    }
++  ]
++}
+diff --git a/tests/fixtures/digest-diff/digest-v2-added-events.json b/tests/fixtures/digest-diff/digest-v2-added-events.json
+new file mode 100644
+index 0000000..06ecf9c
+--- /dev/null
++++ b/tests/fixtures/digest-diff/digest-v2-added-events.json
+@@ -0,0 +1,81 @@
++{
++  "case": "test-case-1",
++  "status": "fail",
++  "duration": 1800,
++  "location": "test.spec.ts:10",
++  "error": "Expected 2 to be 3",
++  "summary": {
++    "totalEvents": 7,
++    "includedEvents": 5,
++    "redactedFields": 0,
++    "budgetUsed": 768,
++    "budgetLimit": 10240
++  },
++  "events": [
++    {
++      "ts": 1000,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.start",
++      "id": "1"
++    },
++    {
++      "ts": 1500,
++      "lvl": "warn",
++      "case": "test-case-1",
++      "evt": "deprecation.warning",
++      "id": "1a"
++    },
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 }
++    },
++    {
++      "ts": 2200,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "cleanup.error",
++      "id": "2a"
++    },
++    {
++      "ts": 2500,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.end",
++      "id": "3"
++    }
++  ],
++  "suspects": [
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 },
++      "score": 85.5,
++      "reasons": ["error level", "failure event"]
++    },
++    {
++      "ts": 2200,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "cleanup.error",
++      "id": "2a",
++      "score": 72.0,
++      "reasons": ["error level"]
++    }
++  ],
++  "codeframes": [
++    {
++      "file": "test.spec.ts",
++      "line": 10,
++      "column": 5,
++      "snippet": "expect(result).toBe(3);"
++    }
++  ]
++}
+diff --git a/tests/fixtures/digest-diff/digest-v2-changed-codeframes.json b/tests/fixtures/digest-diff/digest-v2-changed-codeframes.json
+new file mode 100644
+index 0000000..c321c05
+--- /dev/null
++++ b/tests/fixtures/digest-diff/digest-v2-changed-codeframes.json
+@@ -0,0 +1,64 @@
++{
++  "case": "test-case-1",
++  "status": "fail",
++  "duration": 1500,
++  "location": "test.spec.ts:12",
++  "error": "Expected 2 to be 3",
++  "summary": {
++    "totalEvents": 5,
++    "includedEvents": 3,
++    "redactedFields": 0,
++    "budgetUsed": 512,
++    "budgetLimit": 10240
++  },
++  "events": [
++    {
++      "ts": 1000,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.start",
++      "id": "1"
++    },
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 }
++    },
++    {
++      "ts": 2500,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.end",
++      "id": "3"
++    }
++  ],
++  "suspects": [
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 },
++      "score": 85.5,
++      "reasons": ["error level", "failure event"]
++    }
++  ],
++  "codeframes": [
++    {
++      "file": "test.spec.ts",
++      "line": 12,
++      "column": 5,
++      "snippet": "expect(result).toBe(3);"
++    },
++    {
++      "file": "helper.ts",
++      "line": 5,
++      "column": 10,
++      "snippet": "return a + b;"
++    }
++  ]
++}
+diff --git a/tests/fixtures/digest-diff/digest-v2-changed-suspects.json b/tests/fixtures/digest-diff/digest-v2-changed-suspects.json
+new file mode 100644
+index 0000000..7411524
+--- /dev/null
++++ b/tests/fixtures/digest-diff/digest-v2-changed-suspects.json
+@@ -0,0 +1,58 @@
++{
++  "case": "test-case-1",
++  "status": "fail",
++  "duration": 1500,
++  "location": "test.spec.ts:10",
++  "error": "Expected 2 to be 3",
++  "summary": {
++    "totalEvents": 5,
++    "includedEvents": 3,
++    "redactedFields": 0,
++    "budgetUsed": 512,
++    "budgetLimit": 10240
++  },
++  "events": [
++    {
++      "ts": 1000,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.start",
++      "id": "1"
++    },
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 }
++    },
++    {
++      "ts": 2500,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.end",
++      "id": "3"
++    }
++  ],
++  "suspects": [
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 },
++      "score": 92.0,
++      "reasons": ["error level", "failure event", "close proximity to failure"]
++    }
++  ],
++  "codeframes": [
++    {
++      "file": "test.spec.ts",
++      "line": 10,
++      "column": 5,
++      "snippet": "expect(result).toBe(3);"
++    }
++  ]
++}
+diff --git a/tests/fixtures/digest-diff/digest-v2-identical.json b/tests/fixtures/digest-diff/digest-v2-identical.json
+new file mode 100644
+index 0000000..d88f468
+--- /dev/null
++++ b/tests/fixtures/digest-diff/digest-v2-identical.json
+@@ -0,0 +1,58 @@
++{
++  "case": "test-case-1",
++  "status": "fail",
++  "duration": 1500,
++  "location": "test.spec.ts:10",
++  "error": "Expected 2 to be 3",
++  "summary": {
++    "totalEvents": 5,
++    "includedEvents": 3,
++    "redactedFields": 0,
++    "budgetUsed": 512,
++    "budgetLimit": 10240
++  },
++  "events": [
++    {
++      "ts": 1000,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.start",
++      "id": "1"
++    },
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 }
++    },
++    {
++      "ts": 2500,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.end",
++      "id": "3"
++    }
++  ],
++  "suspects": [
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 },
++      "score": 85.5,
++      "reasons": ["error level", "failure event"]
++    }
++  ],
++  "codeframes": [
++    {
++      "file": "test.spec.ts",
++      "line": 10,
++      "column": 5,
++      "snippet": "expect(result).toBe(3);"
++    }
++  ]
++}
+diff --git a/tests/fixtures/digest-diff/digest-v2-removed-events.json b/tests/fixtures/digest-diff/digest-v2-removed-events.json
+new file mode 100644
+index 0000000..3dc21b1
+--- /dev/null
++++ b/tests/fixtures/digest-diff/digest-v2-removed-events.json
+@@ -0,0 +1,51 @@
++{
++  "case": "test-case-1",
++  "status": "fail",
++  "duration": 1200,
++  "location": "test.spec.ts:10",
++  "error": "Expected 2 to be 3",
++  "summary": {
++    "totalEvents": 3,
++    "includedEvents": 2,
++    "redactedFields": 0,
++    "budgetUsed": 256,
++    "budgetLimit": 10240
++  },
++  "events": [
++    {
++      "ts": 1000,
++      "lvl": "info",
++      "case": "test-case-1",
++      "evt": "test.start",
++      "id": "1"
++    },
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 }
++    }
++  ],
++  "suspects": [
++    {
++      "ts": 2000,
++      "lvl": "error",
++      "case": "test-case-1",
++      "evt": "assert.fail",
++      "id": "2",
++      "payload": { "expected": 3, "actual": 2 },
++      "score": 85.5,
++      "reasons": ["error level", "failure event"]
++    }
++  ],
++  "codeframes": [
++    {
++      "file": "test.spec.ts",
++      "line": 10,
++      "column": 5,
++      "snippet": "expect(result).toBe(3);"
++    }
++  ]
++}
+diff --git a/tests/fixtures/digest-diff/go-test-v1.json b/tests/fixtures/digest-diff/go-test-v1.json
+new file mode 100644
+index 0000000..af5e424
+--- /dev/null
++++ b/tests/fixtures/digest-diff/go-test-v1.json
+@@ -0,0 +1,64 @@
++{
++  "case": "github.com.example.calc.TestDivide",
++  "status": "fail",
++  "duration": 90,
++  "location": "github.com/example/calc/TestDivide",
++  "error": "division by zero",
++  "summary": {
++    "totalEvents": 5,
++    "includedEvents": 3,
++    "redactedFields": 0,
++    "budgetUsed": 512,
++    "budgetLimit": 10240
++  },
++  "events": [
++    {
++      "ts": 1000,
++      "lvl": "info",
++      "case": "github.com.example.calc.TestDivide",
++      "phase": "run",
++      "evt": "test.start",
++      "id": "1",
++      "payload": { "package": "github.com/example/calc", "test": "TestDivide" }
++    },
++    {
++      "ts": 1020,
++      "lvl": "info",
++      "case": "github.com.example.calc.TestDivide",
++      "phase": "run",
++      "evt": "test.output",
++      "id": "2",
++      "payload": { "output": "calc_test.go:30: Dividing 10 / 0" }
++    },
++    {
++      "ts": 1040,
++      "lvl": "error",
++      "case": "github.com.example.calc.TestDivide",
++      "phase": "complete",
++      "evt": "test.fail",
++      "id": "3",
++      "payload": { "package": "github.com/example/calc", "test": "TestDivide", "elapsed": 0.09 }
++    }
++  ],
++  "suspects": [
++    {
++      "ts": 1040,
++      "lvl": "error",
++      "case": "github.com.example.calc.TestDivide",
++      "phase": "complete",
++      "evt": "test.fail",
++      "id": "3",
++      "payload": { "package": "github.com/example/calc", "test": "TestDivide", "elapsed": 0.09 },
++      "score": 88.0,
++      "reasons": ["error level", "failure event"]
++    }
++  ],
++  "codeframes": [
++    {
++      "file": "calc_test.go",
++      "line": 30,
++      "column": 1,
++      "snippet": "t.Errorf(\"division by zero\")"
++    }
++  ]
++}
+diff --git a/tests/fixtures/digest-diff/go-test-v2-fixed.json b/tests/fixtures/digest-diff/go-test-v2-fixed.json
+new file mode 100644
+index 0000000..3b21bbf
+--- /dev/null
++++ b/tests/fixtures/digest-diff/go-test-v2-fixed.json
+@@ -0,0 +1,55 @@
++{
++  "case": "github.com.example.calc.TestDivide",
++  "status": "fail",
++  "duration": 85,
++  "location": "github.com/example/calc/TestDivide",
++  "error": "division by zero",
++  "summary": {
++    "totalEvents": 4,
++    "includedEvents": 2,
++    "redactedFields": 0,
++    "budgetUsed": 384,
++    "budgetLimit": 10240
++  },
++  "events": [
++    {
++      "ts": 1000,
++      "lvl": "info",
++      "case": "github.com.example.calc.TestDivide",
++      "phase": "run",
++      "evt": "test.start",
++      "id": "1",
++      "payload": { "package": "github.com/example/calc", "test": "TestDivide" }
++    },
++    {
++      "ts": 1040,
++      "lvl": "error",
++      "case": "github.com.example.calc.TestDivide",
++      "phase": "complete",
++      "evt": "test.fail",
++      "id": "3",
++      "payload": { "package": "github.com/example/calc", "test": "TestDivide", "elapsed": 0.085 }
++    }
++  ],
++  "suspects": [
++    {
++      "ts": 1040,
++      "lvl": "error",
++      "case": "github.com.example.calc.TestDivide",
++      "phase": "complete",
++      "evt": "test.fail",
++      "id": "3",
++      "payload": { "package": "github.com/example/calc", "test": "TestDivide", "elapsed": 0.085 },
++      "score": 88.0,
++      "reasons": ["error level", "failure event"]
++    }
++  ],
++  "codeframes": [
++    {
++      "file": "calc_test.go",
++      "line": 30,
++      "column": 1,
++      "snippet": "t.Errorf(\"division by zero\")"
++    }
++  ]
++}
+diff --git a/tests/fixtures/repro-bundle/go-test-case.jsonl b/tests/fixtures/repro-bundle/go-test-case.jsonl
+new file mode 100644
+index 0000000..af8a863
+--- /dev/null
++++ b/tests/fixtures/repro-bundle/go-test-case.jsonl
+@@ -0,0 +1,5 @@
++{"ts":1000,"lvl":"info","case":"github.com.example.calc.TestDivide","phase":"run","evt":"test.start","id":"1","payload":{"package":"github.com/example/calc","test":"TestDivide","seed":"go-seed-456"}}
++{"ts":1010,"lvl":"info","case":"github.com.example.calc.TestDivide","phase":"run","evt":"test.output","id":"2","payload":{"output":"=== RUN   TestDivide"}}
++{"ts":1020,"lvl":"info","case":"github.com.example.calc.TestDivide","phase":"run","evt":"test.output","id":"3","payload":{"output":"calc_test.go:30: Dividing 10 / 0"}}
++{"ts":1030,"lvl":"info","case":"github.com.example.calc.TestDivide","phase":"run","evt":"test.output","id":"4","payload":{"output":"calc_test.go:31: Error: division by zero"}}
++{"ts":1040,"lvl":"error","case":"github.com.example.calc.TestDivide","phase":"complete","evt":"test.fail","id":"5","payload":{"package":"github.com/example/calc","test":"TestDivide","elapsed":0.09}}
+diff --git a/tests/fixtures/repro-bundle/test-case-1.jsonl b/tests/fixtures/repro-bundle/test-case-1.jsonl
+new file mode 100644
+index 0000000..b0e462c
+--- /dev/null
++++ b/tests/fixtures/repro-bundle/test-case-1.jsonl
+@@ -0,0 +1,5 @@
++{"ts":1000,"lvl":"info","case":"test-case-1","evt":"test.start","id":"1","payload":{"seed":"test-seed-123"}}
++{"ts":1500,"lvl":"info","case":"test-case-1","evt":"setup.complete","id":"2"}
++{"ts":2000,"lvl":"error","case":"test-case-1","evt":"assert.fail","id":"3","payload":{"expected":3,"actual":2,"message":"Expected 2 to be 3"}}
++{"ts":2100,"lvl":"info","case":"test-case-1","evt":"cleanup.start","id":"4"}
++{"ts":2500,"lvl":"info","case":"test-case-1","evt":"test.end","id":"5"}
+-- 
+2.43.0
+
