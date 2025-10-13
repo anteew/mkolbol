@@ -62,6 +62,6 @@ jobs:
         run: |
           cd /tmp/smoke-test
           test -f node_modules/mkolbol/package.json && echo "✓ package.json" || exit 1
-          test -f node_modules/mkolbol/dist/index.js && echo "✓ main entry" || exit 1
-          test -f node_modules/mkolbol/dist/index.d.ts && echo "✓ types" || exit 1
+          test -f node_modules/mkolbol/dist/src/index.js && echo "✓ main entry" || exit 1
+          test -f node_modules/mkolbol/dist/src/index.d.ts && echo "✓ types" || exit 1
           test -f node_modules/mkolbol/dist/scripts/lam.js && echo "✓ CLI bin" || exit 1
