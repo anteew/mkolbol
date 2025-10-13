@@ -12,43 +12,24 @@
  
 ## Quickstart
 
-Get started with Laminar testing in 5 minutes:
+Work locally without any external tooling:
 
 ```bash
-# Install locally in your project
-npm install mkolbol
+# Install dependencies
+npm ci
 
-# Initialize Laminar config
-npx lam init
+# Build
+npm run build
 
-# Run tests
-npx lam run --lane auto
+# Run tests (threads lane)
+npm run test:ci
 
-# Run specific tests by pattern
-npx lam run --lane ci --filter kernel
-npx lam run --lane ci --filter "connect.*data"
+# PTY-specific tests (fork lane)
+npm run test:pty
 
-# View results
-npx lam summary
-
-# Analyze failures
-npx lam digest
-
-# Show specific test details
-npx lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 10
-
-# Get repro commands
-npx lam repro
+# Run a simple demo
+node dist/examples/basic-topology.js
 ```
-
-**Basic Commands:**
-- `npx lam init` — Create laminar.config.json with defaults
-- `npx lam run [--lane ci|pty|auto] [--filter <pattern>]` — Execute tests with structured logging
-- `npx lam summary` — List all test results
-- `npx lam digest` — Generate failure analysis digests
-- `npx lam show` — Inspect test artifacts and events
-
-📖 **Full Documentation:** [docs/testing/laminar.md](docs/testing/laminar.md)
 
 ## Overview
 
@@ -103,56 +84,14 @@ The RFC is organized into focused documents:
 ```bash
 # Install in your project
 npm install mkolbol
-
-# Use with npx (no global install needed)
-npx lam init
-npx lam run --lane auto
-npx lam digest
 ```
 
-### Global Installation
+### Requirements
 
-```bash
-# Install globally
-npm install -g mkolbol
-
-# Use lam command directly (without npx)
-lam init
-lam run --lane auto
-lam digest
-lam repro --bundle
-```
-
-### npx Usage (No Installation Required)
-
-```bash
-# Run commands without installing
-npx mkolbol lam init
-npx mkolbol lam run --lane auto
-npx mkolbol lam digest
-
-# Force latest version with -y flag
-npx -y mkolbol@latest lam run --lane auto
-```
-
-### Troubleshooting
-
-**Command not found: lam**
-- Local install: Use `npx lam` instead of `lam`
-- Global install: Ensure npm global bin is in PATH: `npm config get prefix`
-
-**npx hangs or prompts for confirmation**
-- Add `-y` flag to auto-confirm: `npx -y mkolbol lam init`
-
-**Wrong version executing**
-- Clear npx cache: `npx clear-npx-cache`
-- Force specific version: `npx mkolbol@0.2.0 lam init`
-
-**Requirements:**
 - Node 20+ (tested on 20.x and 24.x)
 - macOS or Linux (Windows support coming soon)
 
-**Note:** Experimental preview. The Stream Kernel is implemented minimally in this repo with runnable demos; APIs may change.
+Note: This repository focuses on the stream kernel. Demos live under `dist/examples/` after building.
 
 ## Example (Future API)
 
@@ -211,8 +150,6 @@ The repository previously contained an MCP (Model Context Protocol) based microk
 
 ## Testing
 
-[![Laminar Tests](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml/badge.svg)](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml)
-
 ```bash
 npm test
 # or  
@@ -223,13 +160,7 @@ npm run test:ci
 
 **CI Note:** The `test:ci` script uses `--pool=threads` to avoid tinypool concurrency issues on Node 20 and 24. Tested on both LTS versions.
 
-**CI Artifacts:** Test reports for Node 20 and 24 are uploaded to GitHub Actions as artifacts (`test-reports-node-20`, `test-reports-node-24`) and retained for 30 days. Download from the [Actions tab](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml).
-
-**Auto-Debug Rerun:** For CI pipelines with fast triage, use:
-```bash
-npm run laminar:run || true
-```
-This runs tests normally first, then automatically reruns failures with `LAMINAR_DEBUG=1` to capture debug output. Failed test logs are written to `reports/<suite>/<case>.jsonl` for analysis.
+<!-- CI badge removed intentionally to keep main vanilla. -->
 
 ### Test Event Logging
 
@@ -246,7 +177,7 @@ reports/
 └── <suite>/<case>.jsonl         # Per-case event streams
 ```
 
-See [docs/testing/laminar.md](docs/testing/laminar.md) for complete artifact structure, guarantees, and index.json specification.
+<!-- For test artifact schema and advanced analysis, see the separate tooling repository. -->
 
 **Agent Integration**: When working with agents via ampcode.log, include pointers to `reports/summary.jsonl` and case files in task reports. If digests were created or updated, also include pointers to relevant digest files in `docs/digests/`. Keep console output compact; rely on report files and digests for detailed metrics, traces, and learnings.
 
@@ -272,367 +203,6 @@ DEBUG=1 MK_DEBUG_MODULES=executor MK_DEBUG_LEVEL=debug npm run dev
 - [src/debug/config.ts](src/debug/config.ts) - Parse environment variables at startup
 - [src/debug/api.ts](src/debug/api.ts) - `debug.on(module)` and `debug.emit(module, event, payload, level)` API
 - **Laminar Integration:** When `LAMINAR_DEBUG=1` is set, debug events emit as `TestEventEnvelope` for structured logging
-
-### MCP Server for Laminar
-
-The project includes an MCP (Model Context Protocol) server for exposing Laminar test logs and digests to AI agents and tools.
-
-**Location:** [src/mcp/laminar/server.ts](src/mcp/laminar/server.ts)
-
-**Features:**
-- **Resources:** Exposes `summary.jsonl` and digest files as MCP resources
-- **12 MCP Tools:** Complete test execution, querying, and digest management
-- **Focus Overlay:** Ephemeral digest rule overlay for temporary filtering
-- **Protocol:** Standard MCP protocol for AI agent integration
-- **JSON Contracts:** Fully type-safe input/output schemas with validation
-- **Error Model:** Structured errors with codes, messages, and context
-- **Idempotence:** All operations are safe to retry
-
-#### Quick Start
-
-```typescript
-import { createLaminarServer } from './src/mcp/laminar/server.js';
-
-const server = await createLaminarServer({
-  reportsDir: 'reports',
-  summaryFile: 'reports/summary.jsonl',
-  configFile: 'laminar.config.json'
-});
-
-// List available resources
-const resources = server.listResources();
-
-// Read a resource
-const summary = await server.readResource('laminar://summary');
-
-// Call a tool
-const failures = await server.callTool('list_failures', {});
-```
-
-#### Resources
-
-- `laminar://summary` - Test summary JSONL file (all test results)
-- `laminar://digest/{caseName}` - Digest JSON for specific failed test case
-
-#### MCP Tools (14)
-
-**Test Execution:**
-- `run` - Execute tests with options for suite, case, and flake detection
-  - Input: `{ suite?: string, case?: string, flakeDetect?: boolean, flakeRuns?: number }`
-  - Output: `{ exitCode: number, message: string }`
-
-**Digest Rule Management:**
-- `rules.get` - Get current digest rules from laminar.config.json
-  - Input: `{}` (no parameters)
-  - Output: `{ config: DigestConfig }`
-- `rules.set` - Update digest rules in laminar.config.json (persistent)
-  - Input: `{ config: DigestConfig }` (required)
-  - Output: `{ success: boolean, message: string }`
-
-**Digest Generation:**
-- `digest.generate` - Generate digests for specific cases or all failing cases
-  - Input: `{ cases?: string[] }` (optional, all failures if omitted)
-  - Output: `{ count: number, message: string }`
-
-**Log Access:**
-- `logs.case.get` - Retrieve per-case JSONL logs
-  - Input: `{ caseName: string }` (required)
-  - Output: `{ logs: string }` (raw JSONL content)
-- `query` / `query_logs` - Query test event logs with filters (aliases)
-  - Input: `{ caseName?: string, level?: string, event?: string, limit?: number }`
-  - Output: `{ events: DigestEvent[], totalCount: number }`
-  - Default limit: 100, max: 1000
-
-**Failure Analysis:**
-- `repro` - Get reproduction commands for failures
-  - Input: `{ caseName?: string }` (optional, all failures if omitted)
-  - Output: `{ commands: ReproCommand[] }` (vitest + logq commands)
-- `get_digest` - Get digest for a specific failed test case
-  - Input: `{ caseName: string }` (required)
-  - Output: `{ digest: DigestOutput | null }`
-- `list_failures` - List all failed test cases from summary
-  - Input: `{}` (no parameters)
-  - Output: `{ failures: SummaryEntry[] }`
-
-**Repro Bundles & Diffs:**
-- `repro.bundle` - Generate repro bundle with logs and digests
-  - Input: `{ caseName?: string, format?: 'json' | 'markdown' }` (optional, all failures if omitted)
-  - Output: `{ count: number, message: string, bundles: Array<{ caseName, jsonPath, mdPath }> }`
-  - Use case: Package failure for reproduction and triage
-- `diff.get` - Compare two digest files and return differences
-  - Input: `{ digest1Path: string, digest2Path: string, outputFormat?: 'json' | 'markdown' }` (required)
-  - Output: `{ diff: DigestDiff, formatted?: string }`
-  - Use case: Track regressions, verify fixes, analyze failure evolution
-
-**Focus Overlay (Ephemeral Rules):**
-- `focus.overlay.set` - Set ephemeral focus overlay rules (non-persistent)
-  - Input: `{ rules: DigestRule[] }` (required)
-  - Output: `{ success: boolean, message: string }`
-  - Use case: Temporary filtering without modifying config file
-- `focus.overlay.clear` - Clear all ephemeral focus overlay rules
-  - Input: `{}` (no parameters)
-  - Output: `{ success: boolean, message: string }`
-- `focus.overlay.get` - Get current ephemeral focus overlay rules
-  - Input: `{}` (no parameters)
-  - Output: `{ rules: DigestRule[] }`
-
-#### Error Handling
-
-All operations use structured error codes:
-- `INVALID_INPUT` - Invalid input parameters (with validation details)
-- `RESOURCE_NOT_FOUND` - Resource URI not found
-- `TOOL_NOT_FOUND` - Tool name not recognized
-- `IO_ERROR` - File system operation failed
-- `PARSE_ERROR` - JSON parsing failed
-- `INTERNAL_ERROR` - Unexpected internal error
-
-Error format:
-```json
-{
-  "error": {
-    "code": "INVALID_INPUT",
-    "message": "caseName is required and must be a string",
-    "details": { "received": null }
-  }
-}
-```
-
-#### Common Workflows
-
-**Workflow 1: Run tests and analyze failures**
-```typescript
-// 1. Run tests
-await server.callTool('run', { suite: 'my-suite' });
-
-// 2. List failures
-const failures = await server.callTool('list_failures', {});
-
-// 3. Get digest for specific failure
-const digest = await server.callTool('get_digest', { 
-  caseName: 'my-suite/failing-test' 
-});
-
-// 4. Get repro commands
-const repro = await server.callTool('repro', { 
-  caseName: 'my-suite/failing-test' 
-});
-```
-
-**Workflow 2: Focus overlay for temporary filtering**
-```typescript
-// 1. Set temporary overlay rules to focus on errors only
-await server.callTool('focus.overlay.set', {
-  rules: [
-    { match: { lvl: 'error' }, actions: [{ type: 'include' }] },
-    { match: { evt: 'assert.fail' }, actions: [{ type: 'slice', window: 5 }] }
-  ]
-});
-
-// 2. Generate digests with overlay rules
-await server.callTool('digest.generate', {});
-
-// 3. Clear overlay when done
-await server.callTool('focus.overlay.clear', {});
-```
-
-**Workflow 3: Query and filter logs**
-```typescript
-// 1. Query all error events for a test
-const errors = await server.callTool('query', {
-  caseName: 'topology.spec/rewire',
-  level: 'error',
-  limit: 50
-});
-
-// 2. Query specific event types
-const assertions = await server.callTool('query', {
-  caseName: 'topology.spec/rewire',
-  event: 'assert.fail'
-});
-```
-
-**Workflow 4: Flake detection**
-```typescript
-// Run tests with flake detection (5 runs)
-const result = await server.callTool('run', {
-  flakeDetect: true,
-  flakeRuns: 5
-});
-
-// Check stability report
-// (saved to reports/stability-report.json)
-```
-
-See [docs/testing/laminar.md](docs/testing/laminar.md#mcp-server-integration) for complete MCP integration examples and tool schemas.
-
-### Cross-Language Test Ingest
-
-Laminar can import test results from external languages and frameworks:
-
-#### Pytest (Python)
-
-```bash
-# Install pytest-json-report plugin
-pip install pytest-json-report
-
-# Generate and ingest pytest JSON report
-pytest --json-report --json-report-file=report.json
-lam ingest --pytest --from-file report.json
-
-# One-liner (pipe mode)
-lam ingest --pytest --cmd "pytest --json-report --json-report-file=/dev/stdout"
-
-# Direct script
-tsx scripts/ingest-pytest.ts --from-file pytest-report.json
-```
-
-**Features:**
-- Preserves test phases (setup/call/teardown) with individual durations
-- Captures stdout/stderr output from tests
-- Extracts error messages, stack traces, and crash details
-- Maps pytest markers and keywords to Laminar metadata
-- Supports all pytest outcomes (passed/failed/error/skipped/xfailed/xpassed)
-
-**Event Mapping:**
-- `nodeid` → `case.begin` (with line numbers and keywords)
-- `setup/call/teardown.outcome` → phase-specific events
-- `crash` + `traceback` → `test.error` with formatted stack traces
-- Total duration calculated from all phases (seconds → milliseconds)
-
-#### JUnit XML (Java, Jest, pytest, and more)
-
-```bash
-# Maven (Java)
-mvn test  # Auto-generates in target/surefire-reports/
-lam ingest --junit target/surefire-reports/TEST-*.xml
-
-# Gradle (Java)
-./gradlew test
-lam ingest --junit build/test-results/test/TEST-*.xml
-
-# Jest (JavaScript/TypeScript)
-npm install -D jest-junit
-jest --reporters=jest-junit
-lam ingest --junit junit.xml
-
-# pytest (Python - alternative to JSON)
-pytest --junit-xml=junit-report.xml
-lam ingest --junit junit-report.xml
-
-# Direct script
-tsx scripts/ingest-junit.ts junit-report.xml
-
-# From stdin
-cat test-output.xml | tsx scripts/ingest-junit.ts -
-```
-
-**Features:**
-- Universal format supported by Maven, Gradle, Jest, pytest, NUnit, xUnit, RSpec
-- Parses `<failure>`, `<error>`, and `<skipped>` elements
-- Extracts stack traces and error messages from XML content
-- Handles nested test suites automatically
-- Converts time attributes from seconds to milliseconds
-
-**Event Mapping:**
-- `<testcase>` → `case.begin` + `test.run` + `case.end`
-- `<failure>` → `test.error` (assertion failures)
-- `<error>` → `test.error` (exceptions)
-- `<skipped>` → `test.skip` (skipped tests)
-- `classname` → `location` field
-- `suite/testname` → unique case identifier
-
-#### Go Test JSON
-
-```bash
-# From file
-lam ingest --go --from-file go-test-output.json
-
-# From command
-lam ingest --go --cmd "go test -json ./..."
-```
-
-**Complete Integration:**
-
-Ingested tests integrate seamlessly with all Laminar features:
-- Query with `logq` for precise event filtering
-- Generate digests with `lam digest` for failure analysis
-- Inspect details with `lam show --case <name>`
-- Track trends with `lam trends`
-- Create repro bundles with `lam repro --bundle`
-
-See [docs/testing/laminar.md](docs/testing/laminar.md#cross-language-test-ingestion) for:
-- Complete event lifecycle examples
-- CI/CD integration patterns (GitHub Actions, GitLab CI)
-- Multi-environment testing workflows
-- Historical trend tracking
-- Troubleshooting guides
-
-### CLI Tools
-
-#### logq - Query JSONL test logs
-
-```bash
-# Filter by case name
-npm run logq -- case=demo.case reports/demo/demo.case.jsonl
-
-# Filter by event type with regex
-npm run logq -- evt=/case.*/ reports/demo/demo.case.jsonl
-
-# Show context around a correlation ID
-npm run logq -- --around corr=abc123 --window 3 reports/demo/demo.case.jsonl
-
-# Output raw JSONL
-npm run logq -- --raw evt=case.begin reports/demo/demo.case.jsonl
-
-# Show help
-npm run logq -- --help
-```
-
-#### repro - Find and reproduce test failures
-
-```bash
-# Analyze failures from last test run
-npm run repro
-
-# Example output provides vitest commands to rerun failing tests
-# and logq commands to inspect their JSONL logs
-```
-
-#### lam - Comprehensive test management CLI
-
-```bash
-# Run tests
-lam run --lane auto
-lam run --lane ci --filter kernel
-lam run --lane pty --filter "wrapper.*"
-
-# Generate failure digests
-lam digest
-lam digest --cases kernel.spec/connect_moves_data_1_1
-
-# Generate repro bundles
-lam repro --bundle
-lam repro --bundle --case kernel.spec/connect_moves_data_1_1
-
-# Compare digest files
-lam diff reports/case1.digest.json reports/case2.digest.json
-lam diff reports/case1.digest.json reports/case2.digest.json --output diff.md --format markdown
-
-# Digest rules management
-lam rules get
-lam rules set --inline '{"budget":{"kb":2}}'
-
-# Failure trends
-lam trends --top 10 --since 2025-10-01
-
-# Show test details
-lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 50
-
-# See all commands
-lam --help
-```
-
-See [docs/testing/laminar.md](docs/testing/laminar.md) for complete documentation on repro bundles and digest diffs.
 
 ### Sprint 1 Quickstart (Local, In-Process)
 
