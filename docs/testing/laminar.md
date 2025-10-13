@@ -7,7 +7,7 @@ Laminar is a branded, structured testing system for flow‑based applications. I
 ### Installation & First Run
 
 ```bash
-# 1. Install
+# 1. Install locally in your project (recommended)
 npm install mkolbol
 
 # 2. Initialize Laminar config
@@ -20,10 +20,23 @@ npx lam run --lane auto
 npx lam summary
 ```
 
-**Using npx (no installation):**
+**Alternative: Using npx without installation:**
 ```bash
+# Run commands directly without installing
 npx mkolbol lam init
 npx mkolbol lam run --lane auto
+npx mkolbol lam summary
+```
+
+**Global installation option:**
+```bash
+# Install globally for 'lam' command everywhere
+npm install -g mkolbol
+
+# Use without npx prefix
+lam init
+lam run --lane auto
+lam summary
 ```
 
 ### Analyze Failures
@@ -41,14 +54,19 @@ npx lam repro
 
 ### Basic Commands
 
-| Command | Purpose |
-|---------|---------|
-| `lam init` | Create laminar.config.json with defaults |
-| `lam run` | Execute tests with structured logging |
-| `lam summary` | List all test results |
-| `lam digest` | Generate failure analysis digests |
-| `lam show` | Inspect test artifacts and events |
-| `lam repro` | Get repro commands for failures |
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `npx lam init` | Create laminar.config.json with defaults | `npx lam init --template node-defaults` |
+| `npx lam run` | Execute tests with structured logging | `npx lam run --lane ci --filter kernel` |
+| `npx lam summary` | List all test results | `npx lam summary --hints` |
+| `npx lam digest` | Generate failure analysis digests | `npx lam digest --cases kernel.spec/test1` |
+| `npx lam show` | Inspect test artifacts and events | `npx lam show --case kernel.spec/test1` |
+| `npx lam repro` | Get repro commands for failures | `npx lam repro --bundle` |
+
+**Usage Notes:**
+- **Local install**: Use `npx lam` prefix for all commands
+- **Global install**: Use `lam` directly (no `npx` needed)
+- **No install**: Use `npx mkolbol lam` prefix (downloads on-demand)
 
 **Quick Tips:**
 - All artifacts → `reports/` directory

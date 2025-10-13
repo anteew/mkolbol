@@ -15,7 +15,7 @@
 Get started with Laminar testing in 5 minutes:
 
 ```bash
-# Install
+# Install locally in your project
 npm install mkolbol
 
 # Initialize Laminar config
@@ -42,11 +42,11 @@ npx lam repro
 ```
 
 **Basic Commands:**
-- `lam init` — Create laminar.config.json with defaults
-- `lam run [--lane ci|pty|auto] [--filter <pattern>]` — Execute tests with structured logging
-- `lam summary` — List all test results
-- `lam digest` — Generate failure analysis digests
-- `lam show` — Inspect test artifacts and events
+- `npx lam init` — Create laminar.config.json with defaults
+- `npx lam run [--lane ci|pty|auto] [--filter <pattern>]` — Execute tests with structured logging
+- `npx lam summary` — List all test results
+- `npx lam digest` — Generate failure analysis digests
+- `npx lam show` — Inspect test artifacts and events
 
 📖 **Full Documentation:** [docs/testing/laminar.md](docs/testing/laminar.md)
 
@@ -98,42 +98,61 @@ The RFC is organized into focused documents:
 
 ## Installation
 
+### Local Installation (Recommended)
+
 ```bash
+# Install in your project
 npm install mkolbol
-# or
-pnpm add mkolbol
+
+# Use with npx (no global install needed)
+npx lam init
+npx lam run --lane auto
+npx lam digest
 ```
 
-**Global Installation:**
+### Global Installation
 
 ```bash
 # Install globally
 npm install -g mkolbol
 
-# Use lam CLI from anywhere
+# Use lam command directly (without npx)
+lam init
 lam run --lane auto
 lam digest
 lam repro --bundle
 ```
 
-**npx Usage (No Installation):**
+### npx Usage (No Installation Required)
 
 ```bash
-# Run without installing
+# Run commands without installing
+npx mkolbol lam init
 npx mkolbol lam run --lane auto
 npx mkolbol lam digest
-npx mkolbol lam repro --bundle
 
-# Alternative: Direct lam command with npx
-npx -y mkolbol lam run --lane auto
+# Force latest version with -y flag
+npx -y mkolbol@latest lam run --lane auto
 ```
 
-**Note:** Experimental preview. The Stream Kernel is implemented minimally in this repo with runnable demos; APIs may change.
+### Troubleshooting
 
-Requirements
+**Command not found: lam**
+- Local install: Use `npx lam` instead of `lam`
+- Global install: Ensure npm global bin is in PATH: `npm config get prefix`
 
+**npx hangs or prompts for confirmation**
+- Add `-y` flag to auto-confirm: `npx -y mkolbol lam init`
+
+**Wrong version executing**
+- Clear npx cache: `npx clear-npx-cache`
+- Force specific version: `npx mkolbol@0.2.0 lam init`
+
+**Requirements:**
 - Node 20+ (tested on 20.x and 24.x)
-- macOS or Linux (Windows later)
+- macOS or Linux (Windows support coming soon)
+
+**Note:** Experimental preview. The Stream Kernel is implemented minimally in this repo with runnable demos; APIs may change.
 
 ## Example (Future API)
 
@@ -658,6 +677,28 @@ Key documents:
 - [Implementation Roadmap](docs/rfcs/stream-kernel/09-roadmap.md)
 
 > **Note:** There is also a [single-file version](STREAM_KERNEL_RFC.md) of the Stream Kernel RFC, but the modular version is recommended for easier navigation and maintenance.
+
+## Publishing
+
+### GitHub Actions Secrets
+
+The following secrets must be configured in the repository settings for automated releases:
+
+- **NPM_TOKEN** - NPM automation token with publish permissions
+  - Create at https://www.npmjs.com/settings/[username]/tokens
+  - Select "Automation" token type
+  - Required permissions: Read and write
+
+### Release Process
+
+1. Update version in package.json
+2. Commit changes
+3. Create and push a tag: `git tag v1.0.0 && git push origin v1.0.0`
+4. GitHub Actions will automatically:
+   - Build and test the package
+   - Verify package contents
+   - Publish to NPM with provenance
+   - Create a GitHub release with notes
 
 ## License
 
