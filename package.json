@@ -42,10 +42,10 @@
     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:ci": "vitest run --pool=threads --exclude='**/{ptyServerWrapper,multiModalOutput}.spec.ts' --reporter=./node_modules/laminar/dist/test/reporter/jsonlReporter.js",
-    "test:pty": "vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts --reporter=./node_modules/laminar/dist/test/reporter/jsonlReporter.js",
+    "test:ci": "vitest run --pool=threads --exclude='**/{ptyServerWrapper,multiModalOutput}.spec.ts' --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
+    "test:pty": "vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
     "test:watch": "vitest",
-    "lam": "node node_modules/laminar/dist/scripts/lam.js",
+    "lam": "node node_modules/@agent_vega/laminar/dist/scripts/lam.js",
     "logq": "lam logq",
     "repro": "lam repro",
     "laminar:run": "lam run --lane auto",
@@ -68,11 +68,11 @@
     "node-pty": "^1.0.0"
   },
   "devDependencies": {
-    "laminar": "file:/home/ubuntu/repos/Laminar",
     "@types/node": "^20.12.12",
     "fast-check": "^4.3.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.2",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "@agent_vega/laminar": "^0.1.7"
   }
 }
