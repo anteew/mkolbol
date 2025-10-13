@@ -1,3 +1,3 @@
-{"ts":1760310689473,"lvl":"info","case":"returns repro commands for all failures","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760310689474,"lvl":"info","case":"returns repro commands for all failures","phase":"execution","evt":"test.run"}
-{"ts":1760310689475,"lvl":"info","case":"returns repro commands for all failures","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760313915836,"lvl":"info","case":"returns repro commands for all failures","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
+{"ts":1760313915837,"lvl":"info","case":"returns repro commands for all failures","phase":"execution","evt":"test.run"}
+{"ts":1760313915838,"lvl":"info","case":"returns repro commands for all failures","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

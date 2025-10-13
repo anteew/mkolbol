@@ -295,7 +295,8 @@ The `lam` CLI provides comprehensive test management and analysis capabilities.
 
 #### Test Execution
 - `lam run [--lane ci|pty|auto] [--filter <pattern>]` — run tests
-- `lam summary` — list all test results from latest run
+- `lam summary [--hints]` — list all test results from latest run
+  - `--hints`: Show triage hints inline with failures (OR with `LAMINAR_HINTS=1`)
 
 #### Failure Analysis
 - `lam show --case <suite/case> [--around <pattern>] [--window <n>]` — inspect test artifacts
@@ -4819,17 +4820,34 @@ Add hints configuration to your `laminar.config.json`:
 - `hints.showTrends` (boolean): Include trend hints from test history (default: `true`)
 - `hints.maxLines` (number): Maximum number of hints to show per digest (default: `1`)
 
-**Environment Override:**
+**CLI Flag Override:**
 
 ```bash
-# Enable hints via environment variable (overrides config)
-LAMINAR_HINTS=1 npx lam digest
+# Enable hints via CLI flag
+npx lam summary --hints
 
-# Disable hints temporarily
-LAMINAR_HINTS=0 npx lam digest
+# Works with or without environment variable (OR logic)
+LAMINAR_HINTS=0 npx lam summary --hints  # Still shows hints (flag wins)
 ```
 
-The environment variable takes precedence over `hints.enabled` in the config file.
+**Environment Variable Override:**
+
+```bash
+# Enable hints via environment variable
+LAMINAR_HINTS=1 npx lam summary
+
+# Works with or without CLI flag (OR logic)
+LAMINAR_HINTS=1 npx lam summary  # Shows hints (env var wins)
+```
+
+**Gating Behavior:**
+
+Hints are shown when **ANY** of the following is true:
+1. `--hints` flag is passed to `lam summary`
+2. `LAMINAR_HINTS=1` environment variable is set
+3. Both can be set simultaneously (redundant but allowed)
+
+The CLI flag and environment variable use **OR logic** - either one enables hints.
 
 ### Hint Detectors
 
@@ -5085,3 +5103,82 @@ npx lam diff api.spec/auth_flow --from last-pass --to latest
 4. **Enable `showTrends` with history:** Requires persistent test history tracking
 5. **Override with `LAMINAR_HINTS=1`:** Temporarily enable hints without config changes
 6. **Review suggested commands:** Hints include actionable next steps, not just diagnostics
+
+## Secret Redaction
+
+Laminar automatically redacts sensitive information from test artifacts to prevent accidental exposure of credentials.
+
+### Supported Secret Types
+
+The redaction system detects and redacts the following secret patterns:
+
+1. **JWT Tokens** — Pattern: `eyJ...` (standard JWT format)
+2. **AWS Access Keys** — Pattern: `AKIA[0-9A-Z]{16}`
+3. **AWS Secret Keys** — Pattern: `aws_secret_access_key = ...`
+4. **API Keys** — Pattern: `zz_live_*` or `zz_test_*` (16+ chars)
+5. **URL Credentials** — Pattern: `scheme://user:pass@host`
+6. **RSA Private Keys** — Pattern: `-----BEGIN RSA PRIVATE KEY-----`
+
+### Redaction Behavior
+
+**Deep Traversal:**
+- Redaction recursively processes all nested objects, arrays, and mixed structures
+- Works at any nesting depth (tested to 5+ levels)
+- Handles objects in arrays, arrays in objects, and complex combinations
+
+**Unicode Support:**
+- Redaction works correctly with unicode characters in surrounding text
+- Preserves unicode content while redacting secrets
+- Example: `"用户认证失败 token=eyJ... 🔐"` → `"用户认证失败 token=[REDACTED:jwt] 🔐"`
+
+**Edge Cases:**
+- Handles `null` and `undefined` values without errors
+- Preserves empty strings, arrays, and objects
+- Works with long strings (~1KB+) containing secrets
+
+**Replacement Format:**
+- `[REDACTED:jwt]` — JWT tokens
+- `[REDACTED:aws-key]` — AWS access keys
+- `[REDACTED:aws-secret]` — AWS secret keys
+- `[REDACTED:api-key]` — API keys
+- `[REDACTED:url-creds]` — URL credentials (preserves scheme and host)
+- `[REDACTED:private-key]` — Private keys
+
+### Known Limitations
+
+1. **API Key Minimum Length:** API keys must be at least 16 characters (pattern: `zz_{live|test}_[A-Za-z0-9]{16,}`)
+2. **Performance Considerations:** Very large strings (>10KB) may slow redaction; keep test data reasonable
+3. **Pattern-Based Only:** Redaction relies on regex patterns; custom secret formats require additional patterns
+4. **No Contextual Analysis:** Cannot detect secrets based on context (e.g., field names like "password")
+5. **URL Credential Format:** Only redacts credentials in standard URL format (`scheme://user:pass@host`)
+
+### Configuration
+
+**Enable/Disable Redaction:**
+```json
+{
+  "redaction": {
+    "enabled": true,
+    "secrets": true
+  }
+}
+```
+
+**Opt-Out (disable all redaction):**
+```json
+{
+  "redaction": {
+    "optOut": true
+  }
+}
+```
+
+### Testing Redaction
+
+See `tests/digest/redaction.spec.ts` and `tests/digest/redaction-edges.spec.ts` for comprehensive test coverage including:
+- Deeply nested structures (5+ levels)
+- Mixed nested structures (objects in arrays in objects)
+- Long strings with embedded secrets
+- Unicode text with secrets
+- Arrays of secrets
+- Null/undefined/empty edge cases

@@ -24,6 +24,10 @@ npx lam init
 # Run tests
 npx lam run --lane auto
 
+# Run specific tests by pattern
+npx lam run --lane ci --filter kernel
+npx lam run --lane ci --filter "connect.*data"
+
 # View results
 npx lam summary
 
@@ -39,7 +43,7 @@ npx lam repro
 
 **Basic Commands:**
 - `lam init` — Create laminar.config.json with defaults
-- `lam run` — Execute tests with structured logging
+- `lam run [--lane ci|pty|auto] [--filter <pattern>]` — Execute tests with structured logging
 - `lam summary` — List all test results
 - `lam digest` — Generate failure analysis digests
 - `lam show` — Inspect test artifacts and events
@@ -199,6 +203,8 @@ npm run test:ci
 ```
 
 **CI Note:** The `test:ci` script uses `--pool=threads` to avoid tinypool concurrency issues on Node 20 and 24. Tested on both LTS versions.
+
+**CI Artifacts:** Test reports for Node 20 and 24 are uploaded to GitHub Actions as artifacts (`test-reports-node-20`, `test-reports-node-24`) and retained for 30 days. Download from the [Actions tab](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml).
 
 **Auto-Debug Rerun:** For CI pipelines with fast triage, use:
 ```bash
@@ -578,6 +584,8 @@ npm run repro
 ```bash
 # Run tests
 lam run --lane auto
+lam run --lane ci --filter kernel
+lam run --lane pty --filter "wrapper.*"
 
 # Generate failure digests
 lam digest

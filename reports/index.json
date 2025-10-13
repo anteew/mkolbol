@@ -1,324 +1,302 @@
 {
-  "generated": "2025-10-12T23:11:45.645Z",
-  "totalTests": 29,
+  "generated": "2025-10-13T00:05:36.161Z",
+  "totalTests": 27,
   "artifacts": [
     {
-      "testName": "detects when expected events are missing from digest",
-      "status": "pass",
-      "duration": 8,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.633Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/detects_when_expected_events_are_missing_from_digest.jsonl"
-      }
-    },
-    {
-      "testName": "does not trigger when all expected events are present",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.634Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/does_not_trigger_when_all_expected_events_are_present.jsonl"
-      }
-    },
-    {
-      "testName": "does not trigger when no include rules exist",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.634Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/does_not_trigger_when_no_include_rules_exist.jsonl"
-      }
-    },
-    {
-      "testName": "detects when redaction rules exist but no fields were redacted",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.635Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/detects_when_redaction_rules_exist_but_no_fields_were_redacted.jsonl"
-      }
-    },
-    {
-      "testName": "does not trigger when redaction rules are applied",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.635Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/does_not_trigger_when_redaction_rules_are_applied.jsonl"
-      }
-    },
-    {
-      "testName": "does not trigger when no redaction rules exist",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.636Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/does_not_trigger_when_no_redaction_rules_exist.jsonl"
-      }
-    },
-    {
-      "testName": "detects when budget is nearly exhausted and many events dropped",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.636Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/detects_when_budget_is_nearly_exhausted_and_many_events_dropped.jsonl"
-      }
-    },
-    {
-      "testName": "does not trigger when budget utilization is low",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.637Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/does_not_trigger_when_budget_utilization_is_low.jsonl"
-      }
-    },
-    {
-      "testName": "does not trigger when budget is high but inclusion ratio is good",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.638Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/does_not_trigger_when_budget_is_high_but_inclusion_ratio_is_good.jsonl"
-      }
-    },
-    {
-      "testName": "detects new test failure with no history",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.638Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/detects_new_test_failure_with_no_history.jsonl"
-      }
-    },
-    {
-      "testName": "detects regression when test previously passed",
-      "status": "pass",
-      "duration": 22,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.639Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/detects_regression_when_test_previously_passed.jsonl"
-      }
-    },
-    {
-      "testName": "does not trigger when no history is provided",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.639Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/does_not_trigger_when_no_history_is_provided.jsonl"
-      }
-    },
-    {
-      "testName": "generates multiple hints when multiple conditions are met",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.639Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/generates_multiple_hints_when_multiple_conditions_are_met.jsonl"
-      }
-    },
-    {
-      "testName": "returns empty array when no hints are triggered",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.640Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/returns_empty_array_when_no_hints_are_triggered.jsonl"
-      }
-    },
-    {
-      "testName": "formats hints as markdown correctly",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.640Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/formats_hints_as_markdown_correctly.jsonl"
-      }
-    },
-    {
-      "testName": "handles empty hints array",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.640Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/handles_empty_hints_array.jsonl"
-      }
-    },
-    {
-      "testName": "handles hints with no suggested commands",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.641Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/handles_hints_with_no_suggested_commands.jsonl"
-      }
-    },
-    {
-      "testName": "generates hints in digest output",
-      "status": "pass",
-      "duration": 6,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.641Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/generates_hints_in_digest_output.jsonl"
-      }
-    },
-    {
-      "testName": "writes hints to separate files",
+      "testName": "detects identical digests (no diff)",
       "status": "pass",
       "duration": 4,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.641Z",
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.146Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/writes_hints_to_separate_files.jsonl"
+        "caseFile": "reports/diff.spec/detects_identical_digests__no_diff_.jsonl"
       }
     },
     {
-      "testName": "does not write hint files when no hints exist",
+      "testName": "detects added events in new digest",
       "status": "pass",
       "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.642Z",
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.147Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/does_not_write_hint_files_when_no_hints_exist.jsonl"
+        "caseFile": "reports/diff.spec/detects_added_events_in_new_digest.jsonl"
       }
     },
     {
-      "testName": "respects LAMINAR_HINTS=1 environment variable",
+      "testName": "detects removed events from old digest",
       "status": "pass",
       "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.642Z",
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.148Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/respects_LAMINAR_HINTS_1_environment_variable.jsonl"
+        "caseFile": "reports/diff.spec/detects_removed_events_from_old_digest.jsonl"
       }
     },
     {
-      "testName": "respects LAMINAR_HINTS=0 environment variable",
+      "testName": "detects changed suspects (score changes)",
       "status": "pass",
       "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.642Z",
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.148Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/respects_LAMINAR_HINTS_0_environment_variable.jsonl"
+        "caseFile": "reports/diff.spec/detects_changed_suspects__score_changes_.jsonl"
       }
     },
     {
-      "testName": "handles missing LAMINAR_HINTS environment variable",
+      "testName": "detects changed codeframes",
       "status": "pass",
       "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.643Z",
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.149Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/handles_missing_LAMINAR_HINTS_environment_variable.jsonl"
+        "caseFile": "reports/diff.spec/detects_changed_codeframes.jsonl"
       }
     },
     {
-      "testName": "simulates --hints flag behavior",
+      "testName": "detects mixed changes (events, suspects, codeframes)",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.149Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/detects_mixed_changes__events__suspects__codeframes_.jsonl"
+      }
+    },
+    {
+      "testName": "tracks metadata changes (duration, location, error)",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.149Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/tracks_metadata_changes__duration__location__error_.jsonl"
+      }
+    },
+    {
+      "testName": "calculates duration delta correctly",
       "status": "pass",
       "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.643Z",
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.152Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/simulates_--hints_flag_behavior.jsonl"
+        "caseFile": "reports/diff.spec/calculates_duration_delta_correctly.jsonl"
       }
     },
     {
-      "testName": "combines env var and flag (OR logic)",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.643Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/combines_env_var_and_flag__OR_logic_.jsonl"
-      }
-    },
-    {
-      "testName": "combines env var and flag (both false)",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.644Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/combines_env_var_and_flag__both_false_.jsonl"
-      }
-    },
-    {
-      "testName": "generates compact console hint for budget-clipped",
+      "testName": "diffs Go test digests correctly",
       "status": "pass",
       "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.644Z",
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.152Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/generates_compact_console_hint_for_budget-clipped.jsonl"
+        "caseFile": "reports/diff.spec/diffs_Go_test_digests_correctly.jsonl"
       }
     },
     {
-      "testName": "generates compact console hint for redaction-mismatch",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.644Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/generates_compact_console_hint_for_redaction-mismatch.jsonl"
-      }
-    },
-    {
-      "testName": "generates compact console hint for error-signal",
+      "testName": "handles Go test event structure",
       "status": "pass",
       "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0",
-      "timestamp": "2025-10-12T23:11:45.645Z",
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.153Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hints.spec/generates_compact_console_hint_for_error-signal.jsonl"
+        "caseFile": "reports/diff.spec/handles_Go_test_event_structure.jsonl"
+      }
+    },
+    {
+      "testName": "generates valid JSON output",
+      "status": "pass",
+      "duration": 2,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.153Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/generates_valid_JSON_output.jsonl"
+      }
+    },
+    {
+      "testName": "generates readable markdown output",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.154Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/generates_readable_markdown_output.jsonl"
+      }
+    },
+    {
+      "testName": "writes diff to file in JSON format",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.154Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/writes_diff_to_file_in_JSON_format.jsonl"
+      }
+    },
+    {
+      "testName": "writes diff to file in markdown format",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.155Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/writes_diff_to_file_in_markdown_format.jsonl"
+      }
+    },
+    {
+      "testName": "performs diff and writes output",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.155Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/performs_diff_and_writes_output.jsonl"
+      }
+    },
+    {
+      "testName": "works without output file",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.155Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/works_without_output_file.jsonl"
+      }
+    },
+    {
+      "testName": "handles digests with no suspects",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.156Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/handles_digests_with_no_suspects.jsonl"
+      }
+    },
+    {
+      "testName": "handles digests with no codeframes",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.156Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/handles_digests_with_no_codeframes.jsonl"
+      }
+    },
+    {
+      "testName": "includes seed and environment information",
+      "status": "fail",
+      "duration": 7,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.157Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/includes_seed_and_environment_information.jsonl"
+      }
+    },
+    {
+      "testName": "includes minimal logs (not full logs)",
+      "status": "fail",
+      "duration": 2,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.157Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/includes_minimal_logs__not_full_logs_.jsonl"
+      }
+    },
+    {
+      "testName": "includes valid reproduction commands",
+      "status": "fail",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.157Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/includes_valid_reproduction_commands.jsonl"
+      }
+    },
+    {
+      "testName": "includes complete metadata",
+      "status": "fail",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.158Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/includes_complete_metadata.jsonl"
+      }
+    },
+    {
+      "testName": "creates both JSON and markdown outputs",
+      "status": "fail",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.158Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/creates_both_JSON_and_markdown_outputs.jsonl"
+      }
+    },
+    {
+      "testName": "handles Go test case bundles",
+      "status": "fail",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.158Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/handles_Go_test_case_bundles.jsonl"
+      }
+    },
+    {
+      "testName": "extracts Go test phase information",
+      "status": "fail",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.159Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/extracts_Go_test_phase_information.jsonl"
+      }
+    },
+    {
+      "testName": "handles missing artifact file gracefully",
+      "status": "fail",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.159Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/handles_missing_artifact_file_gracefully.jsonl"
+      }
+    },
+    {
+      "testName": "handles case with no seed in events",
+      "status": "fail",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0",
+      "timestamp": "2025-10-13T00:05:36.159Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/diff.spec/handles_case_with_no_seed_in_events.jsonl"
       }
     }
   ],
@@ -329,7 +307,11 @@
     "os": "Linux 6.8.0-85-generic",
     "seed": 42,
     "envVars": {
-      "NODE_ENV": "test"
+      "NODE_ENV": "test",
+      "TEST_SEED": "42",
+      "LAMINAR_DEBUG": "1",
+      "LAMINAR_SUITE": "diff.spec",
+      "LAMINAR_CASE": "handles_case_with_no_seed_in_events"
     }
   }
 }

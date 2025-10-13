@@ -9,11 +9,13 @@ export default class JSONLReporter implements Reporter {
     private caseStreams;
     private environment;
     private testSeed;
+    private pendingWrites;
     constructor();
     private captureEnvironment;
     onInit(ctx: Vitest): void;
     onCollected(): void;
-    onFinished(files?: File[]): void;
+    onFinished(files?: File[]): Promise<void>;
+    private writeSummaryLine;
     private processFiles;
     private processTask;
     private reportTest;

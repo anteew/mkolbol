@@ -1,30 +1,28 @@
-{"type":"environment","nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}}
-{"status":"pass","duration":8,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/detects_when_expected_events_are_missing_from_digest.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/does_not_trigger_when_all_expected_events_are_present.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/does_not_trigger_when_no_include_rules_exist.jsonl","seed":42}
-{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/detects_when_redaction_rules_exist_but_no_fields_were_redacted.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/does_not_trigger_when_redaction_rules_are_applied.jsonl","seed":42}
-{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/does_not_trigger_when_no_redaction_rules_exist.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/detects_when_budget_is_nearly_exhausted_and_many_events_dropped.jsonl","seed":42}
-{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/does_not_trigger_when_budget_utilization_is_low.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/does_not_trigger_when_budget_is_high_but_inclusion_ratio_is_good.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/detects_new_test_failure_with_no_history.jsonl","seed":42}
-{"status":"pass","duration":22,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/detects_regression_when_test_previously_passed.jsonl","seed":42}
-{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/does_not_trigger_when_no_history_is_provided.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/generates_multiple_hints_when_multiple_conditions_are_met.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/returns_empty_array_when_no_hints_are_triggered.jsonl","seed":42}
-{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/formats_hints_as_markdown_correctly.jsonl","seed":42}
-{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/handles_empty_hints_array.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/handles_hints_with_no_suggested_commands.jsonl","seed":42}
-{"status":"pass","duration":6,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/generates_hints_in_digest_output.jsonl","seed":42}
-{"status":"pass","duration":4,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/writes_hints_to_separate_files.jsonl","seed":42}
-{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/does_not_write_hint_files_when_no_hints_exist.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/respects_LAMINAR_HINTS_1_environment_variable.jsonl","seed":42}
-{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/respects_LAMINAR_HINTS_0_environment_variable.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/handles_missing_LAMINAR_HINTS_environment_variable.jsonl","seed":42}
-{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/simulates_--hints_flag_behavior.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/combines_env_var_and_flag__OR_logic_.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/combines_env_var_and_flag__both_false_.jsonl","seed":42}
-{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/generates_compact_console_hint_for_budget-clipped.jsonl","seed":42}
-{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/generates_compact_console_hint_for_redaction-mismatch.jsonl","seed":42}
-{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/hints/hints.spec.ts:0","artifactURI":"reports/hints.spec/generates_compact_console_hint_for_error-signal.jsonl","seed":42}
+{"type":"environment","nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42","LAMINAR_DEBUG":"1","LAMINAR_SUITE":"diff.spec","LAMINAR_CASE":"handles_case_with_no_seed_in_events"}}
+{"status":"pass","duration":4,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/detects_identical_digests__no_diff_.jsonl","seed":42}
+{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/detects_added_events_in_new_digest.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/detects_removed_events_from_old_digest.jsonl","seed":42}
+{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/detects_changed_suspects__score_changes_.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/detects_changed_codeframes.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/detects_mixed_changes__events__suspects__codeframes_.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/tracks_metadata_changes__duration__location__error_.jsonl","seed":42}
+{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/calculates_duration_delta_correctly.jsonl","seed":42}
+{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/diffs_Go_test_digests_correctly.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/handles_Go_test_event_structure.jsonl","seed":42}
+{"status":"pass","duration":2,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/generates_valid_JSON_output.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/generates_readable_markdown_output.jsonl","seed":42}
+{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/writes_diff_to_file_in_JSON_format.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/writes_diff_to_file_in_markdown_format.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/performs_diff_and_writes_output.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/works_without_output_file.jsonl","seed":42}
+{"status":"pass","duration":0,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/handles_digests_with_no_suspects.jsonl","seed":42}
+{"status":"pass","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/handles_digests_with_no_codeframes.jsonl","seed":42}
+{"status":"fail","duration":7,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/includes_seed_and_environment_information.jsonl","seed":42,"error":"process.chdir() is not supported in workers"}
+{"status":"fail","duration":2,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/includes_minimal_logs__not_full_logs_.jsonl","seed":42,"error":"process.chdir() is not supported in workers"}
+{"status":"fail","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/includes_valid_reproduction_commands.jsonl","seed":42,"error":"process.chdir() is not supported in workers"}
+{"status":"fail","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/includes_complete_metadata.jsonl","seed":42,"error":"process.chdir() is not supported in workers"}
+{"status":"fail","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/creates_both_JSON_and_markdown_outputs.jsonl","seed":42,"error":"process.chdir() is not supported in workers"}
+{"status":"fail","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/handles_Go_test_case_bundles.jsonl","seed":42,"error":"process.chdir() is not supported in workers"}
+{"status":"fail","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/extracts_Go_test_phase_information.jsonl","seed":42,"error":"process.chdir() is not supported in workers"}
+{"status":"fail","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/handles_missing_artifact_file_gracefully.jsonl","seed":42,"error":"process.chdir() is not supported in workers"}
+{"status":"fail","duration":1,"location":"/srv/repos0/mkolbol/tests/digest/diff.spec.ts:0","artifactURI":"reports/diff.spec/handles_case_with_no_seed_in_events.jsonl","seed":42,"error":"process.chdir() is not supported in workers"}

@@ -71,7 +71,8 @@ export class DigestGenerator {
         }
         const events = this.loadEvents(artifactURI);
         const processedEvents = this.applyRules(events);
-        const budgetedEvents = this.enforceBudget(processedEvents);
+        const { events: redactedEvents, count: redactedCount } = this.applySecretRedactions(processedEvents);
+        const budgetedEvents = this.enforceBudget(redactedEvents);
         const suspects = this.identifySuspects(events);
         const codeframes = this.extractCodeFrames(events);
         const budgetLimit = (this.config.budget?.kb || 10) * 1024;
@@ -88,7 +89,7 @@ export class DigestGenerator {
             summary: {
                 totalEvents: events.length,
                 includedEvents: budgetedEvents.length,
-                redactedFields: 0,
+                redactedFields: redactedCount,
                 budgetUsed,
                 budgetLimit,
             },
@@ -176,6 +177,65 @@ export class DigestGenerator {
             return event;
         });
         return result;
+    }
+    // Apply built-in secret redaction patterns to included events, unless disabled via config
+    applySecretRedactions(events) {
+        const redaction = this.config.redaction || {};
+        if (redaction.optOut === true || redaction.enabled === false || redaction.secrets === false) {
+            return { events, count: 0 };
+        }
+        let total = 0;
+        const redactValue = (val) => {
+            if (typeof val === 'string') {
+                // Private key (replace entire value)
+                if (val.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+                    return { value: '[REDACTED:private-key]', count: 1 };
+                }
+                let out = val;
+                let count = 0;
+                // JWT tokens
+                const jwtRe = /\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\b/g;
+                out = out.replace(jwtRe, () => { count++; return '[REDACTED:jwt]'; });
+                // AWS access key
+                const awsKeyRe = /\bAKIA[0-9A-Z]{16}\b/g;
+                out = out.replace(awsKeyRe, () => { count++; return '[REDACTED:aws-key]'; });
+                // AWS secret in common config line
+                const awsSecretLineRe = /(aws_secret_access_key\s*=\s*)([^\s]+)/g;
+                out = out.replace(awsSecretLineRe, (_, p1) => { count++; return p1 + '[REDACTED:aws-secret]'; });
+                // API keys (sanitized prefix to avoid push protection)
+                const apiKeyRe = /\bzz_(?:live|test)_[A-Za-z0-9]{16,}\b/g;
+                out = out.replace(apiKeyRe, () => { count++; return '[REDACTED:api-key]'; });
+                // URL credentials: scheme://user:pass@host → scheme://[REDACTED:url-creds]@host
+                const urlCredsRe = /(\b[a-zA-Z][a-zA-Z0-9+.-]*:\/\/)([^:\/@\s]+):([^@\s]+)@/g;
+                out = out.replace(urlCredsRe, (_, p1) => { count++; return p1 + '[REDACTED:url-creds]@'; });
+                return { value: out, count };
+            }
+            if (Array.isArray(val)) {
+                let totalCount = 0;
+                const arr = val.map(v => { const r = redactValue(v); totalCount += r.count; return r.value; });
+                return { value: arr, count: totalCount };
+            }
+            if (val && typeof val === 'object') {
+                let totalCount = 0;
+                const obj = Array.isArray(val) ? [] : { ...val };
+                for (const k of Object.keys(val)) {
+                    const r = redactValue(val[k]);
+                    obj[k] = r.value;
+                    totalCount += r.count;
+                }
+                return { value: obj, count: totalCount };
+            }
+            return { value: val, count: 0 };
+        };
+        const transformed = events.map(e => {
+            if (e.payload !== undefined) {
+                const r = redactValue(e.payload);
+                total += r.count;
+                return { ...e, payload: r.value };
+            }
+            return e;
+        });
+        return { events: transformed, count: total };
     }
     matchEvent(event, match) {
         if (match.evt) {

@@ -1,3 +1,3 @@
-{"ts":1760310689481,"lvl":"info","case":"handles malformed summary file","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760310689482,"lvl":"info","case":"handles malformed summary file","phase":"execution","evt":"test.run"}
-{"ts":1760310689483,"lvl":"info","case":"handles malformed summary file","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760313915871,"lvl":"info","case":"handles malformed summary file","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
+{"ts":1760313915872,"lvl":"info","case":"handles malformed summary file","phase":"execution","evt":"test.run"}
+{"ts":1760313915873,"lvl":"info","case":"handles malformed summary file","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
