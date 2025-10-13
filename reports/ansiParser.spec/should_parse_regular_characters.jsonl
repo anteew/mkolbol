@@ -1,3 +1,3 @@
-{"ts":1760313915164,"lvl":"info","case":"should parse regular characters","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760313915165,"lvl":"info","case":"should parse regular characters","phase":"execution","evt":"test.run"}
-{"ts":1760313915166,"lvl":"info","case":"should parse regular characters","phase":"teardown","evt":"case.end","payload":{"duration":6,"status":"passed"}}
+{"ts":1760333985304,"lvl":"info","case":"should parse regular characters","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760333985305,"lvl":"info","case":"should parse regular characters","phase":"execution","evt":"test.run"}
+{"ts":1760333985306,"lvl":"info","case":"should parse regular characters","phase":"teardown","evt":"case.end","payload":{"duration":5,"status":"passed"}}
