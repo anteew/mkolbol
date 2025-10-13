@@ -52,6 +52,7 @@ export default class JSONLReporter implements Reporter {
   private caseStreams = new Map<string, fs.WriteStream>();
   private environment: RuntimeEnvironment;
   private testSeed: number;
+  private pendingWrites: Promise<void>[] = [];
 
   constructor() {
     // Fixed seed for determinism (can be overridden via env var)
@@ -91,10 +92,11 @@ export default class JSONLReporter implements Reporter {
     }
     this.summaryStream = fs.createWriteStream(this.summaryPath, { flags: 'a' });
     this.indexEntries = [];
+    this.pendingWrites = [];
     
     // Write environment info to summary on init
     if (this.summaryStream) {
-      this.summaryStream.write(JSON.stringify({
+      this.writeSummaryLine(JSON.stringify({
         type: 'environment',
         ...this.environment
       }) + '\n');
@@ -106,19 +108,54 @@ export default class JSONLReporter implements Reporter {
     this.processFiles(files);
   }
 
-  onFinished(files?: File[]): void {
+  async onFinished(files?: File[]): Promise<void> {
     if (files) {
       this.processFiles(files);
     }
-    if (this.summaryStream) {
-      this.summaryStream.end();
-    }
-    // Close all per-case streams
+    
+    // Wait for all pending writes to complete
+    await Promise.all(this.pendingWrites);
+    this.pendingWrites = [];
+    
+    // Close all per-case streams first and wait for them
+    const caseStreamPromises: Promise<void>[] = [];
     for (const stream of this.caseStreams.values()) {
-      stream.end();
+      caseStreamPromises.push(new Promise((resolve, reject) => {
+        stream.end((err?: Error) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      }));
     }
+    await Promise.all(caseStreamPromises);
     this.caseStreams.clear();
+    
+    // Close summary stream and wait for it to finish
+    if (this.summaryStream) {
+      await new Promise<void>((resolve, reject) => {
+        this.summaryStream!.end((err?: Error) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    }
+    
+    // Generate index only after all streams are flushed (deterministic order: summary.jsonl → index.json)
     this.generateIndex();
+  }
+
+  private writeSummaryLine(line: string): void {
+    if (!this.summaryStream) return;
+    
+    const writePromise = new Promise<void>((resolve, reject) => {
+      if (!this.summaryStream!.write(line)) {
+        this.summaryStream!.once('drain', () => resolve());
+      } else {
+        resolve();
+      }
+    });
+    
+    this.pendingWrites.push(writePromise);
   }
 
   private processFiles(files: File[]): void {
@@ -180,9 +217,7 @@ export default class JSONLReporter implements Reporter {
       summary.error = result.errors.map(e => e.message || String(e)).join('; ');
     }
 
-    if (this.summaryStream) {
-      this.summaryStream.write(JSON.stringify(summary) + '\n');
-    }
+    this.writeSummaryLine(JSON.stringify(summary) + '\n');
 
     const suitePath = file ? path.basename(file.filepath, path.extname(file.filepath)) : 'unknown';
     const digestPath = `reports/${suitePath}/digest.jsonl`;
@@ -211,17 +246,12 @@ export default class JSONLReporter implements Reporter {
     const dir = path.dirname(artifactPath);
     fs.mkdirSync(dir, { recursive: true });
 
-    // Remove existing file if it exists
-    if (fs.existsSync(artifactPath)) {
-      fs.unlinkSync(artifactPath);
-    }
-
-    const stream = fs.createWriteStream(artifactPath, { flags: 'a' });
     const ts = Date.now();
+    const events: string[] = [];
 
-    // Write test lifecycle events
+    // Build test lifecycle events
     // 1. Test begin event with environment and seed
-    stream.write(JSON.stringify({
+    events.push(JSON.stringify({
       ts,
       lvl: 'info',
       case: caseName,
@@ -229,21 +259,21 @@ export default class JSONLReporter implements Reporter {
       evt: 'case.begin',
       env: this.environment,
       seed: this.testSeed
-    }) + '\n');
+    }));
 
     // 2. Test execution event
-    stream.write(JSON.stringify({
+    events.push(JSON.stringify({
       ts: ts + 1,
       lvl: 'info',
       case: caseName,
       phase: 'execution',
       evt: 'test.run'
-    }) + '\n');
+    }));
 
     // 3. If there are errors, write error events
     if (errors && errors.length > 0) {
       errors.forEach((error, idx) => {
-        stream.write(JSON.stringify({
+        events.push(JSON.stringify({
           ts: ts + 2 + idx,
           lvl: 'error',
           case: caseName,
@@ -253,12 +283,12 @@ export default class JSONLReporter implements Reporter {
             message: error.message || String(error),
             stack: error.stack
           }
-        }) + '\n');
+        }));
       });
     }
 
     // 4. Test end event with result
-    stream.write(JSON.stringify({
+    events.push(JSON.stringify({
       ts: ts + 2 + (errors?.length || 0),
       lvl: state === 'fail' ? 'error' : 'info',
       case: caseName,
@@ -268,9 +298,12 @@ export default class JSONLReporter implements Reporter {
         duration,
         status: state === 'pass' ? 'passed' : state === 'fail' ? 'failed' : 'skipped'
       }
-    }) + '\n');
+    }));
 
-    stream.end();
+    // Atomic write: write to temp file then rename
+    const tempPath = `${artifactPath}.tmp`;
+    fs.writeFileSync(tempPath, events.join('\n') + '\n');
+    fs.renameSync(tempPath, artifactPath);
   }
 
   private generateIndex(): void {
@@ -281,6 +314,9 @@ export default class JSONLReporter implements Reporter {
       environment: this.environment,
     };
 
-    fs.writeFileSync(this.indexPath, JSON.stringify(index, null, 2));
+    // Atomic write: write to temp file then rename
+    const tempPath = `${this.indexPath}.tmp`;
+    fs.writeFileSync(tempPath, JSON.stringify(index, null, 2));
+    fs.renameSync(tempPath, this.indexPath);
   }
 }

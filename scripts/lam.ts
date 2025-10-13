@@ -32,10 +32,11 @@ CONFIGURATION
 TEST EXECUTION
   run [--lane ci|pty|auto] [--filter <p>]  Run tests with Laminar instrumentation
                                             --lane: execution mode (auto=smart detection)
-                                            --filter: vitest pattern to run specific tests
+                                            --filter: test name pattern (uses vitest -t flag)
 
 ANALYSIS & REPORTING
-  summary                                   Show test results summary from last run
+  summary [--hints]                         Show test results summary from last run
+                                            --hints: Show triage hints for failures (OR with LAMINAR_HINTS=1)
   show --case <suite/case>                  Display detailed logs for a specific test case
        [--around <pattern>]                 Context pattern to search for (default: assert.fail)
        [--window <n>]                       Lines of context around pattern (default: 50)
@@ -217,17 +218,19 @@ async function main() {
       if (lane === 'auto') {
         if (filter) {
           // auto with filter: run threaded, then debug rerun single file
-          sh('vitest', ['run', '--pool=threads', '--reporter=./dist/test/reporter/jsonlReporter.js', '--filter', filter]);
+          sh('vitest', ['run', '--pool=threads', '--reporter=./dist/test/reporter/jsonlReporter.js', '-t', filter]);
           sh('npm', ['run','laminar:run']);
         } else {
           sh('npm', ['run','laminar:run']);
         }
       } else if (lane === 'ci') {
         const a = ['run','test:ci'];
-        if (filter) a.push('--', '--filter', filter);
+        if (filter) a.push('--', '-t', filter);
         sh('npm', a);
       } else if (lane === 'pty') {
-        sh('npm', ['run','test:pty']);
+        const a = ['run','test:pty'];
+        if (filter) a.push('--', '-t', filter);
+        sh('npm', a);
       } else {
         console.error('Unknown lane. Use ci|pty|auto');
         process.exit(1);

@@ -1,0 +1,69 @@
+diff --git a/README.md b/README.md
+index existing..modified 100644
+--- a/README.md
++++ b/README.md
+@@ -23,6 +23,10 @@ npx lam init
+ # Run tests
+ npx lam run --lane auto
+ 
++# Run specific tests by pattern
++npx lam run --lane ci --filter kernel
++npx lam run --lane ci --filter "connect.*data"
++
+ # View results
+ npx lam summary
+ 
+@@ -40,7 +44,7 @@ npx lam repro
+ 
+ **Basic Commands:**
+ - `lam init` — Create laminar.config.json with defaults
+-- `lam run` — Execute tests with structured logging
++- `lam run [--lane ci|pty|auto] [--filter <pattern>]` — Execute tests with structured logging
+ - `lam summary` — List all test results
+ - `lam digest` — Generate failure analysis digests
+ - `lam show` — Inspect test artifacts and events
+@@ -581,6 +585,8 @@ See [docs/testing/laminar.md](docs/testing/laminar.md) for complete documentati
+ ```bash
+ # Run tests
+ lam run --lane auto
++lam run --lane ci --filter kernel
++lam run --lane pty --filter "wrapper.*"
+ 
+ # Generate failure digests
+ lam digest
+diff --git a/scripts/lam.ts b/scripts/lam.ts
+index 0a3d164..62141e1 100755
+--- a/scripts/lam.ts
++++ b/scripts/lam.ts
+@@ -32,7 +32,7 @@ CONFIGURATION
+ TEST EXECUTION
+   run [--lane ci|pty|auto] [--filter <p>]  Run tests with Laminar instrumentation
+                                             --lane: execution mode (auto=smart detection)
+-                                            --filter: vitest pattern to run specific tests
++                                            --filter: test name pattern (uses vitest -t flag)
+ 
+ ANALYSIS & REPORTING
+   summary                                   Show test results summary from last run
+@@ -217,17 +217,19 @@ async function main() {
+       if (lane === 'auto') {
+         if (filter) {
+           // auto with filter: run threaded, then debug rerun single file
+-          sh('vitest', ['run', '--pool=threads', '--reporter=./dist/test/reporter/jsonlReporter.js', '--filter', filter]);
++          sh('vitest', ['run', '--pool=threads', '--reporter=./dist/test/reporter/jsonlReporter.js', '-t', filter]);
+           sh('npm', ['run','laminar:run']);
+         } else {
+           sh('npm', ['run','laminar:run']);
+         }
+       } else if (lane === 'ci') {
+         const a = ['run','test:ci'];
+-        if (filter) a.push('--', '--filter', filter);
++        if (filter) a.push('--', '-t', filter);
+         sh('npm', a);
+       } else if (lane === 'pty') {
+-        sh('npm', ['run','test:pty']);
++        const a = ['run','test:pty'];
++        if (filter) a.push('--', '-t', filter);
++        sh('npm', a);
+       } else {
+         console.error('Unknown lane. Use ci|pty|auto');
+         process.exit(1);

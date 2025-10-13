@@ -1,3 +1,3 @@
-{"ts":1760310689100,"lvl":"info","case":"handles failed tests with error events","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760310689101,"lvl":"info","case":"handles failed tests with error events","phase":"execution","evt":"test.run"}
-{"ts":1760310689102,"lvl":"info","case":"handles failed tests with error events","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760313915031,"lvl":"info","case":"handles failed tests with error events","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
+{"ts":1760313915032,"lvl":"info","case":"handles failed tests with error events","phase":"execution","evt":"test.run"}
+{"ts":1760313915033,"lvl":"info","case":"handles failed tests with error events","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

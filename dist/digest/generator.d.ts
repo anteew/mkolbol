@@ -7,6 +7,11 @@ export interface DigestConfig {
     };
     rules?: DigestRule[];
     enabled?: boolean;
+    redaction?: {
+        enabled?: boolean;
+        secrets?: boolean;
+        optOut?: boolean;
+    };
 }
 export interface DigestRule {
     match: {
@@ -71,6 +76,7 @@ export declare class DigestGenerator {
     generateDigest(caseName: string, status: 'pass' | 'fail' | 'skip', duration: number, location: string, artifactURI: string, error?: string): Promise<DigestOutput | null>;
     private loadEvents;
     private applyRules;
+    private applySecretRedactions;
     private matchEvent;
     private matchPattern;
     private enforceBudget;

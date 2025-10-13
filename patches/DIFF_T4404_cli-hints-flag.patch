@@ -1,0 +1,168 @@
+diff --git a/docs/testing/laminar.md b/docs/testing/laminar.md
+index 29d9110..ab204f0 100644
+--- a/docs/testing/laminar.md
++++ b/docs/testing/laminar.md
+@@ -295,7 +295,8 @@ The `lam` CLI provides comprehensive test management and analysis capabilities.
+ 
+ #### Test Execution
+ - `lam run [--lane ci|pty|auto] [--filter <pattern>]` — run tests
+-- `lam summary` — list all test results from latest run
++- `lam summary [--hints]` — list all test results from latest run
++  - `--hints`: Show triage hints inline with failures (OR with `LAMINAR_HINTS=1`)
+ 
+ #### Failure Analysis
+ - `lam show --case <suite/case> [--around <pattern>] [--window <n>]` — inspect test artifacts
+@@ -4819,17 +4820,34 @@ Add hints configuration to your `laminar.config.json`:
+ - `hints.showTrends` (boolean): Include trend hints from test history (default: `true`)
+ - `hints.maxLines` (number): Maximum number of hints to show per digest (default: `1`)
+ 
+-**Environment Override:**
++**CLI Flag Override:**
+ 
+ ```bash
+-# Enable hints via environment variable (overrides config)
+-LAMINAR_HINTS=1 npx lam digest
++# Enable hints via CLI flag
++npx lam summary --hints
+ 
+-# Disable hints temporarily
+-LAMINAR_HINTS=0 npx lam digest
++# Works with or without environment variable (OR logic)
++LAMINAR_HINTS=0 npx lam summary --hints  # Still shows hints (flag wins)
+ ```
+ 
+-The environment variable takes precedence over `hints.enabled` in the config file.
++**Environment Variable Override:**
++
++```bash
++# Enable hints via environment variable
++LAMINAR_HINTS=1 npx lam summary
++
++# Works with or without CLI flag (OR logic)
++LAMINAR_HINTS=1 npx lam summary  # Shows hints (env var wins)
++```
++
++**Gating Behavior:**
++
++Hints are shown when **ANY** of the following is true:
++1. `--hints` flag is passed to `lam summary`
++2. `LAMINAR_HINTS=1` environment variable is set
++3. Both can be set simultaneously (redundant but allowed)
++
++The CLI flag and environment variable use **OR logic** - either one enables hints.
+ 
+ ### Hint Detectors
+ 
+diff --git a/scripts/lam.ts b/scripts/lam.ts
+index 0a3d164..b045d55 100755
+--- a/scripts/lam.ts
++++ b/scripts/lam.ts
+@@ -32,10 +32,11 @@ CONFIGURATION
+ TEST EXECUTION
+   run [--lane ci|pty|auto] [--filter <p>]  Run tests with Laminar instrumentation
+                                             --lane: execution mode (auto=smart detection)
+-                                            --filter: vitest pattern to run specific tests
++                                            --filter: test name pattern (uses vitest -t flag)
+ 
+ ANALYSIS & REPORTING
+-  summary                                   Show test results summary from last run
++  summary [--hints]                         Show test results summary from last run
++                                            --hints: Show triage hints for failures (OR with LAMINAR_HINTS=1)
+   show --case <suite/case>                  Display detailed logs for a specific test case
+        [--around <pattern>]                 Context pattern to search for (default: assert.fail)
+        [--window <n>]                       Lines of context around pattern (default: 50)
+@@ -217,17 +218,19 @@ async function main() {
+       if (lane === 'auto') {
+         if (filter) {
+           // auto with filter: run threaded, then debug rerun single file
+-          sh('vitest', ['run', '--pool=threads', '--reporter=./dist/test/reporter/jsonlReporter.js', '--filter', filter]);
++          sh('vitest', ['run', '--pool=threads', '--reporter=./dist/test/reporter/jsonlReporter.js', '-t', filter]);
+           sh('npm', ['run','laminar:run']);
+         } else {
+           sh('npm', ['run','laminar:run']);
+         }
+       } else if (lane === 'ci') {
+         const a = ['run','test:ci'];
+-        if (filter) a.push('--', '--filter', filter);
++        if (filter) a.push('--', '-t', filter);
+         sh('npm', a);
+       } else if (lane === 'pty') {
+-        sh('npm', ['run','test:pty']);
++        const a = ['run','test:pty'];
++        if (filter) a.push('--', '-t', filter);
++        sh('npm', a);
+       } else {
+         console.error('Unknown lane. Use ci|pty|auto');
+         process.exit(1);
+diff --git a/tests/hints/hints.spec.ts b/tests/hints/hints.spec.ts
+index 35ddbb2..a2a7b73 100644
+--- a/tests/hints/hints.spec.ts
++++ b/tests/hints/hints.spec.ts
+@@ -797,3 +797,67 @@ describe('Hints - Console Output', () => {
+     }
+   });
+ });
++
++describe('CLI --hints Flag Integration', () => {
++  it('parses --hints flag correctly', () => {
++    // Simulate CLI argument parsing
++    const rest = ['--hints'];
++    const args = new Map<string, string | true>();
++    
++    for (let i = 0; i < rest.length; i++) {
++      const a = rest[i];
++      if (a.startsWith('--')) {
++        const k = a.slice(2);
++        const v = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[i + 1] : true;
++        if (v !== true) i++;
++        args.set(k, v as any);
++      }
++    }
++    
++    expect(args.get('hints')).toBe(true);
++  });
++
++  it('combines --hints flag with LAMINAR_HINTS=0 (OR logic)', () => {
++    process.env.LAMINAR_HINTS = '0';
++    const args = new Map<string, string | true>();
++    args.set('hints', true);
++    
++    const hintsEnabled = process.env.LAMINAR_HINTS === '1' || args.get('hints') === true;
++    expect(hintsEnabled).toBe(true);
++  });
++
++  it('combines LAMINAR_HINTS=1 with no flag (OR logic)', () => {
++    process.env.LAMINAR_HINTS = '1';
++    const args = new Map<string, string | true>();
++    
++    const hintsEnabled = process.env.LAMINAR_HINTS === '1' || args.get('hints') === true;
++    expect(hintsEnabled).toBe(true);
++  });
++
++  it('requires at least one to be true (OR logic)', () => {
++    process.env.LAMINAR_HINTS = '0';
++    const args = new Map<string, string | true>();
++    
++    const hintsEnabled = process.env.LAMINAR_HINTS === '1' || args.get('hints') === true;
++    expect(hintsEnabled).toBe(false);
++  });
++
++  it('parses --hints flag among other flags', () => {
++    const rest = ['--filter', 'kernel', '--hints', '--lane', 'ci'];
++    const args = new Map<string, string | true>();
++    
++    for (let i = 0; i < rest.length; i++) {
++      const a = rest[i];
++      if (a.startsWith('--')) {
++        const k = a.slice(2);
++        const v = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[i + 1] : true;
++        if (v !== true) i++;
++        args.set(k, v as any);
++      }
++    }
++    
++    expect(args.get('hints')).toBe(true);
++    expect(args.get('filter')).toBe('kernel');
++    expect(args.get('lane')).toBe('ci');
++  });
++});

@@ -1,6 +1,0 @@
-{"ts":1760302765509,"lvl":"info","case":"unknown/basic-tests","phase":"setup","evt":"case.begin","payload":{"suite":"unknown","classname":"basic-tests","testName":"basic-tests"}}
-{"ts":1760302765510,"lvl":"info","case":"unknown/basic-tests","phase":"execution","evt":"test.run"}
-{"ts":1760302765516,"lvl":"info","case":"unknown/basic-tests","phase":"teardown","evt":"case.end","payload":{"duration":7,"status":"passed"}}
-{"ts":1760302765526,"lvl":"info","case":"unknown/basic-tests","phase":"setup","evt":"case.begin","payload":{"suite":"unknown","classname":"basic-tests","testName":"basic-tests"}}
-{"ts":1760302765527,"lvl":"info","case":"unknown/basic-tests","phase":"execution","evt":"test.run"}
-{"ts":1760302765534,"lvl":"info","case":"unknown/basic-tests","phase":"teardown","evt":"case.end","payload":{"duration":8,"status":"passed"}}

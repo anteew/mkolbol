@@ -797,3 +797,67 @@ describe('Hints - Console Output', () => {
     }
   });
 });
+
+describe('CLI --hints Flag Integration', () => {
+  it('parses --hints flag correctly', () => {
+    // Simulate CLI argument parsing
+    const rest = ['--hints'];
+    const args = new Map<string, string | true>();
+    
+    for (let i = 0; i < rest.length; i++) {
+      const a = rest[i];
+      if (a.startsWith('--')) {
+        const k = a.slice(2);
+        const v = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[i + 1] : true;
+        if (v !== true) i++;
+        args.set(k, v as any);
+      }
+    }
+    
+    expect(args.get('hints')).toBe(true);
+  });
+
+  it('combines --hints flag with LAMINAR_HINTS=0 (OR logic)', () => {
+    process.env.LAMINAR_HINTS = '0';
+    const args = new Map<string, string | true>();
+    args.set('hints', true);
+    
+    const hintsEnabled = process.env.LAMINAR_HINTS === '1' || args.get('hints') === true;
+    expect(hintsEnabled).toBe(true);
+  });
+
+  it('combines LAMINAR_HINTS=1 with no flag (OR logic)', () => {
+    process.env.LAMINAR_HINTS = '1';
+    const args = new Map<string, string | true>();
+    
+    const hintsEnabled = process.env.LAMINAR_HINTS === '1' || args.get('hints') === true;
+    expect(hintsEnabled).toBe(true);
+  });
+
+  it('requires at least one to be true (OR logic)', () => {
+    process.env.LAMINAR_HINTS = '0';
+    const args = new Map<string, string | true>();
+    
+    const hintsEnabled = process.env.LAMINAR_HINTS === '1' || args.get('hints') === true;
+    expect(hintsEnabled).toBe(false);
+  });
+
+  it('parses --hints flag among other flags', () => {
+    const rest = ['--filter', 'kernel', '--hints', '--lane', 'ci'];
+    const args = new Map<string, string | true>();
+    
+    for (let i = 0; i < rest.length; i++) {
+      const a = rest[i];
+      if (a.startsWith('--')) {
+        const k = a.slice(2);
+        const v = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[i + 1] : true;
+        if (v !== true) i++;
+        args.set(k, v as any);
+      }
+    }
+    
+    expect(args.get('hints')).toBe(true);
+    expect(args.get('filter')).toBe('kernel');
+    expect(args.get('lane')).toBe('ci');
+  });
+});

@@ -1,3 +1,3 @@
-{"ts":1760310689372,"lvl":"info","case":"overrides pack rules with local high-priority rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760310689373,"lvl":"info","case":"overrides pack rules with local high-priority rules","phase":"execution","evt":"test.run"}
-{"ts":1760310689374,"lvl":"info","case":"overrides pack rules with local high-priority rules","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760313915021,"lvl":"info","case":"overrides pack rules with local high-priority rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
+{"ts":1760313915022,"lvl":"info","case":"overrides pack rules with local high-priority rules","phase":"execution","evt":"test.run"}
+{"ts":1760313915023,"lvl":"info","case":"overrides pack rules with local high-priority rules","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
