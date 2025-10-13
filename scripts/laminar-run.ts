@@ -104,7 +104,7 @@ async function runFlakeDetection(reruns: number = 5) {
   
   // Use fixed seed for reproducibility
   const seed = '42';
-  const env = { TEST_SEED: seed };
+  const env: Record<string,string> = { TEST_SEED: seed };
   
   const stabilityMap = new Map<string, StabilityResult>();
   
@@ -226,7 +226,7 @@ async function main() {
   if (fs.existsSync('reports/summary.jsonl')) fs.unlinkSync('reports/summary.jsonl');
   
   // Set deterministic seed if not already set
-  const testEnv = process.env.TEST_SEED ? {} : { TEST_SEED: '42' };
+  const testEnv: Record<string,string> = process.env.TEST_SEED ? {} as Record<string,string> : { TEST_SEED: '42' };
   const status1 = run('npm', ['run', 'test:ci'], testEnv);
 
   const entries = parseSummary();
@@ -242,7 +242,7 @@ async function main() {
     const isPty = /ptyServerWrapper\.spec\.ts|multiModalOutput\.spec\.ts/.test(file);
     const suite = suiteFromLocation(f.location);
     const caseName = caseFromArtifact(f.artifactURI);
-    const env = { 
+    const env: Record<string,string> = { 
       LAMINAR_DEBUG: '1', 
       LAMINAR_SUITE: suite, 
       LAMINAR_CASE: caseName,
@@ -275,4 +275,3 @@ async function main() {
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
-

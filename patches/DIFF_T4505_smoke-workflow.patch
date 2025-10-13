@@ -1,0 +1,73 @@
+diff --git a/.github/workflows/smoke.yml b/.github/workflows/smoke.yml
+new file mode 100644
+index 0000000..e004d0c
+--- /dev/null
++++ b/.github/workflows/smoke.yml
+@@ -0,0 +1,67 @@
++name: Smoke Test
++
++on:
++  push:
++    branches: [ main ]
++  pull_request:
++    branches: [ main ]
++
++jobs:
++  smoke:
++    name: Smoke Test (Node ${{ matrix.node-version }})
++    runs-on: ubuntu-latest
++    
++    strategy:
++      matrix:
++        node-version: [20, 24]
++    
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++      
++      - name: Setup Node.js ${{ matrix.node-version }}
++        uses: actions/setup-node@v4
++        with:
++          node-version: ${{ matrix.node-version }}
++          cache: 'npm'
++      
++      - name: Install dependencies
++        run: npm ci
++      
++      - name: Build
++        run: npm run build
++      
++      - name: Create package tarball
++        run: npm pack
++      
++      - name: Verify tarball contents
++        run: |
++          tar -tzf mkolbol-*.tgz
++          echo "=== Checking required files ==="
++          tar -tzf mkolbol-*.tgz | grep -q 'package/dist/' && echo "✓ dist/" || (echo "✗ dist/ missing" && exit 1)
++          tar -tzf mkolbol-*.tgz | grep -q 'package/README.md' && echo "✓ README.md" || (echo "✗ README.md missing" && exit 1)
++          tar -tzf mkolbol-*.tgz | grep -q 'package/LICENSE' && echo "✓ LICENSE" || (echo "✗ LICENSE missing" && exit 1)
++          tar -tzf mkolbol-*.tgz | grep -q 'package/dist/scripts/lam.js' && echo "✓ CLI bin" || (echo "✗ CLI bin missing" && exit 1)
++          echo "=== Checking excluded files ==="
++          ! tar -tzf mkolbol-*.tgz | grep -q 'package/src/' && echo "✓ src/ excluded" || (echo "✗ src/ should be excluded" && exit 1)
++          ! tar -tzf mkolbol-*.tgz | grep -q 'package/node_modules/' && echo "✓ node_modules/ excluded" || (echo "✗ node_modules/ should be excluded" && exit 1)
++      
++      - name: Test installation in clean directory
++        run: |
++          mkdir -p /tmp/smoke-test
++          cd /tmp/smoke-test
++          npm install $GITHUB_WORKSPACE/mkolbol-*.tgz
++      
++      - name: Verify CLI works
++        run: |
++          cd /tmp/smoke-test
++          npx lam --help
++          echo "✓ CLI executable"
++      
++      - name: Verify package structure
++        run: |
++          cd /tmp/smoke-test
++          test -f node_modules/mkolbol/package.json && echo "✓ package.json" || exit 1
++          test -f node_modules/mkolbol/dist/index.js && echo "✓ main entry" || exit 1
++          test -f node_modules/mkolbol/dist/index.d.ts && echo "✓ types" || exit 1
++          test -f node_modules/mkolbol/dist/scripts/lam.js && echo "✓ CLI bin" || exit 1

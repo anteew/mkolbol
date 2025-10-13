@@ -1,0 +1,56 @@
+diff --git a/package.json b/package.json
+index c7189dd..d2a20aa 100644
+--- a/package.json
++++ b/package.json
+@@ -17,15 +17,26 @@
+     "type": "git",
+     "url": "https://github.com/anteew/mkolbol.git"
+   },
++  "main": "./dist/index.js",
++  "module": "./dist/index.js",
++  "types": "./dist/index.d.ts",
++  "exports": {
++    ".": {
++      "types": "./dist/index.d.ts",
++      "import": "./dist/index.js",
++      "default": "./dist/index.js"
++    },
++    "./package.json": "./package.json"
++  },
+   "files": [
+-    "docs/",
+-    "STREAM_KERNEL_RFC.md",
++    "dist/",
+     "README.md",
+-    "archived/",
+-    "dist/"
++    "LICENSE",
++    "STREAM_KERNEL_RFC.md",
++    "docs/"
+   ],
+   "bin": {
+-    "lam": "scripts/lam.ts"
++    "lam": "dist/scripts/lam.js"
+   },
+   "scripts": {
+     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
+diff --git a/tsconfig.json b/tsconfig.json
+index bb57a58..67af83e 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -5,7 +5,6 @@
+     "lib": ["ES2022"],
+     "moduleResolution": "node",
+     "outDir": "./dist",
+-    "rootDir": "./src",
+     "declaration": true,
+     "declarationMap": true,
+     "sourceMap": true,
+@@ -16,6 +15,6 @@
+     "resolveJsonModule": true,
+     "types": ["node"]
+   },
+-  "include": ["src/**/*"],
++  "include": ["src/**/*", "scripts/**/*"],
+   "exclude": ["node_modules", "dist", "tests"]
+ }

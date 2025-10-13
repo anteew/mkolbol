@@ -3,50 +3,50 @@
   "ampcode": "v1",
   "notes": "Do not branch/commit/push — VEGA handles git.",
   "waves": [
-    { "id": "STAB-A", "parallel": true,  "tasks": ["T4401", "T4402"] },
-    { "id": "STAB-B", "parallel": true,  "depends_on": ["STAB-A"], "tasks": ["T4403", "T4404"] },
-    { "id": "STAB-C", "parallel": false, "depends_on": ["STAB-B"], "tasks": ["T4405"] }
+    { "id": "PUB-A", "parallel": true,  "tasks": ["T4501", "T4502"] },
+    { "id": "PUB-B", "parallel": true,  "depends_on": ["PUB-A"], "tasks": ["T4503", "T4504"] },
+    { "id": "PUB-C", "parallel": false, "depends_on": ["PUB-B"], "tasks": ["T4505"] }
   ],
   "tasks": [
     {
-      "id": "T4401",
+      "id": "T4501",
       "agent": "susan-1",
-      "title": "Stabilize index vs summary parity (deterministic flush)",
-      "allowedFiles": ["src/test/reporter/jsonlReporter.ts", "tests/laminar/coreReporter.spec.ts"],
-      "verify": ["npm run test:ci || true"],
-      "deliverables": ["patches/DIFF_T4401_parity-stabilization.patch"]
+      "title": "Compile CLI to dist + shebang preservation",
+      "allowedFiles": ["tsconfig.json", "package.json", "scripts/lam.ts"],
+      "verify": ["jq -r '.bin.lam' package.json", "node dist/scripts/lam.js --help || true"],
+      "deliverables": ["patches/DIFF_T4501_cli-dist-bin.patch"]
     },
     {
-      "id": "T4402",
+      "id": "T4502",
       "agent": "susan-2",
-      "title": "Fix lam run --filter (use -t/test pattern)",
-      "allowedFiles": ["scripts/lam.ts", "README.md"],
-      "verify": ["npm run lam -- run --lane ci --filter kernel || true"],
-      "deliverables": ["patches/DIFF_T4402_cli-filter-fix.patch"]
+      "title": "Package exports/types + files whitelist",
+      "allowedFiles": ["package.json", "src/index.ts", "README.md"],
+      "verify": ["jq -r '.exports? // "none"' package.json", "npm pack"],
+      "deliverables": ["patches/DIFF_T4502_pkg-exports-types.patch"]
     },
     {
-      "id": "T4403",
+      "id": "T4503",
       "agent": "susan-3",
-      "title": "Expand redaction edge tests (nested/arrays/long/unicode)",
-      "allowedFiles": ["tests/digest/redaction.spec.ts", "docs/testing/laminar.md"],
-      "verify": ["npm run test:ci || true"],
-      "deliverables": ["patches/DIFF_T4403_redaction-edges.patch"]
+      "title": "Release workflow: publish on tag (NPM_TOKEN)",
+      "allowedFiles": [".github/workflows/release.yml", "README.md"],
+      "verify": ["test -f .github/workflows/release.yml && echo ok"],
+      "deliverables": ["patches/DIFF_T4503_release-workflow.patch"]
     },
     {
-      "id": "T4404",
+      "id": "T4504",
       "agent": "susan-4",
-      "title": "CLI: summary --hints flag + gating tests",
-      "allowedFiles": ["scripts/lam.ts", "tests/hints/hints.spec.ts", "docs/testing/laminar.md"],
-      "verify": ["npm run lam -- summary --hints || true"],
-      "deliverables": ["patches/DIFF_T4404_cli-hints-flag.patch"]
+      "title": "Docs: npm install/npx usage + bin guidance",
+      "allowedFiles": ["README.md", "docs/testing/laminar.md"],
+      "verify": ["rg -n 'npx lam' README.md"],
+      "deliverables": ["patches/DIFF_T4504_docs-npm-usage.patch"]
     },
     {
-      "id": "T4405",
+      "id": "T4505",
       "agent": "susan-5",
-      "title": "GH Actions: ensure consistent Node 20/24 lanes + artifact pointers",
-      "allowedFiles": [".github/workflows/laminar.yml", "README.md"],
-      "verify": ["rg -n 'actions/setup-node' .github/workflows/laminar.yml"],
-      "deliverables": ["patches/DIFF_T4405_ci-lanes-stability.patch"]
+      "title": "Smoke test workflow: npm pack + install + lam --help",
+      "allowedFiles": [".github/workflows/smoke.yml"],
+      "verify": ["test -f .github/workflows/smoke.yml && echo ok"],
+      "deliverables": ["patches/DIFF_T4505_smoke-workflow.patch"]
     }
   ]
 }
