@@ -1,0 +1,393 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { UnixPipeAdapter } from '../../src/transport/unix/UnixPipeAdapter.js';
+import { UnixControlAdapter } from '../../src/transport/unix/UnixControlAdapter.js';
+import { Readable, Writable } from 'node:stream';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { unlinkSync } from 'node:fs';
+
+describe('Process Mode: Unix Adapters under Load', () => {
+  const testTimeout = 15000;
+  let cleanupPaths: string[] = [];
+
+  function getSocketPath(name: string): string {
+    const path = join(tmpdir(), `mkolbol-test-${name}-${Date.now()}-${randomBytes(4).toString('hex')}.sock`);
+    cleanupPaths.push(path);
+    return path;
+  }
+
+  afterEach(() => {
+    for (const path of cleanupPaths) {
+      try {
+        unlinkSync(path);
+      } catch {
+        // Ignore errors
+      }
+    }
+    cleanupPaths = [];
+  });
+
+  // GATED: Process mode tests require experimental flag (T4904)
+  // Only run when MK_PROCESS_EXPERIMENTAL=1 is set
+  describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('UnixPipeAdapter', () => {
+    let serverAdapter: UnixPipeAdapter;
+    let clientAdapter: UnixPipeAdapter;
+    let socketPath: string;
+
+    beforeEach(() => {
+      socketPath = getSocketPath('pipe');
+      serverAdapter = new UnixPipeAdapter(socketPath);
+      clientAdapter = new UnixPipeAdapter(socketPath);
+    });
+
+    afterEach(() => {
+      serverAdapter?.close();
+      clientAdapter?.close();
+    });
+
+    it('should handle heavy writes with backpressure', async () => {
+      await serverAdapter.listen();
+      await clientAdapter.connect();
+
+      const serverPipe = serverAdapter.createDuplex({ highWaterMark: 16384 });
+      const clientPipe = clientAdapter.createDuplex({ highWaterMark: 16384 });
+
+      // Generate deterministic test data: 100 chunks of 8KB each = 800KB total
+      const chunkSize = 8192;
+      const numChunks = 100;
+      const testData: Buffer[] = [];
+      for (let i = 0; i < numChunks; i++) {
+        testData.push(Buffer.alloc(chunkSize, i % 256));
+      }
+
+      const receivedChunks: Buffer[] = [];
+      let writeComplete = false;
+      let drainEvents = 0;
+
+      // Collect received data
+      clientPipe.on('data', (chunk) => {
+        receivedChunks.push(Buffer.from(chunk));
+      });
+
+      // Write all chunks from server to client
+      for (let i = 0; i < testData.length; i++) {
+        const canContinue = serverPipe.write(testData[i]);
+        if (!canContinue) {
+          drainEvents++;
+          await new Promise<void>((resolve) => {
+            serverPipe.once('drain', resolve);
+          });
+        }
+      }
+      serverPipe.end();
+      writeComplete = true;
+
+      // Wait for all data to be received
+      await new Promise<void>((resolve) => {
+        clientPipe.once('end', resolve);
+      });
+
+      // Verify all data received correctly
+      const receivedBuffer = Buffer.concat(receivedChunks);
+      const expectedBuffer = Buffer.concat(testData);
+      expect(receivedBuffer.length).toBe(expectedBuffer.length);
+      expect(receivedBuffer.equals(expectedBuffer)).toBe(true);
+      
+      // Verify backpressure was applied (we should have seen drain events)
+      expect(drainEvents).toBeGreaterThan(0);
+      expect(writeComplete).toBe(true);
+    }, testTimeout);
+
+    it('should handle bidirectional heavy writes', async () => {
+      await serverAdapter.listen();
+      await clientAdapter.connect();
+
+      const serverPipe = serverAdapter.createDuplex({ highWaterMark: 8192 });
+      const clientPipe = clientAdapter.createDuplex({ highWaterMark: 8192 });
+
+      // Smaller load for bidirectional: 50 chunks of 4KB each per direction
+      const chunkSize = 4096;
+      const numChunks = 50;
+      
+      const serverData: Buffer[] = [];
+      const clientData: Buffer[] = [];
+      for (let i = 0; i < numChunks; i++) {
+        serverData.push(Buffer.alloc(chunkSize, i % 256));
+        clientData.push(Buffer.alloc(chunkSize, (i + 128) % 256));
+      }
+
+      const serverReceived: Buffer[] = [];
+      const clientReceived: Buffer[] = [];
+
+      serverPipe.on('data', (chunk) => serverReceived.push(Buffer.from(chunk)));
+      clientPipe.on('data', (chunk) => clientReceived.push(Buffer.from(chunk)));
+
+      // Write from server to client
+      const serverWritePromise = (async () => {
+        for (const chunk of serverData) {
+          const canContinue = serverPipe.write(chunk);
+          if (!canContinue) {
+            await new Promise<void>((resolve) => serverPipe.once('drain', resolve));
+          }
+        }
+        serverPipe.end();
+      })();
+
+      // Write from client to server
+      const clientWritePromise = (async () => {
+        for (const chunk of clientData) {
+          const canContinue = clientPipe.write(chunk);
+          if (!canContinue) {
+            await new Promise<void>((resolve) => clientPipe.once('drain', resolve));
+          }
+        }
+        clientPipe.end();
+      })();
+
+      // Wait for both directions to complete
+      await Promise.all([
+        serverWritePromise,
+        clientWritePromise,
+        new Promise<void>((resolve) => serverPipe.once('end', resolve)),
+        new Promise<void>((resolve) => clientPipe.once('end', resolve))
+      ]);
+
+      // Verify data integrity in both directions
+      const serverReceivedBuffer = Buffer.concat(serverReceived);
+      const clientReceivedBuffer = Buffer.concat(clientReceived);
+      const expectedServerBuffer = Buffer.concat(clientData);
+      const expectedClientBuffer = Buffer.concat(serverData);
+
+      expect(serverReceivedBuffer.equals(expectedServerBuffer)).toBe(true);
+      expect(clientReceivedBuffer.equals(expectedClientBuffer)).toBe(true);
+    }, testTimeout);
+
+    it('should handle graceful teardown during writes', async () => {
+      await serverAdapter.listen();
+      await clientAdapter.connect();
+
+      const serverPipe = serverAdapter.createDuplex();
+      const clientPipe = clientAdapter.createDuplex();
+
+      const testData = Buffer.alloc(4096, 0xFF);
+      let receivedData: Buffer[] = [];
+      let endReceived = false;
+
+      clientPipe.on('data', (chunk) => {
+        receivedData.push(Buffer.from(chunk));
+      });
+      clientPipe.on('end', () => {
+        endReceived = true;
+      });
+
+      // Write some data
+      for (let i = 0; i < 10; i++) {
+        serverPipe.write(testData);
+      }
+
+      // Graceful teardown
+      serverPipe.end();
+      await new Promise<void>((resolve) => {
+        clientPipe.once('end', resolve);
+      });
+
+      expect(endReceived).toBe(true);
+      expect(receivedData.length).toBeGreaterThan(0);
+
+      // Clean close
+      serverAdapter.close();
+      clientAdapter.close();
+    }, testTimeout);
+  });
+
+  describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('UnixControlAdapter', () => {
+    let serverAdapter: UnixControlAdapter;
+    let clientAdapter: UnixControlAdapter;
+    let socketPath: string;
+
+    beforeEach(() => {
+      socketPath = getSocketPath('control');
+      serverAdapter = new UnixControlAdapter(socketPath, { 
+        heartbeatMs: 100,
+        reconnectMs: 50
+      });
+      clientAdapter = new UnixControlAdapter(socketPath, {
+        heartbeatMs: 100,
+        reconnectMs: 50
+      });
+    });
+
+    afterEach(() => {
+      serverAdapter?.close();
+      clientAdapter?.close();
+    });
+
+    it('should handle heartbeat timeout detection', async () => {
+      await serverAdapter.listen();
+      await clientAdapter.connect();
+
+      const heartbeats: number[] = [];
+      let lastHeartbeat = Date.now();
+
+      serverAdapter.subscribe('heartbeat', (data: any) => {
+        heartbeats.push(data.timestamp);
+        lastHeartbeat = Date.now();
+      });
+
+      // Wait for multiple heartbeats
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 500);
+      });
+
+      expect(heartbeats.length).toBeGreaterThanOrEqual(4);
+
+      // Simulate timeout by stopping heartbeats
+      clientAdapter.close();
+
+      // Wait for timeout detection window
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 200);
+      });
+
+      const timeSinceLastHeartbeat = Date.now() - lastHeartbeat;
+      expect(timeSinceLastHeartbeat).toBeGreaterThan(150);
+    }, testTimeout);
+
+    it('should handle graceful shutdown sequence', async () => {
+      await serverAdapter.listen();
+      await clientAdapter.connect();
+
+      let shutdownReceived = false;
+      let shutdownTimestamp = 0;
+
+      serverAdapter.subscribe('shutdown', (data: any) => {
+        shutdownReceived = true;
+        shutdownTimestamp = data.timestamp;
+      });
+
+      // Trigger graceful shutdown from client
+      await clientAdapter.shutdown();
+
+      // Wait for shutdown message to propagate
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 150);
+      });
+
+      expect(shutdownReceived).toBe(true);
+      expect(shutdownTimestamp).toBeGreaterThan(0);
+      expect(Date.now() - shutdownTimestamp).toBeLessThan(500);
+    }, testTimeout);
+
+    it('should handle pub/sub under load', async () => {
+      await serverAdapter.listen();
+      await clientAdapter.connect();
+
+      const messages: Array<{ topic: string; data: any }> = [];
+      const topics = ['topic-a', 'topic-b', 'topic-c'];
+
+      // Subscribe to all topics
+      for (const topic of topics) {
+        serverAdapter.subscribe(topic, (data) => {
+          messages.push({ topic, data });
+        });
+      }
+
+      // Publish 100 messages across topics (deterministic)
+      for (let i = 0; i < 100; i++) {
+        const topic = topics[i % topics.length];
+        clientAdapter.publish(topic, { index: i, payload: `message-${i}` });
+      }
+
+      // Wait for messages to be received
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 200);
+      });
+
+      expect(messages.length).toBe(100);
+
+      // Verify message distribution across topics
+      const topicCounts = new Map<string, number>();
+      for (const msg of messages) {
+        topicCounts.set(msg.topic, (topicCounts.get(msg.topic) || 0) + 1);
+      }
+
+      for (const topic of topics) {
+        expect(topicCounts.get(topic)).toBeGreaterThanOrEqual(33);
+        expect(topicCounts.get(topic)).toBeLessThanOrEqual(34);
+      }
+    }, testTimeout);
+
+    it('should complete teardown with pending messages', async () => {
+      await serverAdapter.listen();
+      await clientAdapter.connect();
+
+      const receivedMessages: any[] = [];
+      serverAdapter.subscribe('test', (data) => {
+        receivedMessages.push(data);
+      });
+
+      // Publish messages rapidly
+      for (let i = 0; i < 50; i++) {
+        clientAdapter.publish('test', { index: i });
+      }
+
+      // Immediate shutdown
+      await clientAdapter.shutdown();
+
+      // Verify clean shutdown
+      expect(receivedMessages.length).toBeGreaterThan(0);
+      expect(receivedMessages.length).toBeLessThanOrEqual(50);
+    }, testTimeout);
+  });
+
+  describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('Combined Adapter Teardown', () => {
+    it('should coordinate teardown of pipe and control adapters', async () => {
+      const pipeSocketPath = getSocketPath('combined-pipe');
+      const controlSocketPath = getSocketPath('combined-control');
+
+      const pipeServer = new UnixPipeAdapter(pipeSocketPath);
+      const pipeClient = new UnixPipeAdapter(pipeSocketPath);
+      const controlServer = new UnixControlAdapter(controlSocketPath, { heartbeatMs: 100 });
+      const controlClient = new UnixControlAdapter(controlSocketPath, { heartbeatMs: 100 });
+
+      await pipeServer.listen();
+      await pipeClient.connect();
+      await controlServer.listen();
+      await controlClient.connect();
+
+      const serverPipe = pipeServer.createDuplex();
+      const clientPipe = pipeClient.createDuplex();
+
+      // Start data flow
+      const dataChunks: Buffer[] = [];
+      clientPipe.on('data', (chunk) => dataChunks.push(Buffer.from(chunk)));
+
+      let shutdownReceived = false;
+      controlServer.subscribe('shutdown', () => {
+        shutdownReceived = true;
+      });
+
+      // Write some data
+      for (let i = 0; i < 20; i++) {
+        serverPipe.write(Buffer.alloc(1024, i % 256));
+      }
+
+      // Coordinated shutdown: control first, then pipe
+      await controlClient.shutdown();
+      await new Promise<void>((resolve) => setTimeout(resolve, 150));
+
+      serverPipe.end();
+      await new Promise<void>((resolve) => {
+        clientPipe.once('end', resolve);
+      });
+
+      pipeServer.close();
+      pipeClient.close();
+      controlServer.close();
+
+      expect(shutdownReceived).toBe(true);
+      expect(dataChunks.length).toBeGreaterThan(0);
+    }, testTimeout);
+  });
+});
