@@ -25,6 +25,7 @@ export declare class Hostess {
     stopEvictionLoop(): void;
     private isLive;
     private computeAvailable;
+    private writeEndpointsSnapshot;
 }
 export {};
 //# sourceMappingURL=Hostess.d.ts.map

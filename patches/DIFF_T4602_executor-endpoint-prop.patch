@@ -1,0 +1,87 @@
+diff --git a/src/executor/Executor.ts b/src/executor/Executor.ts
+index 9053d03..8dbe33b 100644
+--- a/src/executor/Executor.ts
++++ b/src/executor/Executor.ts
+@@ -187,7 +187,16 @@ export class Executor {
+         produces: []
+       }
+     };
+-    this.hostess.register(manifest);
++    const identity = this.hostess.register(manifest);
++
++    this.hostess.registerEndpoint(identity, {
++      type: 'inproc',
++      coordinates: `node:${nodeConfig.id}`,
++      metadata: {
++        module: nodeConfig.module,
++        runMode: 'inproc'
++      }
++    });
+ 
+     this.stateManager.addNode({
+       id: nodeConfig.id,
+@@ -281,7 +290,16 @@ export class Executor {
+         produces: []
+       }
+     };
+-    this.hostess.register(manifest);
++    const identity = this.hostess.register(manifest);
++
++    this.hostess.registerEndpoint(identity, {
++      type: 'worker',
++      coordinates: `node:${nodeConfig.id}`,
++      metadata: {
++        module: nodeConfig.module,
++        runMode: 'worker'
++      }
++    });
+ 
+     this.stateManager.addNode({
+       id: nodeConfig.id,
+diff --git a/src/wrappers/ExternalServerWrapper.ts b/src/wrappers/ExternalServerWrapper.ts
+index 995b958..2c6a869 100644
+--- a/src/wrappers/ExternalServerWrapper.ts
++++ b/src/wrappers/ExternalServerWrapper.ts
+@@ -181,7 +181,16 @@ export class ExternalServerWrapper {
+   }
+ 
+   protected async registerWithHostess(): Promise<void> {
+-    this.hostess.register(this.manifest);
++    const identity = this.hostess.register(this.manifest);
++
++    this.hostess.registerEndpoint(identity, {
++      type: 'external',
++      coordinates: `${this.manifest.command} ${this.manifest.args.join(' ')}`,
++      metadata: {
++        cwd: this.manifest.cwd,
++        ioMode: this.manifest.ioMode
++      }
++    });
+   }
+ 
+   protected async deregisterFromHostess(): Promise<void> {
+diff --git a/src/wrappers/PTYServerWrapper.ts b/src/wrappers/PTYServerWrapper.ts
+index 1941cde..8a7eacf 100644
+--- a/src/wrappers/PTYServerWrapper.ts
++++ b/src/wrappers/PTYServerWrapper.ts
+@@ -79,6 +79,20 @@ export class PTYServerWrapper extends ExternalServerWrapper {
+     await this.registerWithHostess();
+   }
+ 
++  protected async registerWithHostess(): Promise<void> {
++    const identity = this.hostess.register(this.manifest);
++
++    this.hostess.registerEndpoint(identity, {
++      type: 'pty',
++      coordinates: `pid:${this.ptyProcess?.pid}`,
++      metadata: {
++        cols: this.terminalSize.cols,
++        rows: this.terminalSize.rows,
++        terminalType: this.manifest.terminalType || 'xterm-256color'
++      }
++    });
++  }
++
+   resize(cols: number, rows: number): void {
+     if (!this.ptyProcess) {
+       throw new Error('PTY process not running');

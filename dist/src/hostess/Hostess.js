@@ -1,4 +1,6 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import { buildServerIdentity } from '../types.js';
 import { createEvent } from '../logging/TestEvent.js';
 import { createLogger } from '../logging/logger.js';
@@ -140,6 +142,12 @@ export class Hostess {
             payload: { type: endpoint.type, coordinates: endpoint.coordinates }
         }));
         debug.emit('hostess', 'registerEndpoint', { id, type: endpoint.type, coordinates: endpoint.coordinates });
+        try {
+            this.writeEndpointsSnapshot();
+        }
+        catch (err) {
+            debug.emit('hostess', 'writeEndpointsSnapshot:error', { error: String(err) });
+        }
     }
     listEndpoints() {
         return new Map(this.endpoints);
@@ -170,6 +178,16 @@ export class Hostess {
     }
     computeAvailable(inUse) {
         return Object.values(inUse).some(v => v === undefined);
+    }
+    writeEndpointsSnapshot() {
+        const snapshotDir = path.resolve(process.cwd(), 'reports');
+        const snapshotPath = path.join(snapshotDir, 'endpoints.json');
+        const endpointsArray = Array.from(this.endpoints.entries()).map(([id, endpoint]) => ({
+            id,
+            ...endpoint
+        }));
+        fs.mkdirSync(snapshotDir, { recursive: true });
+        fs.writeFileSync(snapshotPath, JSON.stringify(endpointsArray, null, 2));
     }
 }
 //# sourceMappingURL=Hostess.js.map
