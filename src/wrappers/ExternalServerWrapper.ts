@@ -181,7 +181,16 @@ export class ExternalServerWrapper {
   }
 
   protected async registerWithHostess(): Promise<void> {
-    this.hostess.register(this.manifest);
+    const identity = this.hostess.register(this.manifest);
+
+    this.hostess.registerEndpoint(identity, {
+      type: 'external',
+      coordinates: `${this.manifest.command} ${this.manifest.args.join(' ')}`,
+      metadata: {
+        cwd: this.manifest.cwd,
+        ioMode: this.manifest.ioMode
+      }
+    });
   }
 
   protected async deregisterFromHostess(): Promise<void> {

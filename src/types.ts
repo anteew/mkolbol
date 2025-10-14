@@ -122,3 +122,9 @@ export interface EscapeSequence {
   length: number;
   raw?: string;
 }
+
+export interface HostessEndpoint {
+  type: string;
+  coordinates: string;
+  metadata?: Record<string, any>;
+}

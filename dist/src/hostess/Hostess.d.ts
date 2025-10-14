@@ -1,4 +1,4 @@
-import { CapabilityQuery, GuestBookEntry, ServerManifest } from '../types.js';
+import { CapabilityQuery, GuestBookEntry, HostessEndpoint, ServerManifest } from '../types.js';
 import { TestEventEnvelope } from '../logging/TestEvent.js';
 interface HostessOptions {
     heartbeatIntervalMs?: number;
@@ -7,6 +7,7 @@ interface HostessOptions {
 }
 export declare class Hostess {
     private guestBook;
+    private endpoints;
     private interval?;
     private readonly heartbeatIntervalMs;
     private readonly evictionThresholdMs;
@@ -18,6 +19,8 @@ export declare class Hostess {
     markAvailable(serverId: string, terminalName: string): void;
     query(filter?: CapabilityQuery): GuestBookEntry[];
     list(): GuestBookEntry[];
+    registerEndpoint(id: string, endpoint: HostessEndpoint): void;
+    listEndpoints(): Map<string, HostessEndpoint>;
     startEvictionLoop(): void;
     stopEvictionLoop(): void;
     private isLive;

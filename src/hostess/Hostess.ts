@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { CapabilityQuery, GuestBookEntry, ServerManifest, buildServerIdentity } from '../types.js';
+import { CapabilityQuery, GuestBookEntry, HostessEndpoint, ServerManifest, buildServerIdentity } from '../types.js';
 import { TestEventEnvelope, createEvent } from '../logging/TestEvent.js';
 import { createLogger } from '../logging/logger.js';
 import { debug } from '../debug/api.js';
@@ -12,6 +12,7 @@ interface HostessOptions {
 
 export class Hostess {
   private guestBook = new Map<string, GuestBookEntry>();
+  private endpoints = new Map<string, HostessEndpoint>();
   private interval?: NodeJS.Timeout;
   private readonly heartbeatIntervalMs: number;
   private readonly evictionThresholdMs: number;
@@ -135,6 +136,19 @@ export class Hostess {
 
   list(): GuestBookEntry[] {
     return Array.from(this.guestBook.values());
+  }
+
+  registerEndpoint(id: string, endpoint: HostessEndpoint): void {
+    this.endpoints.set(id, endpoint);
+    this.logger?.(createEvent('hostess:registerEndpoint', 'hostess', {
+      id,
+      payload: { type: endpoint.type, coordinates: endpoint.coordinates }
+    }));
+    debug.emit('hostess', 'registerEndpoint', { id, type: endpoint.type, coordinates: endpoint.coordinates });
+  }
+
+  listEndpoints(): Map<string, HostessEndpoint> {
+    return new Map(this.endpoints);
   }
 
   startEvictionLoop(): void {

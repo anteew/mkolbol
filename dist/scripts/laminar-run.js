@@ -204,10 +204,10 @@ async function main() {
         };
         if (isPty) {
             // Rerun pty lane for that file
-            overall = run('vitest', ['run', '--pool=forks', '--poolOptions.forks.singleFork=true', file, '--reporter=./dist/test/reporter/jsonlReporter.js'], env) || overall;
+            overall = run('vitest', ['run', '--pool=forks', '--poolOptions.forks.singleFork=true', file, '--reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js'], env) || overall;
         }
         else {
-            overall = run('vitest', ['run', '--pool=threads', file, '--reporter=./dist/test/reporter/jsonlReporter.js'], env) || overall;
+            overall = run('vitest', ['run', '--pool=threads', file, '--reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js'], env) || overall;
         }
     }
     // Auto-generate digests for failures

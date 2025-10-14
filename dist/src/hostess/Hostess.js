@@ -5,6 +5,7 @@ import { createLogger } from '../logging/logger.js';
 import { debug } from '../debug/api.js';
 export class Hostess {
     guestBook = new Map();
+    endpoints = new Map();
     interval;
     heartbeatIntervalMs;
     evictionThresholdMs;
@@ -131,6 +132,17 @@ export class Hostess {
     }
     list() {
         return Array.from(this.guestBook.values());
+    }
+    registerEndpoint(id, endpoint) {
+        this.endpoints.set(id, endpoint);
+        this.logger?.(createEvent('hostess:registerEndpoint', 'hostess', {
+            id,
+            payload: { type: endpoint.type, coordinates: endpoint.coordinates }
+        }));
+        debug.emit('hostess', 'registerEndpoint', { id, type: endpoint.type, coordinates: endpoint.coordinates });
+    }
+    listEndpoints() {
+        return new Map(this.endpoints);
     }
     startEvictionLoop() {
         if (this.interval)

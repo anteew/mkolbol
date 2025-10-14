@@ -1,3 +1,3 @@
-{"ts":1760313915026,"lvl":"info","case":"parses simple passing test fixture","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760313915027,"lvl":"info","case":"parses simple passing test fixture","phase":"execution","evt":"test.run"}
-{"ts":1760313915028,"lvl":"info","case":"parses simple passing test fixture","phase":"teardown","evt":"case.end","payload":{"duration":13,"status":"passed"}}
+{"ts":1760457649663,"lvl":"info","case":"parses simple passing test fixture","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760457649664,"lvl":"info","case":"parses simple passing test fixture","phase":"execution","evt":"test.run"}
+{"ts":1760457649665,"lvl":"info","case":"parses simple passing test fixture","phase":"teardown","evt":"case.end","payload":{"duration":9,"status":"passed"}}

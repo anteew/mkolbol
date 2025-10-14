@@ -79,6 +79,20 @@ export class PTYServerWrapper extends ExternalServerWrapper {
     await this.registerWithHostess();
   }
 
+  protected async registerWithHostess(): Promise<void> {
+    const identity = this.hostess.register(this.manifest);
+
+    this.hostess.registerEndpoint(identity, {
+      type: 'pty',
+      coordinates: `pid:${this.ptyProcess?.pid}`,
+      metadata: {
+        cols: this.terminalSize.cols,
+        rows: this.terminalSize.rows,
+        terminalType: this.manifest.terminalType || 'xterm-256color'
+      }
+    });
+  }
+
   resize(cols: number, rows: number): void {
     if (!this.ptyProcess) {
       throw new Error('PTY process not running');

@@ -1,3 +1,3 @@
-{"ts":1760313915873,"lvl":"info","case":"maintains overlay independence from persistent rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760313915874,"lvl":"info","case":"maintains overlay independence from persistent rules","phase":"execution","evt":"test.run"}
-{"ts":1760313915875,"lvl":"info","case":"maintains overlay independence from persistent rules","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760457650035,"lvl":"info","case":"maintains overlay independence from persistent rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760457650036,"lvl":"info","case":"maintains overlay independence from persistent rules","phase":"execution","evt":"test.run"}
+{"ts":1760457650037,"lvl":"info","case":"maintains overlay independence from persistent rules","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

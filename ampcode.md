@@ -90,3 +90,68 @@ Acceptance
 - Running `node dist/examples/hostess-demo.js` followed by `node dist/scripts/mkctl.js endpoints` prints at least one endpoint with type and coordinates.
 - Tests covering Hostess registration and listing pass.
 - README and RFC updated to include endpoint model.
+
+---
+
+```json
+{
+  "ampcode": "v1",
+  "notes": "Intermediate stabilization to make endpoints usable to humans/agents and remove flaky assumptions.",
+  "waves": [
+    { "id": "GATEWORKER",  "parallel": false, "tasks": ["T4611"] },
+    { "id": "CI-SPLIT",   "parallel": false, "tasks": ["T4612"] },
+    { "id": "SNAPSHOT-CLI","parallel": false, "tasks": ["T4613"] }
+  ],
+  "tasks": [
+    {
+      "id": "T4611",
+      "title": "Gate worker-node endpoint test until harness exists",
+      "agent": "susan-1",
+      "desc": "Skip or conditionally run the worker-nodes endpoint registration test unless MK_WORKER_EXPERIMENTAL=1 or worker harness is present.",
+      "allowedFiles": ["tests/integration/endpointsList.spec.ts", "vitest.config.ts"],
+      "verify": [
+        "rg -n 'MK_WORKER_EXPERIMENTAL' tests/integration/endpointsList.spec.ts",
+        "npx -y vitest run tests/integration/endpointsList.spec.ts --reporter=basic -c vitest.config.ts || true"
+      ],
+      "deliverables": ["patches/DIFF_T4611_gate-worker-test.patch"]
+    },
+    {
+      "id": "T4612",
+      "title": "Confirm CI split: PTY lane isolated; threads lane excludes PTY",
+      "agent": "susan-2",
+      "desc": "Ensure package.json scripts keep PTY specs in forks lane only and thread lane excludes them. Increase timeout for endpoints integration tests if needed (testTimeout or per-test).",
+      "allowedFiles": ["package.json", "tests/integration/endpointsList.spec.ts"],
+      "verify": [
+        "jq -r .scripts package.json",
+        "rg -n 'testTimeout|setTimeout' tests/integration/endpointsList.spec.ts || true"
+      ],
+      "deliverables": ["patches/DIFF_T4612_ci-split-timeouts.patch"]
+    },
+    {
+      "id": "T4613",
+      "title": "Endpoints snapshot + mkctl reader",
+      "agent": "susan-3",
+      "desc": "Write a JSON snapshot of endpoints to reports/endpoints.json on register; update mkctl to read and print from that snapshot so it works across processes.",
+      "allowedFiles": ["src/hostess/Hostess.ts", "scripts/mkctl.ts"],
+      "verify": [
+        "rg -n 'endpoints.json' src/hostess/Hostess.ts scripts/mkctl.ts",
+        "npm run build && node dist/examples/hostess-demo.js >/dev/null 2>&1 & echo $! > /tmp/hostess.pid; sleep 1; node dist/scripts/mkctl.js endpoints || true; kill $(cat /tmp/hostess.pid) 2>/dev/null || true"
+      ],
+      "deliverables": ["patches/DIFF_T4613_endpoints-snapshot-mkctl.patch"]
+    }
+  ]
+}
+```
+
+# Sprint SB-MK-ENDPOINTS-STABILIZE-P1 — “Endpoints Stabilization”
+
+Goal: Make endpoints visible and stable for immediate human/agent use; avoid flaky or unimplemented paths.
+
+Scope
+- Gate worker-node test until worker harness exists (or enable via MK_WORKER_EXPERIMENTAL=1).
+- Confirm PTY isolation in scripts; raise timeouts where appropriate.
+- Add endpoints snapshot persisted to reports/ and have mkctl read it (human- and agent-friendly).
+
+Acceptance
+- Endpoints integration tests pass (worker-node test skipped unless explicitly enabled).
+- `node dist/scripts/mkctl.js endpoints` shows endpoints after running the host demo, without needing to share process memory.

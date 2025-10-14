@@ -145,7 +145,15 @@ export class ExternalServerWrapper {
         this.process.kill(signal);
     }
     async registerWithHostess() {
-        this.hostess.register(this.manifest);
+        const identity = this.hostess.register(this.manifest);
+        this.hostess.registerEndpoint(identity, {
+            type: 'external',
+            coordinates: `${this.manifest.command} ${this.manifest.args.join(' ')}`,
+            metadata: {
+                cwd: this.manifest.cwd,
+                ioMode: this.manifest.ioMode
+            }
+        });
     }
     async deregisterFromHostess() {
     }

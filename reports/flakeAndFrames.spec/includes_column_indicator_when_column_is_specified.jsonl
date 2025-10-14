@@ -1,3 +1,3 @@
-{"ts":1760313915100,"lvl":"info","case":"includes column indicator when column is specified","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760313915101,"lvl":"info","case":"includes column indicator when column is specified","phase":"execution","evt":"test.run"}
-{"ts":1760313915102,"lvl":"info","case":"includes column indicator when column is specified","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}
+{"ts":1760457649827,"lvl":"info","case":"includes column indicator when column is specified","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760457649828,"lvl":"info","case":"includes column indicator when column is specified","phase":"execution","evt":"test.run"}
+{"ts":1760457649829,"lvl":"info","case":"includes column indicator when column is specified","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}
