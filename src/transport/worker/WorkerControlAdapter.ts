@@ -1,4 +1,8 @@
-import type { ProcessControlAdapter } from '../../executor/ProcessInterfaces.js';
+// Local copy of ProcessControlAdapter to avoid TS resolution edge in CI
+interface ProcessControlAdapter {
+  publish(topic: string, data: unknown): void;
+  subscribe(topic: string, handler: (data: unknown) => void): () => void;
+}
 import { parentPort } from 'node:worker_threads';
 
 export class WorkerControlAdapter implements ProcessControlAdapter {
