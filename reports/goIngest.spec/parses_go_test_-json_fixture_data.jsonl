@@ -1,3 +1,3 @@
-{"ts":1760313915158,"lvl":"info","case":"parses go test -json fixture data","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42"}},"seed":42}
-{"ts":1760313915159,"lvl":"info","case":"parses go test -json fixture data","phase":"execution","evt":"test.run"}
-{"ts":1760313915160,"lvl":"info","case":"parses go test -json fixture data","phase":"teardown","evt":"case.end","payload":{"duration":7,"status":"passed"}}
+{"ts":1760457649706,"lvl":"info","case":"parses go test -json fixture data","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760457649707,"lvl":"info","case":"parses go test -json fixture data","phase":"execution","evt":"test.run"}
+{"ts":1760457649708,"lvl":"info","case":"parses go test -json fixture data","phase":"teardown","evt":"case.end","payload":{"duration":5,"status":"passed"}}

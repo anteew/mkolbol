@@ -1,0 +1,214 @@
+diff --git a/README.md b/README.md
+index dad2511..3778e1b 100644
+--- a/README.md
++++ b/README.md
+@@ -182,6 +182,34 @@ keyboard.start();
+ pty.start();
+ ```
+ 
++## Endpoints
++
++Endpoints represent the execution environment and control coordinates for modules in the microkernel. Each endpoint has a **type** indicating how the module runs and **coordinates** specifying how to reach or identify it.
++
++### Endpoint Types
++
++The system supports four endpoint types:
++
++- **inproc** - In-process modules running directly in the main process
++  - Coordinates: `node:<node-id>`
++  - Use case: Lightweight transforms, minimal overhead, no isolation needed
++
++- **worker** - Worker thread modules with isolated execution
++  - Coordinates: `node:<node-id>`
++  - Use case: CPU-intensive work, memory isolation, parallel processing
++
++- **external** - External processes spawned via stdio
++  - Coordinates: `<command> <args>`
++  - Use case: Language-agnostic integration, any executable, isolated environment
++
++- **pty** - PTY-based processes with terminal emulation
++  - Coordinates: `pid:<process-id>`
++  - Use case: Interactive shells, terminal applications, PTY hijacking
++
++### Discovery
++
++Endpoints are registered automatically with Hostess when modules are instantiated. Use `mkctl endpoints` to discover all registered endpoints in the system. See the [mkctl CLI documentation](#mkctl---microkernel-control-cli) for usage details.
++
+ ## Use Cases
+ 
+ The Stream Kernel enables:
+@@ -569,6 +597,18 @@ See [docs/testing/laminar.md](docs/testing/laminar.md#cross-language-test-ingest
+ 
+ ### CLI Tools
+ 
++#### mkctl - Microkernel Control CLI
++
++```bash
++# List all registered endpoints
++node dist/scripts/mkctl.js endpoints
++
++# Show help
++node dist/scripts/mkctl.js
++```
++
++The `mkctl` tool provides control and introspection for the microkernel. The `endpoints` command lists all endpoints registered with Hostess, showing their type (e.g., "pty", "executor"), coordinates (e.g., "localhost:3000"), and optional metadata.
++
+ #### logq - Query JSONL test logs
+ 
+ ```bash
+diff --git a/dist/scripts/mkctl.d.ts b/dist/scripts/mkctl.d.ts
+new file mode 100644
+index 0000000..43e95db
+--- /dev/null
++++ b/dist/scripts/mkctl.d.ts
+@@ -0,0 +1,3 @@
++#!/usr/bin/env node
++export {};
++//# sourceMappingURL=mkctl.d.ts.map
+\ No newline at end of file
+diff --git a/dist/scripts/mkctl.d.ts.map b/dist/scripts/mkctl.d.ts.map
+new file mode 100644
+index 0000000..af9ceca
+--- /dev/null
++++ b/dist/scripts/mkctl.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"mkctl.d.ts","sourceRoot":"","sources":["../../scripts/mkctl.ts"],"names":[],"mappings":""}
+\ No newline at end of file
+diff --git a/dist/scripts/mkctl.js b/dist/scripts/mkctl.js
+new file mode 100644
+index 0000000..cb7cb55
+--- /dev/null
++++ b/dist/scripts/mkctl.js
+@@ -0,0 +1,55 @@
++#!/usr/bin/env node
++import { Hostess } from '../src/hostess/Hostess.js';
++function printHelp() {
++    console.log(`mkctl - Microkernel Control CLI
++
++USAGE
++  mkctl <command>
++
++COMMANDS
++  endpoints    List all registered endpoints with type and coordinates
++
++EXAMPLES
++  mkctl endpoints
++
++LEARN MORE
++  Documentation: https://github.com/anteew/mkolbol
++`);
++}
++async function main() {
++    const [, , cmd] = process.argv;
++    switch (cmd) {
++        case 'endpoints': {
++            // Create a Hostess instance (in a real scenario, this would connect to a running Hostess)
++            const hostess = new Hostess();
++            const endpoints = hostess.listEndpoints();
++            if (endpoints.size === 0) {
++                console.log('No endpoints registered.');
++                break;
++            }
++            console.log('Registered Endpoints:');
++            console.log('');
++            for (const [id, endpoint] of endpoints) {
++                console.log(`ID:          ${id}`);
++                console.log(`Type:        ${endpoint.type}`);
++                console.log(`Coordinates: ${endpoint.coordinates}`);
++                if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
++                    console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
++                }
++                console.log('');
++            }
++            break;
++        }
++        default:
++            printHelp();
++            if (cmd) {
++                console.error(`\nUnknown command: ${cmd}`);
++                process.exit(1);
++            }
++    }
++}
++main().catch(e => {
++    console.error(e);
++    process.exit(1);
++});
++//# sourceMappingURL=mkctl.js.map
+\ No newline at end of file
+diff --git a/dist/scripts/mkctl.js.map b/dist/scripts/mkctl.js.map
+new file mode 100644
+index 0000000..3dbd517
+--- /dev/null
++++ b/dist/scripts/mkctl.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"mkctl.js","sourceRoot":"","sources":["../../scripts/mkctl.ts"],"names":[],"mappings":";AACA,OAAO,EAAE,OAAO,EAAE,MAAM,2BAA2B,CAAC;AAEpD,SAAS,SAAS;IAChB,OAAO,CAAC,GAAG,CAAC;;;;;;;;;;;;;CAab,CAAC,CAAC;AACH,CAAC;AAED,KAAK,UAAU,IAAI;IACjB,MAAM,CAAC,EAAC,EAAE,GAAG,CAAC,GAAG,OAAO,CAAC,IAAI,CAAC;IAE9B,QAAQ,GAAG,EAAE,CAAC;QACZ,KAAK,WAAW,CAAC,CAAC,CAAC;YACjB,0FAA0F;YAC1F,MAAM,OAAO,GAAG,IAAI,OAAO,EAAE,CAAC;YAE9B,MAAM,SAAS,GAAG,OAAO,CAAC,aAAa,EAAE,CAAC;YAE1C,IAAI,SAAS,CAAC,IAAI,KAAK,CAAC,EAAE,CAAC;gBACzB,OAAO,CAAC,GAAG,CAAC,0BAA0B,CAAC,CAAC;gBACxC,MAAM;YACR,CAAC;YAED,OAAO,CAAC,GAAG,CAAC,uBAAuB,CAAC,CAAC;YACrC,OAAO,CAAC,GAAG,CAAC,EAAE,CAAC,CAAC;YAEhB,KAAK,MAAM,CAAC,EAAE,EAAE,QAAQ,CAAC,IAAI,SAAS,EAAE,CAAC;gBACvC,OAAO,CAAC,GAAG,CAAC,gBAAgB,EAAE,EAAE,CAAC,CAAC;gBAClC,OAAO,CAAC,GAAG,CAAC,gBAAgB,QAAQ,CAAC,IAAI,EAAE,CAAC,CAAC;gBAC7C,OAAO,CAAC,GAAG,CAAC,gBAAgB,QAAQ,CAAC,WAAW,EAAE,CAAC,CAAC;gBACpD,IAAI,QAAQ,CAAC,QAAQ,IAAI,MAAM,CAAC,IAAI,CAAC,QAAQ,CAAC,QAAQ,CAAC,CAAC,MAAM,GAAG,CAAC,EAAE,CAAC;oBACnE,OAAO,CAAC,GAAG,CAAC,gBAAgB,IAAI,CAAC,SAAS,CAAC,QAAQ,CAAC,QAAQ,CAAC,EAAE,CAAC,CAAC;gBACnE,CAAC;gBACD,OAAO,CAAC,GAAG,CAAC,EAAE,CAAC,CAAC;YAClB,CAAC;YACD,MAAM;QACR,CAAC;QACD;YACE,SAAS,EAAE,CAAC;YACZ,IAAI,GAAG,EAAE,CAAC;gBACR,OAAO,CAAC,KAAK,CAAC,sBAAsB,GAAG,EAAE,CAAC,CAAC;gBAC3C,OAAO,CAAC,IAAI,CAAC,CAAC,CAAC,CAAC;YAClB,CAAC;IACL,CAAC;AACH,CAAC;AAED,IAAI,EAAE,CAAC,KAAK,CAAC,CAAC,CAAC,EAAE;IACf,OAAO,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC;IACjB,OAAO,CAAC,IAAI,CAAC,CAAC,CAAC,CAAC;AAClB,CAAC,CAAC,CAAC"}
+\ No newline at end of file
+diff --git a/scripts/mkctl.ts b/scripts/mkctl.ts
+new file mode 100644
+index 0000000..2bf477b
+--- /dev/null
++++ b/scripts/mkctl.ts
+@@ -0,0 +1,62 @@
++#!/usr/bin/env node
++import { Hostess } from '../src/hostess/Hostess.js';
++
++function printHelp() {
++  console.log(`mkctl - Microkernel Control CLI
++
++USAGE
++  mkctl <command>
++
++COMMANDS
++  endpoints    List all registered endpoints with type and coordinates
++
++EXAMPLES
++  mkctl endpoints
++
++LEARN MORE
++  Documentation: https://github.com/anteew/mkolbol
++`);
++}
++
++async function main() {
++  const [,, cmd] = process.argv;
++
++  switch (cmd) {
++    case 'endpoints': {
++      // Create a Hostess instance (in a real scenario, this would connect to a running Hostess)
++      const hostess = new Hostess();
++
++      const endpoints = hostess.listEndpoints();
++
++      if (endpoints.size === 0) {
++        console.log('No endpoints registered.');
++        break;
++      }
++
++      console.log('Registered Endpoints:');
++      console.log('');
++
++      for (const [id, endpoint] of endpoints) {
++        console.log(`ID:          ${id}`);
++        console.log(`Type:        ${endpoint.type}`);
++        console.log(`Coordinates: ${endpoint.coordinates}`);
++        if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
++          console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
++        }
++        console.log('');
++      }
++      break;
++    }
++    default:
++      printHelp();
++      if (cmd) {
++        console.error(`\nUnknown command: ${cmd}`);
++        process.exit(1);
++      }
++  }
++}
++
++main().catch(e => {
++  console.error(e);
++  process.exit(1);
++});

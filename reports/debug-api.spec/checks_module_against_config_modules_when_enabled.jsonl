@@ -1,3 +1,3 @@
-{"ts":1760333985417,"lvl":"info","case":"checks module against config.modules when enabled","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760333985418,"lvl":"info","case":"checks module against config.modules when enabled","phase":"execution","evt":"test.run"}
-{"ts":1760333985419,"lvl":"info","case":"checks module against config.modules when enabled","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}
+{"ts":1760457649724,"lvl":"info","case":"checks module against config.modules when enabled","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760457649725,"lvl":"info","case":"checks module against config.modules when enabled","phase":"execution","evt":"test.run"}
+{"ts":1760457649726,"lvl":"info","case":"checks module against config.modules when enabled","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

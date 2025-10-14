@@ -1,3 +1,3 @@
-{"ts":1760313936146,"lvl":"info","case":"detects identical digests (no diff)","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","TEST_SEED":"42","LAMINAR_DEBUG":"1","LAMINAR_SUITE":"diff.spec","LAMINAR_CASE":"handles_case_with_no_seed_in_events"}},"seed":42}
-{"ts":1760313936147,"lvl":"info","case":"detects identical digests (no diff)","phase":"execution","evt":"test.run"}
-{"ts":1760313936148,"lvl":"info","case":"detects identical digests (no diff)","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
+{"ts":1760457650036,"lvl":"info","case":"detects identical digests (no diff)","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760457650037,"lvl":"info","case":"detects identical digests (no diff)","phase":"execution","evt":"test.run"}
+{"ts":1760457650038,"lvl":"info","case":"detects identical digests (no diff)","phase":"teardown","evt":"case.end","payload":{"duration":10,"status":"passed"}}

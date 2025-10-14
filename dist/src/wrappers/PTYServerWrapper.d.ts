@@ -8,6 +8,7 @@ export declare class PTYServerWrapper extends ExternalServerWrapper {
     private dataDisposable?;
     constructor(kernel: Kernel, hostess: Hostess, manifest: ExternalServerManifest);
     spawn(): Promise<void>;
+    protected registerWithHostess(): Promise<void>;
     resize(cols: number, rows: number): void;
     shutdown(timeout?: number): Promise<void>;
     sendSignal(signal: string): void;

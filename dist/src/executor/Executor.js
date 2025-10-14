@@ -148,7 +148,15 @@ export class Executor {
                 produces: []
             }
         };
-        this.hostess.register(manifest);
+        const identity = this.hostess.register(manifest);
+        this.hostess.registerEndpoint(identity, {
+            type: 'inproc',
+            coordinates: `node:${nodeConfig.id}`,
+            metadata: {
+                module: nodeConfig.module,
+                runMode: 'inproc'
+            }
+        });
         this.stateManager.addNode({
             id: nodeConfig.id,
             name: nodeConfig.module,
@@ -228,7 +236,15 @@ export class Executor {
                 produces: []
             }
         };
-        this.hostess.register(manifest);
+        const identity = this.hostess.register(manifest);
+        this.hostess.registerEndpoint(identity, {
+            type: 'worker',
+            coordinates: `node:${nodeConfig.id}`,
+            metadata: {
+                module: nodeConfig.module,
+                runMode: 'worker'
+            }
+        });
         this.stateManager.addNode({
             id: nodeConfig.id,
             name: nodeConfig.module,

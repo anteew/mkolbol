@@ -363,6 +363,129 @@ Same API, different stream implementation!
 
 **All of those are module responsibilities.**
 
+## Endpoints
+
+### Overview
+
+Endpoints provide addressability and metadata for modules in the system. Each registered module has an associated endpoint that describes:
+- **Type** - The execution environment (inproc, worker, external, pty)
+- **Coordinates** - Location/identifier for reaching the module
+- **Metadata** - Additional context specific to the endpoint type
+
+### Endpoint Model
+
+```typescript
+interface HostessEndpoint {
+  type: string;           // Execution environment type
+  coordinates: string;    // Location/identifier
+  metadata?: Record<string, any>;  // Type-specific metadata
+}
+```
+
+### Endpoint Types
+
+**inproc** - In-process modules
+```typescript
+{
+  type: 'inproc',
+  coordinates: 'node:timer-source',
+  metadata: {
+    module: 'TimerSource',
+    runMode: 'inproc'
+  }
+}
+```
+
+**worker** - Worker thread modules
+```typescript
+{
+  type: 'worker',
+  coordinates: 'node:transform-worker',
+  metadata: {
+    module: 'UppercaseTransform',
+    runMode: 'worker'
+  }
+}
+```
+
+**external** - External process via stdio
+```typescript
+{
+  type: 'external',
+  coordinates: '/usr/bin/python3 script.py',
+  metadata: {
+    cwd: '/path/to/working/dir',
+    ioMode: 'stdio'
+  }
+}
+```
+
+**pty** - PTY-based process
+```typescript
+{
+  type: 'pty',
+  coordinates: 'pid:12345',
+  metadata: {
+    cols: 80,
+    rows: 24,
+    terminalType: 'xterm-256color'
+  }
+}
+```
+
+### Registration
+
+Endpoints are registered automatically when modules are instantiated:
+
+**Via Executor:**
+```typescript
+// Executor registers endpoints during node instantiation
+const executor = new Executor(kernel, hostess, stateManager);
+executor.load(topologyConfig);
+await executor.up();  // Registers endpoints for all nodes
+```
+
+**Via Wrappers:**
+```typescript
+// PTY wrapper registers on spawn
+const ptyWrapper = new PTYServerWrapper(kernel, hostess, manifest);
+await ptyWrapper.spawn();  // Registers pty endpoint
+
+// External wrapper registers on spawn
+const extWrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+await extWrapper.spawn();  // Registers external endpoint
+```
+
+### Discovery Pattern
+
+The Hostess provides discovery of registered endpoints:
+
+```typescript
+// Get all endpoints
+const endpoints = hostess.listEndpoints();
+
+// Iterate over endpoints
+for (const [id, endpoint] of endpoints) {
+  console.log(`${endpoint.type}: ${endpoint.coordinates}`);
+}
+```
+
+**CLI Discovery:**
+```bash
+# List all registered endpoints
+node dist/scripts/mkctl.js endpoints
+```
+
+### Use Cases
+
+**Dynamic routing** - Discover available endpoints at runtime and route connections dynamically
+
+**Health monitoring** - Track which endpoints are registered and available
+
+**Debugging** - Inspect endpoint metadata to understand system topology
+
+**Tool integration** - External tools can query endpoints to understand system structure
+
 ## Next Steps
 
 See:

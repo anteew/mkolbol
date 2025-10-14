@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
-import { CapabilityQuery, GuestBookEntry, ServerManifest, buildServerIdentity } from '../types.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { CapabilityQuery, GuestBookEntry, HostessEndpoint, ServerManifest, buildServerIdentity } from '../types.js';
 import { TestEventEnvelope, createEvent } from '../logging/TestEvent.js';
 import { createLogger } from '../logging/logger.js';
 import { debug } from '../debug/api.js';
@@ -12,6 +14,7 @@ interface HostessOptions {
 
 export class Hostess {
   private guestBook = new Map<string, GuestBookEntry>();
+  private endpoints = new Map<string, HostessEndpoint>();
   private interval?: NodeJS.Timeout;
   private readonly heartbeatIntervalMs: number;
   private readonly evictionThresholdMs: number;
@@ -137,6 +140,24 @@ export class Hostess {
     return Array.from(this.guestBook.values());
   }
 
+  registerEndpoint(id: string, endpoint: HostessEndpoint): void {
+    this.endpoints.set(id, endpoint);
+    this.logger?.(createEvent('hostess:registerEndpoint', 'hostess', {
+      id,
+      payload: { type: endpoint.type, coordinates: endpoint.coordinates }
+    }));
+    debug.emit('hostess', 'registerEndpoint', { id, type: endpoint.type, coordinates: endpoint.coordinates });
+    try {
+      this.writeEndpointsSnapshot();
+    } catch (err) {
+      debug.emit('hostess', 'writeEndpointsSnapshot:error', { error: String(err) });
+    }
+  }
+
+  listEndpoints(): Map<string, HostessEndpoint> {
+    return new Map(this.endpoints);
+  }
+
   startEvictionLoop(): void {
     if (this.interval) return;
     this.interval = setInterval(() => {
@@ -164,5 +185,16 @@ export class Hostess {
 
   private computeAvailable(inUse: Record<string, string | undefined>): boolean {
     return Object.values(inUse).some(v => v === undefined);
+  }
+
+  private writeEndpointsSnapshot(): void {
+    const snapshotDir = path.resolve(process.cwd(), 'reports');
+    const snapshotPath = path.join(snapshotDir, 'endpoints.json');
+    const endpointsArray = Array.from(this.endpoints.entries()).map(([id, endpoint]) => ({
+      id,
+      ...endpoint
+    }));
+    fs.mkdirSync(snapshotDir, { recursive: true });
+    fs.writeFileSync(snapshotPath, JSON.stringify(endpointsArray, null, 2));
   }
 }

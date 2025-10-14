@@ -58,6 +58,18 @@ export class PTYServerWrapper extends ExternalServerWrapper {
         });
         await this.registerWithHostess();
     }
+    async registerWithHostess() {
+        const identity = this.hostess.register(this.manifest);
+        this.hostess.registerEndpoint(identity, {
+            type: 'pty',
+            coordinates: `pid:${this.ptyProcess?.pid}`,
+            metadata: {
+                cols: this.terminalSize.cols,
+                rows: this.terminalSize.rows,
+                terminalType: this.manifest.terminalType || 'xterm-256color'
+            }
+        });
+    }
     resize(cols, rows) {
         if (!this.ptyProcess) {
             throw new Error('PTY process not running');
