@@ -143,15 +143,93 @@ Acceptance
 }
 ```
 
-# Sprint SB-MK-ENDPOINTS-STABILIZE-P1 — “Endpoints Stabilization”
+```json
+{
+  "ampcode": "v1",
+  "notes": "Do not branch/commit/push — VEGA handles git. Next sprint: Process Mode (Phase 1). Keep kernel untouched; add adapters and executor wiring only.",
+  "waves": [
+    { "id": "IFACES", "parallel": false, "tasks": ["T4701"] },
+    { "id": "EXECUTOR", "parallel": false, "depends_on": ["IFACES"], "tasks": ["T4702"] },
+    { "id": "TRANSPORT", "parallel": false, "depends_on": ["EXECUTOR"], "tasks": ["T4703"] },
+    { "id": "DEMO-TESTS", "parallel": false, "depends_on": ["TRANSPORT"], "tasks": ["T4704", "T4705"] }
+  ],
+  "tasks": [
+    {
+      "id": "T4701",
+      "title": "Process-mode adapter interfaces",
+      "agent": "susan-1",
+      "desc": "Define minimal interfaces for process pipes and control adapters (types only). No kernel changes.",
+      "allowedFiles": ["src/types.ts", "src/executor/ProcessInterfaces.ts"],
+      "verify": [
+        "rg -n 'interface ProcessPipeAdapter' src/executor/ProcessInterfaces.ts",
+        "npm run build"
+      ],
+      "deliverables": ["patches/DIFF_T4701_process-ifaces.patch"]
+    },
+    {
+      "id": "T4702",
+      "title": "Executor runMode 'process' skeleton",
+      "agent": "susan-2",
+      "desc": "Add runMode 'process' to Executor: spawn child process, connect stdio to pipe adapters, basic lifecycle (start/stop).",
+      "allowedFiles": ["src/executor/Executor.ts", "src/examples/process-demo.ts"],
+      "verify": [
+        "rg -n 'runMode.*process' src/executor/Executor.ts",
+        "npm run build && node dist/examples/process-demo.js || true"
+      ],
+      "deliverables": ["patches/DIFF_T4702_executor-process-skeleton.patch"]
+    },
+    {
+      "id": "T4703",
+      "title": "Unix socket transport stubs (control + pipes)",
+      "agent": "susan-3",
+      "desc": "Add stub adapters for Unix domain sockets for control channel and data pipes; wire into Executor when runMode=process.",
+      "allowedFiles": ["src/transport/unix/UnixControlAdapter.ts", "src/transport/unix/UnixPipeAdapter.ts", "src/executor/Executor.ts"],
+      "verify": [
+        "rg -n 'class UnixControlAdapter' src/transport/unix/UnixControlAdapter.ts",
+        "rg -n 'class UnixPipeAdapter' src/transport/unix/UnixPipeAdapter.ts",
+        "npm run build"
+      ],
+      "deliverables": ["patches/DIFF_T4703_unix-transport-stubs.patch"]
+    },
+    {
+      "id": "T4704",
+      "title": "Blue/green cutover demo",
+      "agent": "susan-4",
+      "desc": "Example script that starts a node in process-mode and demonstrates blue/green cutover by restarting child and switching pipes.",
+      "allowedFiles": ["src/examples/process-bluegreen.ts", "README.md"],
+      "verify": [
+        "npm run build && node dist/examples/process-bluegreen.js || true"
+      ],
+      "deliverables": ["patches/DIFF_T4704_bluegreen-demo.patch"]
+    },
+    {
+      "id": "T4705",
+      "title": "Integration tests (gated)",
+      "agent": "susan-5",
+      "desc": "Add minimal process-mode integration test gated behind MK_PROCESS_EXPERIMENTAL=1; ensure threads lane excludes it and forks lane runs it.",
+      "allowedFiles": ["tests/integration/processMode.spec.ts", "package.json"],
+      "verify": [
+        "rg -n 'MK_PROCESS_EXPERIMENTAL' tests/integration/processMode.spec.ts",
+        "jq -r .scripts package.json"
+      ],
+      "deliverables": ["patches/DIFF_T4705_process-tests.patch"]
+    }
+  ]
+}
+```
 
-Goal: Make endpoints visible and stable for immediate human/agent use; avoid flaky or unimplemented paths.
+# Sprint SB-MK-PROCESS-MODE-P1 — “Process Mode (Phase 1)”
+
+Goal: Introduce a minimal process-mode for Executor with Unix socket stubs, enabling external child processes and a blue/green cutover demo, without changing the kernel.
 
 Scope
-- Gate worker-node test until worker harness exists (or enable via MK_WORKER_EXPERIMENTAL=1).
-- Confirm PTY isolation in scripts; raise timeouts where appropriate.
-- Add endpoints snapshot persisted to reports/ and have mkctl read it (human- and agent-friendly).
+- Define adapter interfaces (types only) for process-mode.
+- Implement Executor runMode 'process' skeleton (spawn, wire stdio, lifecycle).
+- Add Unix socket control/data stubs and integrate.
+- Provide a blue/green cutover demo script.
+- Add a gated integration test for process-mode.
 
 Acceptance
-- Endpoints integration tests pass (worker-node test skipped unless explicitly enabled).
-- `node dist/scripts/mkctl.js endpoints` shows endpoints after running the host demo, without needing to share process memory.
+- `node dist/examples/process-demo.js` and `process-bluegreen.js` run without errors (locally).
+- Integration test passes when `MK_PROCESS_EXPERIMENTAL=1`; excluded from threads lane.
+- Kernel untouched; all changes in adapters/executor/examples.
