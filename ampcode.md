@@ -146,90 +146,34 @@ Acceptance
 ```json
 {
   "ampcode": "v1",
-  "notes": "Do not branch/commit/push — VEGA handles git. Next sprint: Process Mode (Phase 1). Keep kernel untouched; add adapters and executor wiring only.",
+  "notes": "Do not branch/commit/push — VEGA handles git. Next sprint: Worker Harness (Phase 1). Keep kernel untouched; add worker harness + executor wiring.",
   "waves": [
-    { "id": "IFACES", "parallel": false, "tasks": ["T4701"] },
-    { "id": "EXECUTOR", "parallel": false, "depends_on": ["IFACES"], "tasks": ["T4702"] },
-    { "id": "TRANSPORT", "parallel": false, "depends_on": ["EXECUTOR"], "tasks": ["T4703"] },
-    { "id": "DEMO-TESTS", "parallel": false, "depends_on": ["TRANSPORT"], "tasks": ["T4704", "T4705"] }
+    { "id": "IFACES", "parallel": false, "tasks": ["T4801"] },
+    { "id": "EXECUTOR", "parallel": false, "depends_on": ["IFACES"], "tasks": ["T4802"] },
+    { "id": "ADAPTERS", "parallel": false, "depends_on": ["EXECUTOR"], "tasks": ["T4803"] },
+    { "id": "TESTS-DOCS", "parallel": false, "depends_on": ["ADAPTERS"], "tasks": ["T4804", "T4805"] }
   ],
   "tasks": [
-    {
-      "id": "T4701",
-      "title": "Process-mode adapter interfaces",
-      "agent": "susan-1",
-      "desc": "Define minimal interfaces for process pipes and control adapters (types only). No kernel changes.",
-      "allowedFiles": ["src/types.ts", "src/executor/ProcessInterfaces.ts"],
-      "verify": [
-        "rg -n 'interface ProcessPipeAdapter' src/executor/ProcessInterfaces.ts",
-        "npm run build"
-      ],
-      "deliverables": ["patches/DIFF_T4701_process-ifaces.patch"]
-    },
-    {
-      "id": "T4702",
-      "title": "Executor runMode 'process' skeleton",
-      "agent": "susan-2",
-      "desc": "Add runMode 'process' to Executor: spawn child process, connect stdio to pipe adapters, basic lifecycle (start/stop).",
-      "allowedFiles": ["src/executor/Executor.ts", "src/examples/process-demo.ts"],
-      "verify": [
-        "rg -n 'runMode.*process' src/executor/Executor.ts",
-        "npm run build && node dist/examples/process-demo.js || true"
-      ],
-      "deliverables": ["patches/DIFF_T4702_executor-process-skeleton.patch"]
-    },
-    {
-      "id": "T4703",
-      "title": "Unix socket transport stubs (control + pipes)",
-      "agent": "susan-3",
-      "desc": "Add stub adapters for Unix domain sockets for control channel and data pipes; wire into Executor when runMode=process.",
-      "allowedFiles": ["src/transport/unix/UnixControlAdapter.ts", "src/transport/unix/UnixPipeAdapter.ts", "src/executor/Executor.ts"],
-      "verify": [
-        "rg -n 'class UnixControlAdapter' src/transport/unix/UnixControlAdapter.ts",
-        "rg -n 'class UnixPipeAdapter' src/transport/unix/UnixPipeAdapter.ts",
-        "npm run build"
-      ],
-      "deliverables": ["patches/DIFF_T4703_unix-transport-stubs.patch"]
-    },
-    {
-      "id": "T4704",
-      "title": "Blue/green cutover demo",
-      "agent": "susan-4",
-      "desc": "Example script that starts a node in process-mode and demonstrates blue/green cutover by restarting child and switching pipes.",
-      "allowedFiles": ["src/examples/process-bluegreen.ts", "README.md"],
-      "verify": [
-        "npm run build && node dist/examples/process-bluegreen.js || true"
-      ],
-      "deliverables": ["patches/DIFF_T4704_bluegreen-demo.patch"]
-    },
-    {
-      "id": "T4705",
-      "title": "Integration tests (gated)",
-      "agent": "susan-5",
-      "desc": "Add minimal process-mode integration test gated behind MK_PROCESS_EXPERIMENTAL=1; ensure threads lane excludes it and forks lane runs it.",
-      "allowedFiles": ["tests/integration/processMode.spec.ts", "package.json"],
-      "verify": [
-        "rg -n 'MK_PROCESS_EXPERIMENTAL' tests/integration/processMode.spec.ts",
-        "jq -r .scripts package.json"
-      ],
-      "deliverables": ["patches/DIFF_T4705_process-tests.patch"]
-    }
+    { "id": "T4801", "title": "Worker harness skeleton (threads)", "agent": "susan-1", "desc": "Add src/executor/workerHarness.ts (worker_threads) with message loop: handle init/shutdown, heartbeat, and basic error handling.", "allowedFiles": ["src/executor/workerHarness.ts"], "verify": [ "rg -n 'worker_threads' src/executor/workerHarness.ts", "npm run build" ], "deliverables": ["patches/DIFF_T4801_worker-harness.patch"] },
+    { "id": "T4802", "title": "Executor runMode 'worker' integration", "agent": "susan-2", "desc": "Wire Executor to spawn Worker with workerHarness for runMode='worker'; exchange a 'ready' message and register endpoint with Hostess.", "allowedFiles": ["src/executor/Executor.ts"], "verify": [ "rg -n 'runMode.*worker' src/executor/Executor.ts", "npm run build" ], "deliverables": ["patches/DIFF_T4802_executor-worker-mode.patch"] },
+    { "id": "T4803", "title": "Worker adapters (stub)", "agent": "susan-3", "desc": "Add minimal WorkerControlAdapter/WorkerPipeAdapter stubs (message passing via parentPort) and integrate basic lifecycle messages.", "allowedFiles": ["src/transport/worker/WorkerControlAdapter.ts", "src/transport/worker/WorkerPipeAdapter.ts", "src/executor/Executor.ts"], "verify": [ "rg -n 'class WorkerControlAdapter' src/transport/worker/WorkerControlAdapter.ts", "rg -n 'class WorkerPipeAdapter' src/transport/worker/WorkerPipeAdapter.ts", "npm run build" ], "deliverables": ["patches/DIFF_T4803_worker-adapters-stub.patch"] },
+    { "id": "T4804", "title": "Un-gate worker endpoint test", "agent": "susan-4", "desc": "Remove skip gate for worker endpoint test in endpointsList.spec.ts and ensure it passes; adjust timeouts if needed.", "allowedFiles": ["tests/integration/endpointsList.spec.ts"], "verify": [ "rg -n 'MK_WORKER_EXPERIMENTAL' tests/integration/endpointsList.spec.ts", "npx -y vitest run tests/integration/endpointsList.spec.ts --reporter=basic -c vitest.config.ts || true" ], "deliverables": ["patches/DIFF_T4804_ungate-worker-endpoint-test.patch"] },
+    { "id": "T4805", "title": "Docs: worker-mode note", "agent": "susan-5", "desc": "Add a short section to README + 02-core-architecture.md explaining worker-mode and endpoint registration, keeping kernel unchanged.", "allowedFiles": ["README.md", "docs/rfcs/stream-kernel/02-core-architecture.md"], "verify": [ "rg -n 'Worker Mode' README.md docs/rfcs/stream-kernel/02-core-architecture.md || true" ], "deliverables": ["patches/DIFF_T4805_docs-worker-mode.patch"] }
   ]
 }
 ```
 
-# Sprint SB-MK-PROCESS-MODE-P1 — “Process Mode (Phase 1)”
+# Sprint SB-MK-WORKER-HARNESS-P1 — “Worker Harness (Phase 1)”
 
-Goal: Introduce a minimal process-mode for Executor with Unix socket stubs, enabling external child processes and a blue/green cutover demo, without changing the kernel.
+Goal: Introduce a minimal worker harness (worker_threads) and wire Executor to runMode='worker' to un-gate endpoint tests without changing the kernel.
 
 Scope
-- Define adapter interfaces (types only) for process-mode.
-- Implement Executor runMode 'process' skeleton (spawn, wire stdio, lifecycle).
-- Add Unix socket control/data stubs and integrate.
-- Provide a blue/green cutover demo script.
-- Add a gated integration test for process-mode.
+- Implement worker harness message loop (init/shutdown/heartbeat).
+- Wire Executor to spawn/track Worker; on 'ready', register worker endpoint.
+- Add minimal worker adapters stubs for future control/data paths.
+- Un-gate worker endpoint test and ensure it passes.
+- Light docs note about worker-mode (keeps kernel inert).
 
 Acceptance
-- `node dist/examples/process-demo.js` and `process-bluegreen.js` run without errors (locally).
-- Integration test passes when `MK_PROCESS_EXPERIMENTAL=1`; excluded from threads lane.
-- Kernel untouched; all changes in adapters/executor/examples.
+- endpointsList worker test passes (gate removed).
+- Local build passes; no kernel changes; adapters/executor/tests only.
