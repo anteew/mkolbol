@@ -177,3 +177,92 @@ Scope
 Acceptance
 - endpointsList worker test passes (gate removed).
 - Local build passes; no kernel changes; adapters/executor/tests only.
+```json
+{
+  "ampcode": "v1",
+  "notes": "Do not branch/commit/push — VEGA handles git. Next sprint: Process Mode (Phase 2) — harden Unix adapters, health checks, and cutover.",
+  "waves": [
+    { "id": "CONTROL",  "parallel": false, "tasks": ["T4901"] },
+    { "id": "PIPES",    "parallel": false, "depends_on": ["CONTROL"], "tasks": ["T4902"] },
+    { "id": "EXECUTOR", "parallel": false, "depends_on": ["PIPES"], "tasks": ["T4903"] },
+    { "id": "TESTS",    "parallel": false, "depends_on": ["EXECUTOR"], "tasks": ["T4904"] },
+    { "id": "DOCS",     "parallel": true,  "depends_on": ["EXECUTOR"], "tasks": ["T4905"] }
+  ],
+  "tasks": [
+    {
+      "id": "T4901",
+      "title": "UnixControlAdapter: publish/subscribe + heartbeats + graceful shutdown",
+      "agent": "susan-1",
+      "desc": "Implement topic-based pub/sub over Unix sockets, periodic heartbeats, and graceful shutdown signalling.",
+      "allowedFiles": ["src/transport/unix/UnixControlAdapter.ts"],
+      "verify": [
+        "rg -n 'publish|subscribe|heartbeat|shutdown' src/transport/unix/UnixControlAdapter.ts",
+        "npm run build"
+      ],
+      "deliverables": ["patches/DIFF_T4901_unix-control-hardening.patch"]
+    },
+    {
+      "id": "T4902",
+      "title": "UnixPipeAdapter: Duplex with backpressure + error propagation",
+      "agent": "susan-2",
+      "desc": "Wrap Unix socket as a Node.js Duplex supporting backpressure; propagate errors/close to executor.",
+      "allowedFiles": ["src/transport/unix/UnixPipeAdapter.ts"],
+      "verify": [
+        "rg -n 'Duplex|_read|_write' src/transport/unix/UnixPipeAdapter.ts",
+        "npm run build"
+      ],
+      "deliverables": ["patches/DIFF_T4902_unix-pipe-backpressure.patch"]
+    },
+    {
+      "id": "T4903",
+      "title": "Executor process-mode health checks + blue/green cutover robustness",
+      "agent": "susan-3",
+      "desc": "Add child health checks (heartbeat timeouts), robust cutover (drain+switch), and graceful teardown.",
+      "allowedFiles": ["src/executor/Executor.ts", "src/examples/process-bluegreen.ts"],
+      "verify": [
+        "rg -n 'heartbeat|cutover|graceful' src/executor/Executor.ts src/examples/process-bluegreen.ts",
+        "npm run build && node dist/examples/process-bluegreen.js || true"
+      ],
+      "deliverables": ["patches/DIFF_T4903_executor-health-cutover.patch"]
+    },
+    {
+      "id": "T4904",
+      "title": "Integration tests: process-mode (Unix) under load + teardown",
+      "agent": "susan-4",
+      "desc": "Add tests for heavy writes + teardown sequence; keep gated behind MK_PROCESS_EXPERIMENTAL=1 (forks lane).",
+      "allowedFiles": ["tests/integration/processUnix.spec.ts", "package.json"],
+      "verify": [
+        "rg -n 'MK_PROCESS_EXPERIMENTAL' tests/integration/processUnix.spec.ts",
+        "jq -r .scripts package.json"
+      ],
+      "deliverables": ["patches/DIFF_T4904_process-unix-tests.patch"]
+    },
+    {
+      "id": "T4905",
+      "title": "Docs: process-mode hardening notes",
+      "agent": "susan-5",
+      "desc": "Document Unix adapter behavior, heartbeats, cutover expectations in README + RFC (02-core-architecture).",
+      "allowedFiles": ["README.md", "docs/rfcs/stream-kernel/02-core-architecture.md"],
+      "verify": [
+        "rg -n 'Process Mode' README.md docs/rfcs/stream-kernel/02-core-architecture.md || true"
+      ],
+      "deliverables": ["patches/DIFF_T4905_docs-process-mode-p2.patch"]
+    }
+  ]
+}
+```
+
+# Sprint SB-MK-PROCESS-MODE-P2 — “Unix Adapters + Health + Cutover”
+
+Goal: Harden process-mode with working Unix control/pipes, health checks, backpressure, and robust blue/green cutover without touching the kernel.
+
+Scope
+- Implement topic pub/sub, heartbeats, graceful shutdown in UnixControlAdapter.
+- Implement Duplex with backpressure and error propagation in UnixPipeAdapter.
+- Add child health checks, robust cutover mechanics in Executor.
+- Integration tests under load and teardown (gated).
+- Documentation updates.
+
+Acceptance
+- Demos run without errors; integration tests pass when gated.
+- No kernel changes; adapters/executor only; CI lanes remain split.
