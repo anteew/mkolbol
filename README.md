@@ -50,6 +50,15 @@ npx lam repro
 
 📖 **Full Documentation:** [docs/testing/laminar.md](docs/testing/laminar.md)
 
+## CI & Testing
+
+- Threads lane: `npm run test:ci`
+- Forks lane (process/pty demos): `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty`
+- Dogfooding with Laminar (produces summaries/trends under `reports/`):
+  - Threads + summaries: `npm run test:ci:lam`
+  - Forks + summaries: `npm run test:pty:lam`
+- See `docs/testing/laminar-integration.md` for deeper integration and CI artifacts.
+
 ## Config Loader
 
 Define stream topologies in YAML and run them with the config loader:

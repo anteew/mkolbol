@@ -1,4 +1,4 @@
-# Laminar Integration
+# Laminar Integration (Deep Dogfooding)
 
 This repo integrates Laminar in two ways:
 
@@ -35,6 +35,19 @@ This repo integrates Laminar in two ways:
   }
   ```
 
-Notes
+## CI Artifacts (dogfooding)
+
+- Our CI runs both threads and forks lanes, then captures Laminar summaries and trends into `reports/` and uploads them as build artifacts.
+- Locally you can generate the same with one command:
+  - Threads lane + summary/trends: `npm run test:ci:lam`
+  - Forks lane + summary/trends: `npm run test:pty:lam`
+
+Artifacts you’ll see:
+- `reports/summary.jsonl` — per-run ledger
+- `reports/index.json` — index manifest (deterministic mtime ≥ summary)
+- `reports/LAMINAR_SUMMARY.txt` — human-readable summary
+- `reports/LAMINAR_TRENDS.txt` — top recurring signals
+
+## Notes
 - The repo also ships a minimal `lam` stub bin for packaging; use `npm run lam` for the full Laminar CLI.
 - See `docs/rfcs/stream-kernel/status.md` for implementation status.

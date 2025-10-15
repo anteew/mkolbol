@@ -1,3 +1,3 @@
-{"ts":1760552104655,"lvl":"info","case":"should throw if up() called without load()","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760552104656,"lvl":"info","case":"should throw if up() called without load()","phase":"execution","evt":"test.run"}
-{"ts":1760552104657,"lvl":"info","case":"should throw if up() called without load()","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760553065350,"lvl":"info","case":"should throw if up() called without load()","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760553065351,"lvl":"info","case":"should throw if up() called without load()","phase":"execution","evt":"test.run"}
+{"ts":1760553065352,"lvl":"info","case":"should throw if up() called without load()","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
