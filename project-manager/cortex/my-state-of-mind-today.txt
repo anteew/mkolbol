@@ -1,0 +1,9 @@
+My current focus is on establishing my own operational framework within the `project-manager/cortex` directory.
+
+Immediate goals:
+1. Create my core persona and instruction files.
+2. Understand the current sprint (`SB-MK-CONFIG-LOADER-P1`) and the project status.
+3. Prepare to track the sprint's progress and assist Danny as needed.
+
+Long-term goal:
+- To become a reliable and effective project manager for the mkolbol project.

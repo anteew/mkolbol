@@ -50,6 +50,24 @@ npx lam repro
 
 📖 **Full Documentation:** [docs/testing/laminar.md](docs/testing/laminar.md)
 
+## Config Loader
+
+Define stream topologies in YAML and run them with the config loader:
+
+```yaml
+nodes:
+  - { id: timer1, module: TimerSource, params: { periodMs: 1000 } }
+  - { id: upper1, module: UppercaseTransform }
+  - { id: console1, module: ConsoleSink, params: { prefix: "[basic]" } }
+connections:
+  - { from: timer1.output, to: upper1.input }
+  - { from: upper1.output, to: console1.input }
+```
+
+```bash
+node dist/examples/config-runner.js --file examples/configs/basic.yml
+```
+
 ## Overview
 
 mkolbol is a minimal (~100 line) stream-based microkernel designed for building flexible, distributed AI agent systems. The kernel provides protocol-agnostic "physical layer" plumbing while all semantics live in composable modules.

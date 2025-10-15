@@ -65,7 +65,8 @@
     "dev:worker-demo": "node --enable-source-maps dist/examples/worker-demo.js"
   },
   "dependencies": {
-    "node-pty": "^1.0.0"
+    "node-pty": "^1.0.0",
+    "yaml": "^2.3.4"
   },
   "devDependencies": {
     "@agent_vega/laminar": "github:anteew/Laminar",

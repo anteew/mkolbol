@@ -1,0 +1,234 @@
+import { describe, it, expect } from 'vitest';
+import { loadConfig, validateTopology } from '../../src/config/loader.js';
+
+describe('loadConfig', () => {
+  describe('parsing', () => {
+    it('should parse valid YAML', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+connections:
+  - from: n1.out
+    to: n1.in
+`;
+      const config = loadConfig(yaml);
+      expect(config.nodes).toHaveLength(1);
+      expect(config.nodes[0].id).toBe('n1');
+      expect(config.connections).toHaveLength(1);
+    });
+
+    it('should parse valid JSON', () => {
+      const json = JSON.stringify({
+        nodes: [{ id: 'n1', module: 'foo' }],
+        connections: [{ from: 'n1.out', to: 'n1.in' }]
+      });
+      const config = loadConfig(json);
+      expect(config.nodes).toHaveLength(1);
+      expect(config.nodes[0].id).toBe('n1');
+      expect(config.connections).toHaveLength(1);
+    });
+  });
+
+  describe('validation', () => {
+    it('should reject missing nodes', () => {
+      const yaml = `
+connections:
+  - from: n1.out
+    to: n2.in
+`;
+      expect(() => loadConfig(yaml)).toThrow('Configuration must have a "nodes" array');
+    });
+
+    it('should reject missing connections', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+`;
+      expect(() => loadConfig(yaml)).toThrow('Configuration must have a "connections" array');
+    });
+
+    it('should reject duplicate node ids', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+  - id: n1
+    module: bar
+connections: []
+`;
+      expect(() => loadConfig(yaml)).toThrow('Duplicate node id: "n1"');
+    });
+
+    it('should reject invalid from address without dot', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+connections:
+  - from: n1
+    to: n1.in
+`;
+      expect(() => loadConfig(yaml)).toThrow('must be in format "node.terminal"');
+    });
+
+    it('should reject invalid to address without dot', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+connections:
+  - from: n1.out
+    to: n1
+`;
+      expect(() => loadConfig(yaml)).toThrow('must be in format "node.terminal"');
+    });
+
+    it('should reject address with multiple dots', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+connections:
+  - from: n1.out.extra
+    to: n1.in
+`;
+      expect(() => loadConfig(yaml)).toThrow('must have exactly one dot');
+    });
+
+    it('should reject address with empty node name', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+connections:
+  - from: .out
+    to: n1.in
+`;
+      expect(() => loadConfig(yaml)).toThrow('has empty node or terminal name');
+    });
+
+    it('should reject address with empty terminal name', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+connections:
+  - from: n1.
+    to: n1.in
+`;
+      expect(() => loadConfig(yaml)).toThrow('has empty node or terminal name');
+    });
+
+    it('should reject connection referencing non-existent from node', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+connections:
+  - from: n2.out
+    to: n1.in
+`;
+      expect(() => loadConfig(yaml)).toThrow('node "n2" referenced in "from" does not exist');
+    });
+
+    it('should reject connection referencing non-existent to node', () => {
+      const yaml = `
+nodes:
+  - id: n1
+    module: foo
+connections:
+  - from: n1.out
+    to: n2.in
+`;
+      expect(() => loadConfig(yaml)).toThrow('node "n2" referenced in "to" does not exist');
+    });
+  });
+
+  describe('validateTopology', () => {
+    it('should reject non-object config', () => {
+      expect(() => validateTopology(null)).toThrow('Configuration must be an object');
+      expect(() => validateTopology('string')).toThrow('Configuration must be an object');
+      expect(() => validateTopology(123)).toThrow('Configuration must be an object');
+    });
+
+    it('should reject non-array nodes', () => {
+      expect(() => validateTopology({ nodes: 'not-array', connections: [] }))
+        .toThrow('"nodes" must be an array');
+    });
+
+    it('should reject non-array connections', () => {
+      expect(() => validateTopology({ nodes: [], connections: 'not-array' }))
+        .toThrow('"connections" must be an array');
+    });
+
+    it('should reject node without id', () => {
+      expect(() => validateTopology({
+        nodes: [{ module: 'foo' }],
+        connections: []
+      })).toThrow('Node at index 0 is missing required field "id"');
+    });
+
+    it('should reject node with non-string id', () => {
+      expect(() => validateTopology({
+        nodes: [{ id: 123, module: 'foo' }],
+        connections: []
+      })).toThrow('Node at index 0 has invalid "id" (must be a string)');
+    });
+
+    it('should reject node without module', () => {
+      expect(() => validateTopology({
+        nodes: [{ id: 'n1' }],
+        connections: []
+      })).toThrow('Node "n1" is missing required field "module"');
+    });
+
+    it('should reject node with non-string module', () => {
+      expect(() => validateTopology({
+        nodes: [{ id: 'n1', module: 123 }],
+        connections: []
+      })).toThrow('Node "n1" has invalid "module" (must be a string)');
+    });
+
+    it('should reject connection without from', () => {
+      expect(() => validateTopology({
+        nodes: [{ id: 'n1', module: 'foo' }],
+        connections: [{ to: 'n1.in' }]
+      })).toThrow('Connection at index 0 is missing required field "from"');
+    });
+
+    it('should reject connection without to', () => {
+      expect(() => validateTopology({
+        nodes: [{ id: 'n1', module: 'foo' }],
+        connections: [{ from: 'n1.out' }]
+      })).toThrow('Connection at index 0 is missing required field "to"');
+    });
+
+    it('should reject connection with non-string from', () => {
+      expect(() => validateTopology({
+        nodes: [{ id: 'n1', module: 'foo' }],
+        connections: [{ from: 123, to: 'n1.in' }]
+      })).toThrow('Connection at index 0 has invalid "from" (must be a string)');
+    });
+
+    it('should reject connection with non-string to', () => {
+      expect(() => validateTopology({
+        nodes: [{ id: 'n1', module: 'foo' }],
+        connections: [{ from: 'n1.out', to: 123 }]
+      })).toThrow('Connection at index 0 has invalid "to" (must be a string)');
+    });
+
+    it('should accept valid topology', () => {
+      expect(() => validateTopology({
+        nodes: [
+          { id: 'n1', module: 'foo' },
+          { id: 'n2', module: 'bar' }
+        ],
+        connections: [
+          { from: 'n1.out', to: 'n2.in' }
+        ]
+      })).not.toThrow();
+    });
+  });
+});

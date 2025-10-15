@@ -1,0 +1,9 @@
+# No changes required
+# 
+# The loader tests at tests/config/loader.spec.ts are already included
+# in the test:ci command. Vitest's default discovery pattern picks up
+# all *.spec.ts files, and the test:ci script runs with --pool=threads
+# which is the correct lane for these tests.
+#
+# Verification: npm run test:ci shows "✓ should parse valid YAML" and
+# "✓ should parse valid JSON" along with other loader test cases.
