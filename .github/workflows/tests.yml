@@ -41,7 +41,6 @@ jobs:
             > reports/threads_raw.log 2>&1
 
       - name: Forks lane (process-mode gated)
-        continue-on-error: true
         run: |
           mkdir -p reports
           npx vitest run \
@@ -56,9 +55,8 @@ jobs:
             --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
             > reports/forks_raw.log 2>&1
 
-      # Optional experimental run of processUnix (does not fail build)
-      - name: Process-mode experimental (Unix adapters)
-        continue-on-error: true
+      # Enforced process-mode adapters run (required)
+      - name: Process-mode (Unix adapters)
         run: |
           MK_PROCESS_EXPERIMENTAL=1 npx vitest run \
             --pool=forks \
