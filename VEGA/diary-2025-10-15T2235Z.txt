@@ -1,0 +1,16 @@
+Diary — 2025-10-15T22:35Z
+
+Summary
+- Merged: ANSI Parser P1 (#55), ANSI Parser P2 (#56), CI Stabilize P1 (#57), Digest Generator P1 (#58).
+- CI now captures both Laminar artifacts and raw vitest logs for ROI comparisons.
+- Digest suite re‑enabled in threads lane (generator + rulepacks + redaction landed).
+
+What changed today
+- Parser fidelity: UTF‑8/wide chars, extra CSI/RIS, scrollback/snapshots.
+- CI discipline: dual reporters → strict where sensible; process‑mode kept as monitored step.
+- Digest: minimal generator + node-defaults rulepack + redaction stub; tests green.
+
+Next
+- Compact context; rehydrate instructions updated.
+- Choose next sprint: (a) Process‑mode enforcement to required, or (b) Packaging/Quickstart + docs polish. Leaning (a) if CI remains green across runs; otherwise (b).
+

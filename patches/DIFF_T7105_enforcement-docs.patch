@@ -1,0 +1,100 @@
+diff --git a/README.md b/README.md
+index 4b55099..a00edad 100644
+--- a/README.md
++++ b/README.md
+@@ -53,11 +53,11 @@ npx lam repro
+ ## CI & Testing
+ 
+ - Threads lane: `npm run test:ci`
+-- Forks lane (process/pty demos): `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty`
++- Forks lane (process-mode **required**): `npm run test:pty`
+ - Dogfooding with Laminar (produces summaries/trends under `reports/`):
+   - Threads + summaries: `npm run test:ci:lam`
+   - Forks + summaries: `npm run test:pty:lam`
+-- See `docs/testing/laminar-integration.md` for deeper integration and CI artifacts.
++- See `docs/testing/ci.md` for enforcement policy and CI artifacts.
+ 
+ ## Config Loader
+ 
+@@ -299,9 +299,9 @@ npm run test:watch
+ npm run test:ci
+ ```
+ 
+-**CI Note:** The `test:ci` script uses `--pool=threads` to avoid tinypool concurrency issues on Node 20 and 24. Tested on both LTS versions.
++**CI Note:** The `test:ci` script uses `--pool=threads` to avoid tinypool concurrency issues on Node 20 and 24. Process-mode is **required** for PTY and Unix adapter tests in the forks lane.
+ 
+-**CI Artifacts:** Test reports for Node 20 and 24 are uploaded to GitHub Actions as artifacts (`test-reports-node-20`, `test-reports-node-24`) and retained for 30 days. Download from the [Actions tab](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml).
++**CI Artifacts:** Laminar reports (`summary.jsonl`, case logs) and raw test logs (`threads_raw.log`, `forks_raw.log`) are uploaded to GitHub Actions as artifacts (`laminar-reports-node-20`, `laminar-reports-node-24`). Download from the [Actions tab](https://github.com/anteew/mkolbol/actions).
+ 
+ **Auto-Debug Rerun:** For CI pipelines with fast triage, use:
+ ```bash
+diff --git a/docs/testing/ci.md b/docs/testing/ci.md
+index 0fdf9c1..849abfd 100644
+--- a/docs/testing/ci.md
++++ b/docs/testing/ci.md
+@@ -94,9 +94,9 @@ npx vitest run \
+ 
+ ### MK_PROCESS_EXPERIMENTAL
+ 
+-**Status:** ✅ **ENABLED in CI** (optional experimental lane)
++**Status:** ✅ **REQUIRED for CI** (enforced in forks lane)
+ 
+-**Purpose:** Gate Unix process adapter tests (pipes, PTY control, teardown).
++**Purpose:** Enable Unix process adapter tests (pipes, PTY control, teardown).
+ 
+ **Gated tests:**
+ - `tests/integration/processUnix.spec.ts`
+@@ -111,8 +111,8 @@ npx vitest run \
+ 
+ **Usage:**
+ ```bash
+-# Enable gate and run forks lane
+-MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
++# Run forks lane with process-mode (REQUIRED)
++npm run test:pty
+ 
+ # Direct vitest (processUnix only)
+ MK_PROCESS_EXPERIMENTAL=1 npx vitest run \
+@@ -130,9 +130,9 @@ describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('UnixPipeAdapter', () => {
+ ```
+ 
+ **CI behavior:**
+-- Main forks lane runs WITHOUT this gate (skips processUnix tests)
+-- Optional experimental step runs WITH this gate (continue-on-error)
+-- See `.github/workflows/tests.yml` step "Process-mode experimental"
++- Forks lane **REQUIRES** `MK_PROCESS_EXPERIMENTAL=1` (no longer optional)
++- Process-mode tests run in main forks lane (not experimental step)
++- Ensures adapter parity and PTY control coverage
+ 
+ ### MK_WORKER_EXPERIMENTAL
+ 
+@@ -228,8 +228,16 @@ Location: `.github/workflows/tests.yml`
+ 
+ 6. **Upload artifacts** (if: always)
+    - Name: `laminar-reports-{node-version}`
+-   - Path: `reports`
++   - Path: `reports/`
+    - Retention: Default (typically 90 days)
++   - **Contents:**
++     - `summary.jsonl` - Structured test results (Laminar)
++     - `index.json` - Test artifact manifest
++     - `<suite>/<case>.jsonl` - Per-case event streams
++     - `threads_raw.log` - Full output from threads lane
++     - `forks_raw.log` - Full output from forks lane
++     - `LAMINAR_SUMMARY.txt` - Human-readable summary
++     - `LAMINAR_TRENDS.txt` - Top recurring signals
+ 
+ ### Viewing CI Results
+ 
+@@ -324,9 +332,9 @@ npm run test:pty
+ 
+ **Symptom:** Tests in `processUnix.spec.ts` show as skipped.
+ 
+-**Solution:** Enable `MK_PROCESS_EXPERIMENTAL` gate:
++**Solution:** Process-mode is now **required**. Use `npm run test:pty` (sets `MK_PROCESS_EXPERIMENTAL=1` automatically):
+ ```bash
+-MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
++npm run test:pty
+ ```
+ 
+ **3. Tinypool concurrency errors on Node 20/24**
