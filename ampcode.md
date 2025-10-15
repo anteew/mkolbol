@@ -1,29 +1,35 @@
-Sprint SB-LAM-INTEGRATION-P2 (Dogfooding)
+Sprint SB-MK-PROCESS-IO-P3 (Process‑mode I/O Hardening)
 
 Goal
-- Run Laminar over full test workflow and generate curated feedback artifacts + feature requests for Laminar.
+- Implement real process‑mode I/O over Unix domain sockets with backpressure and error propagation; add health checks and blue/green cutover.
 
 Constraints
-- No kernel changes. Consumption + feedback only.
-- Keep worker-mode integration tests gated by default.
+- No kernel changes. Focus on `src/transport/unix/*`, `src/executor/Executor.ts`, and tests.
+- Keep process-mode specs gated via `MK_PROCESS_EXPERIMENTAL=1` until stable.
 
-T6101 — Run dogfood (threads lane)
-- Outcome: `npm run lam:dogfood:ci` generates summaries/trends + feedback markdown.
+T6301 — UnixPipeAdapter (Duplex over UDS)
+- Outcome: `_read/_write/_final/_destroy`, pause/resume, end/close, error propagation.
 
-T6102 — Run dogfood (forks lane, gated)
-- Outcome: `MK_PROCESS_EXPERIMENTAL=1 npm run lam:dogfood:pty` appends/refreshes feedback.
+T6302 — UnixControlAdapter (heartbeats + pub/sub)
+- Outcome: `control.*` topics, periodic heartbeat, graceful shutdown.
 
-T6103 — Curate feature requests
-- Outcome: `project-manager/laminar-feedback/feature-requests.md` with top 5 items.
+T6303 — Executor(process) wiring + cutover
+- Outcome: Spawn child + attach adapters; add drain→switch→teardown sequence and heartbeat timeouts.
 
-T6104 — Log + handoff
-- Outcome: ampcode.log updated with run details and links.
+T6304 — Integration tests (gated)
+- Outcome: `tests/integration/processUnix.spec.ts` covers load, error propagation, teardown ordering, heartbeat recovery.
+
+T6305 — Parity vs Worker
+- Outcome: parity tests to align Unix vs Worker semantics (pause/resume, end/close, error timing).
+
+T6306 — Docs
+- Outcome: adapter and cutover notes in RFC docs.
 
 Verification (run locally)
 - Build: `npm ci && npm run build`
-- Threads: `npm run lam:dogfood:ci`
-- Forks: `MK_PROCESS_EXPERIMENTAL=1 npm run lam:dogfood:pty`
-- Artifacts: `reports/summary.jsonl`, `reports/index.json`, `reports/LAMINAR_*.txt`, `project-manager/laminar-feedback/latest.md`
+- Threads: `npm run test:ci`
+- Forks: `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty`
+- Artifacts: Laminar reports in `reports/` (summary/index) + CI artifacts
 
 Reporting
 - Update `ampcode.log` with PASS/FAIL per task. Do not branch/commit/push — VEGA handles git.
