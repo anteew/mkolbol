@@ -1,3 +1,3 @@
-{"ts":1760561576424,"lvl":"info","case":"should not restart with \"never\" policy","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760561576425,"lvl":"info","case":"should not restart with \"never\" policy","phase":"execution","evt":"test.run"}
-{"ts":1760561576426,"lvl":"info","case":"should not restart with \"never\" policy","phase":"teardown","evt":"case.end","payload":{"duration":344,"status":"passed"}}
+{"ts":1760564128615,"lvl":"info","case":"should not restart with \"never\" policy","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760564128616,"lvl":"info","case":"should not restart with \"never\" policy","phase":"execution","evt":"test.run"}
+{"ts":1760564128617,"lvl":"info","case":"should not restart with \"never\" policy","phase":"teardown","evt":"case.end","payload":{"duration":333,"status":"passed"}}

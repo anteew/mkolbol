@@ -31,7 +31,6 @@ jobs:
         run: npm run build
 
       - name: Threads lane (dual reporters)
-        continue-on-error: true
         run: |
           mkdir -p reports
           npx vitest run \

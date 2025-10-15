@@ -11,17 +11,39 @@ export interface AnsiParserEvent {
     type: 'print' | 'cursor' | 'erase' | 'style';
     data: any;
 }
+export interface AnsiParserOptions {
+    scrollbackLimit?: number;
+}
+export interface ScrollbackLine {
+    content: string;
+    style: AnsiParserState;
+    timestamp: number;
+}
+export interface TerminalSnapshot {
+    state: AnsiParserState;
+    scrollback: ScrollbackLine[];
+    timestamp: number;
+}
 export declare class AnsiParser {
     private state;
     private buffer;
     private events;
-    constructor();
+    private charBatch;
+    private batchStartX;
+    private batchStartY;
+    private scrollback;
+    private scrollbackLimit;
+    private currentLine;
+    private currentLineStyle;
+    constructor(options?: AnsiParserOptions);
     private createInitialState;
     parse(input: string): AnsiParserEvent[];
+    private flushCharBatch;
     private parseEscapeSequence;
     private parseCSI;
     private parseOSC;
     private executeCSI;
+    private parseParams;
     private handleSGR;
     private handleCUP;
     private handleCUU;
@@ -31,11 +53,15 @@ export declare class AnsiParser {
     private handleED;
     private handleEL;
     private handleLineFeed;
+    private pushLineToScrollback;
     private handleCarriageReturn;
     private handleTab;
     private handleBackspace;
-    private handlePrintable;
     getState(): AnsiParserState;
+    getScrollback(): ScrollbackLine[];
+    snapshot(): TerminalSnapshot;
+    exportJSON(): string;
+    exportPlainText(): string;
     reset(): void;
 }
 //# sourceMappingURL=AnsiParser.d.ts.map

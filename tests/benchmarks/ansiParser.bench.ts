@@ -13,12 +13,12 @@ describe('AnsiParser Performance', () => {
   `;
   const heavyEscapes = '\x1B[1m\x1B[31m\x1B[44mText\x1B[0m'.repeat(200);
 
-  bench('plain text (1200 chars)', () => {
+  bench(`plain text (${plainText.length} chars)`, () => {
     const parser = new AnsiParser();
     parser.parse(plainText);
   });
 
-  bench('text with SGR codes (1000 chars)', () => {
+  bench(`text with SGR codes (${textWithEscapes.length} chars)`, () => {
     const parser = new AnsiParser();
     parser.parse(textWithEscapes);
   });
@@ -28,7 +28,7 @@ describe('AnsiParser Performance', () => {
     parser.parse(mixedContent);
   });
 
-  bench('heavy escape sequences (2000 chars)', () => {
+  bench(`heavy escape sequences (${heavyEscapes.length} chars)`, () => {
     const parser = new AnsiParser();
     parser.parse(heavyEscapes);
   });

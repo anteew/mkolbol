@@ -1,18 +1,49 @@
 diff --git a/src/transforms/AnsiParser.ts b/src/transforms/AnsiParser.ts
-index a3021d0..2e9160e 100644
+index a3021d0..bf181e9 100644
 --- a/src/transforms/AnsiParser.ts
 +++ b/src/transforms/AnsiParser.ts
-@@ -17,6 +17,9 @@ export class AnsiParser {
+@@ -13,13 +13,38 @@ export interface AnsiParserEvent {
+   data: any;
+ }
+ 
++export interface AnsiParserOptions {
++  scrollbackLimit?: number;
++}
++
++export interface ScrollbackLine {
++  content: string;
++  style: AnsiParserState;
++  timestamp: number;
++}
++
++export interface TerminalSnapshot {
++  state: AnsiParserState;
++  scrollback: ScrollbackLine[];
++  timestamp: number;
++}
++
+ export class AnsiParser {
    private state: AnsiParserState;
    private buffer: string = '';
    private events: AnsiParserEvent[] = [];
+-
+-  constructor() {
 +  private charBatch: string = '';
 +  private batchStartX: number = 0;
 +  private batchStartY: number = 0;
- 
-   constructor() {
++  private scrollback: ScrollbackLine[] = [];
++  private scrollbackLimit: number;
++  private currentLine: string = '';
++  private currentLineStyle: AnsiParserState;
++
++  constructor(options: AnsiParserOptions = {}) {
++    this.scrollbackLimit = options.scrollbackLimit ?? 1000;
      this.state = this.createInitialState();
-@@ -35,43 +38,74 @@ export class AnsiParser {
++    this.currentLineStyle = { ...this.state };
+   }
+ 
+   private createInitialState(): AnsiParserState {
+@@ -35,43 +60,77 @@ export class AnsiParser {
    }
  
    parse(input: string): AnsiParserEvent[] {
@@ -77,6 +108,9 @@ index a3021d0..2e9160e 100644
 +  private flushCharBatch(): void {
 +    if (this.charBatch.length === 0) return;
 +
++    this.currentLine += this.charBatch;
++    this.currentLineStyle = { ...this.state };
++
 +    this.events.push({
 +      type: 'print',
 +      data: { 
@@ -100,7 +134,7 @@ index a3021d0..2e9160e 100644
    private parseEscapeSequence(startIndex: number): number {
      const start = startIndex;
      let i = startIndex + 1;
-@@ -95,17 +129,16 @@ export class AnsiParser {
+@@ -95,17 +154,16 @@ export class AnsiParser {
  
    private parseCSI(startIndex: number): number {
      let i = startIndex;
@@ -122,7 +156,7 @@ index a3021d0..2e9160e 100644
          return i - startIndex + 3;
        } else {
          break;
-@@ -130,7 +163,7 @@ export class AnsiParser {
+@@ -130,7 +188,7 @@ export class AnsiParser {
    }
  
    private executeCSI(paramStr: string, command: string): void {
@@ -131,7 +165,7 @@ index a3021d0..2e9160e 100644
  
      switch (command) {
        case 'm':
-@@ -161,6 +194,29 @@ export class AnsiParser {
+@@ -161,6 +219,29 @@ export class AnsiParser {
      }
    }
  
@@ -161,7 +195,7 @@ index a3021d0..2e9160e 100644
    private handleSGR(params: number[]): void {
      if (params.length === 0) params = [0];
  
-@@ -202,7 +258,15 @@ export class AnsiParser {
+@@ -202,7 +283,15 @@ export class AnsiParser {
  
      this.events.push({
        type: 'style',
@@ -178,7 +212,38 @@ index a3021d0..2e9160e 100644
      });
    }
  
-@@ -297,16 +361,16 @@ export class AnsiParser {
+@@ -265,6 +354,7 @@ export class AnsiParser {
+   }
+ 
+   private handleLineFeed(): void {
++    this.pushLineToScrollback();
+     this.state.cursorY++;
+     this.events.push({
+       type: 'print',
+@@ -272,6 +362,22 @@ export class AnsiParser {
+     });
+   }
+ 
++  private pushLineToScrollback(): void {
++    if (this.currentLine.length > 0) {
++      this.scrollback.push({
++        content: this.currentLine,
++        style: { ...this.currentLineStyle },
++        timestamp: Date.now(),
++      });
++      
++      if (this.scrollback.length > this.scrollbackLimit) {
++        this.scrollback.shift();
++      }
++      
++      this.currentLine = '';
++    }
++  }
++
+   private handleCarriageReturn(): void {
+     this.state.cursorX = 0;
+     this.events.push({
+@@ -297,21 +403,45 @@ export class AnsiParser {
      });
    }
  
@@ -188,10 +253,7 @@ index a3021d0..2e9160e 100644
 -      data: { char, x: this.state.cursorX, y: this.state.cursorY, style: { ...this.state } },
 -    });
 -    this.state.cursorX++;
--  }
--
-   getState(): AnsiParserState {
--    return { ...this.state };
++  getState(): AnsiParserState {
 +    return { 
 +      cursorX: this.state.cursorX,
 +      cursorY: this.state.cursorY,
@@ -203,4 +265,35 @@ index a3021d0..2e9160e 100644
 +    };
    }
  
+-  getState(): AnsiParserState {
+-    return { ...this.state };
++  getScrollback(): ScrollbackLine[] {
++    return [...this.scrollback];
++  }
++
++  snapshot(): TerminalSnapshot {
++    return {
++      state: { ...this.state },
++      scrollback: [...this.scrollback],
++      timestamp: Date.now(),
++    };
++  }
++
++  exportJSON(): string {
++    return JSON.stringify(this.snapshot(), null, 2);
++  }
++
++  exportPlainText(): string {
++    const lines = this.scrollback.map(line => line.content);
++    return lines.join('\n');
+   }
+ 
    reset(): void {
+     this.state = this.createInitialState();
+     this.buffer = '';
+     this.events = [];
++    this.scrollback = [];
++    this.currentLine = '';
++    this.currentLineStyle = { ...this.state };
+   }
+ }

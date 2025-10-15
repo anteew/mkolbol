@@ -2,8 +2,17 @@ export class AnsiParser {
     state;
     buffer = '';
     events = [];
-    constructor() {
+    charBatch = '';
+    batchStartX = 0;
+    batchStartY = 0;
+    scrollback = [];
+    scrollbackLimit;
+    currentLine = '';
+    currentLineStyle;
+    constructor(options = {}) {
+        this.scrollbackLimit = options.scrollbackLimit ?? 1000;
         this.state = this.createInitialState();
+        this.currentLineStyle = { ...this.state };
     }
     createInitialState() {
         return {
@@ -17,45 +26,76 @@ export class AnsiParser {
         };
     }
     parse(input) {
-        this.events = [];
+        this.events.length = 0;
         this.buffer = input;
+        this.charBatch = '';
         let i = 0;
         while (i < this.buffer.length) {
-            const char = this.buffer[i];
-            const charCode = char.charCodeAt(0);
-            if (char === '\x1B' || char === '\u009B') {
+            const charCode = this.buffer.charCodeAt(i);
+            if (charCode === 0x1B || charCode === 0x9B) {
+                this.flushCharBatch();
                 const escapeLen = this.parseEscapeSequence(i);
                 i += escapeLen;
             }
-            else if (char === '\n') {
+            else if (charCode === 0x0A) {
+                this.flushCharBatch();
                 this.handleLineFeed();
                 i++;
             }
-            else if (char === '\r') {
+            else if (charCode === 0x0D) {
+                this.flushCharBatch();
                 this.handleCarriageReturn();
                 i++;
             }
-            else if (char === '\t') {
+            else if (charCode === 0x09) {
+                this.flushCharBatch();
                 this.handleTab();
                 i++;
             }
-            else if (char === '\b') {
+            else if (charCode === 0x08) {
+                this.flushCharBatch();
                 this.handleBackspace();
                 i++;
             }
-            else if (charCode >= 32 && charCode <= 126) {
-                this.handlePrintable(char);
-                i++;
-            }
-            else if (charCode >= 160) {
-                this.handlePrintable(char);
+            else if ((charCode >= 32 && charCode <= 126) || charCode >= 160) {
+                if (this.charBatch.length === 0) {
+                    this.batchStartX = this.state.cursorX;
+                    this.batchStartY = this.state.cursorY;
+                }
+                this.charBatch += this.buffer[i];
+                this.state.cursorX++;
                 i++;
             }
             else {
                 i++;
             }
         }
+        this.flushCharBatch();
         return this.events;
+    }
+    flushCharBatch() {
+        if (this.charBatch.length === 0)
+            return;
+        this.currentLine += this.charBatch;
+        this.currentLineStyle = { ...this.state };
+        this.events.push({
+            type: 'print',
+            data: {
+                char: this.charBatch,
+                x: this.batchStartX,
+                y: this.batchStartY,
+                style: {
+                    cursorX: this.state.cursorX,
+                    cursorY: this.state.cursorY,
+                    bold: this.state.bold,
+                    underline: this.state.underline,
+                    foregroundColor: this.state.foregroundColor,
+                    backgroundColor: this.state.backgroundColor,
+                    inverse: this.state.inverse,
+                }
+            },
+        });
+        this.charBatch = '';
     }
     parseEscapeSequence(startIndex) {
         const start = startIndex;
@@ -77,16 +117,15 @@ export class AnsiParser {
     }
     parseCSI(startIndex) {
         let i = startIndex;
-        let paramStr = '';
+        const paramStart = i;
         while (i < this.buffer.length) {
-            const char = this.buffer[i];
-            const charCode = char.charCodeAt(0);
+            const charCode = this.buffer.charCodeAt(i);
             if (charCode >= 0x30 && charCode <= 0x3F) {
-                paramStr += char;
                 i++;
             }
             else if (charCode >= 0x40 && charCode <= 0x7E) {
-                this.executeCSI(paramStr, char);
+                const paramStr = this.buffer.slice(paramStart, i);
+                this.executeCSI(paramStr, this.buffer[i]);
                 return i - startIndex + 3;
             }
             else {
@@ -107,7 +146,7 @@ export class AnsiParser {
         return i - startIndex + 2;
     }
     executeCSI(paramStr, command) {
-        const params = paramStr.split(';').map(p => (p === '' ? 0 : parseInt(p, 10)));
+        const params = this.parseParams(paramStr);
         switch (command) {
             case 'm':
                 this.handleSGR(params);
@@ -135,6 +174,27 @@ export class AnsiParser {
                 this.handleEL(params[0] || 0);
                 break;
         }
+    }
+    parseParams(paramStr) {
+        if (paramStr.length === 0)
+            return [];
+        const params = [];
+        let current = 0;
+        let hasDigits = false;
+        for (let i = 0; i < paramStr.length; i++) {
+            const charCode = paramStr.charCodeAt(i);
+            if (charCode >= 48 && charCode <= 57) {
+                current = current * 10 + (charCode - 48);
+                hasDigits = true;
+            }
+            else if (charCode === 59) {
+                params.push(hasDigits ? current : 0);
+                current = 0;
+                hasDigits = false;
+            }
+        }
+        params.push(hasDigits ? current : 0);
+        return params;
     }
     handleSGR(params) {
         if (params.length === 0)
@@ -187,7 +247,15 @@ export class AnsiParser {
         }
         this.events.push({
             type: 'style',
-            data: { ...this.state },
+            data: {
+                cursorX: this.state.cursorX,
+                cursorY: this.state.cursorY,
+                bold: this.state.bold,
+                underline: this.state.underline,
+                foregroundColor: this.state.foregroundColor,
+                backgroundColor: this.state.backgroundColor,
+                inverse: this.state.inverse,
+            },
         });
     }
     handleCUP(params) {
@@ -241,11 +309,25 @@ export class AnsiParser {
         });
     }
     handleLineFeed() {
+        this.pushLineToScrollback();
         this.state.cursorY++;
         this.events.push({
             type: 'print',
             data: { char: '\n', x: this.state.cursorX, y: this.state.cursorY },
         });
+    }
+    pushLineToScrollback() {
+        if (this.currentLine.length > 0) {
+            this.scrollback.push({
+                content: this.currentLine,
+                style: { ...this.currentLineStyle },
+                timestamp: Date.now(),
+            });
+            if (this.scrollback.length > this.scrollbackLimit) {
+                this.scrollback.shift();
+            }
+            this.currentLine = '';
+        }
     }
     handleCarriageReturn() {
         this.state.cursorX = 0;
@@ -269,20 +351,41 @@ export class AnsiParser {
             data: { action: 'backspace', x: this.state.cursorX, y: this.state.cursorY },
         });
     }
-    handlePrintable(char) {
-        this.events.push({
-            type: 'print',
-            data: { char, x: this.state.cursorX, y: this.state.cursorY, style: { ...this.state } },
-        });
-        this.state.cursorX++;
-    }
     getState() {
-        return { ...this.state };
+        return {
+            cursorX: this.state.cursorX,
+            cursorY: this.state.cursorY,
+            bold: this.state.bold,
+            underline: this.state.underline,
+            foregroundColor: this.state.foregroundColor,
+            backgroundColor: this.state.backgroundColor,
+            inverse: this.state.inverse,
+        };
+    }
+    getScrollback() {
+        return [...this.scrollback];
+    }
+    snapshot() {
+        return {
+            state: { ...this.state },
+            scrollback: [...this.scrollback],
+            timestamp: Date.now(),
+        };
+    }
+    exportJSON() {
+        return JSON.stringify(this.snapshot(), null, 2);
+    }
+    exportPlainText() {
+        const lines = this.scrollback.map(line => line.content);
+        return lines.join('\n');
     }
     reset() {
         this.state = this.createInitialState();
         this.buffer = '';
         this.events = [];
+        this.scrollback = [];
+        this.currentLine = '';
+        this.currentLineStyle = { ...this.state };
     }
 }
 //# sourceMappingURL=AnsiParser.js.map
