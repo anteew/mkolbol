@@ -157,9 +157,9 @@ describe('PTYServerWrapper', () => {
     
     wrapper.sendSignal('SIGTERM');
 
-    // Allow a little time for the shell to exit after SIGTERM.
-    // Poll up to ~1s to avoid flakes on slower CI hosts.
-    for (let i = 0; i < 10; i++) {
+    // Allow time for the shell to exit after SIGTERM.
+    // Poll up to ~2s to avoid flakes on slower CI hosts.
+    for (let i = 0; i < 20; i++) {
       if (!wrapper.isRunning()) break;
       await new Promise(resolve => setTimeout(resolve, 100));
     }
