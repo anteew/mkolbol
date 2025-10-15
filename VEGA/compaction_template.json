@@ -1,0 +1,59 @@
+{
+  "state": {
+    "summary": "<1-2 sentences: where things stand>",
+    "kernel": "<unchanged | changes>",
+    "recent_prs": ["<#44 endpoints>", "<#45 process-mode>"]
+  },
+  "branches": {
+    "main": "<commit hash>",
+    "active_sprint_branch": "mkolbol-worker-harness-p1",
+    "preserved": ["laminar-integrations", "workspace-vanilla-eval"]
+  },
+  "sprints": {
+    "last": ["SB-MK-HOSTESS-ENDPOINTS-P1", "SB-MK-ENDPOINTS-STABILIZE-P1", "SB-MK-PROCESS-MODE-P1"],
+    "next": "SB-MK-WORKER-HARNESS-P1",
+    "ampcode_file": "ampcode.md"
+  },
+  "rehydration": {
+    "read_files": [
+      "VEGA/my-state-of-mind-today.txt",
+      "VEGA/near-term-and-future-plan.md",
+      "VEGA/diary-<latest>.txt",
+      "VEGA/whats-next-after-context-compaction.txt"
+    ],
+    "commands": [
+      "npm ci && npm run build && npm run test:ci && npm run test:pty",
+      "node dist/examples/hostess-demo.js &",
+      "node dist/scripts/mkctl.js endpoints"
+    ],
+    "env_flags": ["MK_PROCESS_EXPERIMENTAL", "MK_WORKER_EXPERIMENTAL"],
+    "lanes": {
+      "threads": "test:ci excludes PTY/process",
+      "forks": "test:pty runs PTY/process"
+    }
+  },
+  "artifacts": {
+    "endpoints_snapshot": "reports/endpoints.json",
+    "logs": "reports/*.jsonl",
+    "index": "reports/index.json"
+  },
+  "links": {
+    "status_doc": "docs/rfcs/stream-kernel/status.md",
+    "open_pr_url": "https://github.com/<owner>/<repo>/pull/<number>",
+    "open_pr_checks": [
+      "Smoke Test (Node 20): <pass|fail>",
+      "Smoke Test (Node 24): <pass|fail>"
+    ],
+    "ampcode_sprint_id": "<SB-...>",
+    "ampcode_file": "ampcode.md"
+  },
+  "risks": [
+    "PTY on Node 24 can crash if run in threads lane",
+    "Worker harness not yet complete (until P1 lands)"
+  ],
+  "next_steps": [
+    "Implement worker harness (threads) + executor wiring",
+    "Un-gate worker endpoints test",
+    "Process-mode P2: Unix adapters and robustness"
+  ]
+}
