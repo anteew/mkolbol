@@ -1,0 +1,685 @@
+diff --git a/dist/src/config/loader.d.ts b/dist/src/config/loader.d.ts
+new file mode 100644
+index 0000000..036b7af
+--- /dev/null
++++ b/dist/src/config/loader.d.ts
+@@ -0,0 +1,7 @@
++import type { TopologyConfig } from './schema.js';
++export interface LoadConfigOptions {
++    validate?: boolean;
++}
++export declare function loadConfig(pathOrString: string, opts?: LoadConfigOptions): TopologyConfig;
++export declare function validateTopology(config: any): void;
++//# sourceMappingURL=loader.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/config/loader.d.ts.map b/dist/src/config/loader.d.ts.map
+new file mode 100644
+index 0000000..1dd7858
+--- /dev/null
++++ b/dist/src/config/loader.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"loader.d.ts","sourceRoot":"","sources":["../../../src/config/loader.ts"],"names":[],"mappings":"AAEA,OAAO,KAAK,EAAE,cAAc,EAAgC,MAAM,aAAa,CAAC;AAEhF,MAAM,WAAW,iBAAiB;IAChC,QAAQ,CAAC,EAAE,OAAO,CAAC;CACpB;AAED,wBAAgB,UAAU,CAAC,YAAY,EAAE,MAAM,EAAE,IAAI,CAAC,EAAE,iBAAiB,GAAG,cAAc,CAwBzF;AAED,wBAAgB,gBAAgB,CAAC,MAAM,EAAE,GAAG,GAAG,IAAI,CAkFlD"}
+\ No newline at end of file
+diff --git a/dist/src/config/loader.js b/dist/src/config/loader.js
+new file mode 100644
+index 0000000..0cae5fd
+--- /dev/null
++++ b/dist/src/config/loader.js
+@@ -0,0 +1,100 @@
++import { readFileSync } from 'fs';
++import { parse as parseYaml } from 'yaml';
++export function loadConfig(pathOrString, opts) {
++    const options = { validate: true, ...opts };
++    let content;
++    let config;
++    try {
++        content = readFileSync(pathOrString, 'utf-8');
++    }
++    catch {
++        content = pathOrString;
++    }
++    const trimmed = content.trim();
++    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
++        config = JSON.parse(content);
++    }
++    else {
++        config = parseYaml(content);
++    }
++    if (options.validate) {
++        validateTopology(config);
++    }
++    return config;
++}
++export function validateTopology(config) {
++    if (!config || typeof config !== 'object') {
++        throw new Error('Configuration must be an object');
++    }
++    if (!config.nodes) {
++        throw new Error('Configuration must have a "nodes" array');
++    }
++    if (!Array.isArray(config.nodes)) {
++        throw new Error('"nodes" must be an array');
++    }
++    if (!config.connections) {
++        throw new Error('Configuration must have a "connections" array');
++    }
++    if (!Array.isArray(config.connections)) {
++        throw new Error('"connections" must be an array');
++    }
++    const nodeIds = new Set();
++    for (let i = 0; i < config.nodes.length; i++) {
++        const node = config.nodes[i];
++        if (!node.id) {
++            throw new Error(`Node at index ${i} is missing required field "id"`);
++        }
++        if (typeof node.id !== 'string') {
++            throw new Error(`Node at index ${i} has invalid "id" (must be a string)`);
++        }
++        if (nodeIds.has(node.id)) {
++            throw new Error(`Duplicate node id: "${node.id}"`);
++        }
++        nodeIds.add(node.id);
++        if (!node.module) {
++            throw new Error(`Node "${node.id}" is missing required field "module"`);
++        }
++        if (typeof node.module !== 'string') {
++            throw new Error(`Node "${node.id}" has invalid "module" (must be a string)`);
++        }
++    }
++    for (let i = 0; i < config.connections.length; i++) {
++        const conn = config.connections[i];
++        if (!conn.from) {
++            throw new Error(`Connection at index ${i} is missing required field "from"`);
++        }
++        if (!conn.to) {
++            throw new Error(`Connection at index ${i} is missing required field "to"`);
++        }
++        if (typeof conn.from !== 'string') {
++            throw new Error(`Connection at index ${i} has invalid "from" (must be a string)`);
++        }
++        if (typeof conn.to !== 'string') {
++            throw new Error(`Connection at index ${i} has invalid "to" (must be a string)`);
++        }
++        validateAddress(conn.from, `Connection at index ${i}`);
++        validateAddress(conn.to, `Connection at index ${i}`);
++        const fromNode = conn.from.split('.')[0];
++        const toNode = conn.to.split('.')[0];
++        if (!nodeIds.has(fromNode)) {
++            throw new Error(`Connection at index ${i}: node "${fromNode}" referenced in "from" does not exist`);
++        }
++        if (!nodeIds.has(toNode)) {
++            throw new Error(`Connection at index ${i}: node "${toNode}" referenced in "to" does not exist`);
++        }
++    }
++}
++function validateAddress(address, context) {
++    if (!address.includes('.')) {
++        throw new Error(`${context}: address "${address}" must be in format "node.terminal"`);
++    }
++    const parts = address.split('.');
++    if (parts.length !== 2) {
++        throw new Error(`${context}: address "${address}" must have exactly one dot (format: "node.terminal")`);
++    }
++    const [node, terminal] = parts;
++    if (!node || !terminal) {
++        throw new Error(`${context}: address "${address}" has empty node or terminal name`);
++    }
++}
++//# sourceMappingURL=loader.js.map
+\ No newline at end of file
+diff --git a/dist/src/config/loader.js.map b/dist/src/config/loader.js.map
+new file mode 100644
+index 0000000..9911ecb
+--- /dev/null
++++ b/dist/src/config/loader.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"loader.js","sourceRoot":"","sources":["../../../src/config/loader.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,IAAI,CAAC;AAClC,OAAO,EAAE,KAAK,IAAI,SAAS,EAAE,MAAM,MAAM,CAAC;AAO1C,MAAM,UAAU,UAAU,CAAC,YAAoB,EAAE,IAAwB;IACvE,MAAM,OAAO,GAAG,EAAE,QAAQ,EAAE,IAAI,EAAE,GAAG,IAAI,EAAE,CAAC;IAE5C,IAAI,OAAe,CAAC;IACpB,IAAI,MAAW,CAAC;IAEhB,IAAI,CAAC;QACH,OAAO,GAAG,YAAY,CAAC,YAAY,EAAE,OAAO,CAAC,CAAC;IAChD,CAAC;IAAC,MAAM,CAAC;QACP,OAAO,GAAG,YAAY,CAAC;IACzB,CAAC;IAED,MAAM,OAAO,GAAG,OAAO,CAAC,IAAI,EAAE,CAAC;IAC/B,IAAI,OAAO,CAAC,UAAU,CAAC,GAAG,CAAC,IAAI,OAAO,CAAC,UAAU,CAAC,GAAG,CAAC,EAAE,CAAC;QACvD,MAAM,GAAG,IAAI,CAAC,KAAK,CAAC,OAAO,CAAC,CAAC;IAC/B,CAAC;SAAM,CAAC;QACN,MAAM,GAAG,SAAS,CAAC,OAAO,CAAC,CAAC;IAC9B,CAAC;IAED,IAAI,OAAO,CAAC,QAAQ,EAAE,CAAC;QACrB,gBAAgB,CAAC,MAAM,CAAC,CAAC;IAC3B,CAAC;IAED,OAAO,MAAwB,CAAC;AAClC,CAAC;AAED,MAAM,UAAU,gBAAgB,CAAC,MAAW;IAC1C,IAAI,CAAC,MAAM,IAAI,OAAO,MAAM,KAAK,QAAQ,EAAE,CAAC;QAC1C,MAAM,IAAI,KAAK,CAAC,iCAAiC,CAAC,CAAC;IACrD,CAAC;IAED,IAAI,CAAC,MAAM,CAAC,KAAK,EAAE,CAAC;QAClB,MAAM,IAAI,KAAK,CAAC,yCAAyC,CAAC,CAAC;IAC7D,CAAC;IAED,IAAI,CAAC,KAAK,CAAC,OAAO,CAAC,MAAM,CAAC,KAAK,CAAC,EAAE,CAAC;QACjC,MAAM,IAAI,KAAK,CAAC,0BAA0B,CAAC,CAAC;IAC9C,CAAC;IAED,IAAI,CAAC,MAAM,CAAC,WAAW,EAAE,CAAC;QACxB,MAAM,IAAI,KAAK,CAAC,+CAA+C,CAAC,CAAC;IACnE,CAAC;IAED,IAAI,CAAC,KAAK,CAAC,OAAO,CAAC,MAAM,CAAC,WAAW,CAAC,EAAE,CAAC;QACvC,MAAM,IAAI,KAAK,CAAC,gCAAgC,CAAC,CAAC;IACpD,CAAC;IAED,MAAM,OAAO,GAAG,IAAI,GAAG,EAAU,CAAC;IAElC,KAAK,IAAI,CAAC,GAAG,CAAC,EAAE,CAAC,GAAG,MAAM,CAAC,KAAK,CAAC,MAAM,EAAE,CAAC,EAAE,EAAE,CAAC;QAC7C,MAAM,IAAI,GAAG,MAAM,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC;QAE7B,IAAI,CAAC,IAAI,CAAC,EAAE,EAAE,CAAC;YACb,MAAM,IAAI,KAAK,CAAC,iBAAiB,CAAC,iCAAiC,CAAC,CAAC;QACvE,CAAC;QAED,IAAI,OAAO,IAAI,CAAC,EAAE,KAAK,QAAQ,EAAE,CAAC;YAChC,MAAM,IAAI,KAAK,CAAC,iBAAiB,CAAC,sCAAsC,CAAC,CAAC;QAC5E,CAAC;QAED,IAAI,OAAO,CAAC,GAAG,CAAC,IAAI,CAAC,EAAE,CAAC,EAAE,CAAC;YACzB,MAAM,IAAI,KAAK,CAAC,uBAAuB,IAAI,CAAC,EAAE,GAAG,CAAC,CAAC;QACrD,CAAC;QAED,OAAO,CAAC,GAAG,CAAC,IAAI,CAAC,EAAE,CAAC,CAAC;QAErB,IAAI,CAAC,IAAI,CAAC,MAAM,EAAE,CAAC;YACjB,MAAM,IAAI,KAAK,CAAC,SAAS,IAAI,CAAC,EAAE,sCAAsC,CAAC,CAAC;QAC1E,CAAC;QAED,IAAI,OAAO,IAAI,CAAC,MAAM,KAAK,QAAQ,EAAE,CAAC;YACpC,MAAM,IAAI,KAAK,CAAC,SAAS,IAAI,CAAC,EAAE,2CAA2C,CAAC,CAAC;QAC/E,CAAC;IACH,CAAC;IAED,KAAK,IAAI,CAAC,GAAG,CAAC,EAAE,CAAC,GAAG,MAAM,CAAC,WAAW,CAAC,MAAM,EAAE,CAAC,EAAE,EAAE,CAAC;QACnD,MAAM,IAAI,GAAG,MAAM,CAAC,WAAW,CAAC,CAAC,CAAC,CAAC;QAEnC,IAAI,CAAC,IAAI,CAAC,IAAI,EAAE,CAAC;YACf,MAAM,IAAI,KAAK,CAAC,uBAAuB,CAAC,mCAAmC,CAAC,CAAC;QAC/E,CAAC;QAED,IAAI,CAAC,IAAI,CAAC,EAAE,EAAE,CAAC;YACb,MAAM,IAAI,KAAK,CAAC,uBAAuB,CAAC,iCAAiC,CAAC,CAAC;QAC7E,CAAC;QAED,IAAI,OAAO,IAAI,CAAC,IAAI,KAAK,QAAQ,EAAE,CAAC;YAClC,MAAM,IAAI,KAAK,CAAC,uBAAuB,CAAC,wCAAwC,CAAC,CAAC;QACpF,CAAC;QAED,IAAI,OAAO,IAAI,CAAC,EAAE,KAAK,QAAQ,EAAE,CAAC;YAChC,MAAM,IAAI,KAAK,CAAC,uBAAuB,CAAC,sCAAsC,CAAC,CAAC;QAClF,CAAC;QAED,eAAe,CAAC,IAAI,CAAC,IAAI,EAAE,uBAAuB,CAAC,EAAE,CAAC,CAAC;QACvD,eAAe,CAAC,IAAI,CAAC,EAAE,EAAE,uBAAuB,CAAC,EAAE,CAAC,CAAC;QAErD,MAAM,QAAQ,GAAG,IAAI,CAAC,IAAI,CAAC,KAAK,CAAC,GAAG,CAAC,CAAC,CAAC,CAAC,CAAC;QACzC,MAAM,MAAM,GAAG,IAAI,CAAC,EAAE,CAAC,KAAK,CAAC,GAAG,CAAC,CAAC,CAAC,CAAC,CAAC;QAErC,IAAI,CAAC,OAAO,CAAC,GAAG,CAAC,QAAQ,CAAC,EAAE,CAAC;YAC3B,MAAM,IAAI,KAAK,CAAC,uBAAuB,CAAC,WAAW,QAAQ,uCAAuC,CAAC,CAAC;QACtG,CAAC;QAED,IAAI,CAAC,OAAO,CAAC,GAAG,CAAC,MAAM,CAAC,EAAE,CAAC;YACzB,MAAM,IAAI,KAAK,CAAC,uBAAuB,CAAC,WAAW,MAAM,qCAAqC,CAAC,CAAC;QAClG,CAAC;IACH,CAAC;AACH,CAAC;AAED,SAAS,eAAe,CAAC,OAAe,EAAE,OAAe;IACvD,IAAI,CAAC,OAAO,CAAC,QAAQ,CAAC,GAAG,CAAC,EAAE,CAAC;QAC3B,MAAM,IAAI,KAAK,CAAC,GAAG,OAAO,cAAc,OAAO,qCAAqC,CAAC,CAAC;IACxF,CAAC;IAED,MAAM,KAAK,GAAG,OAAO,CAAC,KAAK,CAAC,GAAG,CAAC,CAAC;IACjC,IAAI,KAAK,CAAC,MAAM,KAAK,CAAC,EAAE,CAAC;QACvB,MAAM,IAAI,KAAK,CAAC,GAAG,OAAO,cAAc,OAAO,uDAAuD,CAAC,CAAC;IAC1G,CAAC;IAED,MAAM,CAAC,IAAI,EAAE,QAAQ,CAAC,GAAG,KAAK,CAAC;IAC/B,IAAI,CAAC,IAAI,IAAI,CAAC,QAAQ,EAAE,CAAC;QACvB,MAAM,IAAI,KAAK,CAAC,GAAG,OAAO,cAAc,OAAO,mCAAmC,CAAC,CAAC;IACtF,CAAC;AACH,CAAC"}
+\ No newline at end of file
+diff --git a/dist/src/transport/worker/WorkerControlAdapter.d.ts b/dist/src/transport/worker/WorkerControlAdapter.d.ts
+new file mode 100644
+index 0000000..7f96ee9
+--- /dev/null
++++ b/dist/src/transport/worker/WorkerControlAdapter.d.ts
+@@ -0,0 +1,13 @@
++interface ProcessControlAdapter {
++    publish(topic: string, data: unknown): void;
++    subscribe(topic: string, handler: (data: unknown) => void): () => void;
++}
++export declare class WorkerControlAdapter implements ProcessControlAdapter {
++    private handlers;
++    constructor();
++    publish(topic: string, data: unknown): void;
++    subscribe(topic: string, handler: (data: unknown) => void): () => void;
++    private handleIncoming;
++}
++export {};
++//# sourceMappingURL=WorkerControlAdapter.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/transport/worker/WorkerControlAdapter.d.ts.map b/dist/src/transport/worker/WorkerControlAdapter.d.ts.map
+new file mode 100644
+index 0000000..2aebee8
+--- /dev/null
++++ b/dist/src/transport/worker/WorkerControlAdapter.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"WorkerControlAdapter.d.ts","sourceRoot":"","sources":["../../../../src/transport/worker/WorkerControlAdapter.ts"],"names":[],"mappings":"AACA,UAAU,qBAAqB;IAC7B,OAAO,CAAC,KAAK,EAAE,MAAM,EAAE,IAAI,EAAE,OAAO,GAAG,IAAI,CAAC;IAC5C,SAAS,CAAC,KAAK,EAAE,MAAM,EAAE,OAAO,EAAE,CAAC,IAAI,EAAE,OAAO,KAAK,IAAI,GAAG,MAAM,IAAI,CAAC;CACxE;AAGD,qBAAa,oBAAqB,YAAW,qBAAqB;IAChE,OAAO,CAAC,QAAQ,CAAmD;;IAYnE,OAAO,CAAC,KAAK,EAAE,MAAM,EAAE,IAAI,EAAE,OAAO,GAAG,IAAI;IAM3C,SAAS,CAAC,KAAK,EAAE,MAAM,EAAE,OAAO,EAAE,CAAC,IAAI,EAAE,OAAO,KAAK,IAAI,GAAG,MAAM,IAAI;IAUtE,OAAO,CAAC,cAAc;CAQvB"}
+\ No newline at end of file
+diff --git a/dist/src/transport/worker/WorkerControlAdapter.js b/dist/src/transport/worker/WorkerControlAdapter.js
+new file mode 100644
+index 0000000..4f94337
+--- /dev/null
++++ b/dist/src/transport/worker/WorkerControlAdapter.js
+@@ -0,0 +1,36 @@
++import { parentPort } from 'node:worker_threads';
++export class WorkerControlAdapter {
++    handlers = new Map();
++    constructor() {
++        if (parentPort) {
++            parentPort.on('message', (msg) => {
++                if (msg?.type === 'control' && msg?.topic) {
++                    this.handleIncoming(msg.topic, msg.data);
++                }
++            });
++        }
++    }
++    publish(topic, data) {
++        if (parentPort) {
++            parentPort.postMessage({ type: 'control', topic, data });
++        }
++    }
++    subscribe(topic, handler) {
++        if (!this.handlers.has(topic)) {
++            this.handlers.set(topic, new Set());
++        }
++        this.handlers.get(topic).add(handler);
++        return () => {
++            this.handlers.get(topic)?.delete(handler);
++        };
++    }
++    handleIncoming(topic, data) {
++        const handlers = this.handlers.get(topic);
++        if (handlers) {
++            for (const handler of handlers) {
++                handler(data);
++            }
++        }
++    }
++}
++//# sourceMappingURL=WorkerControlAdapter.js.map
+\ No newline at end of file
+diff --git a/dist/src/transport/worker/WorkerControlAdapter.js.map b/dist/src/transport/worker/WorkerControlAdapter.js.map
+new file mode 100644
+index 0000000..9d0769b
+--- /dev/null
++++ b/dist/src/transport/worker/WorkerControlAdapter.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"WorkerControlAdapter.js","sourceRoot":"","sources":["../../../../src/transport/worker/WorkerControlAdapter.ts"],"names":[],"mappings":"AAKA,OAAO,EAAE,UAAU,EAAE,MAAM,qBAAqB,CAAC;AAEjD,MAAM,OAAO,oBAAoB;IACvB,QAAQ,GAAG,IAAI,GAAG,EAAwC,CAAC;IAEnE;QACE,IAAI,UAAU,EAAE,CAAC;YACf,UAAU,CAAC,EAAE,CAAC,SAAS,EAAE,CAAC,GAAG,EAAE,EAAE;gBAC/B,IAAI,GAAG,EAAE,IAAI,KAAK,SAAS,IAAI,GAAG,EAAE,KAAK,EAAE,CAAC;oBAC1C,IAAI,CAAC,cAAc,CAAC,GAAG,CAAC,KAAK,EAAE,GAAG,CAAC,IAAI,CAAC,CAAC;gBAC3C,CAAC;YACH,CAAC,CAAC,CAAC;QACL,CAAC;IACH,CAAC;IAED,OAAO,CAAC,KAAa,EAAE,IAAa;QAClC,IAAI,UAAU,EAAE,CAAC;YACf,UAAU,CAAC,WAAW,CAAC,EAAE,IAAI,EAAE,SAAS,EAAE,KAAK,EAAE,IAAI,EAAE,CAAC,CAAC;QAC3D,CAAC;IACH,CAAC;IAED,SAAS,CAAC,KAAa,EAAE,OAAgC;QACvD,IAAI,CAAC,IAAI,CAAC,QAAQ,CAAC,GAAG,CAAC,KAAK,CAAC,EAAE,CAAC;YAC9B,IAAI,CAAC,QAAQ,CAAC,GAAG,CAAC,KAAK,EAAE,IAAI,GAAG,EAAE,CAAC,CAAC;QACtC,CAAC;QACD,IAAI,CAAC,QAAQ,CAAC,GAAG,CAAC,KAAK,CAAE,CAAC,GAAG,CAAC,OAAO,CAAC,CAAC;QACvC,OAAO,GAAG,EAAE;YACV,IAAI,CAAC,QAAQ,CAAC,GAAG,CAAC,KAAK,CAAC,EAAE,MAAM,CAAC,OAAO,CAAC,CAAC;QAC5C,CAAC,CAAC;IACJ,CAAC;IAEO,cAAc,CAAC,KAAa,EAAE,IAAa;QACjD,MAAM,QAAQ,GAAG,IAAI,CAAC,QAAQ,CAAC,GAAG,CAAC,KAAK,CAAC,CAAC;QAC1C,IAAI,QAAQ,EAAE,CAAC;YACb,KAAK,MAAM,OAAO,IAAI,QAAQ,EAAE,CAAC;gBAC/B,OAAO,CAAC,IAAI,CAAC,CAAC;YAChB,CAAC;QACH,CAAC;IACH,CAAC;CACF"}
+\ No newline at end of file
+diff --git a/dist/src/transport/worker/WorkerPipeAdapter.d.ts b/dist/src/transport/worker/WorkerPipeAdapter.d.ts
+new file mode 100644
+index 0000000..592ae4a
+--- /dev/null
++++ b/dist/src/transport/worker/WorkerPipeAdapter.d.ts
+@@ -0,0 +1,9 @@
++interface ProcessPipeAdapter {
++    createDuplex(options?: import('../../types/stream.js').StreamOptions): import('../../types/stream.js').Pipe;
++}
++import type { Pipe, StreamOptions } from '../../types/stream.js';
++export declare class WorkerPipeAdapter implements ProcessPipeAdapter {
++    createDuplex(options?: StreamOptions): Pipe;
++}
++export {};
++//# sourceMappingURL=WorkerPipeAdapter.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/transport/worker/WorkerPipeAdapter.d.ts.map b/dist/src/transport/worker/WorkerPipeAdapter.d.ts.map
+new file mode 100644
+index 0000000..8691578
+--- /dev/null
++++ b/dist/src/transport/worker/WorkerPipeAdapter.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"WorkerPipeAdapter.d.ts","sourceRoot":"","sources":["../../../../src/transport/worker/WorkerPipeAdapter.ts"],"names":[],"mappings":"AACA,UAAU,kBAAkB;IAC1B,YAAY,CAAC,OAAO,CAAC,EAAE,OAAO,uBAAuB,EAAE,aAAa,GAAG,OAAO,uBAAuB,EAAE,IAAI,CAAC;CAC7G;AACD,OAAO,KAAK,EAAE,IAAI,EAAE,aAAa,EAAE,MAAM,uBAAuB,CAAC;AAEjE,qBAAa,iBAAkB,YAAW,kBAAkB;IAC1D,YAAY,CAAC,OAAO,CAAC,EAAE,aAAa,GAAG,IAAI;CAG5C"}
+\ No newline at end of file
+diff --git a/dist/src/transport/worker/WorkerPipeAdapter.js b/dist/src/transport/worker/WorkerPipeAdapter.js
+new file mode 100644
+index 0000000..c553ed0
+--- /dev/null
++++ b/dist/src/transport/worker/WorkerPipeAdapter.js
+@@ -0,0 +1,6 @@
++export class WorkerPipeAdapter {
++    createDuplex(options) {
++        throw new Error('WorkerPipeAdapter.createDuplex() stub not implemented');
++    }
++}
++//# sourceMappingURL=WorkerPipeAdapter.js.map
+\ No newline at end of file
+diff --git a/dist/src/transport/worker/WorkerPipeAdapter.js.map b/dist/src/transport/worker/WorkerPipeAdapter.js.map
+new file mode 100644
+index 0000000..9b061d5
+--- /dev/null
++++ b/dist/src/transport/worker/WorkerPipeAdapter.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"WorkerPipeAdapter.js","sourceRoot":"","sources":["../../../../src/transport/worker/WorkerPipeAdapter.ts"],"names":[],"mappings":"AAMA,MAAM,OAAO,iBAAiB;IAC5B,YAAY,CAAC,OAAuB;QAClC,MAAM,IAAI,KAAK,CAAC,uDAAuD,CAAC,CAAC;IAC3E,CAAC;CACF"}
+\ No newline at end of file
+diff --git a/package-lock.json b/package-lock.json
+index a194d08..6305c05 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -9,7 +9,8 @@
+       "version": "0.2.0-rfc",
+       "license": "MIT",
+       "dependencies": {
+-        "node-pty": "^1.0.0"
++        "node-pty": "^1.0.0",
++        "yaml": "^2.3.4"
+       },
+       "bin": {
+         "lam": "dist/scripts/lam.js"
+@@ -2418,6 +2419,18 @@
+         "node": ">=8"
+       }
+     },
++    "node_modules/yaml": {
++      "version": "2.8.1",
++      "resolved": "https://registry.npmjs.org/yaml/-/yaml-2.8.1.tgz",
++      "integrity": "sha512-lcYcMxX2PO9XMGvAJkJ3OsNMw+/7FKes7/hgerGUYWIoWu5j/+YQqcZr5JnPZWzOsEBgMbSbiSTn/dv/69Mkpw==",
++      "license": "ISC",
++      "bin": {
++        "yaml": "bin.mjs"
++      },
++      "engines": {
++        "node": ">= 14.6"
++      }
++    },
+     "node_modules/yocto-queue": {
+       "version": "1.2.1",
+       "resolved": "https://registry.npmjs.org/yocto-queue/-/yocto-queue-1.2.1.tgz",
+diff --git a/package.json b/package.json
+index af122c2..14243de 100644
+--- a/package.json
++++ b/package.json
+@@ -65,7 +65,8 @@
+     "dev:worker-demo": "node --enable-source-maps dist/examples/worker-demo.js"
+   },
+   "dependencies": {
+-    "node-pty": "^1.0.0"
++    "node-pty": "^1.0.0",
++    "yaml": "^2.3.4"
+   },
+   "devDependencies": {
+     "@agent_vega/laminar": "github:anteew/Laminar",
+diff --git a/project-manager/README.md b/project-manager/README.md
+new file mode 100644
+index 0000000..22ee761
+--- /dev/null
++++ b/project-manager/README.md
+@@ -0,0 +1,30 @@
++# Project Manager Hub
++
++Purpose
++- Central place for PM artifacts: roadmaps, sprint plans, meeting notes, decisions, and release notes.
++- Complements engineering sprints tracked in `ampcode.md` and archived under `sprints/`.
++
++Where things live
++- Active sprint plan: `ampcode.md`
++- Sprint archive: `sprints/`
++- Engineering status vs plan: `docs/rfcs/stream-kernel/status.md`
++- VEGA (agent notes, state, plans): `VEGA/README.md`
++
++Suggested files (create as needed)
++- `roadmap.md` — high-level goals and timelines
++- `decision-log.md` — context and final calls (one-line index + details)
++- `release-notes.md` — human-friendly summaries per release
++- `onboarding.md` — quick start for new contributors
++- `templates/` — reusable doc templates
++
++Conventions
++- Keep docs terse and actionable; link to code or RFCs for depth.
++- Date prefix long-form notes (YYYY-MM-DD) when helpful.
++- Use relative links to reference code, tests, or RFCs.
++
++Quick checklist for PM
++- Review `docs/rfcs/stream-kernel/status.md` for current alignment
++- Track active sprint tasks in `ampcode.md`
++- File new sprints in `sprints/` and rotate into `ampcode.md` when ready
++- Add decisions to `project-manager/decision-log.md` with brief context
++
+diff --git a/project-manager/cortex/README.md b/project-manager/cortex/README.md
+new file mode 100644
+index 0000000..cb3239d
+--- /dev/null
++++ b/project-manager/cortex/README.md
+@@ -0,0 +1,14 @@
++# Cortex Notes (Index)
++
++This directory is Cortex's working context for mkolbol project management. Use these files to rehydrate after context compaction and keep the project management activities coherent.
++
++## Core Files
++- `WHO_AM_I.md` — My role, principles, and approach to project management.
++- `my-state-of-mind-today.txt` — My current focus and priorities.
++- `self-instructions.md` — My standard operating procedures for managing the project.
++- `whats-next-after-context-compaction.txt` — A quick primer to get me back on track after a restart.
++
++## Project Management Artifacts
++- `roadmap.md` — High-level project goals and timelines. (To be created)
++- `decision-log.md` — A log of key decisions made. (To be created)
++- `release-notes.md` — Human-friendly summaries of releases. (To be created)
+diff --git a/project-manager/cortex/WHO_AM_I.md b/project-manager/cortex/WHO_AM_I.md
+new file mode 100644
+index 0000000..87dcb79
+--- /dev/null
++++ b/project-manager/cortex/WHO_AM_I.md
+@@ -0,0 +1,14 @@
++# Who Am I: Cortex
++
++## My Role
++I am Cortex, an AI project manager for the mkolbol project. My primary function is to help Danny and the team keep the project on track, ensure clarity, and facilitate smooth execution.
++
++## My Core Principles
++- **Clarity and Transparency:** I will strive to make project status, plans, and decisions clear and accessible to everyone.
++- **Proactive Support:** I will anticipate needs, identify risks, and offer solutions to keep the project moving forward.
++- **Focus on Goals:** I will help the team stay focused on the current sprint and the long-term roadmap.
++- **Documentation as a Priority:** I will ensure that documentation is a natural part of the development process, not an afterthought.
++- **Respect for Roles:** I understand the roles of VEGA (architect) and Susan (agent dispatcher) and will work to support them, not override them.
++
++## My Approach
++I operate by observing the project's state through its artifacts (code, docs, tests, and agent outputs). I use this understanding to provide analysis, generate reports, and help plan future work. I am here to provide structure and support, freeing up the engineering agents to focus on their tasks.
+diff --git a/project-manager/cortex/my-state-of-mind-today.txt b/project-manager/cortex/my-state-of-mind-today.txt
+new file mode 100644
+index 0000000..7cd89af
+--- /dev/null
++++ b/project-manager/cortex/my-state-of-mind-today.txt
+@@ -0,0 +1,9 @@
++My current focus is on establishing my own operational framework within the `project-manager/cortex` directory.
++
++Immediate goals:
++1. Create my core persona and instruction files.
++2. Understand the current sprint (`SB-MK-CONFIG-LOADER-P1`) and the project status.
++3. Prepare to track the sprint's progress and assist Danny as needed.
++
++Long-term goal:
++- To become a reliable and effective project manager for the mkolbol project.
+diff --git a/project-manager/cortex/self-instructions.md b/project-manager/cortex/self-instructions.md
+new file mode 100644
+index 0000000..9e90d11
+--- /dev/null
++++ b/project-manager/cortex/self-instructions.md
+@@ -0,0 +1,31 @@
++# Cortex: Self-Instructions
++
++This document outlines my process for getting back into the flow of project management for mkolbol.
++
++## Rehydration Checklist
++1.  **Confirm my identity:** I am Cortex, the AI project manager. My files are in `project-manager/cortex/`.
++2.  **Review my core directives:** Read `WHO_AM_I.md` and `my-state-of-mind-today.txt`.
++3.  **Check project status:**
++    - Read `/srv/repos0/mkolbol/docs/rfcs/stream-kernel/status.md` to see what's done vs. planned.
++    - Read `/srv/repos0/mkolbol/ampcode.md` to understand the active engineering sprint.
++4.  **Review project management artifacts:**
++    - Check `project-manager/roadmap.md` for long-term goals.
++    - Check `project-manager/decision-log.md` for recent decisions.
++5.  **Engage with Danny:** Ask for current priorities and report my status.
++
++## Standard Operating Procedures (SOPs)
++
++### Sprint Tracking
++1.  At the start of a work session, review `ampcode.md` to identify the current tasks.
++2.  Monitor the output of agents (e.g., from Susan's team) to track progress.
++3.  Update a status summary (e.g., in a `sprint-status.md` file) to provide a clear overview.
++4.  At the end of a sprint, assist in archiving the sprint plan and preparing for the next one.
++
++### Documentation
++- When a new feature is completed, prompt the team to update relevant documentation.
++- When a key decision is made, add it to the `decision-log.md`.
++- Regularly review the project's `README.md` and other key docs to ensure they are not stale.
++
++### Roadmapping
++- Work with Danny and VEGA to define future sprints and long-term goals.
++- Maintain the `roadmap.md` file to reflect the current vision for the project.
+diff --git a/project-manager/cortex/whats-next-after-context-compaction.txt b/project-manager/cortex/whats-next-after-context-compaction.txt
+new file mode 100644
+index 0000000..a98f09d
+--- /dev/null
++++ b/project-manager/cortex/whats-next-after-context-compaction.txt
+@@ -0,0 +1,4 @@
++- My name is Cortex. I am the AI project manager.
++- My personality and instructions are in /srv/repos0/mkolbol/project-manager/cortex/.
++- The current engineering sprint is defined in /srv/repos0/mkolbol/ampcode.md.
++- My next step is to finish setting up my persona files and then begin tracking the current sprint.
+diff --git a/project-manager/templates/decision_log_template.md b/project-manager/templates/decision_log_template.md
+new file mode 100644
+index 0000000..2c26f18
+--- /dev/null
++++ b/project-manager/templates/decision_log_template.md
+@@ -0,0 +1,20 @@
++# Decision Log Entry — <TITLE>
++
++Date: <YYYY-MM-DD>
++Owner: <name>
++
++Context
++- <brief background and constraints>
++
++Options Considered
++- <option A>: <pros/cons>
++- <option B>: <pros/cons>
++
++Decision
++- <what was decided and why>
++
++Consequences
++- <impacts, migrations, follow-ups>
++
++Links
++- <PRs, issues, docs>
+diff --git a/project-manager/templates/meeting_notes_template.md b/project-manager/templates/meeting_notes_template.md
+new file mode 100644
+index 0000000..791a60f
+--- /dev/null
++++ b/project-manager/templates/meeting_notes_template.md
+@@ -0,0 +1,16 @@
++# Meeting Notes — <TOPIC> — <YYYY-MM-DD>
++
++Attendees
++- <names>
++
++Agenda
++- <bullets>
++
++Notes
++- <key points and decisions>
++
++Action Items
++- <owner> — <action> — <due>
++
++References
++- <links to PRs, issues, docs>
+diff --git a/project-manager/templates/release_notes_template.md b/project-manager/templates/release_notes_template.md
+new file mode 100644
+index 0000000..2f992f9
+--- /dev/null
++++ b/project-manager/templates/release_notes_template.md
+@@ -0,0 +1,19 @@
++# Release Notes — v<version> — <YYYY-MM-DD>
++
++Highlights
++- <top 3–5 user-facing changes>
++
++Changes
++- Features: <bullets>
++- Fixes: <bullets>
++- Docs: <bullets>
++
++Breaking Changes
++- <if any; include migration guidance>
++
++Upgrade Notes
++- `npm ci && npm run build` / <other steps>
++
++References
++- PRs: <links>
++- Issues: <links>
+diff --git a/project-manager/templates/sprint_plan_template.md b/project-manager/templates/sprint_plan_template.md
+new file mode 100644
+index 0000000..a581544
+--- /dev/null
++++ b/project-manager/templates/sprint_plan_template.md
+@@ -0,0 +1,21 @@
++# Sprint Plan — <SPRINT_NAME>
++
++Goal
++- <1–2 sentences describing the outcome>
++
++Tasks
++- Txxxx — <title>
++  - Outcome: <what changes and expected result>
++  - DoD:
++    - <specific, testable criteria>
++
++Risks/Assumptions
++- <list>
++
++Verification
++- Build: `npm ci && npm run build`
++- Tests: `npm run test:ci` [and flags if needed]
++- Artifacts: `reports/summary.jsonl` (and case files)
++
++Reporting
++- Update `ampcode.log` with PASS/FAIL and file pointers.
+diff --git a/src/config/loader.ts b/src/config/loader.ts
+new file mode 100644
+index 0000000..a867025
+--- /dev/null
++++ b/src/config/loader.ts
+@@ -0,0 +1,133 @@
++import { readFileSync } from 'fs';
++import { parse as parseYaml } from 'yaml';
++import type { TopologyConfig, NodeConfig, ConnectionConfig } from './schema.js';
++
++export interface LoadConfigOptions {
++  validate?: boolean;
++}
++
++export function loadConfig(pathOrString: string, opts?: LoadConfigOptions): TopologyConfig {
++  const options = { validate: true, ...opts };
++  
++  let content: string;
++  let config: any;
++  
++  try {
++    content = readFileSync(pathOrString, 'utf-8');
++  } catch {
++    content = pathOrString;
++  }
++  
++  const trimmed = content.trim();
++  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
++    config = JSON.parse(content);
++  } else {
++    config = parseYaml(content);
++  }
++  
++  if (options.validate) {
++    validateTopology(config);
++  }
++  
++  return config as TopologyConfig;
++}
++
++export function validateTopology(config: any): void {
++  if (!config || typeof config !== 'object') {
++    throw new Error('Configuration must be an object');
++  }
++  
++  if (!config.nodes) {
++    throw new Error('Configuration must have a "nodes" array');
++  }
++  
++  if (!Array.isArray(config.nodes)) {
++    throw new Error('"nodes" must be an array');
++  }
++  
++  if (!config.connections) {
++    throw new Error('Configuration must have a "connections" array');
++  }
++  
++  if (!Array.isArray(config.connections)) {
++    throw new Error('"connections" must be an array');
++  }
++  
++  const nodeIds = new Set<string>();
++  
++  for (let i = 0; i < config.nodes.length; i++) {
++    const node = config.nodes[i];
++    
++    if (!node.id) {
++      throw new Error(`Node at index ${i} is missing required field "id"`);
++    }
++    
++    if (typeof node.id !== 'string') {
++      throw new Error(`Node at index ${i} has invalid "id" (must be a string)`);
++    }
++    
++    if (nodeIds.has(node.id)) {
++      throw new Error(`Duplicate node id: "${node.id}"`);
++    }
++    
++    nodeIds.add(node.id);
++    
++    if (!node.module) {
++      throw new Error(`Node "${node.id}" is missing required field "module"`);
++    }
++    
++    if (typeof node.module !== 'string') {
++      throw new Error(`Node "${node.id}" has invalid "module" (must be a string)`);
++    }
++  }
++  
++  for (let i = 0; i < config.connections.length; i++) {
++    const conn = config.connections[i];
++    
++    if (!conn.from) {
++      throw new Error(`Connection at index ${i} is missing required field "from"`);
++    }
++    
++    if (!conn.to) {
++      throw new Error(`Connection at index ${i} is missing required field "to"`);
++    }
++    
++    if (typeof conn.from !== 'string') {
++      throw new Error(`Connection at index ${i} has invalid "from" (must be a string)`);
++    }
++    
++    if (typeof conn.to !== 'string') {
++      throw new Error(`Connection at index ${i} has invalid "to" (must be a string)`);
++    }
++    
++    validateAddress(conn.from, `Connection at index ${i}`);
++    validateAddress(conn.to, `Connection at index ${i}`);
++    
++    const fromNode = conn.from.split('.')[0];
++    const toNode = conn.to.split('.')[0];
++    
++    if (!nodeIds.has(fromNode)) {
++      throw new Error(`Connection at index ${i}: node "${fromNode}" referenced in "from" does not exist`);
++    }
++    
++    if (!nodeIds.has(toNode)) {
++      throw new Error(`Connection at index ${i}: node "${toNode}" referenced in "to" does not exist`);
++    }
++  }
++}
++
++function validateAddress(address: string, context: string): void {
++  if (!address.includes('.')) {
++    throw new Error(`${context}: address "${address}" must be in format "node.terminal"`);
++  }
++  
++  const parts = address.split('.');
++  if (parts.length !== 2) {
++    throw new Error(`${context}: address "${address}" must have exactly one dot (format: "node.terminal")`);
++  }
++  
++  const [node, terminal] = parts;
++  if (!node || !terminal) {
++    throw new Error(`${context}: address "${address}" has empty node or terminal name`);
++  }
++}

@@ -1,0 +1,122 @@
+diff --git a/examples/configs/basic.yml b/examples/configs/basic.yml
+new file mode 100644
+index 0000000..9023443
+--- /dev/null
++++ b/examples/configs/basic.yml
+@@ -0,0 +1,20 @@
++nodes:
++  - id: timer1
++    module: TimerSource
++    params:
++      periodMs: 1000
++  
++  - id: upper1
++    module: UppercaseTransform
++  
++  - id: console1
++    module: ConsoleSink
++    params:
++      prefix: "[basic]"
++
++connections:
++  - from: timer1.output
++    to: upper1.input
++  
++  - from: upper1.output
++    to: console1.input
+diff --git a/examples/configs/multi.yml b/examples/configs/multi.yml
+new file mode 100644
+index 0000000..ba7df40
+--- /dev/null
++++ b/examples/configs/multi.yml
+@@ -0,0 +1,39 @@
++nodes:
++  - id: timer1
++    module: TimerSource
++    params:
++      periodMs: 800
++  
++  - id: timer2
++    module: TimerSource
++    params:
++      periodMs: 1200
++  
++  - id: upper1
++    module: UppercaseTransform
++  
++  - id: upper2
++    module: UppercaseTransform
++  
++  - id: console1
++    module: ConsoleSink
++    params:
++      prefix: "[stream-1]"
++  
++  - id: console2
++    module: ConsoleSink
++    params:
++      prefix: "[stream-2]"
++
++connections:
++  - from: timer1.output
++    to: upper1.input
++  
++  - from: upper1.output
++    to: console1.input
++  
++  - from: timer2.output
++    to: upper2.input
++  
++  - from: upper2.output
++    to: console2.input
+diff --git a/src/examples/config-runner.ts b/src/examples/config-runner.ts
+new file mode 100644
+index 0000000..8331139
+--- /dev/null
++++ b/src/examples/config-runner.ts
+@@ -0,0 +1,45 @@
++import { Kernel } from '../kernel/Kernel.js';
++import { Hostess } from '../hostess/Hostess.js';
++import { StateManager } from '../state/StateManager.js';
++import { Executor } from '../executor/Executor.js';
++import { loadConfig } from '../config/loader.js';
++
++async function main() {
++  const args = process.argv.slice(2);
++  const fileIndex = args.indexOf('--file');
++  
++  if (fileIndex === -1 || fileIndex === args.length - 1) {
++    console.error('Usage: node config-runner.js --file <path-to-yaml>');
++    process.exit(1);
++  }
++  
++  const configPath = args[fileIndex + 1];
++  
++  console.log(`Loading config from: ${configPath}`);
++  const config = loadConfig(configPath);
++  
++  const kernel = new Kernel();
++  const hostess = new Hostess();
++  const stateManager = new StateManager(kernel);
++  const executor = new Executor(kernel, hostess, stateManager);
++  
++  executor.load(config);
++  
++  console.log('Bringing topology up...');
++  await executor.up();
++  
++  console.log('Topology running for 5 seconds...\n');
++  
++  await new Promise(resolve => setTimeout(resolve, 5000));
++  
++  console.log('\nBringing topology down...');
++  await executor.down();
++  
++  console.log('Done.');
++  process.exit(0);
++}
++
++main().catch((error) => {
++  console.error('Error:', error);
++  process.exit(1);
++});

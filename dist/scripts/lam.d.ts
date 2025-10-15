@@ -1,3 +1,4 @@
 #!/usr/bin/env node
-export {};
+declare const args: string[];
+declare function printHelp(): void;
 //# sourceMappingURL=lam.d.ts.map

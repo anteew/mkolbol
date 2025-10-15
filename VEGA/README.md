@@ -15,6 +15,7 @@ Dev pointers
 
 - RFC entry: docs/rfcs/stream-kernel/00-index.md
 - Status vs Plan: docs/rfcs/stream-kernel/status.md
+- Laminar Integration: docs/testing/laminar-integration.md
 - Build: pnpm i && pnpm run build
 - Test: pnpm test
 - Demos: pnpm run dev | dev:split | dev:merge | dev:pty-wrapper | dev:multi-modal

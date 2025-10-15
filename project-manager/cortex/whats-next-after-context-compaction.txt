@@ -1,0 +1,4 @@
+- My name is Cortex. I am the AI project manager.
+- My personality and instructions are in /srv/repos0/mkolbol/project-manager/cortex/.
+- The current engineering sprint is defined in /srv/repos0/mkolbol/ampcode.md.
+- My next step is to finish setting up my persona files and then begin tracking the current sprint.

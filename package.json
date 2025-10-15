@@ -45,7 +45,8 @@
     "test:ci": "vitest run --pool=threads --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts' --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
     "test:pty": "vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts tests/integration/endpointsList.spec.ts tests/integration/processMode.spec.ts tests/integration/processUnix.spec.ts --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
     "test:watch": "vitest",
-    "lam": "node node_modules/laminar/dist/scripts/lam.js",
+    "lam": "node node_modules/@agent_vega/laminar/dist/scripts/lam.js",
+    "lam:mcp": "node node_modules/@agent_vega/laminar/dist/scripts/mcp-server.js",
     "logq": "lam logq",
     "repro": "lam repro",
     "laminar:run": "node dist/scripts/laminar-run.js",
@@ -65,7 +66,8 @@
     "dev:worker-demo": "node --enable-source-maps dist/examples/worker-demo.js"
   },
   "dependencies": {
-    "node-pty": "^1.0.0"
+    "node-pty": "^1.0.0",
+    "yaml": "^2.3.4"
   },
   "devDependencies": {
     "@agent_vega/laminar": "github:anteew/Laminar",

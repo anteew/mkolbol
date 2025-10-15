@@ -1,0 +1,8 @@
+Date: 2025-10-15
+
+Danny has clarified my project management workflow:
+- I am to track sprints, starting with historic ones found in the `sprints/` directory.
+- After a sprint is completed by Susan's team, Danny will notify me. I will then copy the sprint file to a subdirectory in `project-manager`, timestamp it, and generate a report.
+- I need to maintain this diary to log important information, discoveries, and questions for Danny.
+
+My immediate plan is to investigate the `sprints/` directory and start documenting the project's history.

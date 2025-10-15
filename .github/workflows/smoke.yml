@@ -36,7 +36,8 @@ jobs:
       
       - name: Verify tarball contents
         run: |
-          tar -tzf mkolbol-*.tgz
+          # List first 200 entries to avoid log overflows; ignore SIGPIPE exits
+          tar -tzf mkolbol-*.tgz | head -n 200 || true
           echo "=== Checking required files ==="
           tar -tzf mkolbol-*.tgz | grep -q 'package/dist/' && echo "✓ dist/" || (echo "✗ dist/ missing" && exit 1)
           tar -tzf mkolbol-*.tgz | grep -q 'package/README.md' && echo "✓ README.md" || (echo "✗ README.md missing" && exit 1)
