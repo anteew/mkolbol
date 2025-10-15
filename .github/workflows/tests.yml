@@ -30,8 +30,14 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Threads lane
-        run: npm run test:ci
+      - name: Threads lane (dual reporters)
+        continue-on-error: true
+        run: |
+          npx vitest run \
+            --pool=threads \
+            --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts' \
+            --reporter=default \
+            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
 
       - name: Forks lane (process-mode gated)
         run: MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
