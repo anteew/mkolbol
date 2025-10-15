@@ -1,3 +1,3 @@
-{"ts":1760497986953,"lvl":"info","case":"should respect maxRestarts limit","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760497986954,"lvl":"info","case":"should respect maxRestarts limit","phase":"execution","evt":"test.run"}
-{"ts":1760497986955,"lvl":"info","case":"should respect maxRestarts limit","phase":"teardown","evt":"case.end","payload":{"duration":536,"status":"passed"}}
+{"ts":1760552104666,"lvl":"info","case":"should respect maxRestarts limit","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760552104667,"lvl":"info","case":"should respect maxRestarts limit","phase":"execution","evt":"test.run"}
+{"ts":1760552104668,"lvl":"info","case":"should respect maxRestarts limit","phase":"teardown","evt":"case.end","payload":{"duration":535,"status":"passed"}}

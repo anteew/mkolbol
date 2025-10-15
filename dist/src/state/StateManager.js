@@ -120,6 +120,10 @@ export class StateManager {
             connections: Array.from(this.connections.values()),
         };
     }
+    // Backwards-compatible alias used by some older tests/specs
+    getState() {
+        return this.getTopology();
+    }
     exportJSON() {
         return JSON.stringify(this.getTopology(), null, 2);
     }

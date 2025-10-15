@@ -1,52 +1,43 @@
-Sprint SB-MK-CONFIG-LOADER-P1 (P0)
+Sprint SB-MK-WORKER-PIPE-P1 (P1)
 
 Goal
-- Add a minimal, deterministic config loader (YAML/JSON) that produces `TopologyConfig`, with validation, examples, tests, and docs. Keep kernel untouched; reuse existing `Executor.load` and `StateManager` wiring.
+- Implement a proper Worker data pipe adapter so worker-mode nodes have a real Duplex transport with backpressure and error propagation, then wire Executor 'worker' runMode to use it end‑to‑end with tests. Keep the kernel unchanged.
 
 Constraints
-- Keep dependencies small; prefer a single YAML parser (e.g., `yaml`) and basic structural validation (no heavy schema tooling yet).
-- Maintain lane split; tests stay in threads lane.
-- Do not change kernel semantics.
+- No kernel changes. Focus on `src/transport/worker/*`, `Executor` wiring, and tests.
+- Maintain lane split; worker tests run in threads lane (unit) and forks lane (integration) as needed.
 
-T5201 — Config loader module
-- Outcome: `src/config/loader.ts` parses YAML or JSON into `TopologyConfig` and performs basic validation (required fields, unique node ids; `from`/`to` address format `node.terminal`).
+T5301 — WorkerPipeAdapter: full Duplex
+- Outcome: `src/transport/worker/WorkerPipeAdapter.ts` implements Duplex over `MessagePort` with backpressure, pause/resume, end/close, and error propagation.
 - DoD:
-  - Implement `loadConfig(pathOrString, opts?)` accepting file path or raw string; returns `TopologyConfig`.
-  - Add `validateTopology(config)` with structural checks and helpful error messages.
-  - Add `yaml` dependency (package.json) if not present.
-  - No kernel changes.
+  - Implement `_read/_write/_final/_destroy`, buffering when paused, `drain` handling.
+  - Mirror behavior of UnixPipeAdapter tests (where applicable) for parity.
 
-T5202 — Tests for loader
-- Outcome: Deterministic tests covering success and failure cases.
+T5302 — Executor wiring for worker-mode
+- Outcome: Executor 'worker' runMode uses WorkerPipeAdapter for input/output pipes instead of ad‑hoc port wiring.
 - DoD:
-  - Add `tests/config/loader.spec.ts` with:
-    - parses valid YAML and JSON
-    - rejects missing `nodes`/`connections`
-    - rejects duplicate node ids
-    - rejects invalid addresses in `from`/`to`
-  - Run in threads lane (included by default).
+  - Update `src/executor/Executor.ts` in `instantiateWorkerNode` to construct pipes via WorkerPipeAdapter (both directions), preserving objectMode.
 
-T5203 — Example configs + runner
-- Outcome: Example YAMLs and a tiny runner to demonstrate loading and execution.
+T5303 — Unit tests (threads lane)
+- Outcome: Deterministic unit tests for WorkerPipeAdapter covering backpressure, bidirectional flow, and teardown.
 - DoD:
-  - Add `examples/configs/basic.yml` (Timer→Uppercase→Console) and `multi.yml` variants.
-  - Add `src/examples/config-runner.ts` that loads a path, calls `Executor.load`, and brings topology up/down.
-  - Build target at `dist/examples/config-runner.js`.
+  - New `tests/worker/workerPipe.spec.ts` (threads lane) with synthetic data cases.
 
-T5204 — README quickstart
-- Outcome: README gains a short “Config Loader” section with a minimal YAML and a one-liner to run the example.
+T5304 — Integration test (forks lane)
+- Outcome: Integration using Executor 'worker' runMode (Timer → Uppercase → Console) to validate end‑to‑end flow on WorkerPipeAdapter.
 - DoD:
-  - Add a snippet and command: `node dist/examples/config-runner.js --file examples/configs/basic.yml`.
+  - New `tests/integration/workerMode.spec.ts` gated if necessary, added to appropriate lane.
 
-T5205 — CI wiring
-- Outcome: Ensure loader tests run in threads lane.
+T5305 — Docs note
+- Outcome: Brief section documenting worker data pipe behavior and how it compares to process-mode Unix pipes.
 - DoD:
-  - Confirm no changes needed to scripts; otherwise, add `tests/config/loader.spec.ts` to default discovery.
+  - Append a short subsection to `docs/rfcs/stream-kernel/02-core-architecture.md` or add `docs/rfcs/stream-kernel/worker-mode.md`.
 
 Verification (run locally)
 - Build: `npm ci && npm run build`
-- Threads lane: `npm run test:ci`
-- Example: `node dist/examples/config-runner.js --file examples/configs/basic.yml`
+- Threads: `npm run test:ci` — worker unit tests pass
+- Forks: `npm run test:pty` — worker integration spec passes
+- Artifacts: `reports/summary.jsonl`, relevant per‑case logs
 
 Reporting
-- Update ampcode.log with PASS/FAIL per task, file pointers, and the commands above. Note that VEGA handles git (do not branch/commit/push).
+- Update `ampcode.log` with PASS/FAIL per task, file diffs, and verification commands. Do not branch/commit/push (VEGA handles git).

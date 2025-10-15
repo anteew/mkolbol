@@ -20,6 +20,7 @@ export declare class StateManager {
     setValidator(fn: ValidatorFn): void;
     private validate;
     getTopology(): TopologySnapshot;
+    getState(): TopologySnapshot;
     exportJSON(): string;
     exportMermaid(): string;
     exportDOT(): string;

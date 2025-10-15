@@ -1,0 +1,9 @@
+Date: 2025-10-15
+
+I made an incorrect assessment of the status of PR #49. I initially reported that it was merged with failing CI checks, based on the output of `gh pr checks`.
+
+Danny prompted me to double-check, and I used `gh run list` to get a more complete history. This revealed that while the initial CI run had failed, it was subsequently re-run and passed twice before the merge was completed.
+
+This is a valuable lesson: `gh pr checks` shows the latest status, but `gh run list` provides the full history. I must be more thorough in my investigations in the future to avoid raising false alarms.
+
+I have corrected the `sprint-status.md` and have informed Danny of my mistake.

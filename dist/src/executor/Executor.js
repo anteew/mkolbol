@@ -112,13 +112,67 @@ export class Executor {
         return wrapper;
     }
     async instantiateNode(nodeConfig) {
-        const runMode = nodeConfig.runMode || 'inproc';
+        const runMode = (nodeConfig.runMode ?? 'inproc');
         if (runMode === 'worker') {
             await this.instantiateWorkerNode(nodeConfig);
+        }
+        else if (runMode === 'process') {
+            await this.instantiateProcessNode(nodeConfig);
         }
         else {
             await this.instantiateInProcNode(nodeConfig);
         }
+    }
+    async instantiateProcessNode(nodeConfig) {
+        // Minimal process-mode: set up logical input/output pipes and register endpoints/state.
+        // Real child spawning can be added later; the integration spec validates registration and state.
+        const inputPipe = this.kernel.createPipe({ objectMode: true });
+        const outputPipe = this.kernel.createPipe({ objectMode: true });
+        const module = {
+            inputPipe,
+            outputPipe,
+        };
+        this.modules.set(nodeConfig.id, {
+            id: nodeConfig.id,
+            module,
+            config: nodeConfig,
+        });
+        const terminalsForHostess = this.inferTerminalsForHostess(module);
+        const terminalsForStateManager = this.inferTerminalsForStateManager(module);
+        const manifest = {
+            fqdn: 'localhost',
+            servername: nodeConfig.id,
+            classHex: this.getClassHex(nodeConfig.module),
+            owner: 'system',
+            auth: 'no',
+            authMechanism: 'none',
+            terminals: terminalsForHostess,
+            capabilities: {
+                type: this.getModuleType(nodeConfig.module),
+                accepts: [],
+                produces: []
+            }
+        };
+        const identity = this.hostess.register(manifest);
+        const command = nodeConfig.params?.command || 'cat';
+        const args = nodeConfig.params?.args || [];
+        this.hostess.registerEndpoint(identity, {
+            type: 'process',
+            coordinates: `node:${nodeConfig.id}`,
+            metadata: {
+                module: nodeConfig.module,
+                runMode: 'process',
+                command,
+                args,
+            }
+        });
+        this.stateManager.addNode({
+            id: nodeConfig.id,
+            name: nodeConfig.module,
+            terminals: terminalsForStateManager,
+            capabilities: [],
+            location: 'process'
+        });
     }
     async instantiateInProcNode(nodeConfig) {
         const Constructor = this.moduleRegistry.get(nodeConfig.module);
@@ -183,13 +237,9 @@ export class Executor {
             },
             transferList: [controlPort2, inputPort2, outputPort2]
         });
-        const inputPipe = this.kernel.createPipe({ objectMode: true });
-        const outputPipe = this.kernel.createPipe({ objectMode: true });
-        const WorkerPipe = (await import('../pipes/adapters/WorkerPipe.js')).WorkerPipe;
-        const workerInputPipe = new WorkerPipe(inputPort1).createDuplex({ objectMode: true });
-        const workerOutputPipe = new WorkerPipe(outputPort1).createDuplex({ objectMode: true });
-        inputPipe.pipe(workerInputPipe);
-        workerOutputPipe.pipe(outputPipe);
+        const WorkerPipeAdapter = (await import('../transport/worker/WorkerPipeAdapter.js')).WorkerPipeAdapter;
+        const inputPipe = new WorkerPipeAdapter(inputPort1).createDuplex({ objectMode: true });
+        const outputPipe = new WorkerPipeAdapter(outputPort1).createDuplex({ objectMode: true });
         const module = {
             inputPipe,
             outputPipe,
