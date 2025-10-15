@@ -1,43 +1,32 @@
-Sprint SB-MK-WORKER-PIPE-P1 (P1)
+Sprint SB-LAM-INTEGRATION-P1 (Intermediate)
 
 Goal
-- Implement a proper Worker data pipe adapter so worker-mode nodes have a real Duplex transport with backpressure and error propagation, then wire Executor 'worker' runMode to use it end‑to‑end with tests. Keep the kernel unchanged.
+- Deeply integrate Laminar into our testing stack (threads + forks lanes), generate summaries/trends as CI artifacts, and make dogfooding trivial for agents.
 
 Constraints
-- No kernel changes. Focus on `src/transport/worker/*`, `Executor` wiring, and tests.
-- Maintain lane split; worker tests run in threads lane (unit) and forks lane (integration) as needed.
+- No kernel changes. Keep scope to scripts, CI, and docs.
+- Keep worker-mode integration tests gated (MK_WORKER_EXPERIMENTAL off by default in CI) until a later hardening sprint.
 
-T5301 — WorkerPipeAdapter: full Duplex
-- Outcome: `src/transport/worker/WorkerPipeAdapter.ts` implements Duplex over `MessagePort` with backpressure, pause/resume, end/close, and error propagation.
-- DoD:
-  - Implement `_read/_write/_final/_destroy`, buffering when paused, `drain` handling.
-  - Mirror behavior of UnixPipeAdapter tests (where applicable) for parity.
+T6001 — CI workflow for Laminar artifacts
+- Outcome: `.github/workflows/tests.yml` runs both lanes, then emits `reports/LAMINAR_SUMMARY.txt` and `reports/LAMINAR_TRENDS.txt` and uploads `reports/`.
 
-T5302 — Executor wiring for worker-mode
-- Outcome: Executor 'worker' runMode uses WorkerPipeAdapter for input/output pipes instead of ad‑hoc port wiring.
-- DoD:
-  - Update `src/executor/Executor.ts` in `instantiateWorkerNode` to construct pipes via WorkerPipeAdapter (both directions), preserving objectMode.
+T6002 — Local convenience scripts
+- Outcome: `npm run test:ci:lam` and `npm run test:pty:lam` run lanes and produce summaries/trends locally.
 
-T5303 — Unit tests (threads lane)
-- Outcome: Deterministic unit tests for WorkerPipeAdapter covering backpressure, bidirectional flow, and teardown.
-- DoD:
-  - New `tests/worker/workerPipe.spec.ts` (threads lane) with synthetic data cases.
+T6003 — Docs update
+- Outcome: `docs/testing/laminar-integration.md` expanded with dogfooding flow and artifact notes.
 
-T5304 — Integration test (forks lane)
-- Outcome: Integration using Executor 'worker' runMode (Timer → Uppercase → Console) to validate end‑to‑end flow on WorkerPipeAdapter.
-- DoD:
-  - New `tests/integration/workerMode.spec.ts` gated if necessary, added to appropriate lane.
+T6004 — README pointers
+- Outcome: Short “CI & Testing” section pointing to Laminar integration and dogfooding commands.
 
-T5305 — Docs note
-- Outcome: Brief section documenting worker data pipe behavior and how it compares to process-mode Unix pipes.
-- DoD:
-  - Append a short subsection to `docs/rfcs/stream-kernel/02-core-architecture.md` or add `docs/rfcs/stream-kernel/worker-mode.md`.
+T6005 — Verify artifacts
+- Outcome: Run locally to produce `reports/LAMINAR_*.txt`; confirm CI uploads on PR.
 
 Verification (run locally)
 - Build: `npm ci && npm run build`
-- Threads: `npm run test:ci` — worker unit tests pass
-- Forks: `npm run test:pty` — worker integration spec passes
-- Artifacts: `reports/summary.jsonl`, relevant per‑case logs
+- Threads: `npm run test:ci` (or `npm run test:ci:lam` for artifacts)
+- Forks: `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty` (or `npm run test:pty:lam` for artifacts)
+- Artifacts: `reports/summary.jsonl`, `reports/index.json`, `reports/LAMINAR_*.txt`
 
 Reporting
-- Update `ampcode.log` with PASS/FAIL per task, file diffs, and verification commands. Do not branch/commit/push (VEGA handles git).
+- Update `ampcode.log` with PASS/FAIL per task. Do not branch/commit/push — VEGA handles git.

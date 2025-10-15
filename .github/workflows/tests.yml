@@ -1,0 +1,51 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Unit/Integration (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 24]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Threads lane
+        run: npm run test:ci
+
+      - name: Forks lane (process-mode gated)
+        run: MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
+
+      - name: Laminar summary/trends
+        if: ${{ always() }}
+        run: |
+          mkdir -p reports
+          npm run lam -- summary > reports/LAMINAR_SUMMARY.txt
+          npm run lam -- trends --top 10 > reports/LAMINAR_TRENDS.txt
+
+      - name: Upload artifacts (reports)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: laminar-reports-${{ matrix.node }}
+          path: reports
+          if-no-files-found: warn
