@@ -47,7 +47,7 @@
     "test:ci:lam": "npm run test:ci && mkdir -p reports && npm run lam -- summary > reports/LAMINAR_SUMMARY.txt && npm run lam -- trends --top 10 > reports/LAMINAR_TRENDS.txt",
     "test:pty:lam": "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty && mkdir -p reports && npm run lam -- summary >> reports/LAMINAR_SUMMARY.txt && npm run lam -- trends --top 10 >> reports/LAMINAR_TRENDS.txt",
     "lam:dogfood:ci": "npm run test:ci:lam && tsx scripts/laminar-feedback.ts",
-    "lam:dogfood:pty": "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty:lam && tsx scripts/laminar-feedback.ts",
+    "lam:dogfood:pty": "npm run test:pty:lam && tsx scripts/laminar-feedback.ts",
     "test:watch": "vitest",
     "lam": "node node_modules/@agent_vega/laminar/dist/scripts/lam.js",
     "lam:mcp": "node node_modules/@agent_vega/laminar/dist/scripts/mcp-server.js",

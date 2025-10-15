@@ -18,7 +18,7 @@ function ensureDir(dir) {
     fs.mkdirSync(dir, { recursive: true });
 }
 function nowStamp() {
-    return new Date().toISOString().replace(/[:.]/g, '').replace('Z', 'Z');
+    return new Date().toISOString().replace(/[:.]/g, '');
 }
 function main() {
     const reportsDir = path.resolve('reports');
@@ -35,7 +35,7 @@ function main() {
         byStatus.set(s, (byStatus.get(s) || 0) + 1);
         total++;
         const loc = r.location || '';
-        const file = loc.split(':')[0] || 'unknown';
+        const file = (loc.replace(/:\d+$/, '') || 'unknown');
         if (!byFile.has(file))
             byFile.set(file, { pass: 0, fail: 0, total: 0 });
         const bucket = byFile.get(file);
@@ -52,7 +52,11 @@ function main() {
     if (fs.existsSync(indexPath)) {
         try {
             const idx = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
-            const caseCount = Array.isArray(idx?.cases) ? idx.cases.length : 0;
+            const caseCount = Array.isArray(idx?.artifacts)
+                ? idx.artifacts.length
+                : Array.isArray(idx?.cases)
+                    ? idx.cases.length
+                    : 0;
             indexNote = `Index contains ${caseCount} cases.`;
         }
         catch { }
