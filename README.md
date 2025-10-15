@@ -77,6 +77,29 @@ connections:
 node dist/examples/config-runner.js --file examples/configs/basic.yml
 ```
 
+## ANSI Parser
+
+Parse ANSI escape sequences from terminal output into structured events:
+
+```typescript
+import { Kernel } from 'mkolbol';
+import { AnsiParserModule } from 'mkolbol/modules/ansi-parser-module';
+
+const kernel = new Kernel();
+const parser = new AnsiParserModule(kernel);
+
+// Connect to parser output
+kernel.connect(parser.outputPipe, yourSink);
+
+// Send ANSI text
+parser.inputPipe.write('\x1b[1;32mGreen Bold\x1b[0m\n');
+```
+
+Run the example:
+```bash
+npx tsx examples/ansi-parser-simple.ts
+```
+
 ## Overview
 
 mkolbol is a minimal (~100 line) stream-based microkernel designed for building flexible, distributed AI agent systems. The kernel provides protocol-agnostic "physical layer" plumbing while all semantics live in composable modules.

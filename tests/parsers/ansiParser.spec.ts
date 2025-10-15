@@ -1,152 +1,576 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ANSIParser } from '../../src/parsers/ANSIParser.js';
 
-describe('ANSIParser', () => {
+describe('ANSIParser - P1 Core Sequences', () => {
   let parser: ANSIParser;
 
   beforeEach(() => {
     parser = new ANSIParser(24, 80);
   });
 
-  it('should parse regular characters', () => {
-    const state = parser.parse(Buffer.from('Hello'));
-    
-    expect(state.cells[0][0].char).toBe('H');
-    expect(state.cells[0][1].char).toBe('e');
-    expect(state.cells[0][2].char).toBe('l');
-    expect(state.cells[0][3].char).toBe('l');
-    expect(state.cells[0][4].char).toBe('o');
-    expect(state.cursorX).toBe(5);
-    expect(state.cursorY).toBe(0);
+  describe('Printable Characters', () => {
+    it('should parse ASCII printable characters', () => {
+      const state = parser.parse(Buffer.from('Hello World!'));
+      
+      expect(state.cells[0][0].char).toBe('H');
+      expect(state.cells[0][1].char).toBe('e');
+      expect(state.cells[0][2].char).toBe('l');
+      expect(state.cells[0][3].char).toBe('l');
+      expect(state.cells[0][4].char).toBe('o');
+      expect(state.cells[0][5].char).toBe(' ');
+      expect(state.cells[0][6].char).toBe('W');
+      expect(state.cursorX).toBe(12);
+      expect(state.cursorY).toBe(0);
+    });
+
+    it('should parse special characters', () => {
+      parser.parse(Buffer.from('Test@#$%^&*()'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][4].char).toBe('@');
+      expect(state.cells[0][5].char).toBe('#');
+      expect(state.cells[0][6].char).toBe('$');
+      expect(state.cursorX).toBe(13);
+    });
+
+    it('should parse digits and punctuation', () => {
+      parser.parse(Buffer.from('0123456789.,;:'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('0');
+      expect(state.cells[0][9].char).toBe('9');
+      expect(state.cells[0][10].char).toBe('.');
+      expect(state.cursorX).toBe(14);
+    });
   });
 
-  it('should handle newlines', () => {
-    parser.parse(Buffer.from('Line1\nLine2'));
-    const state = parser.getState();
-    
-    expect(state.cells[0][0].char).toBe('L');
-    expect(state.cells[1][0].char).toBe('L');
-    expect(state.cursorY).toBe(1);
+  describe('Control Characters (LF/CR/TAB/BS)', () => {
+    it('should handle line feed (LF)', () => {
+      parser.parse(Buffer.from('Line1\nLine2'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('L');
+      expect(state.cells[1][0].char).toBe('L');
+      expect(state.cursorY).toBe(1);
+      expect(state.cursorX).toBe(5);
+    });
+
+    it('should handle carriage return (CR)', () => {
+      parser.parse(Buffer.from('ABC\rDEF'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('D');
+      expect(state.cells[0][1].char).toBe('E');
+      expect(state.cells[0][2].char).toBe('F');
+      expect(state.cursorX).toBe(3);
+    });
+
+    it('should handle CRLF sequence', () => {
+      parser.parse(Buffer.from('First\r\nSecond'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('F');
+      expect(state.cells[1][0].char).toBe('S');
+      expect(state.cursorY).toBe(1);
+      expect(state.cursorX).toBe(6);
+    });
+
+    it('should handle tab (TAB)', () => {
+      parser.parse(Buffer.from('A\tB'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('A');
+      expect(state.cells[0][8].char).toBe('B');
+      expect(state.cursorX).toBe(9);
+    });
+
+    it('should handle multiple tabs', () => {
+      parser.parse(Buffer.from('\tA\tB\tC'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][8].char).toBe('A');
+      expect(state.cells[0][16].char).toBe('B');
+      expect(state.cells[0][24].char).toBe('C');
+    });
+
+    it('should handle backspace (BS)', () => {
+      parser.parse(Buffer.from('ABC\bD'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('A');
+      expect(state.cells[0][1].char).toBe('B');
+      expect(state.cells[0][2].char).toBe('D');
+      expect(state.cursorX).toBe(3);
+    });
+
+    it('should handle backspace at column 0', () => {
+      parser.parse(Buffer.from('\bX'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('X');
+      expect(state.cursorX).toBe(1);
+    });
   });
 
-  it('should handle carriage return', () => {
-    parser.parse(Buffer.from('ABC\rDEF'));
-    const state = parser.getState();
-    
-    expect(state.cells[0][0].char).toBe('D');
-    expect(state.cells[0][1].char).toBe('E');
-    expect(state.cells[0][2].char).toBe('F');
+  describe('SGR (Select Graphic Rendition)', () => {
+    it('should handle foreground color codes (30-37)', () => {
+      parser.parse(Buffer.from('\x1b[31mRed'));
+      const state = parser.getState();
+      
+      expect(state.currentFg).toBe('#800000');
+      expect(state.cells[0][0].fg).toBe('#800000');
+      expect(state.cells[0][1].fg).toBe('#800000');
+      expect(state.cells[0][2].fg).toBe('#800000');
+    });
+
+    it('should handle all basic foreground colors', () => {
+      const colors = [
+        { code: 30, rgb: '#000000' },
+        { code: 31, rgb: '#800000' },
+        { code: 32, rgb: '#008000' },
+        { code: 33, rgb: '#808000' },
+        { code: 34, rgb: '#000080' },
+        { code: 35, rgb: '#800080' },
+        { code: 36, rgb: '#008080' },
+        { code: 37, rgb: '#c0c0c0' }
+      ];
+
+      colors.forEach(({ code, rgb }) => {
+        parser.reset();
+        parser.parse(Buffer.from(`\x1b[${code}mX`));
+        const state = parser.getState();
+        expect(state.currentFg).toBe(rgb);
+        expect(state.cells[0][0].fg).toBe(rgb);
+      });
+    });
+
+    it('should handle background color codes (40-47)', () => {
+      parser.parse(Buffer.from('\x1b[41mBG'));
+      const state = parser.getState();
+      
+      expect(state.currentBg).toBe('#800000');
+      expect(state.cells[0][0].bg).toBe('#800000');
+      expect(state.cells[0][1].bg).toBe('#800000');
+    });
+
+    it('should handle bright foreground colors (90-97)', () => {
+      parser.parse(Buffer.from('\x1b[91mBrightRed'));
+      const state = parser.getState();
+      
+      expect(state.currentFg).toBe('#ff0000');
+      expect(state.cells[0][0].fg).toBe('#ff0000');
+    });
+
+    it('should handle bright background colors (100-107)', () => {
+      parser.parse(Buffer.from('\x1b[101mBrightBG'));
+      const state = parser.getState();
+      
+      expect(state.currentBg).toBe('#ff0000');
+      expect(state.cells[0][0].bg).toBe('#ff0000');
+    });
+
+    it('should handle SGR reset (m with no params)', () => {
+      parser.parse(Buffer.from('\x1b[31;41mColored\x1b[mNormal'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].fg).toBe('#800000');
+      expect(state.cells[0][0].bg).toBe('#800000');
+      expect(state.cells[0][7].fg).toBe(null);
+      expect(state.cells[0][7].bg).toBe(null);
+    });
+
+    it('should handle SGR reset with explicit 0', () => {
+      parser.parse(Buffer.from('\x1b[31mRed\x1b[0mNormal'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].fg).toBe('#800000');
+      expect(state.cells[0][3].fg).toBe(null);
+      expect(state.currentFg).toBe(null);
+      expect(state.currentBg).toBe(null);
+    });
+
+    it('should handle multiple SGR parameters', () => {
+      parser.parse(Buffer.from('\x1b[32;44mText'));
+      const state = parser.getState();
+      
+      expect(state.currentFg).toBe('#008000');
+      expect(state.currentBg).toBe('#000080');
+      expect(state.cells[0][0].fg).toBe('#008000');
+      expect(state.cells[0][0].bg).toBe('#000080');
+    });
   });
 
-  it('should parse ANSI cursor movement (CUP)', () => {
-    parser.parse(Buffer.from('\x1b[5;10HX'));
-    const state = parser.getState();
-    
-    expect(state.cursorY).toBe(4);
-    expect(state.cursorX).toBe(10);
-    expect(state.cells[4][9].char).toBe('X');
+  describe('Cursor Movement', () => {
+    it('should handle CUP (Cursor Position) H command', () => {
+      parser.parse(Buffer.from('\x1b[5;10HX'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(4);
+      expect(state.cursorX).toBe(10);
+      expect(state.cells[4][9].char).toBe('X');
+    });
+
+    it('should handle CUP f command', () => {
+      parser.parse(Buffer.from('\x1b[3;7fY'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(2);
+      expect(state.cursorX).toBe(7);
+      expect(state.cells[2][6].char).toBe('Y');
+    });
+
+    it('should handle CUP with default parameters', () => {
+      parser.parse(Buffer.from('ABC\x1b[HZ'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(0);
+      expect(state.cursorX).toBe(1);
+      expect(state.cells[0][0].char).toBe('Z');
+    });
+
+    it('should handle CUU (Cursor Up)', () => {
+      parser.parse(Buffer.from('Line1\nLine2\x1b[AX'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(0);
+      expect(state.cells[0][5].char).toBe('X');
+    });
+
+    it('should handle CUU with count parameter', () => {
+      parser.parse(Buffer.from('\n\n\n\x1b[3AX'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(0);
+    });
+
+    it('should handle CUU boundary (no move above row 0)', () => {
+      parser.parse(Buffer.from('\x1b[10AX'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(0);
+    });
+
+    it('should handle CUD (Cursor Down)', () => {
+      parser.parse(Buffer.from('\x1b[BX'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(1);
+      expect(state.cells[1][0].char).toBe('X');
+    });
+
+    it('should handle CUD with count parameter', () => {
+      parser.parse(Buffer.from('\x1b[5BX'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(5);
+    });
+
+    it('should handle CUD boundary (no move below last row)', () => {
+      parser.parse(Buffer.from('\x1b[50BX'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(23);
+    });
+
+    it('should handle CUF (Cursor Forward)', () => {
+      parser.parse(Buffer.from('\x1b[5CX'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBe(6);
+      expect(state.cells[0][5].char).toBe('X');
+    });
+
+    it('should handle CUF with count parameter', () => {
+      parser.parse(Buffer.from('\x1b[10CX'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBe(11);
+    });
+
+    it('should handle CUF boundary (no move beyond last column)', () => {
+      parser.parse(Buffer.from('\x1b[100CX'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBe(0);
+      expect(state.cursorY).toBe(1);
+    });
+
+    it('should handle CUB (Cursor Back)', () => {
+      parser.parse(Buffer.from('ABCDE\x1b[3DX'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBe(3);
+      expect(state.cells[0][2].char).toBe('X');
+    });
+
+    it('should handle CUB with count parameter', () => {
+      parser.parse(Buffer.from('0123456789\x1b[7DX'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBe(4);
+    });
+
+    it('should handle CUB boundary (no move before column 0)', () => {
+      parser.parse(Buffer.from('ABC\x1b[10DX'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBe(1);
+    });
+
+    it('should handle CHA (Cursor Horizontal Absolute) G command', () => {
+      parser.parse(Buffer.from('ABCDEFGH\x1b[5GX'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBe(5);
+      expect(state.cells[0][4].char).toBe('X');
+    });
   });
 
-  it('should handle color codes (SGR)', () => {
-    parser.parse(Buffer.from('\x1b[31mRed'));
-    const state = parser.getState();
-    
-    expect(state.currentFg).toBe('#800000');
-    expect(state.cells[0][0].fg).toBe('#800000');
-  });
+  describe('Erase Commands', () => {
+    it('should handle ED 0 (erase from cursor to end of display)', () => {
+      parser.parse(Buffer.from('Line1\nLine2\nLine3'));
+      parser.parse(Buffer.from('\x1b[2;3H\x1b[0J'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('L');
+      expect(state.cells[1][0].char).toBe('L');
+      expect(state.cells[1][1].char).toBe('i');
+      expect(state.cells[1][2].char).toBe(' ');
+      expect(state.cells[2][0].char).toBe(' ');
+    });
 
-  it('should handle color reset', () => {
-    parser.parse(Buffer.from('\x1b[31mRed\x1b[0mNormal'));
-    const state = parser.getState();
-    
-    expect(state.cells[0][0].fg).toBe('#800000');
-    expect(state.cells[0][3].fg).toBe(null);
-  });
+    it('should handle ED 1 (erase from start to cursor)', () => {
+      parser.parse(Buffer.from('Line1\nLine2\nLine3'));
+      parser.parse(Buffer.from('\x1b[2;3H\x1b[1J'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe(' ');
+      expect(state.cells[1][0].char).toBe(' ');
+      expect(state.cells[1][2].char).toBe(' ');
+      expect(state.cells[1][3].char).toBe('e');
+      expect(state.cells[2][0].char).toBe('L');
+    });
 
-  it('should handle screen clearing (ED)', () => {
-    parser.parse(Buffer.from('ABCDEFGH'));
-    parser.parse(Buffer.from('\x1b[2J'));
-    const state = parser.getState();
-    
-    for (let y = 0; y < state.rows; y++) {
-      for (let x = 0; x < state.cols; x++) {
-        expect(state.cells[y][x].char).toBe(' ');
+    it('should handle ED 2 (erase entire display)', () => {
+      parser.parse(Buffer.from('ABCDEFGH\nIJKLMNOP'));
+      parser.parse(Buffer.from('\x1b[2J'));
+      const state = parser.getState();
+      
+      for (let y = 0; y < state.rows; y++) {
+        for (let x = 0; x < state.cols; x++) {
+          expect(state.cells[y][x].char).toBe(' ');
+        }
       }
-    }
+    });
+
+    it('should handle EL 0 (erase from cursor to end of line)', () => {
+      parser.parse(Buffer.from('ABCDEFGH\x1b[4G\x1b[0K'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('A');
+      expect(state.cells[0][1].char).toBe('B');
+      expect(state.cells[0][2].char).toBe('C');
+      expect(state.cells[0][3].char).toBe(' ');
+      expect(state.cells[0][7].char).toBe(' ');
+    });
+
+    it('should handle EL 1 (erase from start of line to cursor)', () => {
+      parser.parse(Buffer.from('ABCDEFGH\x1b[5G\x1b[1K'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe(' ');
+      expect(state.cells[0][3].char).toBe(' ');
+      expect(state.cells[0][4].char).toBe(' ');
+      expect(state.cells[0][5].char).toBe('F');
+      expect(state.cells[0][7].char).toBe('H');
+    });
+
+    it('should handle EL 2 (erase entire line)', () => {
+      parser.parse(Buffer.from('ABCDEFGH\x1b[1G\x1b[2K'));
+      const state = parser.getState();
+      
+      for (let x = 0; x < state.cols; x++) {
+        expect(state.cells[0][x].char).toBe(' ');
+      }
+    });
+
+    it('should handle EL with default parameter (same as EL 0)', () => {
+      parser.parse(Buffer.from('ABCDEFGH\x1b[4G\x1b[K'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('A');
+      expect(state.cells[0][2].char).toBe('C');
+      expect(state.cells[0][3].char).toBe(' ');
+      expect(state.cells[0][7].char).toBe(' ');
+    });
   });
 
-  it('should handle line clearing (EL)', () => {
-    parser.parse(Buffer.from('ABCDEFGH'));
-    parser.parse(Buffer.from('\x1b[1G\x1b[K'));
-    const state = parser.getState();
-    
-    for (let x = 0; x < state.cols; x++) {
-      expect(state.cells[0][x].char).toBe(' ');
-    }
+  describe('State Updates', () => {
+    it('should update cursor position on character write', () => {
+      parser.parse(Buffer.from('ABC'));
+      let state = parser.getState();
+      expect(state.cursorX).toBe(3);
+      expect(state.cursorY).toBe(0);
+      
+      parser.parse(Buffer.from('DEF'));
+      state = parser.getState();
+      expect(state.cursorX).toBe(6);
+      expect(state.cursorY).toBe(0);
+    });
+
+    it('should preserve color state across multiple writes', () => {
+      parser.parse(Buffer.from('\x1b[32mGreen'));
+      parser.parse(Buffer.from('More'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].fg).toBe('#008000');
+      expect(state.cells[0][4].fg).toBe('#008000');
+      expect(state.cells[0][5].fg).toBe('#008000');
+      expect(state.currentFg).toBe('#008000');
+    });
+
+    it('should update both foreground and background independently', () => {
+      parser.parse(Buffer.from('\x1b[33mYellow'));
+      parser.parse(Buffer.from('\x1b[44mWithBG'));
+      const state = parser.getState();
+      
+      expect(state.currentFg).toBe('#808000');
+      expect(state.currentBg).toBe('#000080');
+      expect(state.cells[0][6].fg).toBe('#808000');
+      expect(state.cells[0][6].bg).toBe('#000080');
+    });
+
+    it('should track cell attributes correctly', () => {
+      parser.parse(Buffer.from('\x1b[35;45mText'));
+      const state = parser.getState();
+      
+      for (let i = 0; i < 4; i++) {
+        expect(state.cells[0][i].char).toBeTruthy();
+        expect(state.cells[0][i].fg).toBe('#800080');
+        expect(state.cells[0][i].bg).toBe('#800080');
+      }
+    });
   });
 
-  it('should handle cursor up (CUU)', () => {
-    parser.parse(Buffer.from('Line1\nLine2'));
-    parser.parse(Buffer.from('\x1b[A'));
-    const state = parser.getState();
-    
-    expect(state.cursorY).toBe(0);
+  describe('Edge Cases', () => {
+    it('should handle invalid escape sequence gracefully', () => {
+      parser.parse(Buffer.from('\x1bXYZ'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBeGreaterThanOrEqual(0);
+      expect(state.cursorY).toBe(0);
+    });
+
+    it('should handle partial escape sequence at buffer end', () => {
+      parser.parse(Buffer.from('ABC\x1b'));
+      parser.parse(Buffer.from('[31mRed'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('A');
+      expect(state.cells[0][1].char).toBe('B');
+      expect(state.cells[0][2].char).toBe('C');
+    });
+
+    it('should handle escape sequence with missing parameters', () => {
+      parser.parse(Buffer.from('\x1b[HX'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(0);
+      expect(state.cursorX).toBe(1);
+      expect(state.cells[0][0].char).toBe('X');
+    });
+
+    it('should handle empty SGR sequence', () => {
+      parser.parse(Buffer.from('\x1b[31mRed\x1b[mNormal'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].fg).toBe('#800000');
+      expect(state.cells[0][3].fg).toBe(null);
+    });
+
+    it('should handle line wrapping', () => {
+      const longLine = 'A'.repeat(85);
+      parser.parse(Buffer.from(longLine));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(1);
+      expect(state.cursorX).toBe(5);
+      expect(state.cells[0][79].char).toBe('A');
+      expect(state.cells[1][0].char).toBe('A');
+    });
+
+    it('should handle scrolling when reaching bottom', () => {
+      for (let i = 0; i < 25; i++) {
+        parser.parse(Buffer.from(`Line${i}\n`));
+      }
+      const state = parser.getState();
+      
+      expect(state.scrollback.length).toBeGreaterThan(0);
+      expect(state.cursorY).toBe(23);
+    });
+
+    it('should handle overwrite with colors', () => {
+      parser.parse(Buffer.from('ABC'));
+      parser.parse(Buffer.from('\x1b[1G\x1b[31mX'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('X');
+      expect(state.cells[0][0].fg).toBe('#800000');
+      expect(state.cells[0][1].char).toBe('B');
+      expect(state.cells[0][1].fg).toBe(null);
+    });
+
+    it('should handle consecutive control characters', () => {
+      parser.parse(Buffer.from('A\n\r\n\rB'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('A');
+      expect(state.cursorY).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should handle tab at end of line', () => {
+      parser.parse(Buffer.from('X'.repeat(77) + '\tY'));
+      const state = parser.getState();
+      
+      expect(state.cursorY).toBe(1);
+    });
+
+    it('should handle escape sequence with semicolon but no params', () => {
+      parser.parse(Buffer.from('\x1b[;HX'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('X');
+    });
+
+    it('should handle OSC sequences (ignored)', () => {
+      parser.parse(Buffer.from('A\x1b]0;Title\x07B'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('A');
+      expect(state.cells[0][1].char).toBe('B');
+    });
   });
 
-  it('should handle cursor down (CUD)', () => {
-    parser.parse(Buffer.from('\x1b[B'));
-    const state = parser.getState();
-    
-    expect(state.cursorY).toBe(1);
-  });
+  describe('Reset and State Management', () => {
+    it('should reset to initial state', () => {
+      parser.parse(Buffer.from('\x1b[31;44mText\x1b[5;10H'));
+      parser.reset();
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBe(0);
+      expect(state.cursorY).toBe(0);
+      expect(state.currentFg).toBe(null);
+      expect(state.currentBg).toBe(null);
+      expect(state.cells[0][0].char).toBe(' ');
+    });
 
-  it('should handle cursor forward (CUF)', () => {
-    parser.parse(Buffer.from('\x1b[5C'));
-    const state = parser.getState();
-    
-    expect(state.cursorX).toBe(5);
-  });
-
-  it('should handle cursor back (CUB)', () => {
-    parser.parse(Buffer.from('ABCDE\x1b[3D'));
-    const state = parser.getState();
-    
-    expect(state.cursorX).toBe(2);
-  });
-
-  it('should handle line wrapping', () => {
-    const longLine = 'A'.repeat(85);
-    parser.parse(Buffer.from(longLine));
-    const state = parser.getState();
-    
-    expect(state.cursorY).toBe(1);
-    expect(state.cursorX).toBe(5);
-  });
-
-  it('should handle scrolling', () => {
-    for (let i = 0; i < 25; i++) {
-      parser.parse(Buffer.from(`Line${i}\n`));
-    }
-    const state = parser.getState();
-    
-    expect(state.scrollback.length).toBeGreaterThan(0);
-    expect(state.cursorY).toBe(23);
-  });
-
-  it('should handle tabs', () => {
-    parser.parse(Buffer.from('A\tB'));
-    const state = parser.getState();
-    
-    expect(state.cells[0][0].char).toBe('A');
-    expect(state.cells[0][8].char).toBe('B');
-  });
-
-  it('should handle backspace', () => {
-    parser.parse(Buffer.from('ABC\bD'));
-    const state = parser.getState();
-    
-    expect(state.cells[0][0].char).toBe('A');
-    expect(state.cells[0][1].char).toBe('B');
-    expect(state.cells[0][2].char).toBe('D');
+    it('should maintain state dimensions after reset', () => {
+      parser.parse(Buffer.from('Test'));
+      parser.reset();
+      const state = parser.getState();
+      
+      expect(state.rows).toBe(24);
+      expect(state.cols).toBe(80);
+    });
   });
 });

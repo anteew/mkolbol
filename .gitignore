@@ -1,5 +1,7 @@
 node_modules/
 *.log
+.raw.log
+*_raw.log
 .env
 .DS_Store
 coverage/
