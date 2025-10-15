@@ -11,6 +11,7 @@ jobs:
     name: Unit/Integration (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node: [20, 24]
     steps:
@@ -35,12 +36,13 @@ jobs:
       - name: Forks lane (process-mode gated)
         run: MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
 
-      - name: Laminar summary/trends
+      - name: Laminar summary/trends (best‑effort)
         if: ${{ always() }}
+        continue-on-error: true
         run: |
           mkdir -p reports
-          npm run lam -- summary > reports/LAMINAR_SUMMARY.txt
-          npm run lam -- trends --top 10 > reports/LAMINAR_TRENDS.txt
+          npm run lam -- summary > reports/LAMINAR_SUMMARY.txt || true
+          npm run lam -- trends --top 10 > reports/LAMINAR_TRENDS.txt || true
 
       - name: Upload artifacts (reports)
         if: ${{ always() }}
