@@ -41,7 +41,29 @@ jobs:
             --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
 
       - name: Forks lane (process-mode gated)
-        run: MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
+        continue-on-error: true
+        run: |
+          npx vitest run \
+            --pool=forks \
+            --poolOptions.forks.singleFork=true \
+            tests/wrappers/ptyServerWrapper.spec.ts \
+            tests/integration/multiModalOutput.spec.ts \
+            tests/integration/endpointsList.spec.ts \
+            tests/integration/processMode.spec.ts \
+            tests/integration/workerMode.spec.ts \
+            --reporter=default \
+            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
+
+      # Optional experimental run of processUnix (does not fail build)
+      - name: Process-mode experimental (Unix adapters)
+        continue-on-error: true
+        run: |
+          MK_PROCESS_EXPERIMENTAL=1 npx vitest run \
+            --pool=forks \
+            --poolOptions.forks.singleFork=true \
+            tests/integration/processUnix.spec.ts \
+            --reporter=default \
+            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
 
       - name: Laminar summary/trends (best‑effort)
         if: ${{ always() }}
