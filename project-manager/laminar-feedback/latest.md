@@ -1,6 +1,6 @@
 # Laminar Dogfooding Feedback (2025-10-15T19:24:09.887Z)
 Total tests observed: 118 (pass: 117, fail: 0, other: 1)
-- Index contains 117 cases.
+- Index contains 118 cases.
 ## Top files by failures
 - /srv/repos0/mkolbol/tests/config/loader.spec.ts — fail: 0, pass: 24, total: 24
 - /srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts — fail: 0, pass: 16, total: 16
