@@ -1,32 +1,29 @@
-Sprint SB-LAM-INTEGRATION-P1 (Intermediate)
+Sprint SB-LAM-INTEGRATION-P2 (Dogfooding)
 
 Goal
-- Deeply integrate Laminar into our testing stack (threads + forks lanes), generate summaries/trends as CI artifacts, and make dogfooding trivial for agents.
+- Run Laminar over full test workflow and generate curated feedback artifacts + feature requests for Laminar.
 
 Constraints
-- No kernel changes. Keep scope to scripts, CI, and docs.
-- Keep worker-mode integration tests gated (MK_WORKER_EXPERIMENTAL off by default in CI) until a later hardening sprint.
+- No kernel changes. Consumption + feedback only.
+- Keep worker-mode integration tests gated by default.
 
-T6001 — CI workflow for Laminar artifacts
-- Outcome: `.github/workflows/tests.yml` runs both lanes, then emits `reports/LAMINAR_SUMMARY.txt` and `reports/LAMINAR_TRENDS.txt` and uploads `reports/`.
+T6101 — Run dogfood (threads lane)
+- Outcome: `npm run lam:dogfood:ci` generates summaries/trends + feedback markdown.
 
-T6002 — Local convenience scripts
-- Outcome: `npm run test:ci:lam` and `npm run test:pty:lam` run lanes and produce summaries/trends locally.
+T6102 — Run dogfood (forks lane, gated)
+- Outcome: `MK_PROCESS_EXPERIMENTAL=1 npm run lam:dogfood:pty` appends/refreshes feedback.
 
-T6003 — Docs update
-- Outcome: `docs/testing/laminar-integration.md` expanded with dogfooding flow and artifact notes.
+T6103 — Curate feature requests
+- Outcome: `project-manager/laminar-feedback/feature-requests.md` with top 5 items.
 
-T6004 — README pointers
-- Outcome: Short “CI & Testing” section pointing to Laminar integration and dogfooding commands.
-
-T6005 — Verify artifacts
-- Outcome: Run locally to produce `reports/LAMINAR_*.txt`; confirm CI uploads on PR.
+T6104 — Log + handoff
+- Outcome: ampcode.log updated with run details and links.
 
 Verification (run locally)
 - Build: `npm ci && npm run build`
-- Threads: `npm run test:ci` (or `npm run test:ci:lam` for artifacts)
-- Forks: `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty` (or `npm run test:pty:lam` for artifacts)
-- Artifacts: `reports/summary.jsonl`, `reports/index.json`, `reports/LAMINAR_*.txt`
+- Threads: `npm run lam:dogfood:ci`
+- Forks: `MK_PROCESS_EXPERIMENTAL=1 npm run lam:dogfood:pty`
+- Artifacts: `reports/summary.jsonl`, `reports/index.json`, `reports/LAMINAR_*.txt`, `project-manager/laminar-feedback/latest.md`
 
 Reporting
 - Update `ampcode.log` with PASS/FAIL per task. Do not branch/commit/push — VEGA handles git.

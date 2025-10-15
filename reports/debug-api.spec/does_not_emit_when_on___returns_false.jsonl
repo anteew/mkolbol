@@ -1,3 +1,3 @@
-{"ts":1760553063297,"lvl":"info","case":"does not emit when on() returns false","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760553063298,"lvl":"info","case":"does not emit when on() returns false","phase":"execution","evt":"test.run"}
-{"ts":1760553063299,"lvl":"info","case":"does not emit when on() returns false","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
+{"ts":1760553876397,"lvl":"info","case":"does not emit when on() returns false","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760553876398,"lvl":"info","case":"does not emit when on() returns false","phase":"execution","evt":"test.run"}
+{"ts":1760553876399,"lvl":"info","case":"does not emit when on() returns false","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
