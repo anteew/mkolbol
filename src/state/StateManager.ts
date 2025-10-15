@@ -143,6 +143,11 @@ export class StateManager {
     };
   }
 
+  // Backwards-compatible alias used by some older tests/specs
+  getState(): TopologySnapshot {
+    return this.getTopology();
+  }
+
   exportJSON(): string {
     return JSON.stringify(this.getTopology(), null, 2);
   }

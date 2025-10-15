@@ -183,13 +183,9 @@ export class Executor {
             },
             transferList: [controlPort2, inputPort2, outputPort2]
         });
-        const inputPipe = this.kernel.createPipe({ objectMode: true });
-        const outputPipe = this.kernel.createPipe({ objectMode: true });
-        const WorkerPipe = (await import('../pipes/adapters/WorkerPipe.js')).WorkerPipe;
-        const workerInputPipe = new WorkerPipe(inputPort1).createDuplex({ objectMode: true });
-        const workerOutputPipe = new WorkerPipe(outputPort1).createDuplex({ objectMode: true });
-        inputPipe.pipe(workerInputPipe);
-        workerOutputPipe.pipe(outputPipe);
+        const WorkerPipeAdapter = (await import('../transport/worker/WorkerPipeAdapter.js')).WorkerPipeAdapter;
+        const inputPipe = new WorkerPipeAdapter(inputPort1).createDuplex({ objectMode: true });
+        const outputPipe = new WorkerPipeAdapter(outputPort1).createDuplex({ objectMode: true });
         const module = {
             inputPipe,
             outputPipe,

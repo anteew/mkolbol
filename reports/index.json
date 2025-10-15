@@ -1,1215 +1,170 @@
 {
-  "generated": "2025-10-15T03:13:06.955Z",
-  "totalTests": 110,
+  "generated": "2025-10-15T16:35:49.050Z",
+  "totalTests": 15,
   "artifacts": [
     {
-      "testName": "initialize",
-      "status": "pass",
-      "duration": 15,
-      "location": "/srv/repos0/mkolbol/archived/mcp-kernel/tests/router.test.ts:0",
-      "timestamp": "2025-10-15T03:13:04.737Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/router.test/initialize.jsonl"
-      }
-    },
-    {
-      "testName": "tools/resources list read",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/archived/mcp-kernel/tests/router.test.ts:0",
-      "timestamp": "2025-10-15T03:13:04.737Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/router.test/tools_resources_list_read.jsonl"
-      }
-    },
-    {
-      "testName": "should create and compare snapshots with masking",
-      "status": "pass",
-      "duration": 6,
-      "location": "/srv/repos0/mkolbol/tests/golden/sample.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.758Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/sample.spec/should_create_and_compare_snapshots_with_masking.jsonl"
-      }
-    },
-    {
-      "testName": "should detect mismatches",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/golden/sample.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.759Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/sample.spec/should_detect_mismatches.jsonl"
-      }
-    },
-    {
-      "testName": "should support custom mask rules",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/golden/sample.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.759Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/sample.spec/should_support_custom_mask_rules.jsonl"
-      }
-    },
-    {
-      "testName": "connect moves data 1:1",
-      "status": "pass",
-      "duration": 6,
-      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.759Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/kernel.spec/connect_moves_data_1_1.jsonl"
-      }
-    },
-    {
-      "testName": "split fans out to multiple destinations",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.790Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/kernel.spec/split_fans_out_to_multiple_destinations.jsonl"
-      }
-    },
-    {
-      "testName": "merge combines multiple sources into one destination",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.790Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/kernel.spec/merge_combines_multiple_sources_into_one_destination.jsonl"
-      }
-    },
-    {
-      "testName": "register/lookup filters by capabilities",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.791Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/kernel.spec/register_lookup_filters_by_capabilities.jsonl"
-      }
-    },
-    {
-      "testName": "should render raw ANSI to stdout",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/renderers/passthroughRenderer.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.791Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/passthroughRenderer.spec/should_render_raw_ANSI_to_stdout.jsonl"
-      }
-    },
-    {
-      "testName": "should handle ANSI escape sequences",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/renderers/passthroughRenderer.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.792Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/passthroughRenderer.spec/should_handle_ANSI_escape_sequences.jsonl"
-      }
-    },
-    {
-      "testName": "round-trip a control frame",
-      "status": "pass",
-      "duration": 16,
-      "location": "/srv/repos0/mkolbol/tests/worker/workerAdapters.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.827Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/workerAdapters.spec/round-trip_a_control_frame.jsonl"
-      }
-    },
-    {
-      "testName": "round-trip a Buffer",
-      "status": "pass",
-      "duration": 5,
-      "location": "/srv/repos0/mkolbol/tests/worker/workerAdapters.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.827Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/workerAdapters.spec/round-trip_a_Buffer.jsonl"
-      }
-    },
-    {
-      "testName": "assert handshake event structure",
-      "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/tests/worker/workerAdapters.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.827Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/workerAdapters.spec/assert_handshake_event_structure.jsonl"
-      }
-    },
-    {
-      "testName": "returns false when module is not enabled",
-      "status": "pass",
-      "duration": 3,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.828Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/returns_false_when_module_is_not_enabled.jsonl"
-      }
-    },
-    {
-      "testName": "returns consistent value for same module",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.828Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/returns_consistent_value_for_same_module.jsonl"
-      }
-    },
-    {
-      "testName": "returns false when config is disabled",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.828Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/returns_false_when_config_is_disabled.jsonl"
-      }
-    },
-    {
-      "testName": "checks module against config.modules when enabled",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.828Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/checks_module_against_config_modules_when_enabled.jsonl"
-      }
-    },
-    {
-      "testName": "does not emit when on() returns false",
-      "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.828Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/does_not_emit_when_on___returns_false.jsonl"
-      }
-    },
-    {
-      "testName": "emit returns immediately when module is disabled",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.829Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/emit_returns_immediately_when_module_is_disabled.jsonl"
-      }
-    },
-    {
-      "testName": "shouldEmit returns false when module is disabled",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.829Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/shouldEmit_returns_false_when_module_is_disabled.jsonl"
-      }
-    },
-    {
-      "testName": "emits to console when module is enabled",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.829Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/emits_to_console_when_module_is_enabled.jsonl"
-      }
-    },
-    {
-      "testName": "respects debug level filtering",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.829Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/respects_debug_level_filtering.jsonl"
-      }
-    },
-    {
-      "testName": "emits formatted output to console",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.829Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/emits_formatted_output_to_console.jsonl"
-      }
-    },
-    {
-      "testName": "handles emit without payload",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.830Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/handles_emit_without_payload.jsonl"
-      }
-    },
-    {
-      "testName": "shouldEmit respects level hierarchy",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.830Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/debug-api.spec/shouldEmit_respects_level_hierarchy.jsonl"
-      }
-    },
-    {
-      "testName": "registers and queries by capabilities",
-      "status": "pass",
-      "duration": 5,
-      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.830Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostess.spec/registers_and_queries_by_capabilities.jsonl"
-      }
-    },
-    {
-      "testName": "marks in-use and back to available",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.830Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostess.spec/marks_in-use_and_back_to_available.jsonl"
-      }
-    },
-    {
-      "testName": "evicts after missed heartbeats",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.830Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostess.spec/evicts_after_missed_heartbeats.jsonl"
-      }
-    },
-    {
-      "testName": "heartbeat maintains liveness",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.831Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostess.spec/heartbeat_maintains_liveness.jsonl"
-      }
-    },
-    {
-      "testName": "should write all data to log file",
-      "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/tests/renderers/loggerRenderer.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.831Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loggerRenderer.spec/should_write_all_data_to_log_file.jsonl"
-      }
-    },
-    {
-      "testName": "should append to existing log file",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/renderers/loggerRenderer.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.831Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loggerRenderer.spec/should_append_to_existing_log_file.jsonl"
-      }
-    },
-    {
-      "testName": "should parse regular characters",
-      "status": "pass",
-      "duration": 9,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.941Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_parse_regular_characters.jsonl"
-      }
-    },
-    {
-      "testName": "should handle newlines",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.941Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_newlines.jsonl"
-      }
-    },
-    {
-      "testName": "should handle carriage return",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.941Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_carriage_return.jsonl"
-      }
-    },
-    {
-      "testName": "should parse ANSI cursor movement (CUP)",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.942Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_parse_ANSI_cursor_movement__CUP_.jsonl"
-      }
-    },
-    {
-      "testName": "should handle color codes (SGR)",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.942Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_color_codes__SGR_.jsonl"
-      }
-    },
-    {
-      "testName": "should handle color reset",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.942Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_color_reset.jsonl"
-      }
-    },
-    {
-      "testName": "should handle screen clearing (ED)",
-      "status": "pass",
-      "duration": 58,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.942Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_screen_clearing__ED_.jsonl"
-      }
-    },
-    {
-      "testName": "should handle line clearing (EL)",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.942Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_line_clearing__EL_.jsonl"
-      }
-    },
-    {
-      "testName": "should handle cursor up (CUU)",
-      "status": "pass",
-      "duration": 16,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.943Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_cursor_up__CUU_.jsonl"
-      }
-    },
-    {
-      "testName": "should handle cursor down (CUD)",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.943Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_cursor_down__CUD_.jsonl"
-      }
-    },
-    {
-      "testName": "should handle cursor forward (CUF)",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.943Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_cursor_forward__CUF_.jsonl"
-      }
-    },
-    {
-      "testName": "should handle cursor back (CUB)",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.963Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_cursor_back__CUB_.jsonl"
-      }
-    },
-    {
-      "testName": "should handle line wrapping",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.964Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_line_wrapping.jsonl"
-      }
-    },
-    {
-      "testName": "should handle scrolling",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.964Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_scrolling.jsonl"
-      }
-    },
-    {
-      "testName": "should handle tabs",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.977Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_tabs.jsonl"
-      }
-    },
-    {
-      "testName": "should handle backspace",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.978Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ansiParser.spec/should_handle_backspace.jsonl"
-      }
-    },
-    {
-      "testName": "should register an endpoint with id and coordinates",
-      "status": "pass",
-      "duration": 3,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.979Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_register_an_endpoint_with_id_and_coordinates.jsonl"
-      }
-    },
-    {
-      "testName": "should register multiple endpoints with different ids",
-      "status": "pass",
-      "duration": 49,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.980Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_register_multiple_endpoints_with_different_ids.jsonl"
-      }
-    },
-    {
-      "testName": "should overwrite endpoint if registered with same id",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.980Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_overwrite_endpoint_if_registered_with_same_id.jsonl"
-      }
-    },
-    {
-      "testName": "should handle endpoint without metadata",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.981Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_handle_endpoint_without_metadata.jsonl"
-      }
-    },
-    {
-      "testName": "should return empty map when no endpoints registered",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.982Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_return_empty_map_when_no_endpoints_registered.jsonl"
-      }
-    },
-    {
-      "testName": "should return a copy of the endpoints map",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.982Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_return_a_copy_of_the_endpoints_map.jsonl"
-      }
-    },
-    {
-      "testName": "should contain all registered endpoints",
-      "status": "pass",
-      "duration": 19,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.982Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_contain_all_registered_endpoints.jsonl"
-      }
-    },
-    {
-      "testName": "should support inproc endpoint type",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.983Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_support_inproc_endpoint_type.jsonl"
-      }
-    },
-    {
-      "testName": "should support worker endpoint type",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.983Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_support_worker_endpoint_type.jsonl"
-      }
-    },
-    {
-      "testName": "should support external endpoint type",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.984Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_support_external_endpoint_type.jsonl"
-      }
-    },
-    {
-      "testName": "should support pty endpoint type",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.984Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_support_pty_endpoint_type.jsonl"
-      }
-    },
-    {
-      "testName": "should allow endpoints to be registered alongside servers",
-      "status": "pass",
-      "duration": 5,
-      "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.984Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostessEndpoints.spec/should_allow_endpoints_to_be_registered_alongside_servers.jsonl"
-      }
-    },
-    {
-      "testName": "adds nodes and emits events",
-      "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.985Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/adds_nodes_and_emits_events.jsonl"
-      }
-    },
-    {
-      "testName": "connects and emits connected",
-      "status": "pass",
-      "duration": 18,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.985Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/connects_and_emits_connected.jsonl"
-      }
-    },
-    {
-      "testName": "split and merge emit events",
-      "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.985Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/split_and_merge_emit_events.jsonl"
-      }
-    },
-    {
-      "testName": "validator enforces directionality when set",
-      "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.986Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/validator_enforces_directionality_when_set.jsonl"
-      }
-    },
-    {
-      "testName": "exporters produce strings",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.986Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/exporters_produce_strings.jsonl"
-      }
-    },
-    {
-      "testName": "should parse valid YAML",
-      "status": "pass",
-      "duration": 36,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.998Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_parse_valid_YAML.jsonl"
-      }
-    },
-    {
-      "testName": "should parse valid JSON",
-      "status": "pass",
-      "duration": 3,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.998Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_parse_valid_JSON.jsonl"
-      }
-    },
-    {
-      "testName": "should reject missing nodes",
-      "status": "pass",
-      "duration": 3,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.998Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_missing_nodes.jsonl"
-      }
-    },
-    {
-      "testName": "should reject missing connections",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.998Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_missing_connections.jsonl"
-      }
-    },
-    {
-      "testName": "should reject duplicate node ids",
-      "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.999Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_duplicate_node_ids.jsonl"
-      }
-    },
-    {
-      "testName": "should reject invalid from address without dot",
-      "status": "pass",
-      "duration": 17,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.999Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_invalid_from_address_without_dot.jsonl"
-      }
-    },
-    {
-      "testName": "should reject invalid to address without dot",
-      "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.999Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_invalid_to_address_without_dot.jsonl"
-      }
-    },
-    {
-      "testName": "should reject address with multiple dots",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.999Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_address_with_multiple_dots.jsonl"
-      }
-    },
-    {
-      "testName": "should reject address with empty node name",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:04.999Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_address_with_empty_node_name.jsonl"
-      }
-    },
-    {
-      "testName": "should reject address with empty terminal name",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.000Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_address_with_empty_terminal_name.jsonl"
-      }
-    },
-    {
-      "testName": "should reject connection referencing non-existent from node",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.000Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_connection_referencing_non-existent_from_node.jsonl"
-      }
-    },
-    {
-      "testName": "should reject connection referencing non-existent to node",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.000Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_connection_referencing_non-existent_to_node.jsonl"
-      }
-    },
-    {
-      "testName": "should reject non-object config",
-      "status": "pass",
-      "duration": 26,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.000Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_non-object_config.jsonl"
-      }
-    },
-    {
-      "testName": "should reject non-array nodes",
-      "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.000Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_non-array_nodes.jsonl"
-      }
-    },
-    {
-      "testName": "should reject non-array connections",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.000Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_non-array_connections.jsonl"
-      }
-    },
-    {
-      "testName": "should reject node without id",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.001Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_node_without_id.jsonl"
-      }
-    },
-    {
-      "testName": "should reject node with non-string id",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.001Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_node_with_non-string_id.jsonl"
-      }
-    },
-    {
-      "testName": "should reject node without module",
-      "status": "pass",
-      "duration": 0,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.001Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_node_without_module.jsonl"
-      }
-    },
-    {
-      "testName": "should reject node with non-string module",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.001Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_node_with_non-string_module.jsonl"
-      }
-    },
-    {
-      "testName": "should reject connection without from",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.001Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_connection_without_from.jsonl"
-      }
-    },
-    {
-      "testName": "should reject connection without to",
+      "testName": "should register endpoints for inproc nodes",
       "status": "pass",
       "duration": 21,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.002Z",
+      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:46.090Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_connection_without_to.jsonl"
+        "caseFile": "reports/endpointsList.spec/should_register_endpoints_for_inproc_nodes.jsonl"
       }
     },
     {
-      "testName": "should reject connection with non-string from",
+      "testName": "should list all registered endpoints across multiple nodes",
       "status": "pass",
-      "duration": 15,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.002Z",
+      "duration": 5,
+      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:46.091Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_connection_with_non-string_from.jsonl"
+        "caseFile": "reports/endpointsList.spec/should_list_all_registered_endpoints_across_multiple_nodes.jsonl"
       }
     },
     {
-      "testName": "should reject connection with non-string to",
+      "testName": "should register external endpoint when wrapper spawns",
       "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.002Z",
+      "duration": 24,
+      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:46.091Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_reject_connection_with_non-string_to.jsonl"
+        "caseFile": "reports/endpointsList.spec/should_register_external_endpoint_when_wrapper_spawns.jsonl"
       }
     },
     {
-      "testName": "should accept valid topology",
+      "testName": "should register pty endpoint when wrapper spawns",
       "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.002Z",
+      "duration": 109,
+      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:46.092Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loader.spec/should_accept_valid_topology.jsonl"
+        "caseFile": "reports/endpointsList.spec/should_register_pty_endpoint_when_wrapper_spawns.jsonl"
       }
     },
     {
-      "testName": "should spawn a simple process",
+      "testName": "should list all endpoint types in a mixed topology",
       "status": "pass",
-      "duration": 103,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:05.002Z",
+      "duration": 16,
+      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:46.092Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalServerWrapper.spec/should_spawn_a_simple_process.jsonl"
+        "caseFile": "reports/endpointsList.spec/should_list_all_endpoint_types_in_a_mixed_topology.jsonl"
       }
     },
     {
-      "testName": "should load configuration",
+      "testName": "should maintain endpoints after executor restart",
       "status": "pass",
-      "duration": 7,
-      "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.949Z",
+      "duration": 3,
+      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:46.093Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/executor.spec/should_load_configuration.jsonl"
+        "caseFile": "reports/endpointsList.spec/should_maintain_endpoints_after_executor_restart.jsonl"
       }
     },
     {
-      "testName": "should throw if up() called without load()",
+      "testName": "should spawn PTY process",
       "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.949Z",
+      "duration": 106,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:48.300Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/executor.spec/should_throw_if_up___called_without_load__.jsonl"
+        "caseFile": "reports/ptyServerWrapper.spec/should_spawn_PTY_process.jsonl"
       }
     },
     {
-      "testName": "should instantiate modules and register with hostess",
+      "testName": "should pipe data bidirectionally",
       "status": "pass",
-      "duration": 31,
-      "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.950Z",
+      "duration": 406,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:48.301Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/executor.spec/should_instantiate_modules_and_register_with_hostess.jsonl"
+        "caseFile": "reports/ptyServerWrapper.spec/should_pipe_data_bidirectionally.jsonl"
       }
     },
     {
-      "testName": "should wire connections via StateManager",
+      "testName": "should handle resize",
       "status": "pass",
-      "duration": 22,
-      "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.950Z",
+      "duration": 107,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:48.302Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/executor.spec/should_wire_connections_via_StateManager.jsonl"
+        "caseFile": "reports/ptyServerWrapper.spec/should_handle_resize.jsonl"
       }
     },
     {
-      "testName": "should support restartNode",
+      "testName": "should send signals",
       "status": "pass",
-      "duration": 32,
-      "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.950Z",
+      "duration": 206,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:48.302Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/executor.spec/should_support_restartNode.jsonl"
+        "caseFile": "reports/ptyServerWrapper.spec/should_send_signals.jsonl"
       }
     },
     {
-      "testName": "should throw on restartNode for non-existent node",
+      "testName": "should handle process exit",
       "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.950Z",
+      "duration": 304,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:48.303Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/executor.spec/should_throw_on_restartNode_for_non-existent_node.jsonl"
+        "caseFile": "reports/ptyServerWrapper.spec/should_handle_process_exit.jsonl"
       }
     },
     {
-      "testName": "split: all destinations receive identical data",
+      "testName": "should register PTY server with Hostess",
       "status": "pass",
-      "duration": 230,
-      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.951Z",
+      "duration": 105,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:48.304Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/invariants.spec/split__all_destinations_receive_identical_data.jsonl"
+        "caseFile": "reports/ptyServerWrapper.spec/should_register_PTY_server_with_Hostess.jsonl"
       }
     },
     {
-      "testName": "split: order preservation across destinations",
+      "testName": "should work with basic shell (bash)",
       "status": "pass",
-      "duration": 126,
-      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.951Z",
+      "duration": 406,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:48.304Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/invariants.spec/split__order_preservation_across_destinations.jsonl"
+        "caseFile": "reports/ptyServerWrapper.spec/should_work_with_basic_shell__bash_.jsonl"
       }
     },
     {
-      "testName": "merge: all source data reaches destination",
+      "testName": "should handle interactive commands",
       "status": "pass",
-      "duration": 137,
-      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.951Z",
+      "duration": 507,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:48.305Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/invariants.spec/merge__all_source_data_reaches_destination.jsonl"
+        "caseFile": "reports/ptyServerWrapper.spec/should_handle_interactive_commands.jsonl"
       }
     },
     {
-      "testName": "merge: no data loss with concurrent writes",
+      "testName": "should split PTY output to 2+ renderers",
       "status": "pass",
-      "duration": 167,
-      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.951Z",
+      "duration": 609,
+      "location": "/srv/repos0/mkolbol/tests/integration/multiModalOutput.spec.ts:0",
+      "timestamp": "2025-10-15T16:35:49.023Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/invariants.spec/merge__no_data_loss_with_concurrent_writes.jsonl"
-      }
-    },
-    {
-      "testName": "split-then-merge: roundtrip preserves all data",
-      "status": "pass",
-      "duration": 1105,
-      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.952Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/invariants.spec/split-then-merge__roundtrip_preserves_all_data.jsonl"
-      }
-    },
-    {
-      "testName": "empty split: source with zero destinations completes",
-      "status": "pass",
-      "duration": 6,
-      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.952Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/invariants.spec/empty_split__source_with_zero_destinations_completes.jsonl"
-      }
-    },
-    {
-      "testName": "empty merge: destination with zero sources completes",
-      "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.952Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/invariants.spec/empty_merge__destination_with_zero_sources_completes.jsonl"
-      }
-    },
-    {
-      "testName": "should handle environment variables",
-      "status": "pass",
-      "duration": 246,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.952Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalServerWrapper.spec/should_handle_environment_variables.jsonl"
-      }
-    },
-    {
-      "testName": "should register with Hostess on spawn",
-      "status": "pass",
-      "duration": 36,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.952Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalServerWrapper.spec/should_register_with_Hostess_on_spawn.jsonl"
-      }
-    },
-    {
-      "testName": "should gracefully shutdown with SIGTERM",
-      "status": "pass",
-      "duration": 62,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.953Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalServerWrapper.spec/should_gracefully_shutdown_with_SIGTERM.jsonl"
-      }
-    },
-    {
-      "testName": "should restart on failure with \"on-failure\" policy",
-      "status": "pass",
-      "duration": 566,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.953Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalServerWrapper.spec/should_restart_on_failure_with__on-failure__policy.jsonl"
-      }
-    },
-    {
-      "testName": "should not restart with \"never\" policy",
-      "status": "pass",
-      "duration": 342,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.953Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalServerWrapper.spec/should_not_restart_with__never__policy.jsonl"
-      }
-    },
-    {
-      "testName": "should respect maxRestarts limit",
-      "status": "pass",
-      "duration": 536,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.953Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalServerWrapper.spec/should_respect_maxRestarts_limit.jsonl"
-      }
-    },
-    {
-      "testName": "should provide process info",
-      "status": "pass",
-      "duration": 59,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T03:13:06.954Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalServerWrapper.spec/should_provide_process_info.jsonl"
+        "caseFile": "reports/multiModalOutput.spec/should_split_PTY_output_to_2__renderers.jsonl"
       }
     }
   ],
