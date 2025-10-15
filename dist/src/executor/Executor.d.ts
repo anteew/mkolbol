@@ -17,6 +17,7 @@ export declare class Executor {
     load(config: TopologyConfig): void;
     up(): Promise<void>;
     down(): Promise<void>;
+    private drainAndTeardownProcess;
     restartNode(id: string): Promise<void>;
     registerModule(name: string, constructor: any): void;
     spawnExternalWrapper(manifest: ExternalServerManifest): Promise<ExternalServerWrapper>;

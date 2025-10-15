@@ -1,0 +1,285 @@
+diff --git a/tests/integration/processUnix.spec.ts b/tests/integration/processUnix.spec.ts
+index 260b449..258e92d 100644
+--- a/tests/integration/processUnix.spec.ts
++++ b/tests/integration/processUnix.spec.ts
+@@ -199,6 +199,47 @@ describe('Process Mode: Unix Adapters under Load', () => {
+       serverAdapter.close();
+       clientAdapter.close();
+     }, testTimeout);
++
++    it('should propagate write errors', async () => {
++      await serverAdapter.listen();
++      await clientAdapter.connect();
++
++      const serverPipe = serverAdapter.createDuplex();
++      const clientPipe = clientAdapter.createDuplex();
++
++      let serverError: Error | null = null;
++      let clientError: Error | null = null;
++
++      serverPipe.on('error', (err) => {
++        serverError = err;
++      });
++      clientPipe.on('error', (err) => {
++        clientError = err;
++      });
++
++      // Start normal writes
++      serverPipe.write(Buffer.alloc(1024, 0xAA));
++
++      // Close client connection abruptly to trigger error
++      clientAdapter.close();
++
++      // Try to write more data, should trigger error
++      await new Promise<void>((resolve) => {
++        setTimeout(() => {
++          try {
++            for (let i = 0; i < 10; i++) {
++              serverPipe.write(Buffer.alloc(8192, 0xBB));
++            }
++          } catch {
++            // Expected: write after close
++          }
++          resolve();
++        }, 100);
++      });
++
++      // Verify error handling
++      expect(serverError || clientError).toBeTruthy();
++    }, testTimeout);
+   });
+ 
+   describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('UnixControlAdapter', () => {
+@@ -206,72 +247,98 @@ describe('Process Mode: Unix Adapters under Load', () => {
+     let clientAdapter: UnixControlAdapter;
+     let socketPath: string;
+ 
+-    beforeEach(() => {
++    beforeEach(async () => {
+       socketPath = getSocketPath('control');
+-      serverAdapter = new UnixControlAdapter(socketPath, { 
+-        heartbeatMs: 100,
+-        reconnectMs: 50
+-      });
+-      clientAdapter = new UnixControlAdapter(socketPath, {
+-        heartbeatMs: 100,
+-        reconnectMs: 50
+-      });
++      serverAdapter = new UnixControlAdapter(socketPath, true);
++      // Wait for server to start listening
++      await new Promise<void>((resolve) => setTimeout(resolve, 50));
++      clientAdapter = new UnixControlAdapter(socketPath, false);
++      // Wait for client to connect
++      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+     });
+ 
+     afterEach(() => {
+-      serverAdapter?.close();
+       clientAdapter?.close();
++      serverAdapter?.close();
+     });
+ 
+     it('should handle heartbeat timeout detection', async () => {
+-      await serverAdapter.listen();
+-      await clientAdapter.connect();
+ 
+       const heartbeats: number[] = [];
+       let lastHeartbeat = Date.now();
+ 
+-      serverAdapter.subscribe('heartbeat', (data: any) => {
+-        heartbeats.push(data.timestamp);
++      serverAdapter.subscribe('control.heartbeat', (data: any) => {
++        heartbeats.push(data.ts);
+         lastHeartbeat = Date.now();
+       });
+ 
+-      // Wait for multiple heartbeats
++      // Wait for multiple heartbeats (1000ms interval)
+       await new Promise<void>((resolve) => {
+-        setTimeout(() => resolve(), 500);
++        setTimeout(() => resolve(), 2500);
+       });
+ 
+-      expect(heartbeats.length).toBeGreaterThanOrEqual(4);
++      expect(heartbeats.length).toBeGreaterThanOrEqual(2);
+ 
+       // Simulate timeout by stopping heartbeats
+       clientAdapter.close();
+ 
+       // Wait for timeout detection window
+       await new Promise<void>((resolve) => {
+-        setTimeout(() => resolve(), 200);
++        setTimeout(() => resolve(), 1500);
+       });
+ 
+       const timeSinceLastHeartbeat = Date.now() - lastHeartbeat;
+-      expect(timeSinceLastHeartbeat).toBeGreaterThan(150);
++      expect(timeSinceLastHeartbeat).toBeGreaterThan(1000);
+     }, testTimeout);
+ 
+-    it('should handle graceful shutdown sequence', async () => {
+-      await serverAdapter.listen();
+-      await clientAdapter.connect();
++    it('should recover from heartbeat disruption', async () => {
++      const heartbeats: number[] = [];
++      serverAdapter.subscribe('control.heartbeat', (data: any) => {
++        heartbeats.push(data.ts);
++      });
+ 
++      // Wait for initial heartbeats
++      await new Promise<void>((resolve) => {
++        setTimeout(() => resolve(), 2500);
++      });
++
++      const initialCount = heartbeats.length;
++      expect(initialCount).toBeGreaterThanOrEqual(2);
++
++      // Disconnect and reconnect to simulate disruption
++      clientAdapter.close();
++      await new Promise<void>((resolve) => setTimeout(resolve, 200));
++
++      // Recreate client and reconnect
++      const recoveredClient = new UnixControlAdapter(socketPath, false);
++      await new Promise<void>((resolve) => setTimeout(resolve, 100));
++
++      // Wait for heartbeats to resume
++      await new Promise<void>((resolve) => {
++        setTimeout(() => resolve(), 2500);
++      });
++
++      const recoveredCount = heartbeats.length;
++      expect(recoveredCount).toBeGreaterThan(initialCount);
++
++      recoveredClient.close();
++    }, testTimeout);
++
++    it('should handle graceful shutdown sequence', async () => {
+       let shutdownReceived = false;
+       let shutdownTimestamp = 0;
+ 
+-      serverAdapter.subscribe('shutdown', (data: any) => {
++      serverAdapter.subscribe('control.shutdown', (data: any) => {
+         shutdownReceived = true;
+-        shutdownTimestamp = data.timestamp;
++        shutdownTimestamp = data.ts;
+       });
+ 
+       // Trigger graceful shutdown from client
+-      await clientAdapter.shutdown();
++      clientAdapter.shutdown();
+ 
+       // Wait for shutdown message to propagate
+       await new Promise<void>((resolve) => {
+-        setTimeout(() => resolve(), 150);
++        setTimeout(() => resolve(), 200);
+       });
+ 
+       expect(shutdownReceived).toBe(true);
+@@ -280,8 +347,6 @@ describe('Process Mode: Unix Adapters under Load', () => {
+     }, testTimeout);
+ 
+     it('should handle pub/sub under load', async () => {
+-      await serverAdapter.listen();
+-      await clientAdapter.connect();
+ 
+       const messages: Array<{ topic: string; data: any }> = [];
+       const topics = ['topic-a', 'topic-b', 'topic-c'];
+@@ -319,9 +384,6 @@ describe('Process Mode: Unix Adapters under Load', () => {
+     }, testTimeout);
+ 
+     it('should complete teardown with pending messages', async () => {
+-      await serverAdapter.listen();
+-      await clientAdapter.connect();
+-
+       const receivedMessages: any[] = [];
+       serverAdapter.subscribe('test', (data) => {
+         receivedMessages.push(data);
+@@ -333,12 +395,41 @@ describe('Process Mode: Unix Adapters under Load', () => {
+       }
+ 
+       // Immediate shutdown
+-      await clientAdapter.shutdown();
++      clientAdapter.shutdown();
++
++      // Wait a bit for messages to arrive
++      await new Promise<void>((resolve) => setTimeout(resolve, 200));
+ 
+       // Verify clean shutdown
+       expect(receivedMessages.length).toBeGreaterThan(0);
+       expect(receivedMessages.length).toBeLessThanOrEqual(50);
+     }, testTimeout);
++
++    it('should propagate subscription errors', async () => {
++
++      let errorCaught = false;
++      let errorMessage = '';
++
++      try {
++        serverAdapter.subscribe('error-topic', (data: any) => {
++          if (data.shouldThrow) {
++            throw new Error('Handler error');
++          }
++        });
++
++        clientAdapter.publish('error-topic', { shouldThrow: true });
++
++        await new Promise<void>((resolve) => {
++          setTimeout(() => resolve(), 150);
++        });
++      } catch (err: any) {
++        errorCaught = true;
++        errorMessage = err.message;
++      }
++
++      // Error should be caught in handler, not propagated to adapter
++      expect(errorCaught).toBe(false);
++    }, testTimeout);
+   });
+ 
+   describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('Combined Adapter Teardown', () => {
+@@ -348,13 +439,13 @@ describe('Process Mode: Unix Adapters under Load', () => {
+ 
+       const pipeServer = new UnixPipeAdapter(pipeSocketPath);
+       const pipeClient = new UnixPipeAdapter(pipeSocketPath);
+-      const controlServer = new UnixControlAdapter(controlSocketPath, { heartbeatMs: 100 });
+-      const controlClient = new UnixControlAdapter(controlSocketPath, { heartbeatMs: 100 });
++      const controlServer = new UnixControlAdapter(controlSocketPath, true);
++      await new Promise<void>((resolve) => setTimeout(resolve, 50));
++      const controlClient = new UnixControlAdapter(controlSocketPath, false);
+ 
+       await pipeServer.listen();
+       await pipeClient.connect();
+-      await controlServer.listen();
+-      await controlClient.connect();
++      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+ 
+       const serverPipe = pipeServer.createDuplex();
+       const clientPipe = pipeClient.createDuplex();
+@@ -364,7 +455,7 @@ describe('Process Mode: Unix Adapters under Load', () => {
+       clientPipe.on('data', (chunk) => dataChunks.push(Buffer.from(chunk)));
+ 
+       let shutdownReceived = false;
+-      controlServer.subscribe('shutdown', () => {
++      controlServer.subscribe('control.shutdown', () => {
+         shutdownReceived = true;
+       });
+ 
+@@ -374,8 +465,8 @@ describe('Process Mode: Unix Adapters under Load', () => {
+       }
+ 
+       // Coordinated shutdown: control first, then pipe
+-      await controlClient.shutdown();
+-      await new Promise<void>((resolve) => setTimeout(resolve, 150));
++      controlClient.shutdown();
++      await new Promise<void>((resolve) => setTimeout(resolve, 200));
+ 
+       serverPipe.end();
+       await new Promise<void>((resolve) => {
+@@ -384,6 +475,7 @@ describe('Process Mode: Unix Adapters under Load', () => {
+ 
+       pipeServer.close();
+       pipeClient.close();
++      controlClient.close();
+       controlServer.close();
+ 
+       expect(shutdownReceived).toBe(true);

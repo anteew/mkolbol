@@ -98,12 +98,61 @@ export class Executor {
       if (instance.worker) {
         instance.worker.postMessage({ type: 'shutdown' });
         await instance.worker.terminate();
+      } else if (instance.process) {
+        await this.drainAndTeardownProcess(instance);
       } else if (typeof instance.module.stop === 'function') {
         instance.module.stop();
       }
     }
 
     this.modules.clear();
+  }
+
+  private async drainAndTeardownProcess(instance: ModuleInstance): Promise<void> {
+    const proc = instance.process;
+    if (!proc) return;
+
+    debug.emit('executor', 'process.drain', { nodeId: instance.id });
+
+    const drainPromise = new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        debug.emit('executor', 'process.drain.timeout', { nodeId: instance.id });
+        resolve();
+      }, 5000);
+
+      if (instance.module.outputPipe) {
+        instance.module.outputPipe.once('end', () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      } else {
+        clearTimeout(timeout);
+        resolve();
+      }
+    });
+
+    await drainPromise;
+
+    debug.emit('executor', 'process.switch', { nodeId: instance.id });
+
+    debug.emit('executor', 'process.teardown', { nodeId: instance.id });
+
+    return new Promise((resolve) => {
+      const killTimer = setTimeout(() => {
+        if (proc && !proc.killed) {
+          proc.kill('SIGKILL');
+          debug.emit('executor', 'process.force-kill', { nodeId: instance.id });
+        }
+      }, 5000);
+
+      proc.once('exit', () => {
+        clearTimeout(killTimer);
+        debug.emit('executor', 'process.teardown.complete', { nodeId: instance.id });
+        resolve();
+      });
+
+      proc.kill('SIGTERM');
+    });
   }
 
   async restartNode(id: string): Promise<void> {
@@ -160,10 +209,30 @@ export class Executor {
   }
 
   private async instantiateProcessNode(nodeConfig: NodeConfig): Promise<void> {
-    // Minimal process-mode: set up logical input/output pipes and register endpoints/state.
-    // Real child spawning can be added later; the integration spec validates registration and state.
-    const inputPipe = this.kernel.createPipe({ objectMode: true });
-    const outputPipe = this.kernel.createPipe({ objectMode: true });
+    const { spawn } = await import('node:child_process');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const { randomUUID } = await import('node:crypto');
+
+    const command = nodeConfig.params?.command || 'cat';
+    const args = nodeConfig.params?.args || [];
+    const socketPath = join(tmpdir(), `mkolbol-${nodeConfig.id}-${randomUUID()}.sock`);
+
+    debug.emit('executor', 'process.spawn', { nodeId: nodeConfig.id, command, args });
+
+    const proc = spawn(command, args, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, MKOLBOL_SOCKET: socketPath }
+    });
+
+    const UnixPipeAdapter = (await import('../transport/unix/UnixPipeAdapter.js')).UnixPipeAdapter;
+    const inputAdapter = new UnixPipeAdapter(`${socketPath}-in`);
+    const outputAdapter = new UnixPipeAdapter(`${socketPath}-out`);
+
+    await Promise.all([inputAdapter.listen(), outputAdapter.listen()]);
+
+    const inputPipe = inputAdapter.createDuplex({ objectMode: true });
+    const outputPipe = outputAdapter.createDuplex({ objectMode: true });
 
     const module = {
       inputPipe,
@@ -174,6 +243,25 @@ export class Executor {
       id: nodeConfig.id,
       module,
       config: nodeConfig,
+      process: proc
+    });
+
+    let lastHeartbeat = Date.now();
+    const heartbeatTimeout = nodeConfig.params?.heartbeatTimeout || 30000;
+
+    const heartbeatInterval = setInterval(() => {
+      const elapsed = Date.now() - lastHeartbeat;
+      if (elapsed > heartbeatTimeout) {
+        debug.emit('executor', 'process.heartbeat.timeout', { nodeId: nodeConfig.id, elapsed }, 'error');
+        proc.kill('SIGTERM');
+        clearInterval(heartbeatInterval);
+      }
+    }, heartbeatTimeout / 2);
+
+    proc.on('message', (msg: any) => {
+      if (msg && msg.type === 'heartbeat') {
+        lastHeartbeat = Date.now();
+      }
     });
 
     const terminalsForHostess = this.inferTerminalsForHostess(module);
@@ -195,9 +283,6 @@ export class Executor {
     };
     const identity = this.hostess.register(manifest);
 
-    const command = nodeConfig.params?.command || 'cat';
-    const args = nodeConfig.params?.args || [];
-
     this.hostess.registerEndpoint(identity, {
       type: 'process',
       coordinates: `node:${nodeConfig.id}`,
@@ -206,6 +291,7 @@ export class Executor {
         runMode: 'process',
         command,
         args,
+        socketPath
       }
     });
 
@@ -215,6 +301,20 @@ export class Executor {
       terminals: terminalsForStateManager,
       capabilities: [],
       location: 'process'
+    });
+
+    proc.on('error', (err) => {
+      console.error(`[Executor] Process error for ${nodeConfig.id}:`, err);
+      debug.emit('executor', 'process.error', { nodeId: nodeConfig.id, error: err.message }, 'error');
+      clearInterval(heartbeatInterval);
+    });
+
+    proc.on('exit', (code) => {
+      console.log(`[Executor] Process ${nodeConfig.id} exited with code ${code}`);
+      debug.emit('executor', 'process.exit', { nodeId: nodeConfig.id, exitCode: code });
+      clearInterval(heartbeatInterval);
+      inputAdapter.close();
+      outputAdapter.close();
     });
   }
 

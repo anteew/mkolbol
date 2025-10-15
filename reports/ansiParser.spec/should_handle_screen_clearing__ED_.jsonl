@@ -1,3 +1,3 @@
-{"ts":1760553876477,"lvl":"info","case":"should handle screen clearing (ED)","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760553876478,"lvl":"info","case":"should handle screen clearing (ED)","phase":"execution","evt":"test.run"}
-{"ts":1760553876479,"lvl":"info","case":"should handle screen clearing (ED)","phase":"teardown","evt":"case.end","payload":{"duration":36,"status":"passed"}}
+{"ts":1760558803999,"lvl":"info","case":"should handle screen clearing (ED)","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760558804000,"lvl":"info","case":"should handle screen clearing (ED)","phase":"execution","evt":"test.run"}
+{"ts":1760558804001,"lvl":"info","case":"should handle screen clearing (ED)","phase":"teardown","evt":"case.end","payload":{"duration":61,"status":"passed"}}

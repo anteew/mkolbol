@@ -33,15 +33,18 @@ jobs:
       - name: Threads lane (dual reporters)
         continue-on-error: true
         run: |
+          mkdir -p reports
           npx vitest run \
             --pool=threads \
             --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode,rulepacks}.spec.ts' \
             --reporter=default \
-            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
+            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
+            > reports/threads_raw.log 2>&1
 
       - name: Forks lane (process-mode gated)
         continue-on-error: true
         run: |
+          mkdir -p reports
           npx vitest run \
             --pool=forks \
             --poolOptions.forks.singleFork=true \
@@ -51,7 +54,8 @@ jobs:
             tests/integration/processMode.spec.ts \
             tests/integration/workerMode.spec.ts \
             --reporter=default \
-            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
+            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
+            > reports/forks_raw.log 2>&1
 
       # Optional experimental run of processUnix (does not fail build)
       - name: Process-mode experimental (Unix adapters)
