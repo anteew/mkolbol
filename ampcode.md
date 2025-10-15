@@ -1,31 +1,29 @@
-Sprint SB-MK-CI-STABILIZE-P1 (Strict & Stable CI)
+Sprint SB-MK-DIGEST-GENERATOR-P1 (Minimal Digest Generator)
 
 Goal
-- Fix reporter exit behavior and remove best‑effort guards; make lanes strict and keep process‑mode as a separate enforcement step.
+- Implement a minimal digest generator and rulepacks so the digest tests run in the threads lane without exclusions.
 
 Constraints
-- CI/test config only; no kernel changes.
+- New code under `src/digest/*`; no kernel changes.
 
-T6501 — Reporter exit semantics fix
-- Outcome: wrapper ensures exit code mirrors pass/fail when Laminar reporter is active.
+T6601 — Types & interfaces
+- Outcome: `src/digest/types.ts` defines `DigestEvent`, `DigestConfig`, `DigestRule`, `DigestOutput`.
 
-T6502 — Threads lane strict
-- Outcome: remove `continue-on-error`; finalize digest suite decision (shim or exclude + doc).
+T6602 — Minimal generator
+- Outcome: `src/digest/generator.ts` with `DigestGenerator.generateDigest(...)` reading JSONL and applying include/exclude rules.
 
-T6503 — Forks lane strict
-- Outcome: remove `continue-on-error`; ensure stable behavior.
+T6603 — Rulepacks
+- Outcome: `src/digest/rulepacks/node-defaults.ts` with a small useful default set.
 
-T6504 — Process‑mode enforcement step
-- Outcome: harden processUnix spec (timeouts/retries); plan to make required after stability.
+T6604 — Redaction stub
+- Outcome: simple regex‑based redaction for common secrets; pluggable.
 
-T6505 — Artifacts & raw logs
-- Outcome: keep and document reports/*.txt and *_raw.log.
-
-T6506 — Docs
-- Outcome: docs/testing/ci.md capturing lanes/gates/run instructions.
+T6605 — Tests
+- Outcome: `tests/digest/rulepacks.spec.ts` passes; threads lane no longer excludes digest.
 
 Verification
-- CI green with strict threads/forks; process‑mode experimental passes consistently.
+- Build: `npm ci && npm run build`
+- Threads: `npm run test:ci` includes digest suite and passes
 
 Reporting
 - Update `ampcode.log` with PASS/FAIL per task. Do not branch/commit/push — VEGA handles git.

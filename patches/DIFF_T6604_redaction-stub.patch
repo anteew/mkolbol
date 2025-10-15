@@ -1,0 +1,62 @@
+diff --git a/src/digest/redaction.ts b/src/digest/redaction.ts
+new file mode 100644
+index 0000000..3c5e176
+--- /dev/null
++++ b/src/digest/redaction.ts
+@@ -0,0 +1,56 @@
++export interface RedactionPattern {
++  name: string;
++  pattern: RegExp;
++  replacement: string;
++}
++
++const REDACTION_PATTERNS: RedactionPattern[] = [
++  {
++    name: 'jwt',
++    pattern: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g,
++    replacement: '[REDACTED:jwt]'
++  },
++  {
++    name: 'aws-access-key',
++    pattern: /AKIA[0-9A-Z]{16}/g,
++    replacement: '[REDACTED:aws-access-key]'
++  },
++  {
++    name: 'aws-secret-key',
++    pattern: /(?:aws_secret_access_key|AWS_SECRET_ACCESS_KEY)[\s:=]+[A-Za-z0-9/+=]{40}/g,
++    replacement: '[REDACTED:aws-secret-key]'
++  },
++  {
++    name: 'github-pat',
++    pattern: /ghp_[A-Za-z0-9]{36}/g,
++    replacement: '[REDACTED:github-pat]'
++  },
++  {
++    name: 'api-key',
++    pattern: /(?:api[_-]?key|apikey)[\s:=]+['"]?[A-Za-z0-9_\-]{32,}['"]?/gi,
++    replacement: '[REDACTED:api-key]'
++  },
++  {
++    name: 'bearer-token',
++    pattern: /Bearer\s+[A-Za-z0-9_\-\.]+/g,
++    replacement: 'Bearer [REDACTED:bearer-token]'
++  }
++];
++
++export function redactSecrets(text: string, patterns: RedactionPattern[] = REDACTION_PATTERNS): string {
++  let redacted = text;
++  
++  for (const pattern of patterns) {
++    redacted = redacted.replace(pattern.pattern, pattern.replacement);
++  }
++  
++  return redacted;
++}
++
++export function addRedactionPattern(pattern: RedactionPattern): void {
++  REDACTION_PATTERNS.push(pattern);
++}
++
++export function getRedactionPatterns(): readonly RedactionPattern[] {
++  return REDACTION_PATTERNS;
++}
