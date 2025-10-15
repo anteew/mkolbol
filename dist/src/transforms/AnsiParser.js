@@ -32,10 +32,15 @@ export class AnsiParser {
         let i = 0;
         while (i < this.buffer.length) {
             const charCode = this.buffer.charCodeAt(i);
-            if (charCode === 0x1B || charCode === 0x9B) {
+            if (charCode === 0x1B) {
                 this.flushCharBatch();
                 const escapeLen = this.parseEscapeSequence(i);
                 i += escapeLen;
+            }
+            else if (charCode === 0x9B) { // CSI (single-byte)
+                this.flushCharBatch();
+                const consumed = this.parseCSI(i + 1, 1);
+                i += consumed; // includes prefix
             }
             else if (charCode === 0x0A) {
                 this.flushCharBatch();
@@ -105,8 +110,8 @@ export class AnsiParser {
         const next = this.buffer[i];
         if (next === '[') {
             i++;
-            const csiResult = this.parseCSI(i);
-            return csiResult;
+            const consumed = this.parseCSI(i, 2); // include ESC + '['
+            return consumed;
         }
         else if (next === ']') {
             i++;
@@ -115,24 +120,28 @@ export class AnsiParser {
         }
         return i - start;
     }
-    parseCSI(startIndex) {
+    parseCSI(startIndex, prefixLen) {
         let i = startIndex;
         const paramStart = i;
         while (i < this.buffer.length) {
             const charCode = this.buffer.charCodeAt(i);
             if (charCode >= 0x30 && charCode <= 0x3F) {
+                // parameter bytes 0-9:;<=>?
                 i++;
             }
             else if (charCode >= 0x40 && charCode <= 0x7E) {
+                // final byte
                 const paramStr = this.buffer.slice(paramStart, i);
                 this.executeCSI(paramStr, this.buffer[i]);
-                return i - startIndex + 3;
+                // consumed = prefixLen + params length + 1 final byte
+                return prefixLen + (i - startIndex) + 1 + (prefixLen === 2 ? 0 : 0);
             }
             else {
                 break;
             }
         }
-        return i - startIndex + 2;
+        // Incomplete sequence; consume whatever we saw plus prefix
+        return prefixLen + (i - startIndex);
     }
     parseOSC(startIndex) {
         let i = startIndex;

@@ -1,0 +1,48 @@
+diff --git a/src/digest/types.ts b/src/digest/types.ts
+new file mode 100644
+index 0000000..093c823
+--- /dev/null
++++ b/src/digest/types.ts
+@@ -0,0 +1,42 @@
++export interface DigestEvent {
++  ts: number;
++  lvl: 'debug' | 'info' | 'warn' | 'error';
++  case: string;
++  phase?: string;
++  evt: string;
++  id?: string;
++  corr?: string;
++  path?: string;
++  payload?: unknown;
++}
++
++export interface DigestRule {
++  type: 'include' | 'exclude' | 'transform';
++  pattern?: string | RegExp;
++  eventType?: string;
++  level?: DigestEvent['lvl'];
++  transform?: (event: DigestEvent) => DigestEvent | null;
++}
++
++export interface DigestConfig {
++  input: string;
++  output?: string;
++  rules?: DigestRule[];
++  format?: 'json' | 'markdown' | 'text';
++  includeMetadata?: boolean;
++}
++
++export interface DigestOutput {
++  metadata: {
++    generated: number;
++    source: string;
++    eventCount: number;
++    filteredCount: number;
++  };
++  events: DigestEvent[];
++  summary?: {
++    totalEvents: number;
++    byLevel: Record<DigestEvent['lvl'], number>;
++    byEventType: Record<string, number>;
++  };
++}
