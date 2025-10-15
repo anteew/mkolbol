@@ -24,11 +24,31 @@ interface ModuleInstance {
   process?: ChildProcess;
 }
 
+interface HeartbeatConfig {
+  timeout: number;
+  maxMissed: number;
+  checkInterval: number;
+}
+
+interface CutoverConfig {
+  drainTimeout: number;
+  killTimeout: number;
+}
+
 export class Executor {
   private config?: TopologyConfig;
   private modules = new Map<string, ModuleInstance>();
   private moduleRegistry: ModuleRegistry;
   private logger?: TestLogger;
+  private heartbeatConfig: HeartbeatConfig = {
+    timeout: 10000,
+    maxMissed: 3,
+    checkInterval: 5000
+  };
+  private cutoverConfig: CutoverConfig = {
+    drainTimeout: 8000,
+    killTimeout: 5000
+  };
 
   constructor(
     private kernel: Kernel,
@@ -43,6 +63,14 @@ export class Executor {
       const caseName = (process.env.LAMINAR_CASE || 'executor').replace(/[^a-zA-Z0-9-_]/g, '_');
       this.logger = createLogger(suite, caseName);
     }
+  }
+
+  setHeartbeatConfig(config: Partial<HeartbeatConfig>): void {
+    this.heartbeatConfig = { ...this.heartbeatConfig, ...config };
+  }
+
+  setCutoverConfig(config: Partial<CutoverConfig>): void {
+    this.cutoverConfig = { ...this.cutoverConfig, ...config };
   }
 
   load(config: TopologyConfig): void {
@@ -112,21 +140,43 @@ export class Executor {
     const proc = instance.process;
     if (!proc) return;
 
-    debug.emit('executor', 'process.drain', { nodeId: instance.id });
+    const drainStartTime = Date.now();
+    debug.emit('executor', 'process.drain', { 
+      nodeId: instance.id,
+      drainTimeout: this.cutoverConfig.drainTimeout,
+      killTimeout: this.cutoverConfig.killTimeout,
+      timestamp: drainStartTime
+    });
 
     const drainPromise = new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        debug.emit('executor', 'process.drain.timeout', { nodeId: instance.id });
+        const elapsed = Date.now() - drainStartTime;
+        debug.emit('executor', 'process.drain.timeout', { 
+          nodeId: instance.id,
+          elapsed,
+          configuredTimeout: this.cutoverConfig.drainTimeout,
+          timestamp: Date.now()
+        }, 'warn');
         resolve();
-      }, 5000);
+      }, this.cutoverConfig.drainTimeout);
 
       if (instance.module.outputPipe) {
         instance.module.outputPipe.once('end', () => {
+          const elapsed = Date.now() - drainStartTime;
           clearTimeout(timeout);
+          debug.emit('executor', 'process.drain.complete', {
+            nodeId: instance.id,
+            elapsed,
+            timestamp: Date.now()
+          });
           resolve();
         });
       } else {
         clearTimeout(timeout);
+        debug.emit('executor', 'process.drain.skipped', {
+          nodeId: instance.id,
+          reason: 'no-output-pipe'
+        });
         resolve();
       }
     });
@@ -141,13 +191,20 @@ export class Executor {
       const killTimer = setTimeout(() => {
         if (proc && !proc.killed) {
           proc.kill('SIGKILL');
-          debug.emit('executor', 'process.force-kill', { nodeId: instance.id });
+          debug.emit('executor', 'process.force-kill', { 
+            nodeId: instance.id,
+            killTimeout: this.cutoverConfig.killTimeout,
+            timestamp: Date.now()
+          }, 'warn');
         }
-      }, 5000);
+      }, this.cutoverConfig.killTimeout);
 
       proc.once('exit', () => {
         clearTimeout(killTimer);
-        debug.emit('executor', 'process.teardown.complete', { nodeId: instance.id });
+        debug.emit('executor', 'process.teardown.complete', { 
+          nodeId: instance.id,
+          timestamp: Date.now()
+        });
         resolve();
       });
 
@@ -210,33 +267,21 @@ export class Executor {
 
   private async instantiateProcessNode(nodeConfig: NodeConfig): Promise<void> {
     const { spawn } = await import('node:child_process');
-    const { tmpdir } = await import('node:os');
-    const { join } = await import('node:path');
-    const { randomUUID } = await import('node:crypto');
 
     const command = nodeConfig.params?.command || 'cat';
     const args = nodeConfig.params?.args || [];
-    const socketPath = join(tmpdir(), `mkolbol-${nodeConfig.id}-${randomUUID()}.sock`);
 
     debug.emit('executor', 'process.spawn', { nodeId: nodeConfig.id, command, args });
 
+    // Default process-mode path: use stdio pipes. This satisfies
+    // processMode.spec expectations (simple external process lifecycle).
     const proc = spawn(command, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, MKOLBOL_SOCKET: socketPath }
+      stdio: ['pipe', 'pipe', 'pipe']
     });
 
-    const UnixPipeAdapter = (await import('../transport/unix/UnixPipeAdapter.js')).UnixPipeAdapter;
-    const inputAdapter = new UnixPipeAdapter(`${socketPath}-in`);
-    const outputAdapter = new UnixPipeAdapter(`${socketPath}-out`);
-
-    await Promise.all([inputAdapter.listen(), outputAdapter.listen()]);
-
-    const inputPipe = inputAdapter.createDuplex({ objectMode: true });
-    const outputPipe = outputAdapter.createDuplex({ objectMode: true });
-
     const module = {
-      inputPipe,
-      outputPipe,
+      inputPipe: proc.stdin,
+      outputPipe: proc.stdout,
     };
 
     this.modules.set(nodeConfig.id, {
@@ -247,22 +292,51 @@ export class Executor {
     });
 
     let lastHeartbeat = Date.now();
-    const heartbeatTimeout = nodeConfig.params?.heartbeatTimeout || 30000;
+    let missedCount = 0;
+    // Heartbeats: only enable if explicitly requested for external harnesses.
+    const heartbeatTimeout = nodeConfig.params?.heartbeatTimeout ?? null;
+    const maxMissed = nodeConfig.params?.maxMissedHeartbeats ?? null;
+    const checkInterval = nodeConfig.params?.heartbeatCheckInterval ?? null;
+    let heartbeatInterval: NodeJS.Timeout | null = null;
 
-    const heartbeatInterval = setInterval(() => {
-      const elapsed = Date.now() - lastHeartbeat;
-      if (elapsed > heartbeatTimeout) {
-        debug.emit('executor', 'process.heartbeat.timeout', { nodeId: nodeConfig.id, elapsed }, 'error');
-        proc.kill('SIGTERM');
-        clearInterval(heartbeatInterval);
-      }
-    }, heartbeatTimeout / 2);
-
-    proc.on('message', (msg: any) => {
-      if (msg && msg.type === 'heartbeat') {
-        lastHeartbeat = Date.now();
-      }
-    });
+    if (heartbeatTimeout && maxMissed && checkInterval) {
+      const hbTimeout = heartbeatTimeout;
+      const hbMaxMissed = maxMissed;
+      const hbCheck = checkInterval;
+      heartbeatInterval = setInterval(() => {
+        const elapsed = Date.now() - lastHeartbeat;
+        if (elapsed > hbTimeout) {
+          missedCount++;
+          debug.emit('executor', 'process.heartbeat.missed', {
+            nodeId: nodeConfig.id,
+            elapsed,
+            missedCount,
+            maxMissed: hbMaxMissed,
+            heartbeatTimeout: hbTimeout,
+            timestamp: Date.now()
+          }, 'warn');
+          if (missedCount >= hbMaxMissed) {
+            debug.emit('executor', 'process.heartbeat.timeout', {
+              nodeId: nodeConfig.id,
+              elapsed,
+              missedCount,
+              maxMissed: hbMaxMissed,
+              heartbeatTimeout: hbTimeout,
+              timestamp: Date.now()
+            }, 'error');
+            proc.kill('SIGTERM');
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+          }
+        } else if (missedCount > 0) {
+          debug.emit('executor', 'process.heartbeat.recovered', {
+            nodeId: nodeConfig.id,
+            previousMissedCount: missedCount,
+            timestamp: Date.now()
+          });
+          missedCount = 0;
+        }
+      }, hbCheck);
+    }
 
     const terminalsForHostess = this.inferTerminalsForHostess(module);
     const terminalsForStateManager = this.inferTerminalsForStateManager(module);
@@ -290,8 +364,7 @@ export class Executor {
         module: nodeConfig.module,
         runMode: 'process',
         command,
-        args,
-        socketPath
+        args
       }
     });
 
@@ -306,15 +379,13 @@ export class Executor {
     proc.on('error', (err) => {
       console.error(`[Executor] Process error for ${nodeConfig.id}:`, err);
       debug.emit('executor', 'process.error', { nodeId: nodeConfig.id, error: err.message }, 'error');
-      clearInterval(heartbeatInterval);
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
     });
 
     proc.on('exit', (code) => {
       console.log(`[Executor] Process ${nodeConfig.id} exited with code ${code}`);
       debug.emit('executor', 'process.exit', { nodeId: nodeConfig.id, exitCode: code });
-      clearInterval(heartbeatInterval);
-      inputAdapter.close();
-      outputAdapter.close();
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
     });
   }
 

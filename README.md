@@ -53,11 +53,11 @@ npx lam repro
 ## CI & Testing
 
 - Threads lane: `npm run test:ci`
-- Forks lane (process/pty demos): `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty`
+- Forks lane (process-mode **required**): `npm run test:pty`
 - Dogfooding with Laminar (produces summaries/trends under `reports/`):
   - Threads + summaries: `npm run test:ci:lam`
   - Forks + summaries: `npm run test:pty:lam`
-- See `docs/testing/laminar-integration.md` for deeper integration and CI artifacts.
+- See `docs/testing/ci.md` for enforcement policy and CI artifacts.
 
 ## Config Loader
 
@@ -299,9 +299,9 @@ npm run test:watch
 npm run test:ci
 ```
 
-**CI Note:** The `test:ci` script uses `--pool=threads` to avoid tinypool concurrency issues on Node 20 and 24. Tested on both LTS versions.
+**CI Note:** The `test:ci` script uses `--pool=threads` to avoid tinypool concurrency issues on Node 20 and 24. Process-mode is **required** for PTY and Unix adapter tests in the forks lane.
 
-**CI Artifacts:** Test reports for Node 20 and 24 are uploaded to GitHub Actions as artifacts (`test-reports-node-20`, `test-reports-node-24`) and retained for 30 days. Download from the [Actions tab](https://github.com/anteew/mkolbol/actions/workflows/laminar.yml).
+**CI Artifacts:** Laminar reports (`summary.jsonl`, case logs) and raw test logs (`threads_raw.log`, `forks_raw.log`) are uploaded to GitHub Actions as artifacts (`laminar-reports-node-20`, `laminar-reports-node-24`). Download from the [Actions tab](https://github.com/anteew/mkolbol/actions).
 
 **Auto-Debug Rerun:** For CI pipelines with fast triage, use:
 ```bash
