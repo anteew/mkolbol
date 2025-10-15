@@ -1,52 +1,52 @@
-Sprint SB-MK-PROCESS-MODE-P2-HOTFIX (P0)
+Sprint SB-MK-CONFIG-LOADER-P1 (P0)
 
 Goal
-- Stabilize the few failing specs after Process‑mode P2 by tightening shutdown semantics, avoiding unnecessary drains for in‑proc modules, and fixing a spec API usage. Keep the kernel untouched.
+- Add a minimal, deterministic config loader (YAML/JSON) that produces `TopologyConfig`, with validation, examples, tests, and docs. Keep kernel untouched; reuse existing `Executor.load` and `StateManager` wiring.
 
 Constraints
-- Do not change kernel semantics. Focus on Executor/adapters/tests.
-- Keep lanes split: threads (test:ci) excludes PTY/process; forks (test:pty) runs them with MK_PROCESS_EXPERIMENTAL=1.
+- Keep dependencies small; prefer a single YAML parser (e.g., `yaml`) and basic structural validation (no heavy schema tooling yet).
+- Maintain lane split; tests stay in threads lane.
+- Do not change kernel semantics.
 
-T5001 — Executor: skip drain for in‑proc; optional test override
-- Outcome: `executor.down()` no longer spends 3s per in‑proc node; threads‑lane executor specs finish under 5s without raising their timeouts. Also accept `MK_EXECUTOR_DRAIN_MS` env to shorten drains in tests.
+T5201 — Config loader module
+- Outcome: `src/config/loader.ts` parses YAML or JSON into `TopologyConfig` and performs basic validation (required fields, unique node ids; `from`/`to` address format `node.terminal`).
 - DoD:
-  - Change `src/executor/Executor.ts` in `gracefulShutdown()` and `cutover()`:
-    - Only wait `drainTimeout` when `instance.worker` or `instance.process` is present.
-    - Read optional `process.env.MK_EXECUTOR_DRAIN_MS` once (number) and use it to override `drainTimeout` for those cases.
-  - Do not alter public kernel APIs.
-  - `tests/executor/executor.spec.ts` — both cases “should instantiate modules and register with hostess” and “should wire connections via StateManager” pass in threads lane without increasing per‑test timeout.
+  - Implement `loadConfig(pathOrString, opts?)` accepting file path or raw string; returns `TopologyConfig`.
+  - Add `validateTopology(config)` with structural checks and helpful error messages.
+  - Add `yaml` dependency (package.json) if not present.
+  - No kernel changes.
 
-T5002 — UnixControlAdapter: reliable shutdown flush
-- Outcome: Publishing `shutdown` reliably reaches the peer before close; flaky assertions disappear.
+T5202 — Tests for loader
+- Outcome: Deterministic tests covering success and failure cases.
 - DoD:
-  - `src/transport/unix/UnixControlAdapter.ts`:
-    - In `shutdown()`: `socket.write(payload, cb)` then `socket.end()` in the callback; remove `destroy()` in the normal path.
-    - In `close()`: prefer `end()` over `destroy()` when possible; clear timers; stop heartbeats; close server cleanly.
-  - Keep heartbeat/publish semantics unchanged.
-  - `tests/integration/processUnix.spec.ts`:
-    - If still marginal, increase the wait after `shutdown()` from 150ms → 250ms.
-  - The two tests “should handle graceful shutdown sequence” and “should coordinate teardown of pipe and control adapters” pass consistently in forks lane.
+  - Add `tests/config/loader.spec.ts` with:
+    - parses valid YAML and JSON
+    - rejects missing `nodes`/`connections`
+    - rejects duplicate node ids
+    - rejects invalid addresses in `from`/`to`
+  - Run in threads lane (included by default).
 
-T5003 — Spec fix: StateManager API
-- Outcome: Process‑mode integration spec uses the correct API.
+T5203 — Example configs + runner
+- Outcome: Example YAMLs and a tiny runner to demonstrate loading and execution.
 - DoD:
-  - Update `tests/integration/processMode.spec.ts` to use `stateManager.getTopology()` instead of `getState()` and adapt assertions (access `nodes` from topology result).
-  - Ensure the spec passes with `MK_PROCESS_EXPERIMENTAL=1`.
+  - Add `examples/configs/basic.yml` (Timer→Uppercase→Console) and `multi.yml` variants.
+  - Add `src/examples/config-runner.ts` that loads a path, calls `Executor.load`, and brings topology up/down.
+  - Build target at `dist/examples/config-runner.js`.
 
-T5004 — Sanity docs note (optional)
-- Outcome: Brief note documents drain behavior and the `MK_EXECUTOR_DRAIN_MS` override for tests.
-- DoD: Append a small subsection under “Process Mode” in `README.md` describing drain behavior (in‑proc vs worker/process) and the env override, targeted at test writers.
+T5204 — README quickstart
+- Outcome: README gains a short “Config Loader” section with a minimal YAML and a one-liner to run the example.
+- DoD:
+  - Add a snippet and command: `node dist/examples/config-runner.js --file examples/configs/basic.yml`.
+
+T5205 — CI wiring
+- Outcome: Ensure loader tests run in threads lane.
+- DoD:
+  - Confirm no changes needed to scripts; otherwise, add `tests/config/loader.spec.ts` to default discovery.
 
 Verification (run locally)
 - Build: `npm ci && npm run build`
-- Threads lane: `npm run test:ci` — zero failures
-- Forks lane: `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty` — zero failures
-- Artifacts to check:
-  - `reports/summary.jsonl`
-  - `reports/executor.spec/*.jsonl` for the two formerly timing‑out tests
-  - `reports/processUnix.spec/*.jsonl` for shutdown tests
-  - `reports/processMode.spec/should_spawn_and_manage_process_lifecycle.jsonl`
+- Threads lane: `npm run test:ci`
+- Example: `node dist/examples/config-runner.js --file examples/configs/basic.yml`
 
 Reporting
-- Update `ampcode.log` with PASS/FAIL per task, file diffs, and the verification commands above. Note that VEGA handles git (do not branch/commit/push).
-
+- Update ampcode.log with PASS/FAIL per task, file pointers, and the commands above. Note that VEGA handles git (do not branch/commit/push).
