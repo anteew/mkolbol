@@ -1,13 +1,13 @@
 {
-  "generated": "2025-10-15T16:35:49.050Z",
-  "totalTests": 15,
+  "generated": "2025-10-15T18:15:11.556Z",
+  "totalTests": 16,
   "artifacts": [
     {
       "testName": "should register endpoints for inproc nodes",
       "status": "pass",
       "duration": 21,
       "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:46.090Z",
+      "timestamp": "2025-10-15T18:15:08.581Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/endpointsList.spec/should_register_endpoints_for_inproc_nodes.jsonl"
@@ -16,9 +16,9 @@
     {
       "testName": "should list all registered endpoints across multiple nodes",
       "status": "pass",
-      "duration": 5,
+      "duration": 6,
       "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:46.091Z",
+      "timestamp": "2025-10-15T18:15:08.582Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/endpointsList.spec/should_list_all_registered_endpoints_across_multiple_nodes.jsonl"
@@ -29,7 +29,7 @@
       "status": "pass",
       "duration": 24,
       "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:46.091Z",
+      "timestamp": "2025-10-15T18:15:08.583Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/endpointsList.spec/should_register_external_endpoint_when_wrapper_spawns.jsonl"
@@ -38,9 +38,9 @@
     {
       "testName": "should register pty endpoint when wrapper spawns",
       "status": "pass",
-      "duration": 109,
+      "duration": 108,
       "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:46.092Z",
+      "timestamp": "2025-10-15T18:15:08.583Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/endpointsList.spec/should_register_pty_endpoint_when_wrapper_spawns.jsonl"
@@ -51,7 +51,7 @@
       "status": "pass",
       "duration": 16,
       "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:46.092Z",
+      "timestamp": "2025-10-15T18:15:08.584Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/endpointsList.spec/should_list_all_endpoint_types_in_a_mixed_topology.jsonl"
@@ -60,9 +60,9 @@
     {
       "testName": "should maintain endpoints after executor restart",
       "status": "pass",
-      "duration": 3,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:46.093Z",
+      "timestamp": "2025-10-15T18:15:08.585Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/endpointsList.spec/should_maintain_endpoints_after_executor_restart.jsonl"
@@ -73,7 +73,7 @@
       "status": "pass",
       "duration": 106,
       "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:48.300Z",
+      "timestamp": "2025-10-15T18:15:10.791Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ptyServerWrapper.spec/should_spawn_PTY_process.jsonl"
@@ -84,7 +84,7 @@
       "status": "pass",
       "duration": 406,
       "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:48.301Z",
+      "timestamp": "2025-10-15T18:15:10.791Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ptyServerWrapper.spec/should_pipe_data_bidirectionally.jsonl"
@@ -93,9 +93,9 @@
     {
       "testName": "should handle resize",
       "status": "pass",
-      "duration": 107,
+      "duration": 108,
       "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:48.302Z",
+      "timestamp": "2025-10-15T18:15:10.792Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ptyServerWrapper.spec/should_handle_resize.jsonl"
@@ -104,9 +104,9 @@
     {
       "testName": "should send signals",
       "status": "pass",
-      "duration": 206,
+      "duration": 205,
       "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:48.302Z",
+      "timestamp": "2025-10-15T18:15:10.793Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ptyServerWrapper.spec/should_send_signals.jsonl"
@@ -115,9 +115,9 @@
     {
       "testName": "should handle process exit",
       "status": "pass",
-      "duration": 304,
+      "duration": 306,
       "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:48.303Z",
+      "timestamp": "2025-10-15T18:15:10.793Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ptyServerWrapper.spec/should_handle_process_exit.jsonl"
@@ -126,9 +126,9 @@
     {
       "testName": "should register PTY server with Hostess",
       "status": "pass",
-      "duration": 105,
+      "duration": 104,
       "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:48.304Z",
+      "timestamp": "2025-10-15T18:15:10.794Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ptyServerWrapper.spec/should_register_PTY_server_with_Hostess.jsonl"
@@ -139,7 +139,7 @@
       "status": "pass",
       "duration": 406,
       "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:48.304Z",
+      "timestamp": "2025-10-15T18:15:10.794Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ptyServerWrapper.spec/should_work_with_basic_shell__bash_.jsonl"
@@ -148,9 +148,9 @@
     {
       "testName": "should handle interactive commands",
       "status": "pass",
-      "duration": 507,
+      "duration": 506,
       "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:48.305Z",
+      "timestamp": "2025-10-15T18:15:10.795Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ptyServerWrapper.spec/should_handle_interactive_commands.jsonl"
@@ -159,12 +159,23 @@
     {
       "testName": "should split PTY output to 2+ renderers",
       "status": "pass",
-      "duration": 609,
+      "duration": 608,
       "location": "/srv/repos0/mkolbol/tests/integration/multiModalOutput.spec.ts:0",
-      "timestamp": "2025-10-15T16:35:49.023Z",
+      "timestamp": "2025-10-15T18:15:11.519Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/multiModalOutput.spec/should_split_PTY_output_to_2__renderers.jsonl"
+      }
+    },
+    {
+      "testName": "should spawn and manage process lifecycle",
+      "status": "pass",
+      "duration": 4,
+      "location": "/srv/repos0/mkolbol/tests/integration/processMode.spec.ts:0",
+      "timestamp": "2025-10-15T18:15:11.553Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/processMode.spec/should_spawn_and_manage_process_lifecycle.jsonl"
       }
     }
   ],

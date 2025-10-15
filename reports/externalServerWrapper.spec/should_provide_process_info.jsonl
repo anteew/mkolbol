@@ -1,3 +1,3 @@
-{"ts":1760546007447,"lvl":"info","case":"should provide process info","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760546007448,"lvl":"info","case":"should provide process info","phase":"execution","evt":"test.run"}
-{"ts":1760546007449,"lvl":"info","case":"should provide process info","phase":"teardown","evt":"case.end","payload":{"duration":37,"status":"passed"}}
+{"ts":1760552104667,"lvl":"info","case":"should provide process info","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760552104668,"lvl":"info","case":"should provide process info","phase":"execution","evt":"test.run"}
+{"ts":1760552104669,"lvl":"info","case":"should provide process info","phase":"teardown","evt":"case.end","payload":{"duration":32,"status":"passed"}}

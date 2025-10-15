@@ -98,10 +98,7 @@ describe('Worker Mode Integration', () => {
     // Let data flow through the topology
     await new Promise(resolve => setTimeout(resolve, 800));
 
-    // Clean shutdown
-    await executor.down();
-
-    // Verify clean teardown
+    // Verify clean teardown (afterEach will call down())
     const endpointsAfter = hostess.listEndpoints();
     expect(endpointsAfter.size).toBe(0);
   }, testTimeout);

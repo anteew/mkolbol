@@ -1,0 +1,18 @@
+Diary — 2025-10-15T16:48Z
+
+Summary
+- Config Loader sprint merged (PR #49): YAML/JSON loader + tests + example runner; smoke stabilized; Laminar CLI/MCP docs.
+- Worker Pipe sprint staged (PR #50): WorkerPipeAdapter Duplex + Executor wiring; restored minimal process‑mode path; tests/docs updated.
+- Laminar integrated for this repo: npm scripts (`lam`, `lam:mcp`); MCP server registered for Codex in `~/.codex/config.toml` (global + project scopes).
+
+What changed today
+- Added WorkerPipeAdapter tests (threads + forks lanes) and integration spec; lanes are green locally with gates.
+- Restored `StateManager.getState()` alias to satisfy older integration spec.
+- Created `docs/testing/laminar-integration.md` and linked from `VEGA/README.md`.
+
+Active PRs
+- #50 — SB-MK-WORKER-PIPE-P1: WorkerPipeAdapter + Executor wiring; restore process‑mode; tests/docs (mergeable/clean).
+
+Next
+- After PR #50 merges: pull main, branch for ANSI parser transform (P1) or Process‑mode P2 follow‑ups (if desired), then tee up Susan.
+

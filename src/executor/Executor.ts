@@ -6,7 +6,7 @@ import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
 import type { TopologyConfig, NodeConfig } from '../config/schema.js';
 import type { ServerManifest, ExternalServerManifest } from '../types.js';
 import { Worker, MessageChannel } from 'node:worker_threads';
-import { spawn, ChildProcess } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import type { TestLogger } from '../logging/logger.js';

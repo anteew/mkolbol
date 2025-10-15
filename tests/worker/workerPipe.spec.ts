@@ -191,7 +191,7 @@ describe('WorkerPipeAdapter - Error Propagation', () => {
     });
 
     port2.close();
-    port1.emit('close');
+    port1.close();
 
     await new Promise(resolve => setTimeout(resolve, 20));
 

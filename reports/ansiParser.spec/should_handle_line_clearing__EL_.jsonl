@@ -1,3 +1,3 @@
-{"ts":1760546005196,"lvl":"info","case":"should handle line clearing (EL)","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760546005197,"lvl":"info","case":"should handle line clearing (EL)","phase":"execution","evt":"test.run"}
-{"ts":1760546005198,"lvl":"info","case":"should handle line clearing (EL)","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}
+{"ts":1760552102418,"lvl":"info","case":"should handle line clearing (EL)","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760552102419,"lvl":"info","case":"should handle line clearing (EL)","phase":"execution","evt":"test.run"}
+{"ts":1760552102420,"lvl":"info","case":"should handle line clearing (EL)","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

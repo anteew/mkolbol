@@ -57,9 +57,7 @@ class WorkerPipeAdapterDuplex extends Duplex {
       this.destroy();
     });
 
-    this.on('finish', () => {
-      this.port.postMessage({ type: 'end' });
-    });
+    // Rely on _final() for end signalling; avoid duplicate 'end' frames here.
   }
 
   _read(size: number): void {
@@ -114,7 +112,7 @@ export class WorkerPipeAdapter implements ProcessPipeAdapter {
 
   createDuplex(options?: StreamOptions): Pipe {
     return new WorkerPipeAdapterDuplex({
-      ...options,
+      ...(options ?? {}),
       port: this.port,
     });
   }

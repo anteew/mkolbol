@@ -1,3 +1,3 @@
-{"ts":1760546007445,"lvl":"info","case":"merge: no data loss with concurrent writes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760546007446,"lvl":"info","case":"merge: no data loss with concurrent writes","phase":"execution","evt":"test.run"}
-{"ts":1760546007447,"lvl":"info","case":"merge: no data loss with concurrent writes","phase":"teardown","evt":"case.end","payload":{"duration":138,"status":"passed"}}
+{"ts":1760552104659,"lvl":"info","case":"merge: no data loss with concurrent writes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760552104660,"lvl":"info","case":"merge: no data loss with concurrent writes","phase":"execution","evt":"test.run"}
+{"ts":1760552104661,"lvl":"info","case":"merge: no data loss with concurrent writes","phase":"teardown","evt":"case.end","payload":{"duration":253,"status":"passed"}}
