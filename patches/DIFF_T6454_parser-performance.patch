@@ -1,0 +1,260 @@
+diff --git a/src/transforms/AnsiParser.ts b/src/transforms/AnsiParser.ts
+index a3021d0..2e9160e 100644
+--- a/src/transforms/AnsiParser.ts
++++ b/src/transforms/AnsiParser.ts
+@@ -17,6 +17,9 @@ export class AnsiParser {
+   private state: AnsiParserState;
+   private buffer: string = '';
+   private events: AnsiParserEvent[] = [];
++  private charBatch: string = '';
++  private batchStartX: number = 0;
++  private batchStartY: number = 0;
+ 
+   constructor() {
+     this.state = this.createInitialState();
+@@ -35,43 +38,74 @@ export class AnsiParser {
+   }
+ 
+   parse(input: string): AnsiParserEvent[] {
+-    this.events = [];
++    this.events.length = 0;
+     this.buffer = input;
++    this.charBatch = '';
+     let i = 0;
+ 
+     while (i < this.buffer.length) {
+-      const char = this.buffer[i];
+-      const charCode = char.charCodeAt(0);
++      const charCode = this.buffer.charCodeAt(i);
+ 
+-      if (char === '\x1B' || char === '\u009B') {
++      if (charCode === 0x1B || charCode === 0x9B) {
++        this.flushCharBatch();
+         const escapeLen = this.parseEscapeSequence(i);
+         i += escapeLen;
+-      } else if (char === '\n') {
++      } else if (charCode === 0x0A) {
++        this.flushCharBatch();
+         this.handleLineFeed();
+         i++;
+-      } else if (char === '\r') {
++      } else if (charCode === 0x0D) {
++        this.flushCharBatch();
+         this.handleCarriageReturn();
+         i++;
+-      } else if (char === '\t') {
++      } else if (charCode === 0x09) {
++        this.flushCharBatch();
+         this.handleTab();
+         i++;
+-      } else if (char === '\b') {
++      } else if (charCode === 0x08) {
++        this.flushCharBatch();
+         this.handleBackspace();
+         i++;
+-      } else if (charCode >= 32 && charCode <= 126) {
+-        this.handlePrintable(char);
+-        i++;
+-      } else if (charCode >= 160) {
+-        this.handlePrintable(char);
++      } else if ((charCode >= 32 && charCode <= 126) || charCode >= 160) {
++        if (this.charBatch.length === 0) {
++          this.batchStartX = this.state.cursorX;
++          this.batchStartY = this.state.cursorY;
++        }
++        this.charBatch += this.buffer[i];
++        this.state.cursorX++;
+         i++;
+       } else {
+         i++;
+       }
+     }
+ 
++    this.flushCharBatch();
+     return this.events;
+   }
+ 
++  private flushCharBatch(): void {
++    if (this.charBatch.length === 0) return;
++
++    this.events.push({
++      type: 'print',
++      data: { 
++        char: this.charBatch, 
++        x: this.batchStartX, 
++        y: this.batchStartY, 
++        style: { 
++          cursorX: this.state.cursorX,
++          cursorY: this.state.cursorY,
++          bold: this.state.bold,
++          underline: this.state.underline,
++          foregroundColor: this.state.foregroundColor,
++          backgroundColor: this.state.backgroundColor,
++          inverse: this.state.inverse,
++        } 
++      },
++    });
++    this.charBatch = '';
++  }
++
+   private parseEscapeSequence(startIndex: number): number {
+     const start = startIndex;
+     let i = startIndex + 1;
+@@ -95,17 +129,16 @@ export class AnsiParser {
+ 
+   private parseCSI(startIndex: number): number {
+     let i = startIndex;
+-    let paramStr = '';
++    const paramStart = i;
+ 
+     while (i < this.buffer.length) {
+-      const char = this.buffer[i];
+-      const charCode = char.charCodeAt(0);
++      const charCode = this.buffer.charCodeAt(i);
+ 
+       if (charCode >= 0x30 && charCode <= 0x3F) {
+-        paramStr += char;
+         i++;
+       } else if (charCode >= 0x40 && charCode <= 0x7E) {
+-        this.executeCSI(paramStr, char);
++        const paramStr = this.buffer.slice(paramStart, i);
++        this.executeCSI(paramStr, this.buffer[i]);
+         return i - startIndex + 3;
+       } else {
+         break;
+@@ -130,7 +163,7 @@ export class AnsiParser {
+   }
+ 
+   private executeCSI(paramStr: string, command: string): void {
+-    const params = paramStr.split(';').map(p => (p === '' ? 0 : parseInt(p, 10)));
++    const params = this.parseParams(paramStr);
+ 
+     switch (command) {
+       case 'm':
+@@ -161,6 +194,29 @@ export class AnsiParser {
+     }
+   }
+ 
++  private parseParams(paramStr: string): number[] {
++    if (paramStr.length === 0) return [];
++    
++    const params: number[] = [];
++    let current = 0;
++    let hasDigits = false;
++
++    for (let i = 0; i < paramStr.length; i++) {
++      const charCode = paramStr.charCodeAt(i);
++      if (charCode >= 48 && charCode <= 57) {
++        current = current * 10 + (charCode - 48);
++        hasDigits = true;
++      } else if (charCode === 59) {
++        params.push(hasDigits ? current : 0);
++        current = 0;
++        hasDigits = false;
++      }
++    }
++    params.push(hasDigits ? current : 0);
++
++    return params;
++  }
++
+   private handleSGR(params: number[]): void {
+     if (params.length === 0) params = [0];
+ 
+@@ -202,7 +258,15 @@ export class AnsiParser {
+ 
+     this.events.push({
+       type: 'style',
+-      data: { ...this.state },
++      data: { 
++        cursorX: this.state.cursorX,
++        cursorY: this.state.cursorY,
++        bold: this.state.bold,
++        underline: this.state.underline,
++        foregroundColor: this.state.foregroundColor,
++        backgroundColor: this.state.backgroundColor,
++        inverse: this.state.inverse,
++      },
+     });
+   }
+ 
+@@ -297,16 +361,16 @@ export class AnsiParser {
+     });
+   }
+ 
+-  private handlePrintable(char: string): void {
+-    this.events.push({
+-      type: 'print',
+-      data: { char, x: this.state.cursorX, y: this.state.cursorY, style: { ...this.state } },
+-    });
+-    this.state.cursorX++;
+-  }
+-
+   getState(): AnsiParserState {
+-    return { ...this.state };
++    return { 
++      cursorX: this.state.cursorX,
++      cursorY: this.state.cursorY,
++      bold: this.state.bold,
++      underline: this.state.underline,
++      foregroundColor: this.state.foregroundColor,
++      backgroundColor: this.state.backgroundColor,
++      inverse: this.state.inverse,
++    };
+   }
+ 
+   reset(): void {
+diff --git a/tests/benchmarks/ansiParser.bench.ts b/tests/benchmarks/ansiParser.bench.ts
+new file mode 100644
+index 0000000..d1923ed
+--- /dev/null
++++ b/tests/benchmarks/ansiParser.bench.ts
+@@ -0,0 +1,48 @@
++import { describe, bench } from 'vitest';
++import { AnsiParser } from '../../src/transforms/AnsiParser';
++
++describe('AnsiParser Performance', () => {
++  const plainText = 'Hello World! '.repeat(100);
++  const textWithEscapes = '\x1B[1mBold\x1B[0m Normal \x1B[31mRed\x1B[0m '.repeat(50);
++  const mixedContent = `
++    \x1B[1;32mSuccess:\x1B[0m Operation completed
++    ${'-'.repeat(80)}
++    ${Array(20).fill('Line of text with some content').join('\n')}
++    \x1B[33mWarning:\x1B[0m Some warning message
++    \x1B[31mError:\x1B[0m Something failed
++  `;
++  const heavyEscapes = '\x1B[1m\x1B[31m\x1B[44mText\x1B[0m'.repeat(200);
++
++  bench('plain text (1200 chars)', () => {
++    const parser = new AnsiParser();
++    parser.parse(plainText);
++  });
++
++  bench('text with SGR codes (1000 chars)', () => {
++    const parser = new AnsiParser();
++    parser.parse(textWithEscapes);
++  });
++
++  bench('mixed content with newlines', () => {
++    const parser = new AnsiParser();
++    parser.parse(mixedContent);
++  });
++
++  bench('heavy escape sequences (2000 chars)', () => {
++    const parser = new AnsiParser();
++    parser.parse(heavyEscapes);
++  });
++
++  bench('reused parser instance', () => {
++    const parser = new AnsiParser();
++    parser.parse(textWithEscapes);
++    parser.reset();
++    parser.parse(plainText);
++  });
++
++  bench('cursor movements', () => {
++    const parser = new AnsiParser();
++    const cursorText = '\x1B[H\x1B[2J\x1B[10;20HText\x1B[5A\x1B[3B\x1B[2C\x1B[1D'.repeat(20);
++    parser.parse(cursorText);
++  });
++});
