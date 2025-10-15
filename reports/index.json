@@ -1,35 +1,13 @@
 {
-  "generated": "2025-10-15T20:52:56.427Z",
-  "totalTests": 159,
+  "generated": "2025-10-15T21:35:28.618Z",
+  "totalTests": 208,
   "artifacts": [
-    {
-      "testName": "initialize",
-      "status": "pass",
-      "duration": 3,
-      "location": "/srv/repos0/mkolbol/archived/mcp-kernel/tests/router.test.ts:0",
-      "timestamp": "2025-10-15T20:52:54.221Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/router.test/initialize.jsonl"
-      }
-    },
-    {
-      "testName": "tools/resources list read",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/archived/mcp-kernel/tests/router.test.ts:0",
-      "timestamp": "2025-10-15T20:52:54.221Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/router.test/tools_resources_list_read.jsonl"
-      }
-    },
     {
       "testName": "should create and compare snapshots with masking",
       "status": "pass",
-      "duration": 5,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/golden/sample.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.235Z",
+      "timestamp": "2025-10-15T21:35:26.426Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/sample.spec/should_create_and_compare_snapshots_with_masking.jsonl"
@@ -38,9 +16,9 @@
     {
       "testName": "should detect mismatches",
       "status": "pass",
-      "duration": 2,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/golden/sample.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.235Z",
+      "timestamp": "2025-10-15T21:35:26.426Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/sample.spec/should_detect_mismatches.jsonl"
@@ -51,18 +29,40 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/golden/sample.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.235Z",
+      "timestamp": "2025-10-15T21:35:26.426Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/sample.spec/should_support_custom_mask_rules.jsonl"
       }
     },
     {
+      "testName": "initialize",
+      "status": "pass",
+      "duration": 4,
+      "location": "/srv/repos0/mkolbol/archived/mcp-kernel/tests/router.test.ts:0",
+      "timestamp": "2025-10-15T21:35:26.434Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/router.test/initialize.jsonl"
+      }
+    },
+    {
+      "testName": "tools/resources list read",
+      "status": "pass",
+      "duration": 2,
+      "location": "/srv/repos0/mkolbol/archived/mcp-kernel/tests/router.test.ts:0",
+      "timestamp": "2025-10-15T21:35:26.435Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/router.test/tools_resources_list_read.jsonl"
+      }
+    },
+    {
       "testName": "round-trip a control frame",
       "status": "pass",
-      "duration": 21,
+      "duration": 12,
       "location": "/srv/repos0/mkolbol/tests/worker/workerAdapters.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.259Z",
+      "timestamp": "2025-10-15T21:35:26.457Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerAdapters.spec/round-trip_a_control_frame.jsonl"
@@ -71,9 +71,9 @@
     {
       "testName": "round-trip a Buffer",
       "status": "pass",
-      "duration": 5,
+      "duration": 4,
       "location": "/srv/repos0/mkolbol/tests/worker/workerAdapters.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.259Z",
+      "timestamp": "2025-10-15T21:35:26.457Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerAdapters.spec/round-trip_a_Buffer.jsonl"
@@ -82,12 +82,56 @@
     {
       "testName": "assert handshake event structure",
       "status": "pass",
-      "duration": 4,
+      "duration": 3,
       "location": "/srv/repos0/mkolbol/tests/worker/workerAdapters.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.260Z",
+      "timestamp": "2025-10-15T21:35:26.458Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerAdapters.spec/assert_handshake_event_structure.jsonl"
+      }
+    },
+    {
+      "testName": "connect moves data 1:1",
+      "status": "pass",
+      "duration": 5,
+      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.458Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/kernel.spec/connect_moves_data_1_1.jsonl"
+      }
+    },
+    {
+      "testName": "split fans out to multiple destinations",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.458Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/kernel.spec/split_fans_out_to_multiple_destinations.jsonl"
+      }
+    },
+    {
+      "testName": "merge combines multiple sources into one destination",
+      "status": "pass",
+      "duration": 2,
+      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.458Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/kernel.spec/merge_combines_multiple_sources_into_one_destination.jsonl"
+      }
+    },
+    {
+      "testName": "register/lookup filters by capabilities",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.459Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/kernel.spec/register_lookup_filters_by_capabilities.jsonl"
       }
     },
     {
@@ -95,7 +139,7 @@
       "status": "pass",
       "duration": 3,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.260Z",
+      "timestamp": "2025-10-15T21:35:26.495Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/returns_false_when_module_is_not_enabled.jsonl"
@@ -104,9 +148,9 @@
     {
       "testName": "returns consistent value for same module",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.261Z",
+      "timestamp": "2025-10-15T21:35:26.495Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/returns_consistent_value_for_same_module.jsonl"
@@ -115,9 +159,9 @@
     {
       "testName": "returns false when config is disabled",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.261Z",
+      "timestamp": "2025-10-15T21:35:26.495Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/returns_false_when_config_is_disabled.jsonl"
@@ -128,7 +172,7 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.261Z",
+      "timestamp": "2025-10-15T21:35:26.495Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/checks_module_against_config_modules_when_enabled.jsonl"
@@ -139,7 +183,7 @@
       "status": "pass",
       "duration": 3,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.262Z",
+      "timestamp": "2025-10-15T21:35:26.496Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/does_not_emit_when_on___returns_false.jsonl"
@@ -148,9 +192,9 @@
     {
       "testName": "emit returns immediately when module is disabled",
       "status": "pass",
-      "duration": 1,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.262Z",
+      "timestamp": "2025-10-15T21:35:26.496Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/emit_returns_immediately_when_module_is_disabled.jsonl"
@@ -159,9 +203,9 @@
     {
       "testName": "shouldEmit returns false when module is disabled",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.262Z",
+      "timestamp": "2025-10-15T21:35:26.496Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/shouldEmit_returns_false_when_module_is_disabled.jsonl"
@@ -170,9 +214,9 @@
     {
       "testName": "emits to console when module is enabled",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.262Z",
+      "timestamp": "2025-10-15T21:35:26.496Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/emits_to_console_when_module_is_enabled.jsonl"
@@ -181,9 +225,9 @@
     {
       "testName": "respects debug level filtering",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.263Z",
+      "timestamp": "2025-10-15T21:35:26.496Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/respects_debug_level_filtering.jsonl"
@@ -192,9 +236,9 @@
     {
       "testName": "emits formatted output to console",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.278Z",
+      "timestamp": "2025-10-15T21:35:26.497Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/emits_formatted_output_to_console.jsonl"
@@ -203,9 +247,9 @@
     {
       "testName": "handles emit without payload",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.279Z",
+      "timestamp": "2025-10-15T21:35:26.497Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/handles_emit_without_payload.jsonl"
@@ -216,18 +260,62 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/debug/debug-api.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.279Z",
+      "timestamp": "2025-10-15T21:35:26.497Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/debug-api.spec/shouldEmit_respects_level_hierarchy.jsonl"
       }
     },
     {
+      "testName": "registers and queries by capabilities",
+      "status": "pass",
+      "duration": 4,
+      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.497Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/hostess.spec/registers_and_queries_by_capabilities.jsonl"
+      }
+    },
+    {
+      "testName": "marks in-use and back to available",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.497Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/hostess.spec/marks_in-use_and_back_to_available.jsonl"
+      }
+    },
+    {
+      "testName": "evicts after missed heartbeats",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.497Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/hostess.spec/evicts_after_missed_heartbeats.jsonl"
+      }
+    },
+    {
+      "testName": "heartbeat maintains liveness",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.498Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/hostess.spec/heartbeat_maintains_liveness.jsonl"
+      }
+    },
+    {
       "testName": "should render raw ANSI to stdout",
       "status": "pass",
-      "duration": 6,
+      "duration": 21,
       "location": "/srv/repos0/mkolbol/tests/renderers/passthroughRenderer.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.285Z",
+      "timestamp": "2025-10-15T21:35:26.498Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/passthroughRenderer.spec/should_render_raw_ANSI_to_stdout.jsonl"
@@ -236,42 +324,42 @@
     {
       "testName": "should handle ANSI escape sequences",
       "status": "pass",
-      "duration": 1,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/renderers/passthroughRenderer.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.285Z",
+      "timestamp": "2025-10-15T21:35:26.498Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/passthroughRenderer.spec/should_handle_ANSI_escape_sequences.jsonl"
       }
     },
     {
-      "testName": "should send resume signal on _read",
+      "testName": "should write all data to log file",
       "status": "pass",
-      "duration": 67,
-      "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.509Z",
+      "duration": 3,
+      "location": "/srv/repos0/mkolbol/tests/renderers/loggerRenderer.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.498Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/workerPipe.spec/should_send_resume_signal_on__read.jsonl"
+        "caseFile": "reports/loggerRenderer.spec/should_write_all_data_to_log_file.jsonl"
       }
     },
     {
-      "testName": "should transmit data from port1 to port2",
+      "testName": "should append to existing log file",
       "status": "pass",
-      "duration": 105,
-      "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.509Z",
+      "duration": 18,
+      "location": "/srv/repos0/mkolbol/tests/renderers/loggerRenderer.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.498Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/workerPipe.spec/should_transmit_data_from_port1_to_port2.jsonl"
+        "caseFile": "reports/loggerRenderer.spec/should_append_to_existing_log_file.jsonl"
       }
     },
     {
       "testName": "should parse ASCII printable characters",
       "status": "pass",
-      "duration": 6,
+      "duration": 5,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.509Z",
+      "timestamp": "2025-10-15T21:35:26.621Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_parse_ASCII_printable_characters.jsonl"
@@ -280,9 +368,9 @@
     {
       "testName": "should parse special characters",
       "status": "pass",
-      "duration": 2,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.509Z",
+      "timestamp": "2025-10-15T21:35:26.621Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_parse_special_characters.jsonl"
@@ -291,9 +379,9 @@
     {
       "testName": "should parse digits and punctuation",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.509Z",
+      "timestamp": "2025-10-15T21:35:26.622Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_parse_digits_and_punctuation.jsonl"
@@ -304,7 +392,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.509Z",
+      "timestamp": "2025-10-15T21:35:26.622Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_line_feed__LF_.jsonl"
@@ -313,9 +401,9 @@
     {
       "testName": "should handle carriage return (CR)",
       "status": "pass",
-      "duration": 2,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.510Z",
+      "timestamp": "2025-10-15T21:35:26.622Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_carriage_return__CR_.jsonl"
@@ -326,7 +414,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.510Z",
+      "timestamp": "2025-10-15T21:35:26.623Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CRLF_sequence.jsonl"
@@ -335,9 +423,9 @@
     {
       "testName": "should handle tab (TAB)",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.510Z",
+      "timestamp": "2025-10-15T21:35:26.623Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_tab__TAB_.jsonl"
@@ -348,7 +436,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.510Z",
+      "timestamp": "2025-10-15T21:35:26.623Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_multiple_tabs.jsonl"
@@ -359,7 +447,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.510Z",
+      "timestamp": "2025-10-15T21:35:26.623Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_backspace__BS_.jsonl"
@@ -370,7 +458,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.510Z",
+      "timestamp": "2025-10-15T21:35:26.624Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_backspace_at_column_0.jsonl"
@@ -381,7 +469,7 @@
       "status": "pass",
       "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.511Z",
+      "timestamp": "2025-10-15T21:35:26.624Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_foreground_color_codes__30-37_.jsonl"
@@ -390,9 +478,9 @@
     {
       "testName": "should handle all basic foreground colors",
       "status": "pass",
-      "duration": 4,
+      "duration": 3,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.511Z",
+      "timestamp": "2025-10-15T21:35:26.624Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_all_basic_foreground_colors.jsonl"
@@ -403,7 +491,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.511Z",
+      "timestamp": "2025-10-15T21:35:26.625Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_background_color_codes__40-47_.jsonl"
@@ -414,7 +502,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.511Z",
+      "timestamp": "2025-10-15T21:35:26.625Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_bright_foreground_colors__90-97_.jsonl"
@@ -425,7 +513,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.511Z",
+      "timestamp": "2025-10-15T21:35:26.625Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_bright_background_colors__100-107_.jsonl"
@@ -436,7 +524,7 @@
       "status": "pass",
       "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.512Z",
+      "timestamp": "2025-10-15T21:35:26.625Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_SGR_reset__m_with_no_params_.jsonl"
@@ -447,7 +535,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.512Z",
+      "timestamp": "2025-10-15T21:35:26.626Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_SGR_reset_with_explicit_0.jsonl"
@@ -458,7 +546,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.512Z",
+      "timestamp": "2025-10-15T21:35:26.626Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_multiple_SGR_parameters.jsonl"
@@ -469,7 +557,7 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.512Z",
+      "timestamp": "2025-10-15T21:35:26.626Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUP__Cursor_Position__H_command.jsonl"
@@ -480,7 +568,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.512Z",
+      "timestamp": "2025-10-15T21:35:26.626Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUP_f_command.jsonl"
@@ -491,7 +579,7 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.512Z",
+      "timestamp": "2025-10-15T21:35:26.626Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUP_with_default_parameters.jsonl"
@@ -500,9 +588,9 @@
     {
       "testName": "should handle CUU (Cursor Up)",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.513Z",
+      "timestamp": "2025-10-15T21:35:26.626Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUU__Cursor_Up_.jsonl"
@@ -511,9 +599,9 @@
     {
       "testName": "should handle CUU with count parameter",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.513Z",
+      "timestamp": "2025-10-15T21:35:26.626Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUU_with_count_parameter.jsonl"
@@ -522,9 +610,9 @@
     {
       "testName": "should handle CUU boundary (no move above row 0)",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.513Z",
+      "timestamp": "2025-10-15T21:35:26.627Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUU_boundary__no_move_above_row_0_.jsonl"
@@ -533,9 +621,9 @@
     {
       "testName": "should handle CUD (Cursor Down)",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.513Z",
+      "timestamp": "2025-10-15T21:35:26.627Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUD__Cursor_Down_.jsonl"
@@ -544,9 +632,9 @@
     {
       "testName": "should handle CUD with count parameter",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.513Z",
+      "timestamp": "2025-10-15T21:35:26.627Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUD_with_count_parameter.jsonl"
@@ -557,7 +645,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.513Z",
+      "timestamp": "2025-10-15T21:35:26.627Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUD_boundary__no_move_below_last_row_.jsonl"
@@ -566,9 +654,9 @@
     {
       "testName": "should handle CUF (Cursor Forward)",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.513Z",
+      "timestamp": "2025-10-15T21:35:26.627Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUF__Cursor_Forward_.jsonl"
@@ -577,9 +665,9 @@
     {
       "testName": "should handle CUF with count parameter",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.514Z",
+      "timestamp": "2025-10-15T21:35:26.628Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUF_with_count_parameter.jsonl"
@@ -588,9 +676,9 @@
     {
       "testName": "should handle CUF boundary (no move beyond last column)",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.514Z",
+      "timestamp": "2025-10-15T21:35:26.628Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUF_boundary__no_move_beyond_last_column_.jsonl"
@@ -601,7 +689,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.514Z",
+      "timestamp": "2025-10-15T21:35:26.628Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUB__Cursor_Back_.jsonl"
@@ -610,9 +698,9 @@
     {
       "testName": "should handle CUB with count parameter",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.514Z",
+      "timestamp": "2025-10-15T21:35:26.628Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUB_with_count_parameter.jsonl"
@@ -623,7 +711,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.514Z",
+      "timestamp": "2025-10-15T21:35:26.628Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CUB_boundary__no_move_before_column_0_.jsonl"
@@ -632,9 +720,9 @@
     {
       "testName": "should handle CHA (Cursor Horizontal Absolute) G command",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.514Z",
+      "timestamp": "2025-10-15T21:35:26.628Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_CHA__Cursor_Horizontal_Absolute__G_command.jsonl"
@@ -645,7 +733,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.515Z",
+      "timestamp": "2025-10-15T21:35:26.629Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_ED_0__erase_from_cursor_to_end_of_display_.jsonl"
@@ -656,7 +744,7 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.515Z",
+      "timestamp": "2025-10-15T21:35:26.629Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_ED_1__erase_from_start_to_cursor_.jsonl"
@@ -665,9 +753,9 @@
     {
       "testName": "should handle ED 2 (erase entire display)",
       "status": "pass",
-      "duration": 80,
+      "duration": 23,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.515Z",
+      "timestamp": "2025-10-15T21:35:26.629Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_ED_2__erase_entire_display_.jsonl"
@@ -678,7 +766,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.515Z",
+      "timestamp": "2025-10-15T21:35:26.629Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_EL_0__erase_from_cursor_to_end_of_line_.jsonl"
@@ -687,9 +775,9 @@
     {
       "testName": "should handle EL 1 (erase from start of line to cursor)",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.515Z",
+      "timestamp": "2025-10-15T21:35:26.629Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_EL_1__erase_from_start_of_line_to_cursor_.jsonl"
@@ -698,9 +786,9 @@
     {
       "testName": "should handle EL 2 (erase entire line)",
       "status": "pass",
-      "duration": 1,
+      "duration": 21,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.516Z",
+      "timestamp": "2025-10-15T21:35:26.629Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_EL_2__erase_entire_line_.jsonl"
@@ -709,9 +797,9 @@
     {
       "testName": "should handle EL with default parameter (same as EL 0)",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.516Z",
+      "timestamp": "2025-10-15T21:35:26.630Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_EL_with_default_parameter__same_as_EL_0_.jsonl"
@@ -722,7 +810,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.516Z",
+      "timestamp": "2025-10-15T21:35:26.630Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_update_cursor_position_on_character_write.jsonl"
@@ -733,7 +821,7 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.516Z",
+      "timestamp": "2025-10-15T21:35:26.630Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_preserve_color_state_across_multiple_writes.jsonl"
@@ -742,9 +830,9 @@
     {
       "testName": "should update both foreground and background independently",
       "status": "pass",
-      "duration": 20,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.516Z",
+      "timestamp": "2025-10-15T21:35:26.630Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_update_both_foreground_and_background_independently.jsonl"
@@ -753,9 +841,9 @@
     {
       "testName": "should track cell attributes correctly",
       "status": "pass",
-      "duration": 2,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.516Z",
+      "timestamp": "2025-10-15T21:35:26.630Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_track_cell_attributes_correctly.jsonl"
@@ -766,7 +854,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.517Z",
+      "timestamp": "2025-10-15T21:35:26.630Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_invalid_escape_sequence_gracefully.jsonl"
@@ -777,7 +865,7 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.517Z",
+      "timestamp": "2025-10-15T21:35:26.631Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_partial_escape_sequence_at_buffer_end.jsonl"
@@ -786,9 +874,9 @@
     {
       "testName": "should handle escape sequence with missing parameters",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.517Z",
+      "timestamp": "2025-10-15T21:35:26.631Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_escape_sequence_with_missing_parameters.jsonl"
@@ -797,9 +885,9 @@
     {
       "testName": "should handle empty SGR sequence",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.517Z",
+      "timestamp": "2025-10-15T21:35:26.631Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_empty_SGR_sequence.jsonl"
@@ -808,9 +896,9 @@
     {
       "testName": "should handle line wrapping",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.517Z",
+      "timestamp": "2025-10-15T21:35:26.631Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_line_wrapping.jsonl"
@@ -821,7 +909,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.517Z",
+      "timestamp": "2025-10-15T21:35:26.631Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_scrolling_when_reaching_bottom.jsonl"
@@ -830,9 +918,9 @@
     {
       "testName": "should handle overwrite with colors",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.517Z",
+      "timestamp": "2025-10-15T21:35:26.631Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_overwrite_with_colors.jsonl"
@@ -843,7 +931,7 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.518Z",
+      "timestamp": "2025-10-15T21:35:26.632Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_consecutive_control_characters.jsonl"
@@ -854,7 +942,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.518Z",
+      "timestamp": "2025-10-15T21:35:26.632Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_tab_at_end_of_line.jsonl"
@@ -865,7 +953,7 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.518Z",
+      "timestamp": "2025-10-15T21:35:26.632Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_escape_sequence_with_semicolon_but_no_params.jsonl"
@@ -874,9 +962,9 @@
     {
       "testName": "should handle OSC sequences (ignored)",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.518Z",
+      "timestamp": "2025-10-15T21:35:26.632Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_handle_OSC_sequences__ignored_.jsonl"
@@ -887,7 +975,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.518Z",
+      "timestamp": "2025-10-15T21:35:26.632Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_reset_to_initial_state.jsonl"
@@ -898,73 +986,557 @@
       "status": "pass",
       "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.518Z",
+      "timestamp": "2025-10-15T21:35:26.632Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/ansiParser.spec/should_maintain_state_dimensions_after_reset.jsonl"
       }
     },
     {
-      "testName": "split: order preservation across destinations",
+      "testName": "should parse 2-byte UTF-8 characters (Latin Extended)",
       "status": "pass",
-      "duration": 108,
-      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.519Z",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.633Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/invariants.spec/split__order_preservation_across_destinations.jsonl"
+        "caseFile": "reports/ansiParser.spec/should_parse_2-byte_UTF-8_characters__Latin_Extended_.jsonl"
       }
     },
     {
-      "testName": "connect moves data 1:1",
+      "testName": "should parse 2-byte UTF-8 characters (Cyrillic)",
       "status": "pass",
-      "duration": 13,
-      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.519Z",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.633Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/kernel.spec/connect_moves_data_1_1.jsonl"
+        "caseFile": "reports/ansiParser.spec/should_parse_2-byte_UTF-8_characters__Cyrillic_.jsonl"
       }
     },
     {
-      "testName": "split fans out to multiple destinations",
+      "testName": "should parse 3-byte UTF-8 characters (CJK)",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.633Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_parse_3-byte_UTF-8_characters__CJK_.jsonl"
+      }
+    },
+    {
+      "testName": "should parse 3-byte UTF-8 characters (Hangul)",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.633Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_parse_3-byte_UTF-8_characters__Hangul_.jsonl"
+      }
+    },
+    {
+      "testName": "should parse 4-byte UTF-8 characters (emoji)",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.633Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_parse_4-byte_UTF-8_characters__emoji_.jsonl"
+      }
+    },
+    {
+      "testName": "should handle mixed ASCII and UTF-8",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.633Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_mixed_ASCII_and_UTF-8.jsonl"
+      }
+    },
+    {
+      "testName": "should handle UTF-8 with ANSI colors",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.634Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_UTF-8_with_ANSI_colors.jsonl"
+      }
+    },
+    {
+      "testName": "should handle Chinese characters (CJK)",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.634Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_Chinese_characters__CJK_.jsonl"
+      }
+    },
+    {
+      "testName": "should handle Japanese Hiragana and Katakana",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.634Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_Japanese_Hiragana_and_Katakana.jsonl"
+      }
+    },
+    {
+      "testName": "should handle emoji sequences",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.634Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_emoji_sequences.jsonl"
+      }
+    },
+    {
+      "testName": "should handle fullwidth alphanumeric",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.634Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_fullwidth_alphanumeric.jsonl"
+      }
+    },
+    {
+      "testName": "should handle wide chars with line wrapping",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.634Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_wide_chars_with_line_wrapping.jsonl"
+      }
+    },
+    {
+      "testName": "should handle mixed narrow and wide characters",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.635Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_mixed_narrow_and_wide_characters.jsonl"
+      }
+    },
+    {
+      "testName": "should parse OSC title sequence with BEL terminator",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.635Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_parse_OSC_title_sequence_with_BEL_terminator.jsonl"
+      }
+    },
+    {
+      "testName": "should parse OSC title sequence with ST terminator",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.635Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_parse_OSC_title_sequence_with_ST_terminator.jsonl"
+      }
+    },
+    {
+      "testName": "should parse OSC 0 (icon and window title)",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.635Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_parse_OSC_0__icon_and_window_title_.jsonl"
+      }
+    },
+    {
+      "testName": "should parse OSC 1 (icon title only)",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.635Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_parse_OSC_1__icon_title_only_.jsonl"
+      }
+    },
+    {
+      "testName": "should parse OSC 2 (window title only)",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.635Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_parse_OSC_2__window_title_only_.jsonl"
+      }
+    },
+    {
+      "testName": "should parse OSC with semicolons in payload",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.636Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_parse_OSC_with_semicolons_in_payload.jsonl"
+      }
+    },
+    {
+      "testName": "should handle multiple OSC sequences",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.636Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_multiple_OSC_sequences.jsonl"
+      }
+    },
+    {
+      "testName": "should handle OSC with ANSI sequences",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.636Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_OSC_with_ANSI_sequences.jsonl"
+      }
+    },
+    {
+      "testName": "should handle RIS sequence (ESC c)",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.636Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_RIS_sequence__ESC_c_.jsonl"
+      }
+    },
+    {
+      "testName": "should clear all formatting on RIS",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.636Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_clear_all_formatting_on_RIS.jsonl"
+      }
+    },
+    {
+      "testName": "should clear scrollback on reset",
+      "status": "pass",
+      "duration": 33,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.636Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_clear_scrollback_on_reset.jsonl"
+      }
+    },
+    {
+      "testName": "should reset cursor position on RIS",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.637Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_reset_cursor_position_on_RIS.jsonl"
+      }
+    },
+    {
+      "testName": "should preserve dimensions on reset",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.637Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_preserve_dimensions_on_reset.jsonl"
+      }
+    },
+    {
+      "testName": "should push lines to scrollback on scroll",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.637Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_push_lines_to_scrollback_on_scroll.jsonl"
+      }
+    },
+    {
+      "testName": "should preserve scrollback content",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.637Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_preserve_scrollback_content.jsonl"
+      }
+    },
+    {
+      "testName": "should preserve colors in scrollback",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.637Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_preserve_colors_in_scrollback.jsonl"
+      }
+    },
+    {
+      "testName": "should handle multiple scrolls",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.637Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_multiple_scrolls.jsonl"
+      }
+    },
+    {
+      "testName": "should maintain scrollback order (FIFO)",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.638Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_maintain_scrollback_order__FIFO_.jsonl"
+      }
+    },
+    {
+      "testName": "should keep scrollback independent of visible buffer",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.638Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_keep_scrollback_independent_of_visible_buffer.jsonl"
+      }
+    },
+    {
+      "testName": "should handle scrollback with wide characters",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.638Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_scrollback_with_wide_characters.jsonl"
+      }
+    },
+    {
+      "testName": "should capture full terminal state",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.638Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_capture_full_terminal_state.jsonl"
+      }
+    },
+    {
+      "testName": "should preserve exact cell content",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.638Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_preserve_exact_cell_content.jsonl"
+      }
+    },
+    {
+      "testName": "should capture cursor position accurately",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.638Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_capture_cursor_position_accurately.jsonl"
+      }
+    },
+    {
+      "testName": "should capture current SGR state",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.639Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_capture_current_SGR_state.jsonl"
+      }
+    },
+    {
+      "testName": "should export complete scrollback history",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.639Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_export_complete_scrollback_history.jsonl"
+      }
+    },
+    {
+      "testName": "should handle snapshot of empty buffer",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.639Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_snapshot_of_empty_buffer.jsonl"
+      }
+    },
+    {
+      "testName": "should maintain state consistency across parses",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.639Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_maintain_state_consistency_across_parses.jsonl"
+      }
+    },
+    {
+      "testName": "should export with metadata preserved",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.639Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_export_with_metadata_preserved.jsonl"
+      }
+    },
+    {
+      "testName": "should handle UTF-8 with scrollback",
+      "status": "pass",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.639Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_UTF-8_with_scrollback.jsonl"
+      }
+    },
+    {
+      "testName": "should handle colors with wide characters",
+      "status": "pass",
+      "duration": 15,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.640Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_colors_with_wide_characters.jsonl"
+      }
+    },
+    {
+      "testName": "should handle OSC followed by CSI",
+      "status": "pass",
+      "duration": 0,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.640Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/ansiParser.spec/should_handle_OSC_followed_by_CSI.jsonl"
+      }
+    },
+    {
+      "testName": "should handle emoji in colored text",
       "status": "pass",
       "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.519Z",
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.640Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/kernel.spec/split_fans_out_to_multiple_destinations.jsonl"
+        "caseFile": "reports/ansiParser.spec/should_handle_emoji_in_colored_text.jsonl"
       }
     },
     {
-      "testName": "merge combines multiple sources into one destination",
+      "testName": "should maintain deterministic state across resets",
       "status": "pass",
-      "duration": 3,
-      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.519Z",
+      "duration": 1,
+      "location": "/srv/repos0/mkolbol/tests/parsers/ansiParser.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.640Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/kernel.spec/merge_combines_multiple_sources_into_one_destination.jsonl"
+        "caseFile": "reports/ansiParser.spec/should_maintain_deterministic_state_across_resets.jsonl"
       }
     },
     {
-      "testName": "register/lookup filters by capabilities",
+      "testName": "should send resume signal on _read",
       "status": "pass",
-      "duration": 4,
-      "location": "/srv/repos0/mkolbol/tests/kernel/kernel.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.519Z",
+      "duration": 28,
+      "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.640Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/kernel.spec/register_lookup_filters_by_capabilities.jsonl"
+        "caseFile": "reports/workerPipe.spec/should_send_resume_signal_on__read.jsonl"
+      }
+    },
+    {
+      "testName": "should transmit data from port1 to port2",
+      "status": "pass",
+      "duration": 48,
+      "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.640Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/workerPipe.spec/should_transmit_data_from_port1_to_port2.jsonl"
+      }
+    },
+    {
+      "testName": "should transmit data from port2 to port1",
+      "status": "pass",
+      "duration": 25,
+      "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.641Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/workerPipe.spec/should_transmit_data_from_port2_to_port1.jsonl"
       }
     },
     {
       "testName": "should register an endpoint with id and coordinates",
       "status": "pass",
-      "duration": 5,
+      "duration": 6,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.519Z",
+      "timestamp": "2025-10-15T21:35:26.641Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_register_an_endpoint_with_id_and_coordinates.jsonl"
@@ -973,9 +1545,9 @@
     {
       "testName": "should register multiple endpoints with different ids",
       "status": "pass",
-      "duration": 7,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.520Z",
+      "timestamp": "2025-10-15T21:35:26.641Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_register_multiple_endpoints_with_different_ids.jsonl"
@@ -984,9 +1556,9 @@
     {
       "testName": "should overwrite endpoint if registered with same id",
       "status": "pass",
-      "duration": 1,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.520Z",
+      "timestamp": "2025-10-15T21:35:26.641Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_overwrite_endpoint_if_registered_with_same_id.jsonl"
@@ -997,7 +1569,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.520Z",
+      "timestamp": "2025-10-15T21:35:26.641Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_handle_endpoint_without_metadata.jsonl"
@@ -1006,9 +1578,9 @@
     {
       "testName": "should return empty map when no endpoints registered",
       "status": "pass",
-      "duration": 0,
+      "duration": 19,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.520Z",
+      "timestamp": "2025-10-15T21:35:26.642Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_return_empty_map_when_no_endpoints_registered.jsonl"
@@ -1017,9 +1589,9 @@
     {
       "testName": "should return a copy of the endpoints map",
       "status": "pass",
-      "duration": 2,
+      "duration": 4,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.520Z",
+      "timestamp": "2025-10-15T21:35:26.642Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_return_a_copy_of_the_endpoints_map.jsonl"
@@ -1030,7 +1602,7 @@
       "status": "pass",
       "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.520Z",
+      "timestamp": "2025-10-15T21:35:26.642Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_contain_all_registered_endpoints.jsonl"
@@ -1041,7 +1613,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.521Z",
+      "timestamp": "2025-10-15T21:35:26.642Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_support_inproc_endpoint_type.jsonl"
@@ -1050,9 +1622,9 @@
     {
       "testName": "should support worker endpoint type",
       "status": "pass",
-      "duration": 18,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.521Z",
+      "timestamp": "2025-10-15T21:35:26.642Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_support_worker_endpoint_type.jsonl"
@@ -1061,9 +1633,9 @@
     {
       "testName": "should support external endpoint type",
       "status": "pass",
-      "duration": 2,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.521Z",
+      "timestamp": "2025-10-15T21:35:26.642Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_support_external_endpoint_type.jsonl"
@@ -1072,9 +1644,9 @@
     {
       "testName": "should support pty endpoint type",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.521Z",
+      "timestamp": "2025-10-15T21:35:26.643Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_support_pty_endpoint_type.jsonl"
@@ -1083,20 +1655,86 @@
     {
       "testName": "should allow endpoints to be registered alongside servers",
       "status": "pass",
-      "duration": 5,
+      "duration": 4,
       "location": "/srv/repos0/mkolbol/tests/hostess/hostessEndpoints.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.521Z",
+      "timestamp": "2025-10-15T21:35:26.643Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/hostessEndpoints.spec/should_allow_endpoints_to_be_registered_alongside_servers.jsonl"
       }
     },
     {
+      "testName": "should spawn a simple process",
+      "status": "pass",
+      "duration": 38,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.643Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/externalServerWrapper.spec/should_spawn_a_simple_process.jsonl"
+      }
+    },
+    {
+      "testName": "adds nodes and emits events",
+      "status": "pass",
+      "duration": 6,
+      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.643Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/stateManager.spec/adds_nodes_and_emits_events.jsonl"
+      }
+    },
+    {
+      "testName": "connects and emits connected",
+      "status": "pass",
+      "duration": 3,
+      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.643Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/stateManager.spec/connects_and_emits_connected.jsonl"
+      }
+    },
+    {
+      "testName": "split and merge emit events",
+      "status": "pass",
+      "duration": 20,
+      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.643Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/stateManager.spec/split_and_merge_emit_events.jsonl"
+      }
+    },
+    {
+      "testName": "validator enforces directionality when set",
+      "status": "pass",
+      "duration": 23,
+      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.644Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/stateManager.spec/validator_enforces_directionality_when_set.jsonl"
+      }
+    },
+    {
+      "testName": "exporters produce strings",
+      "status": "pass",
+      "duration": 2,
+      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:26.644Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/stateManager.spec/exporters_produce_strings.jsonl"
+      }
+    },
+    {
       "testName": "should parse valid YAML",
       "status": "pass",
-      "duration": 12,
+      "duration": 63,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.521Z",
+      "timestamp": "2025-10-15T21:35:28.597Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_parse_valid_YAML.jsonl"
@@ -1105,9 +1743,9 @@
     {
       "testName": "should parse valid JSON",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.522Z",
+      "timestamp": "2025-10-15T21:35:28.597Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_parse_valid_JSON.jsonl"
@@ -1116,9 +1754,9 @@
     {
       "testName": "should reject missing nodes",
       "status": "pass",
-      "duration": 1,
+      "duration": 5,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.522Z",
+      "timestamp": "2025-10-15T21:35:28.597Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_missing_nodes.jsonl"
@@ -1127,9 +1765,9 @@
     {
       "testName": "should reject missing connections",
       "status": "pass",
-      "duration": 1,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.522Z",
+      "timestamp": "2025-10-15T21:35:28.598Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_missing_connections.jsonl"
@@ -1138,9 +1776,9 @@
     {
       "testName": "should reject duplicate node ids",
       "status": "pass",
-      "duration": 3,
+      "duration": 5,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.522Z",
+      "timestamp": "2025-10-15T21:35:28.598Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_duplicate_node_ids.jsonl"
@@ -1149,9 +1787,9 @@
     {
       "testName": "should reject invalid from address without dot",
       "status": "pass",
-      "duration": 21,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.522Z",
+      "timestamp": "2025-10-15T21:35:28.599Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_invalid_from_address_without_dot.jsonl"
@@ -1160,9 +1798,9 @@
     {
       "testName": "should reject invalid to address without dot",
       "status": "pass",
-      "duration": 1,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.522Z",
+      "timestamp": "2025-10-15T21:35:28.599Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_invalid_to_address_without_dot.jsonl"
@@ -1173,7 +1811,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.523Z",
+      "timestamp": "2025-10-15T21:35:28.599Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_address_with_multiple_dots.jsonl"
@@ -1182,9 +1820,9 @@
     {
       "testName": "should reject address with empty node name",
       "status": "pass",
-      "duration": 1,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.523Z",
+      "timestamp": "2025-10-15T21:35:28.600Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_address_with_empty_node_name.jsonl"
@@ -1193,9 +1831,9 @@
     {
       "testName": "should reject address with empty terminal name",
       "status": "pass",
-      "duration": 1,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.523Z",
+      "timestamp": "2025-10-15T21:35:28.600Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_address_with_empty_terminal_name.jsonl"
@@ -1204,9 +1842,9 @@
     {
       "testName": "should reject connection referencing non-existent from node",
       "status": "pass",
-      "duration": 1,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.523Z",
+      "timestamp": "2025-10-15T21:35:28.600Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_connection_referencing_non-existent_from_node.jsonl"
@@ -1215,9 +1853,9 @@
     {
       "testName": "should reject connection referencing non-existent to node",
       "status": "pass",
-      "duration": 1,
+      "duration": 2,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.523Z",
+      "timestamp": "2025-10-15T21:35:28.601Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_connection_referencing_non-existent_to_node.jsonl"
@@ -1226,9 +1864,9 @@
     {
       "testName": "should reject non-object config",
       "status": "pass",
-      "duration": 16,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.523Z",
+      "timestamp": "2025-10-15T21:35:28.601Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_non-object_config.jsonl"
@@ -1237,9 +1875,9 @@
     {
       "testName": "should reject non-array nodes",
       "status": "pass",
-      "duration": 14,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.523Z",
+      "timestamp": "2025-10-15T21:35:28.602Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_non-array_nodes.jsonl"
@@ -1250,7 +1888,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.524Z",
+      "timestamp": "2025-10-15T21:35:28.602Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_non-array_connections.jsonl"
@@ -1261,7 +1899,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.524Z",
+      "timestamp": "2025-10-15T21:35:28.603Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_node_without_id.jsonl"
@@ -1270,9 +1908,9 @@
     {
       "testName": "should reject node with non-string id",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.524Z",
+      "timestamp": "2025-10-15T21:35:28.603Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_node_with_non-string_id.jsonl"
@@ -1281,9 +1919,9 @@
     {
       "testName": "should reject node without module",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.524Z",
+      "timestamp": "2025-10-15T21:35:28.604Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_node_without_module.jsonl"
@@ -1292,9 +1930,9 @@
     {
       "testName": "should reject node with non-string module",
       "status": "pass",
-      "duration": 1,
+      "duration": 0,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.524Z",
+      "timestamp": "2025-10-15T21:35:28.604Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_node_with_non-string_module.jsonl"
@@ -1303,9 +1941,9 @@
     {
       "testName": "should reject connection without from",
       "status": "pass",
-      "duration": 0,
+      "duration": 19,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.524Z",
+      "timestamp": "2025-10-15T21:35:28.604Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_connection_without_from.jsonl"
@@ -1314,9 +1952,9 @@
     {
       "testName": "should reject connection without to",
       "status": "pass",
-      "duration": 1,
+      "duration": 13,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.525Z",
+      "timestamp": "2025-10-15T21:35:28.605Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_connection_without_to.jsonl"
@@ -1325,9 +1963,9 @@
     {
       "testName": "should reject connection with non-string from",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.525Z",
+      "timestamp": "2025-10-15T21:35:28.605Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_connection_with_non-string_from.jsonl"
@@ -1338,7 +1976,7 @@
       "status": "pass",
       "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.525Z",
+      "timestamp": "2025-10-15T21:35:28.605Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_reject_connection_with_non-string_to.jsonl"
@@ -1347,152 +1985,20 @@
     {
       "testName": "should accept valid topology",
       "status": "pass",
-      "duration": 0,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/config/loader.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.525Z",
+      "timestamp": "2025-10-15T21:35:28.606Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/loader.spec/should_accept_valid_topology.jsonl"
       }
     },
     {
-      "testName": "should write all data to log file",
-      "status": "pass",
-      "duration": 6,
-      "location": "/srv/repos0/mkolbol/tests/renderers/loggerRenderer.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.525Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loggerRenderer.spec/should_write_all_data_to_log_file.jsonl"
-      }
-    },
-    {
-      "testName": "should append to existing log file",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/tests/renderers/loggerRenderer.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.525Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/loggerRenderer.spec/should_append_to_existing_log_file.jsonl"
-      }
-    },
-    {
-      "testName": "registers and queries by capabilities",
-      "status": "pass",
-      "duration": 70,
-      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.526Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostess.spec/registers_and_queries_by_capabilities.jsonl"
-      }
-    },
-    {
-      "testName": "marks in-use and back to available",
-      "status": "pass",
-      "duration": 3,
-      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.526Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostess.spec/marks_in-use_and_back_to_available.jsonl"
-      }
-    },
-    {
-      "testName": "evicts after missed heartbeats",
-      "status": "pass",
-      "duration": 3,
-      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.526Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostess.spec/evicts_after_missed_heartbeats.jsonl"
-      }
-    },
-    {
-      "testName": "heartbeat maintains liveness",
-      "status": "pass",
-      "duration": 23,
-      "location": "/srv/repos0/mkolbol/test/hostess.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.526Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/hostess.spec/heartbeat_maintains_liveness.jsonl"
-      }
-    },
-    {
-      "testName": "should spawn a simple process",
-      "status": "pass",
-      "duration": 50,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.526Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalServerWrapper.spec/should_spawn_a_simple_process.jsonl"
-      }
-    },
-    {
-      "testName": "adds nodes and emits events",
-      "status": "pass",
-      "duration": 28,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.527Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/adds_nodes_and_emits_events.jsonl"
-      }
-    },
-    {
-      "testName": "connects and emits connected",
-      "status": "pass",
-      "duration": 6,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.527Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/connects_and_emits_connected.jsonl"
-      }
-    },
-    {
-      "testName": "split and merge emit events",
-      "status": "pass",
-      "duration": 5,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.527Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/split_and_merge_emit_events.jsonl"
-      }
-    },
-    {
-      "testName": "validator enforces directionality when set",
-      "status": "pass",
-      "duration": 6,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.527Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/validator_enforces_directionality_when_set.jsonl"
-      }
-    },
-    {
-      "testName": "exporters produce strings",
-      "status": "pass",
-      "duration": 1,
-      "location": "/srv/repos0/mkolbol/test/state/stateManager.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:54.527Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stateManager.spec/exporters_produce_strings.jsonl"
-      }
-    },
-    {
       "testName": "should load configuration",
       "status": "pass",
-      "duration": 28,
+      "duration": 54,
       "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.414Z",
+      "timestamp": "2025-10-15T21:35:28.606Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/executor.spec/should_load_configuration.jsonl"
@@ -1501,9 +2007,9 @@
     {
       "testName": "should throw if up() called without load()",
       "status": "pass",
-      "duration": 25,
+      "duration": 4,
       "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.415Z",
+      "timestamp": "2025-10-15T21:35:28.606Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/executor.spec/should_throw_if_up___called_without_load__.jsonl"
@@ -1512,9 +2018,9 @@
     {
       "testName": "should instantiate modules and register with hostess",
       "status": "pass",
-      "duration": 88,
+      "duration": 13,
       "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.416Z",
+      "timestamp": "2025-10-15T21:35:28.607Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/executor.spec/should_instantiate_modules_and_register_with_hostess.jsonl"
@@ -1523,9 +2029,9 @@
     {
       "testName": "should wire connections via StateManager",
       "status": "pass",
-      "duration": 34,
+      "duration": 22,
       "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.416Z",
+      "timestamp": "2025-10-15T21:35:28.607Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/executor.spec/should_wire_connections_via_StateManager.jsonl"
@@ -1534,9 +2040,9 @@
     {
       "testName": "should support restartNode",
       "status": "pass",
-      "duration": 59,
+      "duration": 4,
       "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.416Z",
+      "timestamp": "2025-10-15T21:35:28.607Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/executor.spec/should_support_restartNode.jsonl"
@@ -1545,20 +2051,42 @@
     {
       "testName": "should throw on restartNode for non-existent node",
       "status": "pass",
-      "duration": 23,
+      "duration": 1,
       "location": "/srv/repos0/mkolbol/tests/executor/executor.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.417Z",
+      "timestamp": "2025-10-15T21:35:28.608Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/executor.spec/should_throw_on_restartNode_for_non-existent_node.jsonl"
       }
     },
     {
+      "testName": "merge: all source data reaches destination",
+      "status": "pass",
+      "duration": 23,
+      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:28.608Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/invariants.spec/merge__all_source_data_reaches_destination.jsonl"
+      }
+    },
+    {
+      "testName": "merge: no data loss with concurrent writes",
+      "status": "pass",
+      "duration": 411,
+      "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:28.609Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/invariants.spec/merge__no_data_loss_with_concurrent_writes.jsonl"
+      }
+    },
+    {
       "testName": "split-then-merge: roundtrip preserves all data",
       "status": "pass",
-      "duration": 1323,
+      "duration": 1225,
       "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.418Z",
+      "timestamp": "2025-10-15T21:35:28.609Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/invariants.spec/split-then-merge__roundtrip_preserves_all_data.jsonl"
@@ -1567,9 +2095,9 @@
     {
       "testName": "empty split: source with zero destinations completes",
       "status": "pass",
-      "duration": 6,
+      "duration": 5,
       "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.418Z",
+      "timestamp": "2025-10-15T21:35:28.610Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/invariants.spec/empty_split__source_with_zero_destinations_completes.jsonl"
@@ -1580,7 +2108,7 @@
       "status": "pass",
       "duration": 3,
       "location": "/srv/repos0/mkolbol/tests/property/invariants.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.418Z",
+      "timestamp": "2025-10-15T21:35:28.610Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/invariants.spec/empty_merge__destination_with_zero_sources_completes.jsonl"
@@ -1589,9 +2117,9 @@
     {
       "testName": "should handle Buffer data in non-object mode",
       "status": "pass",
-      "duration": 34,
+      "duration": 22,
       "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.419Z",
+      "timestamp": "2025-10-15T21:35:28.610Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerPipe.spec/should_handle_Buffer_data_in_non-object_mode.jsonl"
@@ -1600,9 +2128,9 @@
     {
       "testName": "should propagate messageerror to stream",
       "status": "pass",
-      "duration": 216,
+      "duration": 93,
       "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.419Z",
+      "timestamp": "2025-10-15T21:35:28.611Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerPipe.spec/should_propagate_messageerror_to_stream.jsonl"
@@ -1611,9 +2139,9 @@
     {
       "testName": "should handle port close event",
       "status": "pass",
-      "duration": 39,
+      "duration": 38,
       "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.420Z",
+      "timestamp": "2025-10-15T21:35:28.611Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerPipe.spec/should_handle_port_close_event.jsonl"
@@ -1622,9 +2150,9 @@
     {
       "testName": "should handle errors in _write callback",
       "status": "pass",
-      "duration": 86,
+      "duration": 33,
       "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.420Z",
+      "timestamp": "2025-10-15T21:35:28.611Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerPipe.spec/should_handle_errors_in__write_callback.jsonl"
@@ -1633,9 +2161,9 @@
     {
       "testName": "should send end signal on finish event",
       "status": "pass",
-      "duration": 87,
+      "duration": 88,
       "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.421Z",
+      "timestamp": "2025-10-15T21:35:28.612Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerPipe.spec/should_send_end_signal_on_finish_event.jsonl"
@@ -1644,9 +2172,9 @@
     {
       "testName": "should handle end signal from remote port",
       "status": "pass",
-      "duration": 110,
+      "duration": 161,
       "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.421Z",
+      "timestamp": "2025-10-15T21:35:28.612Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerPipe.spec/should_handle_end_signal_from_remote_port.jsonl"
@@ -1655,9 +2183,9 @@
     {
       "testName": "should close port on destroy",
       "status": "pass",
-      "duration": 63,
+      "duration": 56,
       "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.421Z",
+      "timestamp": "2025-10-15T21:35:28.612Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerPipe.spec/should_close_port_on_destroy.jsonl"
@@ -1666,9 +2194,9 @@
     {
       "testName": "should propagate error in destroy",
       "status": "pass",
-      "duration": 37,
+      "duration": 25,
       "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.422Z",
+      "timestamp": "2025-10-15T21:35:28.613Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerPipe.spec/should_propagate_error_in_destroy.jsonl"
@@ -1677,20 +2205,31 @@
     {
       "testName": "should handle complete lifecycle end-to-end",
       "status": "pass",
-      "duration": 4,
+      "duration": 28,
       "location": "/srv/repos0/mkolbol/tests/worker/workerPipe.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.422Z",
+      "timestamp": "2025-10-15T21:35:28.613Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/workerPipe.spec/should_handle_complete_lifecycle_end-to-end.jsonl"
       }
     },
     {
+      "testName": "should handle environment variables",
+      "status": "pass",
+      "duration": 235,
+      "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
+      "timestamp": "2025-10-15T21:35:28.613Z",
+      "artifacts": {
+        "summary": "reports/summary.jsonl",
+        "caseFile": "reports/externalServerWrapper.spec/should_handle_environment_variables.jsonl"
+      }
+    },
+    {
       "testName": "should register with Hostess on spawn",
       "status": "pass",
-      "duration": 58,
+      "duration": 167,
       "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.423Z",
+      "timestamp": "2025-10-15T21:35:28.614Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/externalServerWrapper.spec/should_register_with_Hostess_on_spawn.jsonl"
@@ -1699,9 +2238,9 @@
     {
       "testName": "should gracefully shutdown with SIGTERM",
       "status": "pass",
-      "duration": 89,
+      "duration": 50,
       "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.423Z",
+      "timestamp": "2025-10-15T21:35:28.614Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/externalServerWrapper.spec/should_gracefully_shutdown_with_SIGTERM.jsonl"
@@ -1710,9 +2249,9 @@
     {
       "testName": "should restart on failure with \"on-failure\" policy",
       "status": "pass",
-      "duration": 575,
+      "duration": 535,
       "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.424Z",
+      "timestamp": "2025-10-15T21:35:28.615Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/externalServerWrapper.spec/should_restart_on_failure_with__on-failure__policy.jsonl"
@@ -1721,9 +2260,9 @@
     {
       "testName": "should not restart with \"never\" policy",
       "status": "pass",
-      "duration": 344,
+      "duration": 333,
       "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.424Z",
+      "timestamp": "2025-10-15T21:35:28.615Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/externalServerWrapper.spec/should_not_restart_with__never__policy.jsonl"
@@ -1732,9 +2271,9 @@
     {
       "testName": "should respect maxRestarts limit",
       "status": "pass",
-      "duration": 539,
+      "duration": 543,
       "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.424Z",
+      "timestamp": "2025-10-15T21:35:28.615Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/externalServerWrapper.spec/should_respect_maxRestarts_limit.jsonl"
@@ -1743,9 +2282,9 @@
     {
       "testName": "should provide process info",
       "status": "pass",
-      "duration": 41,
+      "duration": 34,
       "location": "/srv/repos0/mkolbol/tests/wrappers/externalServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-15T20:52:56.425Z",
+      "timestamp": "2025-10-15T21:35:28.616Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
         "caseFile": "reports/externalServerWrapper.spec/should_provide_process_info.jsonl"

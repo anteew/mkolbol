@@ -1,0 +1,12 @@
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index 4bfd590..a546273 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -42,7 +42,6 @@ jobs:
+             > reports/threads_raw.log 2>&1
+ 
+       - name: Forks lane (process-mode gated)
+-        continue-on-error: true
+         run: |
+           mkdir -p reports
+           npx vitest run \

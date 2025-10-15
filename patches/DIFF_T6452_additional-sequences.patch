@@ -1,0 +1,93 @@
+diff --git a/src/transforms/AnsiParser.ts b/src/transforms/AnsiParser.ts
+index a3021d0..5ed7bbf 100644
+--- a/src/transforms/AnsiParser.ts
++++ b/src/transforms/AnsiParser.ts
+@@ -6,10 +6,11 @@ export interface AnsiParserState {
+   foregroundColor: number | null;
+   backgroundColor: number | null;
+   inverse: boolean;
++  cursorVisible: boolean;
+ }
+ 
+ export interface AnsiParserEvent {
+-  type: 'print' | 'cursor' | 'erase' | 'style';
++  type: 'print' | 'cursor' | 'erase' | 'style' | 'mode' | 'reset';
+   data: any;
+ }
+ 
+@@ -31,6 +32,7 @@ export class AnsiParser {
+       foregroundColor: null,
+       backgroundColor: null,
+       inverse: false,
++      cursorVisible: true,
+     };
+   }
+ 
+@@ -88,6 +90,9 @@ export class AnsiParser {
+       i++;
+       const oscLen = this.parseOSC(i);
+       return oscLen;
++    } else if (next === 'c') {
++      this.handleRIS();
++      return 2;
+     }
+ 
+     return i - start;
+@@ -130,7 +135,17 @@ export class AnsiParser {
+   }
+ 
+   private executeCSI(paramStr: string, command: string): void {
+-    const params = paramStr.split(';').map(p => (p === '' ? 0 : parseInt(p, 10)));
++    const privateMode = paramStr.startsWith('?');
++    const cleanParamStr = privateMode ? paramStr.substring(1) : paramStr;
++    const params = cleanParamStr.split(';').map(p => (p === '' ? 0 : parseInt(p, 10)));
++
++    if (privateMode && command === 'h') {
++      this.handleDECSET(params);
++      return;
++    } else if (privateMode && command === 'l') {
++      this.handleDECRST(params);
++      return;
++    }
+ 
+     switch (command) {
+       case 'm':
+@@ -161,6 +176,38 @@ export class AnsiParser {
+     }
+   }
+ 
++  private handleDECSET(params: number[]): void {
++    for (const param of params) {
++      if (param === 25) {
++        this.state.cursorVisible = true;
++        this.events.push({
++          type: 'mode',
++          data: { action: 'set', mode: 25, name: 'cursorVisible', value: true },
++        });
++      }
++    }
++  }
++
++  private handleDECRST(params: number[]): void {
++    for (const param of params) {
++      if (param === 25) {
++        this.state.cursorVisible = false;
++        this.events.push({
++          type: 'mode',
++          data: { action: 'reset', mode: 25, name: 'cursorVisible', value: false },
++        });
++      }
++    }
++  }
++
++  private handleRIS(): void {
++    this.state = this.createInitialState();
++    this.events.push({
++      type: 'reset',
++      data: { action: 'full' },
++    });
++  }
++
+   private handleSGR(params: number[]): void {
+     if (params.length === 0) params = [0];
+ 

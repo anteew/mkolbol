@@ -1,3 +1,3 @@
-{"ts":1760561574278,"lvl":"info","case":"handles emit without payload","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760561574279,"lvl":"info","case":"handles emit without payload","phase":"execution","evt":"test.run"}
-{"ts":1760561574280,"lvl":"info","case":"handles emit without payload","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760564126497,"lvl":"info","case":"handles emit without payload","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760564126498,"lvl":"info","case":"handles emit without payload","phase":"execution","evt":"test.run"}
+{"ts":1760564126499,"lvl":"info","case":"handles emit without payload","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}

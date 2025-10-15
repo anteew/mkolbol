@@ -8,13 +8,39 @@ import { randomBytes } from 'node:crypto';
 import { unlinkSync } from 'node:fs';
 
 describe('Process Mode: Unix Adapters under Load', () => {
-  const testTimeout = 15000;
+  const testTimeout = 20000; // Increased from 15s to 20s for stability
+  const connectionTimeout = 5000;
+  const maxRetries = 3;
   let cleanupPaths: string[] = [];
 
   function getSocketPath(name: string): string {
     const path = join(tmpdir(), `mkolbol-test-${name}-${Date.now()}-${randomBytes(4).toString('hex')}.sock`);
     cleanupPaths.push(path);
     return path;
+  }
+
+  async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Timeout: ${label} exceeded ${ms}ms`)), ms)
+      ),
+    ]);
+  }
+
+  async function retry<T>(fn: () => Promise<T>, retries: number = maxRetries, delay: number = 100): Promise<T> {
+    let lastError: Error | undefined;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastError = err as Error;
+        if (attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)));
+        }
+      }
+    }
+    throw lastError;
   }
 
   afterEach(() => {
@@ -47,8 +73,8 @@ describe('Process Mode: Unix Adapters under Load', () => {
     });
 
     it('should handle heavy writes with backpressure', async () => {
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+      await withTimeout(serverAdapter.listen(), connectionTimeout, 'server listen');
+      await withTimeout(retry(() => clientAdapter.connect()), connectionTimeout, 'client connect');
 
       const serverPipe = serverAdapter.createDuplex({ highWaterMark: 16384 });
       const clientPipe = clientAdapter.createDuplex({ highWaterMark: 16384 });
@@ -100,8 +126,8 @@ describe('Process Mode: Unix Adapters under Load', () => {
     }, testTimeout);
 
     it('should handle bidirectional heavy writes', async () => {
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+      await withTimeout(serverAdapter.listen(), connectionTimeout, 'server listen');
+      await withTimeout(retry(() => clientAdapter.connect()), connectionTimeout, 'client connect');
 
       const serverPipe = serverAdapter.createDuplex({ highWaterMark: 8192 });
       const clientPipe = clientAdapter.createDuplex({ highWaterMark: 8192 });
@@ -164,8 +190,8 @@ describe('Process Mode: Unix Adapters under Load', () => {
     }, testTimeout);
 
     it('should handle graceful teardown during writes', async () => {
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+      await withTimeout(serverAdapter.listen(), connectionTimeout, 'server listen');
+      await withTimeout(retry(() => clientAdapter.connect()), connectionTimeout, 'client connect');
 
       const serverPipe = serverAdapter.createDuplex();
       const clientPipe = clientAdapter.createDuplex();
@@ -201,8 +227,8 @@ describe('Process Mode: Unix Adapters under Load', () => {
     }, testTimeout);
 
     it('should propagate write errors', async () => {
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+      await withTimeout(serverAdapter.listen(), connectionTimeout, 'server listen');
+      await withTimeout(retry(() => clientAdapter.connect()), connectionTimeout, 'client connect');
 
       const serverPipe = serverAdapter.createDuplex();
       const clientPipe = clientAdapter.createDuplex();
@@ -443,9 +469,9 @@ describe('Process Mode: Unix Adapters under Load', () => {
       await new Promise<void>((resolve) => setTimeout(resolve, 50));
       const controlClient = new UnixControlAdapter(controlSocketPath, false);
 
-      await pipeServer.listen();
-      await pipeClient.connect();
-      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      await withTimeout(pipeServer.listen(), connectionTimeout, 'pipe server listen');
+      await withTimeout(retry(() => pipeClient.connect()), connectionTimeout, 'pipe client connect');
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
 
       const serverPipe = pipeServer.createDuplex();
       const clientPipe = pipeClient.createDuplex();

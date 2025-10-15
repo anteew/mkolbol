@@ -1,0 +1,83 @@
+--- /tmp/orig.ts	2025-10-15 21:16:12.888073356 +0000
++++ /tmp/utf8_version.ts	2025-10-15 21:17:02.078079016 +0000
+@@ -62,8 +62,9 @@
+         this.handlePrintable(char);
+         i++;
+       } else if (charCode >= 160) {
+-        this.handlePrintable(char);
+-        i++;
++        const { char: utf8Char, length } = this.readUTF8Char(i);
++        this.handlePrintable(utf8Char);
++        i += length;
+       } else {
+         i++;
+       }
+@@ -72,6 +73,53 @@
+     return this.events;
+   }
+ 
++  private readUTF8Char(index: number): { char: string; length: number } {
++    const firstByte = this.buffer.charCodeAt(index);
++    
++    if (firstByte < 0x80) {
++      return { char: this.buffer[index], length: 1 };
++    }
++    
++    let charLength = 1;
++    if ((firstByte & 0xE0) === 0xC0) charLength = 2;
++    else if ((firstByte & 0xF0) === 0xE0) charLength = 3;
++    else if ((firstByte & 0xF8) === 0xF0) charLength = 4;
++    
++    const endIndex = Math.min(index + charLength, this.buffer.length);
++    return {
++      char: this.buffer.substring(index, endIndex),
++      length: endIndex - index
++    };
++  }
++
++  private getCharWidth(char: string): number {
++    if (char.length === 0) return 0;
++    
++    const codePoint = char.codePointAt(0);
++    if (!codePoint) return 1;
++    
++    if (
++      (codePoint >= 0x1100 && codePoint <= 0x115F) ||
++      (codePoint >= 0x2329 && codePoint <= 0x232A) ||
++      (codePoint >= 0x2E80 && codePoint <= 0x303E) ||
++      (codePoint >= 0x3040 && codePoint <= 0xA4CF) ||
++      (codePoint >= 0xAC00 && codePoint <= 0xD7A3) ||
++      (codePoint >= 0xF900 && codePoint <= 0xFAFF) ||
++      (codePoint >= 0xFE10 && codePoint <= 0xFE19) ||
++      (codePoint >= 0xFE30 && codePoint <= 0xFE6F) ||
++      (codePoint >= 0xFF00 && codePoint <= 0xFF60) ||
++      (codePoint >= 0xFFE0 && codePoint <= 0xFFE6) ||
++      (codePoint >= 0x1F300 && codePoint <= 0x1F64F) ||
++      (codePoint >= 0x1F680 && codePoint <= 0x1F6FF) ||
++      (codePoint >= 0x20000 && codePoint <= 0x2FFFD) ||
++      (codePoint >= 0x30000 && codePoint <= 0x3FFFD)
++    ) {
++      return 2;
++    }
++    
++    return 1;
++  }
++
+   private parseEscapeSequence(startIndex: number): number {
+     const start = startIndex;
+     let i = startIndex + 1;
+@@ -298,11 +346,12 @@
+   }
+ 
+   private handlePrintable(char: string): void {
++    const charWidth = this.getCharWidth(char);
+     this.events.push({
+       type: 'print',
+-      data: { char, x: this.state.cursorX, y: this.state.cursorY, style: { ...this.state } },
++      data: { char, x: this.state.cursorX, y: this.state.cursorY, style: { ...this.state }, width: charWidth },
+     });
+-    this.state.cursorX++;
++    this.state.cursorX += charWidth;
+   }
+ 
+   getState(): AnsiParserState {
