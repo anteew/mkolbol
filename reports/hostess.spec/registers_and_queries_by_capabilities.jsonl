@@ -1,3 +1,3 @@
-{"ts":1760624414465,"lvl":"info","case":"registers and queries by capabilities","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760624414466,"lvl":"info","case":"registers and queries by capabilities","phase":"execution","evt":"test.run"}
-{"ts":1760624414467,"lvl":"info","case":"registers and queries by capabilities","phase":"teardown","evt":"case.end","payload":{"duration":44,"status":"passed"}}
+{"ts":1760628616666,"lvl":"info","case":"registers and queries by capabilities","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760628616667,"lvl":"info","case":"registers and queries by capabilities","phase":"execution","evt":"test.run"}
+{"ts":1760628616668,"lvl":"info","case":"registers and queries by capabilities","phase":"teardown","evt":"case.end","payload":{"duration":10,"status":"passed"}}

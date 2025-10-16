@@ -1,6 +1,9 @@
 import { spawn } from 'child_process';
 import crypto from 'node:crypto';
 import { debug } from '../debug/api.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+const execAsync = promisify(exec);
 export class ExternalServerWrapper {
     kernel;
     hostess;
@@ -98,6 +101,10 @@ export class ExternalServerWrapper {
         // Note: registerWithHostess() is called by ExternalServerWrapper.spawn()
         // but the Executor now handles proper endpoint registration for ExternalProcess nodes
         await this.registerWithHostess();
+        // Run health check if configured
+        if (this.manifest.healthCheck) {
+            await this.runHealthCheck();
+        }
     }
     async restart() {
         debug.emit('external', 'server.restarting', {
@@ -300,6 +307,94 @@ export class ExternalServerWrapper {
         }
         const info = this.getExitCodeInfo(this.lastExitCode, this.lastSignal);
         return info.message;
+    }
+    async runHealthCheck() {
+        const config = this.manifest.healthCheck;
+        const retries = config.retries || 3;
+        const timeout = config.timeout || 5000;
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            debug.emit('external', 'healthcheck.attempt', {
+                servername: this.manifest.servername,
+                type: config.type,
+                attempt,
+                maxRetries: retries
+            }, 'info');
+            try {
+                if (config.type === 'command') {
+                    await this.runCommandHealthCheck(config.command, timeout);
+                }
+                else if (config.type === 'http') {
+                    await this.runHttpHealthCheck(config.url, timeout);
+                }
+                debug.emit('external', 'healthcheck.success', {
+                    servername: this.manifest.servername,
+                    attempt
+                }, 'info');
+                return;
+            }
+            catch (error) {
+                const isLastAttempt = attempt === retries;
+                debug.emit('external', 'healthcheck.failed', {
+                    servername: this.manifest.servername,
+                    attempt,
+                    error: error instanceof Error ? error.message : String(error),
+                    willRetry: !isLastAttempt
+                }, isLastAttempt ? 'error' : 'warn');
+                if (isLastAttempt) {
+                    throw new Error(`Health check failed for ${this.manifest.servername} after ${retries} attempts: ${error instanceof Error ? error.message : String(error)}`);
+                }
+                // Exponential backoff between retries
+                const backoffDelay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+                await new Promise(resolve => setTimeout(resolve, backoffDelay));
+            }
+        }
+    }
+    async runCommandHealthCheck(command, timeout) {
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(`Command health check timed out after ${timeout}ms`)), timeout);
+        });
+        const execPromise = execAsync(command, {
+            cwd: this.manifest.cwd,
+            env: { ...process.env, ...this.manifest.env },
+            timeout
+        });
+        try {
+            const result = await Promise.race([execPromise, timeoutPromise]);
+            if (result.stderr) {
+                debug.emit('external', 'healthcheck.command.stderr', {
+                    servername: this.manifest.servername,
+                    stderr: result.stderr
+                }, 'trace');
+            }
+        }
+        catch (error) {
+            if (error.code !== undefined && error.code !== 0) {
+                throw new Error(`Command exited with code ${error.code}`);
+            }
+            throw error;
+        }
+    }
+    async runHttpHealthCheck(url, timeout) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        try {
+            const response = await fetch(url, {
+                signal: controller.signal,
+                method: 'GET'
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP health check returned status ${response.status}`);
+            }
+        }
+        catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error(`HTTP health check timed out after ${timeout}ms`);
+            }
+            throw error;
+        }
+        finally {
+            clearTimeout(timeoutId);
+        }
     }
 }
 //# sourceMappingURL=ExternalServerWrapper.js.map

@@ -137,4 +137,117 @@ describe('RoutingServer (in-process)', () => {
 
     expect(router.list()).toHaveLength(1);
   });
+
+  describe('Sweeper Metrics', () => {
+    it('initializes metrics to zero', () => {
+      router = new RoutingServer();
+      const metrics = router.getSweeperMetrics();
+
+      expect(metrics.totalSweeps).toBe(0);
+      expect(metrics.totalRemoved).toBe(0);
+      expect(metrics.lastSweepTime).toBeNull();
+    });
+
+    it('tracks totalSweeps after each sweep', () => {
+      router = new RoutingServer({ ttlMs: 1000, sweepIntervalMs: 100 });
+
+      router.sweep();
+      expect(router.getSweeperMetrics().totalSweeps).toBe(1);
+
+      router.sweep();
+      expect(router.getSweeperMetrics().totalSweeps).toBe(2);
+
+      router.sweep();
+      expect(router.getSweeperMetrics().totalSweeps).toBe(3);
+    });
+
+    it('tracks totalRemoved across multiple sweeps', async () => {
+      router = new RoutingServer({ ttlMs: 50, sweepIntervalMs: 100 });
+
+      router.announce({ ...baseAnnouncement, id: 'ep1' });
+      router.announce({ ...baseAnnouncement, id: 'ep2' });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      router.sweep();
+
+      let metrics = router.getSweeperMetrics();
+      expect(metrics.totalSweeps).toBe(1);
+      expect(metrics.totalRemoved).toBe(2);
+
+      router.announce({ ...baseAnnouncement, id: 'ep3' });
+      router.announce({ ...baseAnnouncement, id: 'ep4' });
+      router.announce({ ...baseAnnouncement, id: 'ep5' });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      router.sweep();
+
+      metrics = router.getSweeperMetrics();
+      expect(metrics.totalSweeps).toBe(2);
+      expect(metrics.totalRemoved).toBe(5);
+    });
+
+    it('updates lastSweepTime on each sweep', async () => {
+      router = new RoutingServer({ ttlMs: 1000, sweepIntervalMs: 100 });
+
+      const beforeFirstSweep = Date.now();
+      router.sweep();
+      const afterFirstSweep = Date.now();
+
+      let metrics = router.getSweeperMetrics();
+      expect(metrics.lastSweepTime).not.toBeNull();
+      expect(metrics.lastSweepTime).toBeGreaterThanOrEqual(beforeFirstSweep);
+      expect(metrics.lastSweepTime).toBeLessThanOrEqual(afterFirstSweep);
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const beforeSecondSweep = Date.now();
+      router.sweep();
+      const afterSecondSweep = Date.now();
+
+      metrics = router.getSweeperMetrics();
+      expect(metrics.lastSweepTime).toBeGreaterThanOrEqual(beforeSecondSweep);
+      expect(metrics.lastSweepTime).toBeLessThanOrEqual(afterSecondSweep);
+    });
+
+    it('does not mutate returned metrics object', () => {
+      router = new RoutingServer();
+
+      const metrics1 = router.getSweeperMetrics();
+      router.sweep();
+      const metrics2 = router.getSweeperMetrics();
+
+      expect(metrics1.totalSweeps).toBe(0);
+      expect(metrics2.totalSweeps).toBe(1);
+    });
+
+    it('tracks metrics with automatic sweeper', async () => {
+      router = new RoutingServer({ ttlMs: 100, sweepIntervalMs: 60 });
+
+      router.announce({ ...baseAnnouncement, id: 'ep1' });
+      router.announce({ ...baseAnnouncement, id: 'ep2' });
+
+      router.startSweeper();
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      const metrics = router.getSweeperMetrics();
+      expect(metrics.totalSweeps).toBeGreaterThanOrEqual(2);
+      expect(metrics.totalRemoved).toBeGreaterThanOrEqual(2);
+      expect(metrics.lastSweepTime).not.toBeNull();
+    });
+
+    it('continues tracking after removing no endpoints', () => {
+      router = new RoutingServer({ ttlMs: 1000, sweepIntervalMs: 100 });
+
+      router.announce(baseAnnouncement);
+
+      router.sweep();
+      expect(router.getSweeperMetrics().totalSweeps).toBe(1);
+      expect(router.getSweeperMetrics().totalRemoved).toBe(0);
+
+      router.sweep();
+      expect(router.getSweeperMetrics().totalSweeps).toBe(2);
+      expect(router.getSweeperMetrics().totalRemoved).toBe(0);
+    });
+  });
 });

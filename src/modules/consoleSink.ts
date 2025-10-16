@@ -1,24 +1,65 @@
 import type { Pipe } from '../types/stream';
 import { Writable } from 'stream';
 
+export interface ConsoleSinkOptions {
+  prefix?: string;
+  format?: 'text' | 'jsonl';
+}
+
 export class ConsoleSink {
   public readonly inputPipe: Pipe;
+  private readonly prefix: string;
+  private readonly format: 'text' | 'jsonl';
 
-  constructor(private prefix = '[sink]') {
+  constructor(options?: string | ConsoleSinkOptions) {
+    if (typeof options === 'string') {
+      this.prefix = options;
+      this.format = 'text';
+    } else {
+      this.prefix = options?.prefix ?? '[sink]';
+      this.format = options?.format ?? 'text';
+    }
+
     const sink = new Writable({
       objectMode: true,
-      write(chunk, _enc, cb) {
-        if (typeof chunk === 'string') {
-          console.log(`${prefix} ${chunk}`);
-        } else if (Buffer.isBuffer(chunk)) {
-          console.log(`${prefix} ${formatBuffer(chunk)}`);
+      write: (chunk, _enc, cb) => {
+        if (this.format === 'jsonl') {
+          this.writeJsonl(chunk);
         } else {
-          console.log(`${prefix} ${JSON.stringify(chunk)}`);
+          this.writeText(chunk);
         }
         cb();
       }
     });
     this.inputPipe = sink as unknown as Pipe;
+  }
+
+  private writeText(chunk: any): void {
+    if (typeof chunk === 'string') {
+      console.log(`${this.prefix} ${chunk}`);
+    } else if (Buffer.isBuffer(chunk)) {
+      console.log(`${this.prefix} ${formatBuffer(chunk)}`);
+    } else {
+      console.log(`${this.prefix} ${JSON.stringify(chunk)}`);
+    }
+  }
+
+  private writeJsonl(chunk: any): void {
+    const ts = new Date().toISOString();
+    let data: any;
+
+    if (Buffer.isBuffer(chunk)) {
+      data = {
+        type: 'Buffer',
+        encoding: 'base64',
+        data: chunk.toString('base64')
+      };
+    } else {
+      data = chunk;
+    }
+
+    const line = JSON.stringify({ ts, data });
+    console.log(line);
   }
 }
 

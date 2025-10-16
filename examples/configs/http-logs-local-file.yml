@@ -9,14 +9,22 @@ nodes:
       ioMode: stdio
       restart: never
 
+  - id: meter
+    module: PipeMeterTransform
+    params:
+      emitInterval: 1000
+
   - id: file
     module: FilesystemSink
     params:
       path: reports/http-logs.jsonl
+      format: jsonl
       mode: append
       fsync: auto
 
 connections:
   - from: web.output
+    to: meter.input
+  
+  - from: meter.output
     to: file.input
-

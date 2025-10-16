@@ -1,3 +1,4 @@
+import { Transform } from 'stream';
 import { createWriteStream, fsync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { dirname } from 'path';
@@ -9,6 +10,7 @@ export class FilesystemSink {
     options;
     writeCount = 0;
     byteCount = 0;
+    formatTransform;
     constructor(kernel, options) {
         this.kernel = kernel;
         this.options = {
@@ -16,12 +18,53 @@ export class FilesystemSink {
             mode: options.mode ?? 'append',
             encoding: options.encoding ?? 'utf8',
             highWaterMark: options.highWaterMark ?? 16384,
-            fsync: options.fsync ?? 'auto'
+            fsync: options.fsync ?? 'auto',
+            format: options.format ?? 'raw',
+            includeTimestamp: options.includeTimestamp ?? false
         };
         this._inputPipe = kernel.createPipe();
     }
     get inputPipe() {
         return this._inputPipe;
+    }
+    createFormatTransform() {
+        if (this.options.format === 'jsonl') {
+            return new Transform({
+                transform: (chunk, encoding, callback) => {
+                    const ts = new Date().toISOString();
+                    const data = chunk.toString();
+                    const line = JSON.stringify({ ts, data }) + '\n';
+                    callback(null, line);
+                }
+            });
+        }
+        else if (this.options.includeTimestamp) {
+            let buffer = '';
+            return new Transform({
+                transform: (chunk, encoding, callback) => {
+                    const ts = new Date().toISOString();
+                    buffer += chunk.toString();
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    const output = lines.map(line => `${ts} ${line}\n`).join('');
+                    callback(null, output);
+                },
+                flush: (callback) => {
+                    if (buffer) {
+                        const ts = new Date().toISOString();
+                        callback(null, `${ts} ${buffer}`);
+                    }
+                    else {
+                        callback();
+                    }
+                }
+            });
+        }
+        return new Transform({
+            transform: (chunk, encoding, callback) => {
+                callback(null, chunk);
+            }
+        });
     }
     async start() {
         debug.emit('filesystem-sink', 'start', { path: this.options.path, mode: this.options.mode }, 'info');
@@ -35,8 +78,14 @@ export class FilesystemSink {
             encoding: this.options.encoding,
             highWaterMark: this.options.highWaterMark
         });
-        // Pipe input to file - just pipe directly, don't manually handle data
-        this._inputPipe.pipe(this.fileStream);
+        // Create format transform if needed
+        if (this.options.format === 'jsonl' || this.options.includeTimestamp) {
+            this.formatTransform = this.createFormatTransform();
+            this._inputPipe.pipe(this.formatTransform).pipe(this.fileStream);
+        }
+        else {
+            this._inputPipe.pipe(this.fileStream);
+        }
         // Track writes for statistics
         this._inputPipe.on('data', (chunk) => {
             this.writeCount++;

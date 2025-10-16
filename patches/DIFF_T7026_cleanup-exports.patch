@@ -1,0 +1,12 @@
+# Cleanup: Dead Code and Backup Files
+
+## Files Removed:
+- README.md.orig
+
+## Analysis:
+- No backup files (*.backup, *.old, *.bak) found in codebase
+- src/transforms/AnsiParser.ts.backup does not exist
+- src/transports/unix/ directory does not exist  
+- package.json exports are clean and properly structured
+
+## Build Status: ✓ Passed

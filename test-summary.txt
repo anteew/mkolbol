@@ -1,0 +1,7 @@
+stdout | tests/renderers/filesystemSink.spec.ts > FilesystemSink > Stress Tests > should handle 10K+ high-throughput writes
+stdout | tests/renderers/filesystemSink.spec.ts > FilesystemSink > Stress Tests > should handle concurrent writes from multiple sinks
+stdout | tests/renderers/filesystemSink.spec.ts > FilesystemSink > Stress Tests > should handle large file writes (10MB+)
+ ✓ tests/renderers/filesystemSink.spec.ts  (29 tests) 568ms
+ Test Files  1 passed (1)
+      Tests  29 passed (29)
+   Duration  1.23s (transform 129ms, setup 0ms, collect 281ms, tests 568ms, environment 0ms, prepare 142ms)

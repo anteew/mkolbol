@@ -220,25 +220,25 @@ You'll see both endpoints (web and sink) with their metadata, timestamps, and co
 
 ### Troubleshooting
 
-**Config file not found:**
+**Config file not found:** → See [mkctl Cookbook: Config Errors](./mkctl-cookbook.md#config-file-not-found)
 ```bash
 # Use absolute path
 node dist/scripts/mkctl.js run --file $(pwd)/examples/configs/http-logs-local.yml --duration 10
 ```
 
-**Server not starting:**
+**Server not starting:** → See [mkctl Cookbook: Port Conflicts](./mkctl-cookbook.md#port-already-in-use)
 ```bash
 # Check if port 3000 is already in use
 lsof -i :3000
 ```
 
-**No endpoints registered:**
+**No endpoints registered:** → See [Quickstart: Endpoints](./quickstart.md#discovering-endpoints)
 ```bash
 # Run topology with longer duration
 node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 15
 ```
 
-**More help:** [mkctl Cookbook](./mkctl-cookbook.md) has a complete troubleshooting matrix with exit codes and fixes.
+**More help:** [mkctl Cookbook](./mkctl-cookbook.md) has a complete troubleshooting matrix with exit codes and fixes. [Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md) has end-to-end scenarios including FilesystemSink logging.
 
 ### Community support
 

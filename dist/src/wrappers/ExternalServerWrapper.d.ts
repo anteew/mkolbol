@@ -51,5 +51,8 @@ export declare class ExternalServerWrapper {
     getLastExitCode(): number | null;
     getLastSignal(): NodeJS.Signals | null;
     getExitInfo(): string | null;
+    protected runHealthCheck(): Promise<void>;
+    protected runCommandHealthCheck(command: string, timeout: number): Promise<void>;
+    protected runHttpHealthCheck(url: string, timeout: number): Promise<void>;
 }
 //# sourceMappingURL=ExternalServerWrapper.d.ts.map

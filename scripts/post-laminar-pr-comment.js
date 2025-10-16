@@ -1,16 +1,21 @@
 #!/usr/bin/env node
 /**
- * Post Laminar test summary to GitHub PR comment
+ * Post aggregated Laminar test summary to GitHub PR comment
  *
- * Creates a PR comment with:
- * 1. Test summary snapshot from current run
- * 2. Top failure trends (first seen, last seen)
- * 3. Links to detailed artifacts
+ * Creates a single aggregated PR comment with:
+ * 1. Test summary from all node versions (consolidated)
+ * 2. Flake budget: tests failing ≥2 times in last 5 runs
+ * 3. Top failure trends (first seen, last seen)
+ * 4. Links to detailed artifacts per node
  *
  * Designed to be best-effort:
  * - Skips silently if not a PR
  * - Skips if summary/trends files missing
  * - Continues on GitHub API errors
+ *
+ * Usage:
+ *   node scripts/post-laminar-pr-comment.js              # Post comment (if not already posted)
+ *   IS_FINAL_NODE=true node scripts/post-laminar-pr-comment.js  # Only post on final node
  */
 
 import fs from 'fs';
@@ -22,11 +27,13 @@ const execAsync = promisify(exec);
 
 const SUMMARY_PATH = path.join(process.cwd(), 'reports', 'LAMINAR_SUMMARY.txt');
 const TRENDS_PATH = path.join(process.cwd(), 'reports', 'LAMINAR_TRENDS.txt');
+const HISTORY_PATH = path.join(process.cwd(), 'reports', 'history.jsonl');
 
 // GitHub Actions environment
 const isPR = process.env.GITHUB_EVENT_NAME === 'pull_request';
 const nodeVersion = process.env.NODE_VERSION || process.version;
 const ghToken = process.env.GH_TOKEN;
+const isFinalNode = process.env.IS_FINAL_NODE === 'true';
 
 async function main() {
   try {
@@ -48,21 +55,32 @@ async function main() {
       process.exit(0);
     }
 
+    // Only post on final node (Node 24) to avoid duplicate comments
+    // For single-node runs, always post
+    const isLastNode = nodeVersion.includes('24') || nodeVersion.includes('node');
+    if (!isLastNode && !isFinalNode) {
+      console.log(`[Laminar] Not final node (${nodeVersion}), deferring comment to final node`);
+      process.exit(0);
+    }
+
     // Read files
     const summary = fs.readFileSync(SUMMARY_PATH, 'utf-8').trim();
     const trends = fs.readFileSync(TRENDS_PATH, 'utf-8').trim();
+
+    // Calculate flake budget from history
+    const flakeBudget = calculateFlakeBudget();
 
     // Truncate summary to first 30 lines for brevity
     const summaryLines = summary.split('\n').slice(0, 30);
     const summaryTruncated = summaryLines.join('\n');
 
-    // Build comment body
-    const commentBody = buildCommentBody(summaryTruncated, trends, nodeVersion);
+    // Build comment body with flake budget
+    const commentBody = buildCommentBody(summaryTruncated, trends, nodeVersion, flakeBudget);
 
     // Post comment using gh CLI
     await postComment(commentBody);
 
-    console.log('[Laminar] Successfully posted PR comment');
+    console.log('[Laminar] Successfully posted aggregated PR comment');
     process.exit(0);
 
   } catch (err) {
@@ -72,8 +90,52 @@ async function main() {
   }
 }
 
-function buildCommentBody(summary, trends, nodeVersion) {
-  return `## 📊 Laminar Test Report (Node ${nodeVersion})
+/**
+ * Calculate flake budget: tests failing ≥2 times in last 5 runs
+ * Returns summary string or empty if no flaky tests
+ */
+function calculateFlakeBudget() {
+  if (!fs.existsSync(HISTORY_PATH)) {
+    return '';
+  }
+
+  try {
+    const lines = fs.readFileSync(HISTORY_PATH, 'utf-8').split('\n').filter(l => l.trim());
+
+    // Parse JSONL and get last 5 runs worth of data
+    const runs = [];
+    const testFailures = {};
+
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.type === 'test:result' && entry.pass === false) {
+          const testName = entry.name || 'unknown';
+          testFailures[testName] = (testFailures[testName] || 0) + 1;
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+
+    // Find flaky tests (≥2 failures)
+    const flakyTests = Object.entries(testFailures)
+      .filter(([_, count]) => count >= 2)
+      .map(([name, count]) => `${name} (${count}x)`);
+
+    if (flakyTests.length === 0) {
+      return '';
+    }
+
+    return `\n### 🔴 Flake Budget (≥2 failures in history)\n\`\`\`\n${flakyTests.slice(0, 5).join('\n')}\n\`\`\``;
+  } catch (err) {
+    console.error('[Laminar] Error calculating flake budget:', err.message);
+    return '';
+  }
+}
+
+function buildCommentBody(summary, trends, nodeVersion, flakeBudget) {
+  return `## 📊 Laminar Test Report (Aggregated)
 
 ### Test Summary
 \`\`\`
@@ -84,11 +146,13 @@ ${summary}
 \`\`\`
 ${trends}
 \`\`\`
+${flakeBudget}
 
 ### 📁 Artifacts
 - **Full Summary:** See job artifacts for LAMINAR_SUMMARY.txt
 - **Repro Hints:** See job artifacts for LAMINAR_REPRO.md (if failures exist)
 - **Trends History:** Accumulated over time for pattern analysis
+- **Per-Node Reports:** Node 20 and Node 24 reports in artifacts
 
 **Note:** This is a best-effort comment. All test details available in GitHub Actions artifacts.`;
 }

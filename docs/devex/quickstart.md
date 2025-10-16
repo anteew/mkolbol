@@ -142,9 +142,10 @@ Coordinates: node:sink
 - Output → ConsoleSink (terminal console)
 - Users who want persistent logs can tee output: `… | tee reports/http-demo.log`
 
-**FilesystemSink (file output):**
-- Output → FilesystemSink (writes to `reports/http-logs.jsonl`)
+**FilesystemSink with PipeMeter (file output with metrics):**
+- Output → PipeMeter → FilesystemSink (writes to `reports/http-logs.jsonl`)
 - Use the ready-made config: `examples/configs/http-logs-local-file.yml`
+- Topology: ExternalProcess (HTTP server) → PipeMeterTransform → FilesystemSink (JSONL format)
 
 Run it:
 ```bash
@@ -153,9 +154,61 @@ node dist/scripts/mkctl.js run --file examples/configs/http-logs-local-file.yml 
 # In another shell, hit the server to generate logs
 curl -s http://localhost:3000 >/dev/null
 curl -s http://localhost:3000/test >/dev/null
-ls -l reports/http-logs.jsonl
+cat reports/http-logs.jsonl
 ```
-- Node IDs stay the same (web, sink), so the documentation diff is minimal
+
+Expected output in `reports/http-logs.jsonl`:
+```jsonl
+{"ts":"2025-10-16T12:34:56.789Z","data":"Server listening on http://localhost:3000"}
+{"ts":"2025-10-16T12:34:57.123Z","data":"[2025-10-16T12:34:57.123Z] GET /"}
+{"ts":"2025-10-16T12:34:58.456Z","data":"[2025-10-16T12:34:58.456Z] GET /test"}
+```
+
+**PipeMeter** tracks throughput metrics (bytes/sec, messages/sec) for monitoring and debugging pipeline performance.
+
+### FilesystemSink Format Options
+
+FilesystemSink supports two output formats:
+
+**Raw format (default):**
+```yaml
+- id: sink
+  module: FilesystemSink
+  params:
+    path: reports/output.log
+    format: raw  # default, can be omitted
+```
+
+**JSONL format with timestamps:**
+```yaml
+- id: sink
+  module: FilesystemSink
+  params:
+    path: reports/output.jsonl
+    format: jsonl  # wraps each chunk as {"ts": "2025-10-16T...", "data": "..."}
+```
+
+Example JSONL output:
+```jsonl
+{"ts":"2025-10-16T12:34:56.789Z","data":"[http] GET /hello"}
+{"ts":"2025-10-16T12:34:57.123Z","data":"[http] GET /test"}
+```
+
+**Raw format with timestamps:**
+```yaml
+- id: sink
+  module: FilesystemSink
+  params:
+    path: reports/output.log
+    format: raw
+    includeTimestamp: true  # prepends ISO timestamp to each line
+```
+
+Example timestamped raw output:
+```
+2025-10-16T12:34:56.789Z [http] GET /hello
+2025-10-16T12:34:57.123Z [http] GET /test
+```
 
 ### Configuration
 

@@ -1,0 +1,15 @@
+nodes:
+  - id: failing-service
+    module: ExternalProcess
+    params:
+      command: /bin/sleep
+      args: ["10"]
+      ioMode: stdio
+      healthCheck:
+        type: command
+        command: "exit 1"
+        timeout: 1000
+        retries: 2
+    runMode: process
+
+connections: []

@@ -96,12 +96,13 @@ function parseRunArgs(args) {
     let configPath;
     let durationMs = 5000;
     let snapshotIntervalMs;
+    let dryRun = false;
     for (let i = 0; i < args.length; i++) {
         const token = args[i];
         if (token === '--file') {
             const next = args[i + 1];
             if (!next || next.startsWith('--')) {
-                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>]', EXIT_CODES.USAGE);
+                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]', EXIT_CODES.USAGE);
             }
             configPath = next;
             i++;
@@ -109,7 +110,7 @@ function parseRunArgs(args) {
         else if (token === '--duration') {
             const next = args[i + 1];
             if (!next || next.startsWith('--')) {
-                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>]', EXIT_CODES.USAGE);
+                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]', EXIT_CODES.USAGE);
             }
             const parsed = Number.parseInt(next, 10);
             if (Number.isNaN(parsed) || parsed <= 0) {
@@ -130,11 +131,14 @@ function parseRunArgs(args) {
             snapshotIntervalMs = parsed * 1000;
             i++;
         }
+        else if (token === '--dry-run') {
+            dryRun = true;
+        }
     }
     if (!configPath) {
-        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>]', EXIT_CODES.USAGE);
+        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]', EXIT_CODES.USAGE);
     }
-    return { configPath, durationMs, snapshotIntervalMs };
+    return { configPath, durationMs, snapshotIntervalMs, dryRun };
 }
 async function waitForDurationOrSignal(durationMs) {
     return new Promise((resolve) => {
@@ -218,6 +222,7 @@ function formatTimestamp(value) {
 function parseEndpointsArgs(args) {
     let watch = false;
     let interval = 1;
+    let json = false;
     const filters = [];
     for (let i = 0; i < args.length; i++) {
         const token = args[i];
@@ -248,8 +253,11 @@ function parseEndpointsArgs(args) {
             filters.push({ key: parts[0], value: parts[1] });
             i++;
         }
+        else if (token === '--json') {
+            json = true;
+        }
     }
-    return { watch, interval, filters };
+    return { watch, interval, filters, json };
 }
 function applyFilters(endpoints, filters) {
     if (filters.length === 0)
@@ -262,6 +270,11 @@ function applyFilters(endpoints, filters) {
                 return false;
             if (key === 'coordinates' && !endpoint.coordinates.includes(value))
                 return false;
+            if (key.startsWith('metadata.')) {
+                const metaKey = key.substring(9);
+                if (!endpoint.metadata || endpoint.metadata[metaKey] !== value)
+                    return false;
+            }
         }
         return true;
     });
@@ -290,15 +303,25 @@ function displayEndpoints(endpoints, source) {
     }
 }
 async function handleEndpointsCommand(args) {
-    const { watch, interval, filters } = parseEndpointsArgs(args);
+    const { watch, interval, filters, json } = parseEndpointsArgs(args);
     if (!watch) {
         const { endpoints, source } = await loadEndpointSnapshot();
         if (endpoints.length === 0) {
-            console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
+            if (json) {
+                console.log('[]');
+            }
+            else {
+                console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
+            }
             return;
         }
         const filtered = applyFilters(endpoints, filters);
-        displayEndpoints(filtered, source);
+        if (json) {
+            console.log(JSON.stringify(filtered, null, 2));
+        }
+        else {
+            displayEndpoints(filtered, source);
+        }
         return;
     }
     console.log(`Watching endpoints (refresh every ${interval}s)...`);
@@ -339,7 +362,7 @@ async function writeRouterSnapshot(router) {
     console.log(`[mkctl] Router endpoints captured at ${snapshotPath}`);
 }
 async function handleRunCommand(args) {
-    const { configPath, durationMs, snapshotIntervalMs } = parseRunArgs(args);
+    const { configPath, durationMs, snapshotIntervalMs, dryRun } = parseRunArgs(args);
     const localNodeMode = process.env.MK_LOCAL_NODE === '1';
     if (localNodeMode) {
         console.log('[mkctl] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.');
@@ -371,6 +394,10 @@ async function handleRunCommand(args) {
         }
         throw new MkctlError(`Failed to read config ${configPath}: ${message}\nHint: validate that the file contains well-formed YAML or JSON.`, EXIT_CODES.CONFIG_PARSE, { cause: err });
     }
+    if (dryRun) {
+        console.log('Configuration is valid.');
+        return EXIT_CODES.SUCCESS;
+    }
     const kernel = new Kernel();
     const hostess = new Hostess();
     const stateManager = new StateManager(kernel);
@@ -390,6 +417,10 @@ async function handleRunCommand(args) {
     }
     catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        // Check if this is a health check failure
+        if (message.includes('Health check failed')) {
+            throw new MkctlError(`Health check failed: ${message}\nHint: verify external process is responsive and health check configuration is correct.`, EXIT_CODES.RUNTIME, { cause: err });
+        }
         throw new MkctlError(`Failed to start topology: ${message}\nHint: verify module names and external commands referenced by the config.`, EXIT_CODES.RUNTIME, { cause: err });
     }
     console.log(`Topology running for ${durationMs / 1000} seconds...\n`);

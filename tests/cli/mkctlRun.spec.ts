@@ -270,6 +270,34 @@ connections: []
       expect(result.stderr).toContain('Failed to start topology');
       expect(result.stderr).toContain('Hint:');
     });
+
+    it('should exit with RUNTIME code when health check fails', async () => {
+      const healthCheckFailConfig = `
+nodes:
+  - id: external1
+    module: ExternalProcess
+    params:
+      command: /bin/sleep
+      args: ["10"]
+      ioMode: stdio
+      healthCheck:
+        type: command
+        command: "exit 1"
+        timeout: 1000
+        retries: 2
+
+connections: []
+`;
+      const configPath = join(testConfigDir, 'health-check-fail.yml');
+      writeFileSync(configPath, healthCheckFailConfig);
+      tempFiles.push(configPath);
+
+      const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 5000);
+
+      expect(result.code).toBe(EXIT_CODES.RUNTIME);
+      expect(result.stderr).toContain('Health check failed');
+      expect(result.stderr).toContain('Hint:');
+    });
   });
 
   describe('example configs', () => {
@@ -424,6 +452,148 @@ connections: []
       expect(outcome.code).toBe(EXIT_CODES.INTERRUPTED);
       expect(outcome.stdout).toContain('Received SIGINT');
       expect(outcome.stdout).toContain('Bringing topology down');
+    });
+  });
+
+  describe('--dry-run flag', () => {
+    it('should validate and exit with success for valid config', async () => {
+      const validConfig = `
+nodes:
+  - id: timer1
+    module: TimerSource
+    params:
+      periodMs: 500
+
+connections: []
+`;
+      const configPath = join(testConfigDir, 'dry-run-valid.yml');
+      writeFileSync(configPath, validConfig);
+      tempFiles.push(configPath);
+
+      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
+
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
+      expect(result.stdout).toContain('Loading config from:');
+      expect(result.stdout).toContain('Configuration is valid.');
+      expect(result.stdout).not.toContain('Bringing topology up');
+      expect(result.stdout).not.toContain('Topology running');
+    });
+
+    it('should exit with CONFIG_PARSE error for invalid config', async () => {
+      const invalidConfig = `
+nodes:
+  - id: timer1
+    module: TimerSource
+
+connections:
+  - from: timer1.output
+    to: nonexistent.input
+`;
+      const configPath = join(testConfigDir, 'dry-run-invalid.yml');
+      writeFileSync(configPath, invalidConfig);
+      tempFiles.push(configPath);
+
+      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
+
+      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
+      expect(result.stderr).toContain('Configuration validation failed');
+      expect(result.stderr).toContain('node "nonexistent" referenced in "to" does not exist');
+      expect(result.stdout).not.toContain('Configuration is valid');
+    });
+
+    it('should exit with CONFIG_PARSE error for duplicate node IDs', async () => {
+      const duplicateConfig = `
+nodes:
+  - id: timer1
+    module: TimerSource
+  - id: timer1
+    module: TimerSource
+
+connections: []
+`;
+      const configPath = join(testConfigDir, 'dry-run-duplicate.yml');
+      writeFileSync(configPath, duplicateConfig);
+      tempFiles.push(configPath);
+
+      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
+
+      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
+      expect(result.stderr).toContain('Duplicate node id: "timer1"');
+      expect(result.stdout).not.toContain('Configuration is valid');
+    });
+
+    it('should exit with CONFIG_PARSE error for missing nodes array', async () => {
+      const invalidConfig = `
+connections: []
+`;
+      const configPath = join(testConfigDir, 'dry-run-missing-nodes.yml');
+      writeFileSync(configPath, invalidConfig);
+      tempFiles.push(configPath);
+
+      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
+
+      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
+      expect(result.stderr).toContain('Configuration must have a "nodes" array');
+      expect(result.stdout).not.toContain('Configuration is valid');
+    });
+
+    it('should exit with CONFIG_NOT_FOUND error when config file does not exist', async () => {
+      const result = await runMkctl(['run', '--file', '/nonexistent/config.yml', '--dry-run'], 1000);
+
+      expect(result.code).toBe(EXIT_CODES.CONFIG_NOT_FOUND);
+      expect(result.stderr).toContain('Config file not found');
+      expect(result.stdout).not.toContain('Configuration is valid');
+    });
+
+    it('should work with --dry-run flag in any position', async () => {
+      const validConfig = `
+nodes:
+  - id: timer1
+    module: TimerSource
+
+connections: []
+`;
+      const configPath = join(testConfigDir, 'dry-run-position.yml');
+      writeFileSync(configPath, validConfig);
+      tempFiles.push(configPath);
+
+      const result = await runMkctl(['run', '--dry-run', '--file', configPath], 2000);
+
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
+      expect(result.stdout).toContain('Configuration is valid.');
+    });
+
+    it('should validate complex config with multiple nodes and connections', async () => {
+      const complexConfig = `
+nodes:
+  - id: timer1
+    module: TimerSource
+    params:
+      periodMs: 200
+
+  - id: upper1
+    module: UppercaseTransform
+
+  - id: console1
+    module: ConsoleSink
+    params:
+      prefix: "[test]"
+
+connections:
+  - from: timer1.output
+    to: upper1.input
+
+  - from: upper1.output
+    to: console1.input
+`;
+      const configPath = join(testConfigDir, 'dry-run-complex.yml');
+      writeFileSync(configPath, complexConfig);
+      tempFiles.push(configPath);
+
+      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
+
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
+      expect(result.stdout).toContain('Configuration is valid.');
     });
   });
 });

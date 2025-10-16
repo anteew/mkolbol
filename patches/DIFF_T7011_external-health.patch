@@ -1,0 +1,76 @@
+# T7011: Health Check Support for ExternalProcess
+
+**Status**: Already implemented in T6003
+
+## Summary
+T7011 requested health check support for ExternalProcess. This functionality was already implemented in T6003 (patches/DIFF_T6003_external-healthcheck.patch).
+
+## What T6003 Implemented
+- Command-based health checks (`type: command`)
+- HTTP-based health checks (`type: http`)
+- Configurable timeout and retry logic
+- Exponential backoff on failures
+- Health check integration in ExternalServerWrapper
+- Documentation in mkctl-cookbook.md
+- Example config files
+
+## Implementation Details
+The following components exist in the codebase:
+
+### 1. Type Definitions (src/types.ts)
+```typescript
+export interface HealthCheckConfig {
+  type: 'command' | 'http';
+  command?: string;      // For type: command
+  url?: string;          // For type: http
+  timeout?: number;      // Default: 5000ms
+  retries?: number;      // Default: 3
+}
+```
+
+### 2. ExternalServerWrapper (src/wrappers/ExternalServerWrapper.ts)
+- `runHealthCheck()`: Main health check orchestration
+- `runCommandHealthCheck()`: Executes shell commands
+- `runHttpHealthCheck()`: Performs HTTP GET requests
+- Automatic execution after process spawn
+- Error handling with detailed messages
+
+### 3. Executor Integration (src/executor/Executor.ts)
+- Health check config passed from params to manifest
+- Integrated into ExternalProcess instantiation
+
+### 4. Documentation (docs/devex/mkctl-cookbook.md)
+- Complete usage examples
+- Configuration options table
+- Troubleshooting guide
+
+### 5. Test Fixtures (examples/configs/bad-health-check.yml)
+- Example failing health check config
+
+## Usage Example
+```yaml
+nodes:
+  - id: my-service
+    module: ExternalProcess
+    params:
+      command: /usr/bin/my-service
+      args: ['--port', '8080']
+      ioMode: stdio
+      healthCheck:
+        type: http
+        url: 'http://localhost:8080/health'
+        timeout: 5000
+        retries: 3
+    runMode: process
+```
+
+## Verification
+Grep shows health check implementation exists:
+- src/types.ts: HealthCheckConfig interface
+- src/wrappers/ExternalServerWrapper.ts: runHealthCheck, runCommandHealthCheck, runHttpHealthCheck
+- src/executor/Executor.ts: healthCheck param passed to manifest
+- docs/devex/mkctl-cookbook.md: User documentation
+- examples/configs/bad-health-check.yml: Test fixture
+
+## Conclusion
+No additional implementation needed. T7011 is a duplicate of T6003.

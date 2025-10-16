@@ -1,3 +1,3 @@
-{"ts":1760624434092,"lvl":"info","case":"split-then-merge: roundtrip preserves all data","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760624434093,"lvl":"info","case":"split-then-merge: roundtrip preserves all data","phase":"execution","evt":"test.run"}
-{"ts":1760624434094,"lvl":"info","case":"split-then-merge: roundtrip preserves all data","phase":"teardown","evt":"case.end","payload":{"duration":1280,"status":"passed"}}
+{"ts":1760628640994,"lvl":"info","case":"split-then-merge: roundtrip preserves all data","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760628640995,"lvl":"info","case":"split-then-merge: roundtrip preserves all data","phase":"execution","evt":"test.run"}
+{"ts":1760628640996,"lvl":"info","case":"split-then-merge: roundtrip preserves all data","phase":"teardown","evt":"case.end","payload":{"duration":1165,"status":"passed"}}

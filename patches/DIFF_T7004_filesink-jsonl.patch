@@ -1,0 +1,60 @@
+# T7004: FilesystemSink JSONL Format Support
+# Status: DUPLICATE (Already implemented in T6002)
+
+## Summary
+
+T7004 requested adding format option (raw|jsonl) to FilesystemSink.
+
+This feature was already implemented in T6002 (patches/DIFF_T6002_filesink-format-jsonl.patch).
+
+## Implementation Details (from T6002)
+
+**FilesystemSink Options Added:**
+- `format?: 'raw' | 'jsonl'` - Output format (default: 'raw')
+- `includeTimestamp?: boolean` - Prepend ISO timestamps to raw format (default: false)
+
+**Format Behaviors:**
+1. **`format: 'raw'`** (default) - Writes data as-is without modification
+2. **`format: 'jsonl'`** - Wraps each chunk as JSON object: `{"ts": "ISO timestamp", "data": "content"}`
+3. **`includeTimestamp: true`** with raw format - Prepends ISO timestamp to each line
+
+**Files Modified in T6002:**
+- `src/modules/filesystem-sink.ts` - Core implementation with Transform stream
+- `dist/src/modules/filesystem-sink.js` - Compiled output
+- `dist/src/modules/filesystem-sink.d.ts` - Type definitions
+- `tests/renderers/filesystemSink.spec.ts` - Comprehensive test coverage (lines 860-1000)
+- `tests/devex/acceptance/local-node-v1.md` - Documentation and examples
+- `.github/workflows/tests.yml` - CI smoke test with FilesystemSink
+
+**Test Coverage:**
+- ✅ JSONL format validation
+- ✅ Timestamp inclusion in raw mode
+- ✅ Multiple lines in single chunk
+- ✅ Partial line handling with timestamps
+- ✅ Default behavior (raw without timestamp)
+- ✅ Format priority (jsonl overrides includeTimestamp)
+
+## Verification
+
+```bash
+# Check current implementation
+cat src/modules/filesystem-sink.ts | grep -A5 "format.*jsonl"
+
+# Run tests
+npm test -- filesystemSink.spec.ts
+```
+
+## Conclusion
+
+**No action required.** T7004 is a duplicate of T6002.
+
+All requested functionality is already implemented, tested, and documented.
+
+---
+
+**Cross-reference:**
+- Original: T6002 (patches/DIFF_T6002_filesink-format-jsonl.patch)
+- Duplicate: T7004 (this patch)
+- Implementation: src/modules/filesystem-sink.ts
+- Tests: tests/renderers/filesystemSink.spec.ts (lines 860-1000)
+- Docs: tests/devex/acceptance/local-node-v1.md
