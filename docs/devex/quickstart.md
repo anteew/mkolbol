@@ -239,6 +239,118 @@ Learn more: **[Wiring and Testing](./wiring-and-tests.md)** for complete config 
 
 ---
 
+## TTYRenderer: ANSI Terminal Output with External Processes
+
+The TTYRenderer module renders ANSI-colored terminal output from external commands. It's ideal for displaying directory listings, colored logs, or any command that produces ANSI escape sequences.
+
+### Quick Start: Colorized Directory Listing
+
+**Run the example:**
+
+```bash
+export MK_LOCAL_NODE=1
+node dist/scripts/mkctl.js run --file examples/configs/tty-external.yml --duration 5
+```
+
+This topology pipes `ls --color=always -la` output through TTYRenderer to your terminal with full ANSI color support.
+
+**Expected output:**
+```
+total 456
+drwxr-xr-x  25 user  staff    800 Oct 16 14:32 .
+drwxr-xr-x   8 user  staff    256 Oct 15 09:15 ..
+drwxr-xr-x  12 user  staff    384 Oct 16 12:45 .git
+-rw-r--r--   1 user  staff   1234 Oct 16 14:30 README.md
+drwxr-xr-x   5 user  staff    160 Oct 16 11:20 src
+...
+```
+
+(Colors will display in your terminal)
+
+### Configuration
+
+The config `examples/configs/tty-external.yml` demonstrates:
+
+```yaml
+nodes:
+  - id: ls-command
+    module: ExternalProcess
+    params:
+      command: ls
+      args:
+        - --color=always
+        - -la
+      ioMode: stdio
+      restart: never
+
+  - id: tty-renderer
+    module: XtermTTYRenderer
+    params:
+      altBuffer: false  # false = inline output; true = alternate screen
+
+connections:
+  - from: ls-command.output
+    to: tty-renderer.input
+```
+
+**Key parameters:**
+- `ioMode: stdio` - Non-interactive command output (vs. `pty` for shells)
+- `altBuffer: false` - Inline rendering (set `true` to use alternate screen buffer)
+- `--color=always` - Force ANSI colors even when piped
+
+### Other TTY Examples
+
+**Colorized grep output:**
+```bash
+# Create config with grep --color=always
+cat > examples/configs/tty-grep.yml <<EOF
+nodes:
+  - id: grep-cmd
+    module: ExternalProcess
+    params:
+      command: grep
+      args: [--color=always, -r, "function", "src/"]
+      ioMode: stdio
+  - id: tty
+    module: XtermTTYRenderer
+connections:
+  - from: grep-cmd.output
+    to: tty.input
+EOF
+
+# Run it
+node dist/scripts/mkctl.js run --file examples/configs/tty-grep.yml --duration 3
+```
+
+**Tail colored logs:**
+```bash
+# Watch a log file with color highlighting
+node dist/scripts/mkctl.js run --file examples/configs/tty-tail-logs.yml --duration 10
+```
+
+### mkctl run Examples
+
+```bash
+# Quick 3-second directory listing
+node dist/scripts/mkctl.js run --file examples/configs/tty-external.yml --duration 3
+
+# Watch output for 30 seconds (useful for tail -f commands)
+node dist/scripts/mkctl.js run --file examples/configs/tty-external.yml --duration 30
+
+# Use alternate screen buffer to avoid cluttering terminal history
+# (edit config to set altBuffer: true, then run)
+node dist/scripts/mkctl.js run --file examples/configs/tty-external-alt.yml --duration 5
+```
+
+### When to Use TTYRenderer vs ConsoleSink
+
+| Module | Use Case |
+|--------|----------|
+| **XtermTTYRenderer** | Commands with ANSI colors, terminal control sequences, or rich formatting |
+| **ConsoleSink** | Plain text logs, structured data, or when you need prefix/formatting |
+
+---
+
 ## Manual Demo (Direct Code Execution)
 
 For deeper control or if you're building a custom topology, you can run the TypeScript demo directly.

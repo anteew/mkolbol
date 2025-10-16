@@ -1530,3 +1530,168 @@ mkctl run --file config.yml --duration 60 --snapshot-interval 10
 
 **Ready for Vega review and merge** 🚀
 
+
+---
+
+## Wave DX-12A: Doctor Page + Authoring Guide + Acceptance Smoke — 2025-10-17 07:00Z
+
+**Goal**: Add comprehensive DevEx documentation (troubleshooting + module authoring) and enhance acceptance smoke testing
+
+**Status**: ✅ **COMPLETE (3/3 tasks)**
+
+---
+
+### TASK DEVEX-1201 — Doctor Page ✅ PASS
+
+**Deliverable**: `docs/devex/doctor.md` (comprehensive troubleshooting guide)
+
+**Files Created**:
+- `docs/devex/doctor.md` — 550+ lines, 40+ problem scenarios
+
+**Implementation**:
+- Configuration Errors (10 scenarios): file not found, YAML syntax, missing arrays, duplicate IDs, bad connections, unknown modules
+- Runtime Errors (8 scenarios): command not found, health check failures, topology errors, port conflicts
+- Health Check Troubleshooting (3 subsections): command-based, HTTP-based, timeout handling
+- File Permissions (2 scenarios): write permission denied, directory creation
+- Debugging Tips: verbose logging, config inspection, endpoint monitoring
+- Common Scenarios: port conflicts, external server crashes, health check edge cases
+- Exit Codes Reference: 0, 64, 65, 66, 70, 130 with fixes
+
+**Features**:
+- Problem/Cause/Fix pattern for consistency
+- Code examples for each scenario
+- Links to related documentation
+- Cross-references to mkctl-cookbook.md
+- Community support links
+
+**Verification**:
+- ✅ npm run build
+- ✅ Documentation is comprehensive (40+ scenarios covered)
+- ✅ All code examples are valid YAML/bash
+- ✅ Cross-links resolve to existing docs
+
+---
+
+### TASK DEVEX-1202 — Authoring a Module Guide ✅ PASS
+
+**Deliverable**: `docs/devex/authoring-a-module.md` (developer guide for module creation)
+
+**Files Created**:
+- `docs/devex/authoring-a-module.md` — 700+ lines, complete module development guide
+
+**Implementation**:
+- Module Anatomy: constructor pattern, pipes, lifecycle methods
+- Example: ReverseTransform with full implementation
+- Using in YAML: complete config example
+- Input/Output Pipes: backpressure handling, drain events
+- Module Types: Source, Transform, Sink with examples
+- Registration: ModuleRegistry + Executor path map
+- Testing: comprehensive test patterns (unit + integration)
+- Configuration Validation: typed options with defaults
+- Complete Examples:
+  - Counter module (state tracking + metrics)
+  - BufferTransform (stateful aggregation)
+  - FilterTransform (conditional output)
+  - TeeTransform (multi-output duplication)
+- Common Patterns: 3 real-world patterns
+- Debugging: debug events + Laminar integration
+- Best Practices: DO's and DON'Ts
+- Publishing: guidance for external modules
+- Getting Help: links to architecture + examples
+
+**Features**:
+- Copy-paste ready code examples
+- Complete test patterns with vitest syntax
+- TypeScript interfaces for type safety
+- Registration process clearly documented
+- Stream handling best practices
+- Backpressure handling patterns
+
+**Verification**:
+- ✅ npm run build
+- ✅ All code examples compile TypeScript
+- ✅ Links to related docs verify
+- ✅ Testing patterns follow project conventions
+
+---
+
+### TASK DEVEX-1203 — Acceptance Smoke Enhancements ✅ PASS
+
+**Deliverable**: Enhanced CI workflow + PR comment aggregation
+
+**Files Modified**:
+- `.github/workflows/tests.yml` (+43 lines) — acceptance smoke enhancements
+- `scripts/post-laminar-pr-comment.js` (+54 lines) — acceptance result aggregation
+
+**Implementation**:
+
+**Acceptance Smoke Job** (.github/workflows/tests.yml):
+- Captures topology startup success (checks for "Topology running")
+- Verifies FilesystemSink output:
+  - Checks if logs/http-response.log exists
+  - Counts lines to validate data was written
+  - Displays log contents on success
+- Validates router endpoints:
+  - Checks if reports/router-endpoints.json created
+  - Uses jq to count endpoint count
+  - Reports endpoint count on success
+- Records results as JSONL for aggregation:
+  - `reports/acceptance-smoke.jsonl`
+  - Format: `{"type":"acceptance","topology":true,"filesink":true,"endpoints":true,"timestamp":"..."}`
+
+**PR Comment Aggregation** (scripts/post-laminar-pr-comment.js):
+- New constant: `ACCEPTANCE_PATH` for results file
+- New function: `readAcceptanceResults()`:
+  - Reads latest result from JSONL file
+  - Parses topology, filesink, endpoints flags
+  - Formats as `✅/❌ Topology | ✅/❌ FilesystemSink | ✅/❌ Router Endpoints`
+  - Returns formatted section for PR comment
+- Updated: `buildCommentBody()` to include acceptance results
+- Result section inserted before artifacts list
+- Gracefully handles missing acceptance results (no errors)
+
+**Features**:
+- Non-breaking: works with or without acceptance results
+- Backward compatible: doesn't affect existing functionality
+- Best-effort: continues even if acceptance file missing
+- Visible: acceptance status immediately in PR comment
+- Structured: JSONL format enables future dashboard integration
+
+**Verification**:
+- ✅ npm run build
+- ✅ Workflow syntax valid (YAML)
+- ✅ Script changes maintain existing behavior
+- ✅ Graceful error handling implemented
+
+---
+
+## Wave DX-12A Summary
+
+**Duration**: ~30 minutes (creation + commit)
+**Tasks Completed**: 3/3 (100%)
+**Files Created**: 2 documentation files (~1,250 lines)
+**Files Modified**: 2 CI/script files (~97 lines)
+**Deliverables**: 1 aggregate commit
+
+**Documentation Impact**:
+- Doctor page: Self-serve troubleshooting (reduces support burden)
+- Authoring guide: Accelerates custom module development
+- Acceptance visibility: Better PR feedback for health status
+
+**Developer Experience**:
+- Lower barrier to module authoring
+- Faster debugging with Doctor reference
+- Clearer CI feedback with acceptance smoke in PR comments
+- Comprehensive examples and patterns
+
+**Quality Checklist**:
+- ✅ All docs reviewed for accuracy
+- ✅ Code examples tested/validated
+- ✅ Cross-links verified
+- ✅ CI changes backward compatible
+- ✅ No breaking changes
+- ✅ Build passes
+
+**Branch**: `mkolbol-local-v1-rc-p9`
+**Commit**: `fcff3f4 feat: Wave DX-12A — Doctor page, Authoring guide, acceptance smoke enhancements`
+**Ready for Architect Review**: ✅ YES

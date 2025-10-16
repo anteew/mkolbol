@@ -1,654 +1,214 @@
 {
-  "generated": "2025-10-16T15:36:44.216Z",
-  "totalTests": 59,
+  "generated": "2025-10-16T16:01:22.732Z",
+  "totalTests": 19,
   "artifacts": [
     {
-      "testName": "should spawn external process with stdio mode from config",
+      "testName": "should render raw ANSI to stdout by default",
       "status": "pass",
-      "duration": 538,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.378Z",
+      "duration": 54,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.719Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_spawn_external_process_with_stdio_mode_from_config.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_render_raw_ANSI_to_stdout_by_default.jsonl"
       }
     },
     {
-      "testName": "should spawn external process with pty mode from config",
+      "testName": "should handle ANSI escape sequences",
       "status": "pass",
-      "duration": 517,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.379Z",
+      "duration": 52,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.720Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_spawn_external_process_with_pty_mode_from_config.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_ANSI_escape_sequences.jsonl"
       }
     },
     {
-      "testName": "should handle both stdio and pty modes concurrently",
+      "testName": "should strip ANSI codes when stripAnsi is enabled",
       "status": "pass",
-      "duration": 19,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.380Z",
+      "duration": 52,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.721Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_handle_both_stdio_and_pty_modes_concurrently.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_strip_ANSI_codes_when_stripAnsi_is_enabled.jsonl"
       }
     },
     {
-      "testName": "should capture stdout and stderr logs",
+      "testName": "should handle multiple writes",
       "status": "pass",
-      "duration": 508,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.380Z",
+      "duration": 53,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.722Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_capture_stdout_and_stderr_logs.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_multiple_writes.jsonl"
       }
     },
     {
-      "testName": "should have exponential backoff calculation",
+      "testName": "should handle string inputs",
       "status": "pass",
-      "duration": 13,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.381Z",
+      "duration": 53,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.722Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_have_exponential_backoff_calculation.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_string_inputs.jsonl"
       }
     },
     {
-      "testName": "should respect capture limit for large outputs",
+      "testName": "should handle object inputs by stringifying",
       "status": "pass",
-      "duration": 1007,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.381Z",
+      "duration": 53,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.723Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_respect_capture_limit_for_large_outputs.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_object_inputs_by_stringifying.jsonl"
       }
     },
     {
-      "testName": "should track exit codes and provide exit info",
+      "testName": "should write to file when target is a file path",
       "status": "pass",
-      "duration": 514,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.382Z",
+      "duration": 11,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.723Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_track_exit_codes_and_provide_exit_info.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_write_to_file_when_target_is_a_file_path.jsonl"
       }
     },
     {
-      "testName": "should handle environment variables",
-      "status": "pass",
-      "duration": 514,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.383Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_handle_environment_variables.jsonl"
-      }
-    },
-    {
-      "testName": "should respect working directory",
-      "status": "pass",
-      "duration": 515,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.383Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_respect_working_directory.jsonl"
-      }
-    },
-    {
-      "testName": "should enforce 100KB capture limit strictly",
-      "status": "pass",
-      "duration": 2016,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.384Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_enforce_100KB_capture_limit_strictly.jsonl"
-      }
-    },
-    {
-      "testName": "should cap exponential backoff at 30 seconds",
-      "status": "pass",
-      "duration": 13,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.385Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_cap_exponential_backoff_at_30_seconds.jsonl"
-      }
-    },
-    {
-      "testName": "should handle SIGTERM signal correctly",
-      "status": "pass",
-      "duration": 1507,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.385Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_handle_SIGTERM_signal_correctly.jsonl"
-      }
-    },
-    {
-      "testName": "should handle SIGKILL signal correctly",
-      "status": "pass",
-      "duration": 1513,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.386Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_handle_SIGKILL_signal_correctly.jsonl"
-      }
-    },
-    {
-      "testName": "should respect restart count limits and not exceed maxRestarts",
-      "status": "pass",
-      "duration": 2517,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.386Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_respect_restart_count_limits_and_not_exceed_maxRestarts.jsonl"
-      }
-    },
-    {
-      "testName": "should enforce 100KB capture limit on stderr",
-      "status": "pass",
-      "duration": 2044,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.387Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_enforce_100KB_capture_limit_on_stderr.jsonl"
-      }
-    },
-    {
-      "testName": "should use SIGKILL if SIGTERM timeout is exceeded",
-      "status": "pass",
-      "duration": 515,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.387Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_use_SIGKILL_if_SIGTERM_timeout_is_exceeded.jsonl"
-      }
-    },
-    {
-      "testName": "should pass command-based health check",
-      "status": "pass",
-      "duration": 20,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.387Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_pass_command-based_health_check.jsonl"
-      }
-    },
-    {
-      "testName": "should fail command-based health check after retries",
-      "status": "pass",
-      "duration": 1017,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.388Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_fail_command-based_health_check_after_retries.jsonl"
-      }
-    },
-    {
-      "testName": "should pass HTTP-based health check",
-      "status": "pass",
-      "duration": 67,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.388Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_pass_HTTP-based_health_check.jsonl"
-      }
-    },
-    {
-      "testName": "should fail HTTP-based health check with timeout",
-      "status": "pass",
-      "duration": 1006,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.389Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_fail_HTTP-based_health_check_with_timeout.jsonl"
-      }
-    },
-    {
-      "testName": "should fail HTTP health check on non-2xx status",
-      "status": "pass",
-      "duration": 1032,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.389Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_fail_HTTP_health_check_on_non-2xx_status.jsonl"
-      }
-    },
-    {
-      "testName": "should use exponential backoff between health check retries",
-      "status": "pass",
-      "duration": 3020,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.390Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_use_exponential_backoff_between_health_check_retries.jsonl"
-      }
-    },
-    {
-      "testName": "should timeout command health check",
-      "status": "pass",
-      "duration": 505,
-      "location": "/srv/repos0/mkolbol/tests/integration/externalFromConfig.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:23.390Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/externalFromConfig.spec/should_timeout_command_health_check.jsonl"
-      }
-    },
-    {
-      "testName": "should handle heavy writes with backpressure",
-      "status": "pass",
-      "duration": 321,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.668Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_handle_heavy_writes_with_backpressure.jsonl"
-      }
-    },
-    {
-      "testName": "should handle bidirectional heavy writes",
-      "status": "pass",
-      "duration": 310,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.668Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_handle_bidirectional_heavy_writes.jsonl"
-      }
-    },
-    {
-      "testName": "should handle graceful teardown during writes",
-      "status": "pass",
-      "duration": 606,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.669Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_handle_graceful_teardown_during_writes.jsonl"
-      }
-    },
-    {
-      "testName": "should propagate write errors",
-      "status": "pass",
-      "duration": 504,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.669Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_propagate_write_errors.jsonl"
-      }
-    },
-    {
-      "testName": "should handle heartbeat timeout detection",
-      "status": "pass",
-      "duration": 4406,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.669Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_handle_heartbeat_timeout_detection.jsonl"
-      }
-    },
-    {
-      "testName": "should recover from heartbeat disruption",
-      "status": "pass",
-      "duration": 6208,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.670Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_recover_from_heartbeat_disruption.jsonl"
-      }
-    },
-    {
-      "testName": "should handle graceful shutdown sequence",
-      "status": "pass",
-      "duration": 703,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.670Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_handle_graceful_shutdown_sequence.jsonl"
-      }
-    },
-    {
-      "testName": "should handle pub/sub under load",
-      "status": "pass",
-      "duration": 906,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.671Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_handle_pub_sub_under_load.jsonl"
-      }
-    },
-    {
-      "testName": "should complete teardown with pending messages",
-      "status": "pass",
-      "duration": 702,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.675Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_complete_teardown_with_pending_messages.jsonl"
-      }
-    },
-    {
-      "testName": "should propagate subscription errors",
-      "status": "pass",
-      "duration": 602,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.675Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_propagate_subscription_errors.jsonl"
-      }
-    },
-    {
-      "testName": "should coordinate teardown of pipe and control adapters",
-      "status": "pass",
-      "duration": 907,
-      "location": "/srv/repos0/mkolbol/tests/integration/processUnix.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.676Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processUnix.spec/should_coordinate_teardown_of_pipe_and_control_adapters.jsonl"
-      }
-    },
-    {
-      "testName": "should register endpoints for inproc nodes",
-      "status": "pass",
-      "duration": 5,
-      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.863Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/endpointsList.spec/should_register_endpoints_for_inproc_nodes.jsonl"
-      }
-    },
-    {
-      "testName": "should list all registered endpoints across multiple nodes",
+      "testName": "should write ANSI codes to file in raw mode",
       "status": "pass",
       "duration": 4,
-      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.863Z",
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.724Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/endpointsList.spec/should_list_all_registered_endpoints_across_multiple_nodes.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_write_ANSI_codes_to_file_in_raw_mode.jsonl"
       }
     },
     {
-      "testName": "should register external endpoint when wrapper spawns",
+      "testName": "should strip ANSI codes from file when stripAnsi is enabled",
       "status": "pass",
-      "duration": 8,
-      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.864Z",
+      "duration": 4,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.725Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/endpointsList.spec/should_register_external_endpoint_when_wrapper_spawns.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_strip_ANSI_codes_from_file_when_stripAnsi_is_enabled.jsonl"
       }
     },
     {
-      "testName": "should register pty endpoint when wrapper spawns",
+      "testName": "should create nested directories automatically",
       "status": "pass",
-      "duration": 109,
-      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.864Z",
+      "duration": 4,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.725Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/endpointsList.spec/should_register_pty_endpoint_when_wrapper_spawns.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_create_nested_directories_automatically.jsonl"
       }
     },
     {
-      "testName": "should list all endpoint types in a mixed topology",
+      "testName": "should append to existing file",
       "status": "pass",
-      "duration": 7,
-      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.865Z",
+      "duration": 4,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.726Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/endpointsList.spec/should_list_all_endpoint_types_in_a_mixed_topology.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_append_to_existing_file.jsonl"
       }
     },
     {
-      "testName": "should maintain endpoints after executor restart",
+      "testName": "should handle binary data",
       "status": "pass",
-      "duration": 2,
-      "location": "/srv/repos0/mkolbol/tests/integration/endpointsList.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:39.865Z",
+      "duration": 5,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.726Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/endpointsList.spec/should_maintain_endpoints_after_executor_restart.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_binary_data.jsonl"
       }
     },
     {
-      "testName": "should spawn PTY process",
+      "testName": "should work in non-TTY environment",
       "status": "pass",
-      "duration": 105,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:41.957Z",
+      "duration": 51,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.727Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ptyServerWrapper.spec/should_spawn_PTY_process.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_work_in_non-TTY_environment.jsonl"
       }
     },
     {
-      "testName": "should pipe data bidirectionally",
+      "testName": "should handle rawMode gracefully when not a TTY",
       "status": "pass",
-      "duration": 405,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:41.957Z",
+      "duration": 3,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.727Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ptyServerWrapper.spec/should_pipe_data_bidirectionally.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_rawMode_gracefully_when_not_a_TTY.jsonl"
       }
     },
     {
-      "testName": "should handle resize",
+      "testName": "should handle empty writes",
       "status": "pass",
-      "duration": 105,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:41.958Z",
+      "duration": 51,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.728Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ptyServerWrapper.spec/should_handle_resize.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_empty_writes.jsonl"
       }
     },
     {
-      "testName": "should send signals",
+      "testName": "should handle rapid sequential writes",
       "status": "pass",
-      "duration": 105,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:41.958Z",
+      "duration": 4,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.728Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ptyServerWrapper.spec/should_send_signals.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_rapid_sequential_writes.jsonl"
       }
     },
     {
-      "testName": "should handle process exit",
+      "testName": "should handle large buffers",
       "status": "pass",
-      "duration": 304,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:41.959Z",
+      "duration": 3,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.729Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ptyServerWrapper.spec/should_handle_process_exit.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_large_buffers.jsonl"
       }
     },
     {
-      "testName": "should register PTY server with Hostess",
+      "testName": "should handle complex ANSI sequences",
       "status": "pass",
-      "duration": 105,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:41.959Z",
+      "duration": 4,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.729Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ptyServerWrapper.spec/should_register_PTY_server_with_Hostess.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_handle_complex_ANSI_sequences.jsonl"
       }
     },
     {
-      "testName": "should work with basic shell (bash)",
+      "testName": "should strip complex ANSI sequences correctly",
       "status": "pass",
-      "duration": 405,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:41.959Z",
+      "duration": 51,
+      "location": "/srv/repos0/mkolbol/tests/renderers/ttyRenderer.spec.ts:0",
+      "timestamp": "2025-10-16T16:01:22.730Z",
       "artifacts": {
         "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ptyServerWrapper.spec/should_work_with_basic_shell__bash_.jsonl"
-      }
-    },
-    {
-      "testName": "should handle interactive commands",
-      "status": "pass",
-      "duration": 507,
-      "location": "/srv/repos0/mkolbol/tests/wrappers/ptyServerWrapper.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:41.960Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/ptyServerWrapper.spec/should_handle_interactive_commands.jsonl"
-      }
-    },
-    {
-      "testName": "should perform stdin → stdout roundtrip",
-      "status": "pass",
-      "duration": 308,
-      "location": "/srv/repos0/mkolbol/tests/integration/stdioPath.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:43.019Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stdioPath.spec/should_perform_stdin___stdout_roundtrip.jsonl"
-      }
-    },
-    {
-      "testName": "should handle drain events under backpressure",
-      "status": "pass",
-      "duration": 60,
-      "location": "/srv/repos0/mkolbol/tests/integration/stdioPath.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:43.019Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stdioPath.spec/should_handle_drain_events_under_backpressure.jsonl"
-      }
-    },
-    {
-      "testName": "should manage lifecycle (start/stop)",
-      "status": "pass",
-      "duration": 8,
-      "location": "/srv/repos0/mkolbol/tests/integration/stdioPath.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:43.020Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stdioPath.spec/should_manage_lifecycle__start_stop_.jsonl"
-      }
-    },
-    {
-      "testName": "should register with Hostess correctly",
-      "status": "pass",
-      "duration": 6,
-      "location": "/srv/repos0/mkolbol/tests/integration/stdioPath.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:43.020Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stdioPath.spec/should_register_with_Hostess_correctly.jsonl"
-      }
-    },
-    {
-      "testName": "should handle multiple sequential messages",
-      "status": "pass",
-      "duration": 608,
-      "location": "/srv/repos0/mkolbol/tests/integration/stdioPath.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:43.021Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/stdioPath.spec/should_handle_multiple_sequential_messages.jsonl"
-      }
-    },
-    {
-      "testName": "should split PTY output to 2+ renderers",
-      "status": "pass",
-      "duration": 612,
-      "location": "/srv/repos0/mkolbol/tests/integration/multiModalOutput.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:44.115Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/multiModalOutput.spec/should_split_PTY_output_to_2__renderers.jsonl"
-      }
-    },
-    {
-      "testName": "should format Buffer objects as human-readable output",
-      "status": "pass",
-      "duration": 105,
-      "location": "/srv/repos0/mkolbol/tests/integration/multiModalOutput.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:44.115Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/multiModalOutput.spec/should_format_Buffer_objects_as_human-readable_output.jsonl"
-      }
-    },
-    {
-      "testName": "should output JSONL format when format=jsonl",
-      "status": "pass",
-      "duration": 107,
-      "location": "/srv/repos0/mkolbol/tests/integration/multiModalOutput.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:44.116Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/multiModalOutput.spec/should_output_JSONL_format_when_format_jsonl.jsonl"
-      }
-    },
-    {
-      "testName": "should encode Buffers as base64 in JSONL format",
-      "status": "pass",
-      "duration": 103,
-      "location": "/srv/repos0/mkolbol/tests/integration/multiModalOutput.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:44.116Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/multiModalOutput.spec/should_encode_Buffers_as_base64_in_JSONL_format.jsonl"
-      }
-    },
-    {
-      "testName": "should support legacy string constructor",
-      "status": "pass",
-      "duration": 101,
-      "location": "/srv/repos0/mkolbol/tests/integration/multiModalOutput.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:44.117Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/multiModalOutput.spec/should_support_legacy_string_constructor.jsonl"
-      }
-    },
-    {
-      "testName": "should spawn and manage process lifecycle",
-      "status": "pass",
-      "duration": 9,
-      "location": "/srv/repos0/mkolbol/tests/integration/processMode.spec.ts:0",
-      "timestamp": "2025-10-16T15:36:44.213Z",
-      "artifacts": {
-        "summary": "reports/summary.jsonl",
-        "caseFile": "reports/processMode.spec/should_spawn_and_manage_process_lifecycle.jsonl"
+        "caseFile": "reports/ttyRenderer.spec/should_strip_complex_ANSI_sequences_correctly.jsonl"
       }
     }
   ],
@@ -660,7 +220,7 @@
     "seed": 42,
     "envVars": {
       "NODE_ENV": "test",
-      "LAMINAR_SUITE": "forks"
+      "LAMINAR_SUITE": "threads"
     }
   }
 }
