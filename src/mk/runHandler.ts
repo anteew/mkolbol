@@ -1,5 +1,5 @@
-import { readFileSync, existsSync } from 'fs';
-import { validateTopology } from '../config/loader.js';
+import { existsSync } from 'fs';
+import { loadConfig } from '../config/loader.js';
 import { EXIT_CODES } from './errors.js';
 
 export async function runHandler(args: string[]): Promise<number> {
@@ -23,34 +23,22 @@ export async function runHandler(args: string[]): Promise<number> {
     return EXIT_CODES.CONFIG_NOT_FOUND;
   }
 
-  let content: string;
   try {
-    content = readFileSync(topologyFile, 'utf-8');
+    // loadConfig handles JSON/YAML and accepts { topology: { ... } } wrappers
+    loadConfig(topologyFile, { validate: true });
   } catch (error) {
-    console.error(`Error: Failed to read config file: ${error instanceof Error ? error.message : String(error)}`);
-    return EXIT_CODES.CONFIG_NOT_FOUND;
-  }
-
-  let config: any;
-  try {
-    const trimmed = content.trim();
-    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-      config = JSON.parse(content);
-    } else {
-      const { parse: parseYaml } = await import('yaml');
-      config = parseYaml(content);
+    const msg = error instanceof Error ? error.message : String(error);
+    if (/not found|ENOENT/i.test(msg)) {
+      console.error(`Error: Config file not found: ${topologyFile}`);
+      return EXIT_CODES.CONFIG_NOT_FOUND;
     }
-  } catch (error) {
-    console.error(`Error: Failed to parse config file`);
-    console.error(`  ${error instanceof Error ? error.message : String(error)}`);
-    return EXIT_CODES.CONFIG_INVALID;
-  }
-
-  try {
-    validateTopology(config);
-  } catch (error) {
+    if (/parse|yaml|json/i.test(msg)) {
+      console.error(`Error: Failed to parse config file`);
+      console.error(`  ${msg}`);
+      return EXIT_CODES.CONFIG_INVALID;
+    }
     console.error(`Error: Configuration validation failed`);
-    console.error(`  ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`  ${msg}`);
     return EXIT_CODES.VALIDATION_ERROR;
   }
 

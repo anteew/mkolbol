@@ -858,6 +858,62 @@ Questions about this scenario?
 
 ## mk CLI Acceptance Test Results
 
+**Last Run:** 2025-10-16T20:40:24.158Z
+
+```
+✓ mk init test-project-acceptance (50ms)
+✓ mk run mk.json --dry-run (82ms)
+✓ mk doctor (2796ms)
+✓ mk format mk.json --to yaml (to mk.yaml) (87ms)
+✓ mk run mk.yaml --yaml --dry-run (82ms)
+```
+
+**Summary:** 5/5 tests passed
+
+See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
+
+**Last Run:** 2025-10-16T20:39:55.788Z
+
+```
+✓ mk init test-project-acceptance (48ms)
+✗ mk run mk.json --dry-run (81ms)
+✓ mk doctor (2686ms)
+✓ mk format mk.json --to yaml (to mk.yaml) (124ms)
+✗ mk run mk.yaml --yaml --dry-run (95ms)
+```
+
+**Summary:** 3/5 tests passed
+
+See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
+
+**Last Run:** 2025-10-16T20:39:15.407Z
+
+```
+✓ mk init test-project-acceptance (46ms)
+✗ mk run mk.json --dry-run (83ms)
+✓ mk doctor (2789ms)
+✓ mk format mk.json --to yaml (to mk.yaml) (89ms)
+✗ mk run mk.yaml --yaml --dry-run (87ms)
+```
+
+**Summary:** 3/5 tests passed
+
+See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
+
+**Last Run:** 2025-10-16T20:38:26.116Z
+
+```
+✗ mk init test-project (46ms)
+✗ mk run mk.json --dry-run (2ms)
+✓ mk doctor (2851ms)
+✗ mk format mk.json --to yaml (to mk.yaml) (3ms)
+✗ mk run mk.yaml --yaml --dry-run (2ms)
+```
+
+**Summary:** 1/5 tests passed
+
+See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
+
 **Last Run:** 2025-10-16T20:32:14.427Z
 
 ```

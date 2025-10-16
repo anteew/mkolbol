@@ -1,0 +1,6 @@
+node_modules/
+dist/
+logs/
+reports/
+*.tgz
+.mk-checksum.txt

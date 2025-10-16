@@ -8,9 +8,61 @@ const commands = [
     {
         name: 'init',
         description: 'Initialize a new mkolbol project',
-        usage: 'mk init [project-name]',
+        usage: 'mk init [project-name] [--force] [--verbose]',
         handler: async (args) => {
-            console.log('Not implemented yet');
+            const { mkdirSync, existsSync, cpSync, writeFileSync, readFileSync } = await import('node:fs');
+            const { join, resolve } = await import('node:path');
+            const { fileURLToPath } = await import('node:url');
+            const projectName = args.find(a => !a.startsWith('--')) || 'mk-app';
+            const force = args.includes('--force') || args.includes('-f');
+            const verbose = args.includes('--verbose');
+            const cwd = process.cwd();
+            const targetDir = resolve(cwd, projectName);
+            if (existsSync(targetDir) && !force) {
+                console.error(`Error: Directory '${projectName}' already exists. Use --force to overwrite.`);
+                return EXIT_USAGE;
+            }
+            // Resolve template directory relative to this script location (repo layout)
+            const thisFile = fileURLToPath(import.meta.url);
+            const scriptDir = resolve(thisFile, '..');
+            // dist/scripts/mk.js → repo/examples/mk/init-templates/hello-calculator
+            const templateDir = resolve(scriptDir, '../../examples/mk/init-templates/hello-calculator');
+            if (!existsSync(templateDir)) {
+                console.error('Error: init template not found.');
+                console.error('Tip: Run mk inside the mkolbol repo or copy examples/mk/init-templates/hello-calculator manually.');
+                return EXIT_ERROR;
+            }
+            if (existsSync(targetDir) && force) {
+                // Minimal nuke: recreate directory
+                try {
+                    await import('node:fs/promises').then(fs => fs.rm(targetDir, { recursive: true, force: true }));
+                }
+                catch { }
+            }
+            mkdirSync(targetDir, { recursive: true });
+            cpSync(templateDir, targetDir, { recursive: true });
+            // Personalize README title
+            try {
+                const readmePath = join(targetDir, 'README.md');
+                if (existsSync(readmePath)) {
+                    const txt = readFileSync(readmePath, 'utf8').replace(/hello-calculator/gi, projectName);
+                    writeFileSync(readmePath, txt);
+                }
+            }
+            catch { }
+            console.log(`✓ Project created at ./${projectName}`);
+            if (verbose) {
+                console.log('Contents:');
+                console.log('  - mk.json');
+                console.log('  - .mk/options.json');
+                console.log('  - src/index.ts');
+                console.log('  - package.json, tsconfig.json');
+                console.log('  - README.md, ACCEPTANCE.md');
+            }
+            console.log('\nNext steps:');
+            console.log(`  cd ${projectName}`);
+            console.log('  node ../dist/scripts/mk.js run mk.json --dry-run');
+            console.log('  node ../dist/scripts/mk.js build && node ../dist/scripts/mk.js package');
             return EXIT_SUCCESS;
         },
     },
