@@ -1,0 +1,13 @@
+Diary — 2025-10-16T03:43Z
+
+Branch & SHA
+- Branch: mkolbol-devex-p6
+- HEAD: __TO_FILL_AFTER_COMMIT__
+
+What I did
+- Regenerated ampcode.md and devex.md using agent_template/AMPCODE_TEMPLATE.md structure.
+- Susan sprint: SB-MK-ROUTER-P1 (CI enforcement + Router P1 + mkctl endpoints + docs).
+- Vex sprint: DEVEX-P6 (First Five Minutes, troubleshooting, GitHub packaging, mkctl cookbook, acceptance templates).
+
+Next
+- Commit and push; open PR or hand off to agents to start.
