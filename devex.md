@@ -83,47 +83,47 @@
 }
 ```
 
-# DevEx — MKD Phase C Docs (Dev/Logs/Trace/Recipes)
+# DevEx — Phase D Docs (init/build/package/ci‑plan)
 
 ```json
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "DEVX-P3-A", "parallel": true,  "tasks": ["D9951","D9952"] },
-    { "id": "DEVX-P3-B", "parallel": true,  "depends_on": ["DEVX-P3-A"], "tasks": ["D9953","D9954","D9955"] }
+    { "id": "DEVX-P4-A", "parallel": true,  "tasks": ["D10001","D10002"] },
+    { "id": "DEVX-P4-B", "parallel": true,  "depends_on": ["DEVX-P4-A"], "tasks": ["D10003","D10004","D10005"] }
   ],
   "tasks": [
-    {"id":"D9951","agent":"devex","title":"Docs: mk dev / mk logs / mk trace — usage + troubleshooting",
-      "allowedFiles":["docs/devex/first-five-minutes.md","docs/devex/quickstart.md","docs/devex/recipes.md","docs/devex/doctor.md"],
+    {"id":"D10001","agent":"devex","title":"Docs: mk init/build/package/ci‑plan — command guides + First‑Five‑Minutes updates",
+      "allowedFiles":["docs/devex/first-five-minutes.md","docs/devex/quickstart.md","docs/devex/packaging.md","docs/devex/releases.md","docs/devex/ci-acceptance-smoke.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9951_docs-dev-logs-trace.patch"]},
+      "deliverables":["patches/DIFF_D10001_docs-init-build-package-ci.patch"]},
 
-    {"id":"D9952","agent":"devex","title":"Examples: hot‑reload demo + logs/trace filters; acceptance notes",
-      "allowedFiles":["examples/mk/dev-logs-trace/**","tests/devex/acceptance/local-node-v1.md"],
+    {"id":"D10002","agent":"devex","title":"Examples: mk init template(s) — hello-calculator init path",
+      "allowedFiles":["examples/mk/init-templates/**","examples/mk/hello-calculator/**"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9952_examples-dev-logs-trace.patch"]},
+      "deliverables":["patches/DIFF_D10002_examples-init-hello.patch"]},
 
-    {"id":"D9953","agent":"devex","title":"CLI help snapshots: update mk help with new commands (style guide)",
+    {"id":"D10003","agent":"devex","title":"CI plan doc: copy‑paste Actions snippet + cache keys; Laminar hooks",
+      "allowedFiles":["docs/devex/ci-acceptance-smoke.md","README.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D10003_docs-ci-plan.patch"]},
+
+    {"id":"D10004","agent":"devex","title":"Help snapshots: add mk init/build/package/ci help; enforce style",
       "allowedFiles":["tests/cli/mkdxHelp.spec.ts","docs/devex/mk-dx-style.md"],
       "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_D9953_cli-help-snapshots.patch"]},
+      "deliverables":["patches/DIFF_D10004_cli-help-snapshots-phase-d.patch"]},
 
-    {"id":"D9954","agent":"devex","title":"Recipes page: curated patterns (tee→filesink, rate‑limit, backpressure)",
-      "allowedFiles":["docs/devex/recipes.md"],
+    {"id":"D10005","agent":"devex","title":"DX checklist updates for Phase D; add ‘did‑you‑mean’ verification section",
+      "allowedFiles":["docs/devex/mk-dx-checklist.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9954_docs-recipes.patch"]},
-
-    {"id":"D9955","agent":"devex","title":"Troubleshooting: hot‑reload edge cases, logs formatting, trace overhead",
-      "allowedFiles":["docs/devex/doctor.md","docs/devex/troubleshooting.md"],
-      "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9955_docs-troubleshooting-dev.patch"]}
+      "deliverables":["patches/DIFF_D10005_dx-checklist-phase-d.patch"]}
   ]
 }
 ```
 
 Autonomy & Direction
-- Focus on developer joy: ensure docs mirror actual CLI behavior, examples are copy‑paste runnable, and troubleshooting is practical.
-- Use agent_template/AMPCODE_TEMPLATE.md; keep logs in `Vex/devex.log`.
+- Keep everything copy‑paste runnable; prefer tarball/git‑tag paths (no npm registry).
+- Use the template; keep a concise log in `Vex/devex.log`.
 
 Verification Commands
 ```bash
@@ -133,6 +133,6 @@ npm run test:ci
 ```
 
 Success Criteria
-- First‑Five‑Minutes and Quickstart reflect mk dev/logs/trace and link to recipes.
-- Examples run as‑is and demonstrate hot‑reload + logs + trace together.
-- CLI help snapshots updated; style guide adhered to.
+- First‑Five‑Minutes and Quickstart mirror mk init/build/package/ci‑plan.
+- CI plan doc provides a working Actions snippet with Laminar hooks.
+- Help snapshots include new commands; style guide adhered to.

@@ -1,0 +1,574 @@
+diff --git a/docs/devex/recipes.md b/docs/devex/recipes.md
+new file mode 100644
+index 0000000..c63a8c5
+--- /dev/null
++++ b/docs/devex/recipes.md
+@@ -0,0 +1,157 @@
++# mkolbol Recipes — Curated Topology Patterns
++
++Recipes are pre-built topology patterns for common use cases. Use `mk recipes` to discover and generate them.
++
++## Commands
++
++```bash
++# List all available recipes
++mk recipes
++mk recipes --list
++
++# Show full configuration for a recipe
++mk recipes --show tee-filesink
++mk recipes --show http-logs-jsonl
++```
++
++## Available Recipes
++
++### tee-filesink
++**Description**: Duplicate output to console and file simultaneously  
++**Use Case**: Log to file while monitoring console output  
++**Tags**: logging, monitoring, fan-out
++
++**Pattern**: Timer → Tee → [Console, FileSink]
++
++**When to use**:
++- Need both live console output and persistent logs
++- Debugging while capturing full session
++- Multi-destination output
++
++---
++
++### rate-limit
++**Description**: Throttle message flow with token bucket rate limiting  
++**Use Case**: Prevent overwhelming downstream systems  
++**Tags**: rate-limiting, backpressure, throttling
++
++**Pattern**: Source → RateLimiter → Sink
++
++**When to use**:
++- API rate limiting
++- Resource protection
++- Burst smoothing
++- Fair queuing
++
++**Configuration options**:
++- `capacity`: Token bucket size
++- `refillRate`: Tokens per interval
++- `refillInterval`: Refill frequency (ms)
++
++---
++
++### http-logs-jsonl
++**Description**: Fetch HTTP responses and log as JSONL with metrics  
++**Use Case**: API monitoring and structured logging  
++**Tags**: http, logging, metrics, jsonl
++
++**Pattern**: ExternalProcess (curl) → PipeMeter → FileSink (JSONL)
++
++**When to use**:
++- HTTP endpoint monitoring
++- API response logging
++- Structured log analysis
++- Throughput measurement
++
++**Features**:
++- JSONL format for easy parsing (jq, logq)
++- Throughput metrics (bytes/sec, msg/sec)
++- Timestamped entries
++
++---
++
++### transform-chain
++**Description**: Chain multiple transforms for data processing pipeline  
++**Use Case**: Multi-stage data transformation  
++**Tags**: pipeline, transform, processing
++
++**Pattern**: Source → Transform1 → Transform2 → ... → Sink
++
++**When to use**:
++- Multi-step processing
++- Data enrichment pipelines
++- Format conversions
++- Filtering and routing
++
++**Example transforms**:
++- UppercaseTransform
++- PipeMeterTransform (metrics)
++- RateLimiterTransform (throttling)
++- TeeTransform (fan-out)
++
++---
++
++### health-check
++**Description**: External process with startup health verification  
++**Use Case**: Ensure service is healthy before routing traffic  
++**Tags**: health-check, external-process, reliability
++
++**Pattern**: ExternalProcess (with healthCheck) → Sink
++
++**When to use**:
++- Running external services (HTTP servers, daemons)
++- Need startup verification
++- Circuit breaker patterns
++- Graceful degradation
++
++**Health check types**:
++- **HTTP**: GET request, expect 2xx status
++- **Command**: Shell command, expect exit 0
++
++**Configuration**:
++```yaml
++healthCheck:
++  type: http
++  url: http://localhost:3000/health
++  timeout: 5000
++  retries: 3
++```
++
++---
++
++## Creating Custom Recipes
++
++To create your own recipe:
++
++1. Start with an existing recipe as template:
++   ```bash
++   mk recipes --show tee-filesink > my-topology.yml
++   ```
++
++2. Modify for your use case
++
++3. Test with `mk run`:
++   ```bash
++   mk run my-topology.yml --dry-run   # Validate
++   mk run my-topology.yml              # Execute
++   ```
++
++4. Share with team or contribute to recipe catalog
++
++## Recipe Best Practices
++
++**Naming**: Use descriptive kebab-case names (http-to-file, rate-limited-api)
++
++**Documentation**: Include clear description, use case, and tags
++
++**Modularity**: Keep recipes focused on one pattern
++
++**Composability**: Recipes should be easy to combine
++
++**Testing**: Verify recipes work across different environments
++
++## See Also
++
++- [mkctl Cookbook](./mkctl-cookbook.md) - CLI usage patterns
++- [Quickstart Guide](./quickstart.md) - Getting started
++- [Example Configs](../../examples/configs/) - More examples
+diff --git a/scripts/mk.ts b/scripts/mk.ts
+index 2cf317c..4216032 100644
+--- a/scripts/mk.ts
++++ b/scripts/mk.ts
+@@ -33,6 +33,97 @@ const commands: Command[] = [
+       return runHandler(args);
+     },
+   },
++  {
++    name: 'dev',
++    description: 'Run topology with hot-reload for in-proc modules',
++    usage: 'mk dev <config> [--verbose]',
++    handler: async (args: string[]) => {
++      if (args.length === 0) {
++        console.error('Error: Missing topology config file');
++        console.error('Usage: mk dev <config> [--verbose]');
++        return EXIT_USAGE;
++      }
++
++      const configPath = args[0];
++      const verbose = args.includes('--verbose');
++
++      try {
++        const { loadConfig } = await import('../src/config/loader.js');
++        const { Kernel } = await import('../src/kernel/Kernel.js');
++        const { Hostess } = await import('../src/hostess/Hostess.js');
++        const { StateManager } = await import('../src/state/StateManager.js');
++        const { Executor } = await import('../src/executor/Executor.js');
++        const { watchModules } = await import('../src/mk/dev.js');
++        
++        // Load topology
++        const topology = loadConfig(configPath);
++        
++        console.log('[mk dev] Starting topology with hot-reload...');
++        
++        // Initialize system
++        const kernel = new Kernel();
++        const hostess = new Hostess();
++        const stateManager = new StateManager(kernel);
++        const executor = new Executor(kernel, hostess, stateManager);
++        
++        // Register modules
++        const modules = [
++          { name: 'TimerSource', path: '../src/modules/timer.js' },
++          { name: 'UppercaseTransform', path: '../src/modules/uppercase.js' },
++          { name: 'ConsoleSink', path: '../src/modules/consoleSink.js' },
++          { name: 'FilesystemSink', path: '../src/modules/filesystem-sink.js' },
++          { name: 'PipeMeterTransform', path: '../src/transforms/pipeMeter.js' },
++          { name: 'RateLimiterTransform', path: '../src/transforms/rateLimiter.js' },
++          { name: 'TeeTransform', path: '../src/transforms/tee.js' },
++        ];
++        
++        for (const mod of modules) {
++          try {
++            const modulePath = new URL(mod.path, import.meta.url).pathname;
++            const moduleExport = await import(modulePath);
++            executor.registerModule(mod.name, moduleExport.default || moduleExport[mod.name]);
++          } catch (err) {
++            // Module might not exist, skip
++          }
++        }
++        
++        // Load and start executor
++        executor.load(topology);
++        await executor.up();
++        
++        // Start file watchers
++        const watcher = watchModules(executor, topology, {
++          verbose,
++          onReload: (nodeId) => {
++            console.log(`[mk dev] Node ${nodeId} hot-reloaded`);
++          }
++        });
++        
++        console.log('[mk dev] System running. Press Ctrl+C to stop.');
++        
++        // Handle graceful shutdown
++        const shutdown = async () => {
++          console.log('\n[mk dev] Shutting down...');
++          watcher.stop();
++          await executor.down();
++          process.exit(EXIT_SUCCESS);
++        };
++        
++        process.on('SIGINT', shutdown);
++        process.on('SIGTERM', shutdown);
++        
++        // Keep process alive
++        await new Promise<void>((resolve) => {
++          // Never resolves - keeps process running until signal
++        });
++        
++        return EXIT_SUCCESS;
++      } catch (error) {
++        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++        return EXIT_ERROR;
++      }
++    },
++  },
+   {
+     name: 'doctor',
+     description: 'Diagnose system and dependency issues',
+@@ -153,6 +244,129 @@ const commands: Command[] = [
+       }
+     },
+   },
++  {
++    name: 'logs',
++    description: 'Tail module logs with filtering',
++    usage: 'mk logs [--module <name>] [--level <error|warn|info|debug>] [--json] [--follow] [--lines <n>]',
++    handler: async (args: string[]) => {
++      const { tailLogs } = await import('../src/mk/logs.js');
++      
++      const options: {
++        module?: string;
++        level?: 'error' | 'warn' | 'info' | 'debug';
++        json?: boolean;
++        follow?: boolean;
++        lines?: number;
++      } = {};
++      
++      for (let i = 0; i < args.length; i++) {
++        const arg = args[i];
++        if (arg === '--module' && i + 1 < args.length) {
++          options.module = args[++i];
++        } else if (arg === '--level' && i + 1 < args.length) {
++          const level = args[++i];
++          if (level === 'error' || level === 'warn' || level === 'info' || level === 'debug') {
++            options.level = level;
++          } else {
++            console.error(`Invalid level: ${level}. Use: error, warn, info, or debug`);
++            return EXIT_USAGE;
++          }
++        } else if (arg === '--json') {
++          options.json = true;
++        } else if (arg === '--follow' || arg === '-f') {
++          options.follow = true;
++        } else if (arg === '--lines' && i + 1 < args.length) {
++          options.lines = parseInt(args[++i], 10);
++          if (isNaN(options.lines) || options.lines <= 0) {
++            console.error('Invalid --lines value. Must be a positive number.');
++            return EXIT_USAGE;
++          }
++        }
++      }
++      
++      try {
++        await tailLogs(options);
++        return EXIT_SUCCESS;
++      } catch (error) {
++        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++        return EXIT_ERROR;
++      }
++    },
++  },
++  {
++    name: 'trace',
++    description: 'Lightweight flow timing analysis for topology',
++    usage: 'mk trace <config> [--duration <seconds>] [--json] [--verbose]',
++    handler: async (args: string[]) => {
++      if (args.length === 0 || args[0].startsWith('--')) {
++        console.error('Error: Missing topology config file');
++        console.error('Usage: mk trace <config> [--duration <seconds>] [--json] [--verbose]');
++        return EXIT_USAGE;
++      }
++
++      const configPath = args[0];
++      let duration = 5;
++      let jsonOutput = false;
++      let verbose = false;
++
++      for (let i = 1; i < args.length; i++) {
++        const arg = args[i];
++        if (arg === '--duration' && i + 1 < args.length) {
++          duration = parseInt(args[++i], 10);
++          if (isNaN(duration) || duration <= 0) {
++            console.error('Invalid --duration value. Must be a positive number.');
++            return EXIT_USAGE;
++          }
++        } else if (arg === '--json') {
++          jsonOutput = true;
++        } else if (arg === '--verbose') {
++          verbose = true;
++        }
++      }
++
++      try {
++        const { loadConfig } = await import('../src/config/loader.js');
++        const { captureTrace, formatTraceOutput } = await import('../src/mk/trace.js');
++        
++        const topology = loadConfig(configPath);
++        
++        if (verbose && !jsonOutput) {
++          console.log(`[trace] Starting ${duration}s trace on ${configPath}...`);
++        }
++        
++        const traceData = await captureTrace(topology, duration * 1000, { verbose });
++        
++        const output = formatTraceOutput(traceData, jsonOutput ? 'json' : 'text');
++        console.log(output);
++        
++        return EXIT_SUCCESS;
++      } catch (error) {
++        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++        return EXIT_ERROR;
++      }
++    },
++  },
++  {
++    name: 'recipes',
++    description: 'List curated topology patterns and examples',
++    usage: 'mk recipes [--list | --show <name>]',
++    handler: async (args: string[]) => {
++      const { listRecipes, showRecipe } = await import('../src/mk/recipes.js');
++      
++      if (args.length === 0 || args.includes('--list')) {
++        listRecipes();
++        return EXIT_SUCCESS;
++      }
++      
++      if (args[0] === '--show' && args[1]) {
++        showRecipe(args[1]);
++        return EXIT_SUCCESS;
++      }
++      
++      console.error('Usage: mk recipes [--list | --show <name>]');
++      return EXIT_USAGE;
++    },
++  },
+ ];
+ 
+ function printMainHelp() {
+diff --git a/src/mk/recipes.ts b/src/mk/recipes.ts
+new file mode 100644
+index 0000000..f5dc624
+--- /dev/null
++++ b/src/mk/recipes.ts
+@@ -0,0 +1,173 @@
++export interface Recipe {
++  name: string;
++  description: string;
++  useCase: string;
++  topology: string;
++  tags: string[];
++}
++
++export const RECIPES: Recipe[] = [
++  {
++    name: 'tee-filesink',
++    description: 'Duplicate output to console and file simultaneously',
++    useCase: 'Log to file while monitoring console output',
++    tags: ['logging', 'monitoring', 'fan-out'],
++    topology: `nodes:
++  - id: timer1
++    module: TimerSource
++    params:
++      periodMs: 1000
++      message: "Log entry"
++  - id: tee1
++    module: TeeTransform
++    params:
++      outputCount: 2
++  - id: console1
++    module: ConsoleSink
++  - id: file1
++    module: FilesystemSink
++    params:
++      path: ./logs/output.log
++      mode: append
++connections:
++  - from: timer1.output
++    to: tee1.input
++  - from: tee1.output
++    to: console1.input
++  - from: tee1.output
++    to: file1.input`
++  },
++  {
++    name: 'rate-limit',
++    description: 'Throttle message flow with token bucket rate limiting',
++    useCase: 'Prevent overwhelming downstream systems',
++    tags: ['rate-limiting', 'backpressure', 'throttling'],
++    topology: `nodes:
++  - id: source1
++    module: TimerSource
++    params:
++      periodMs: 100
++  - id: limiter1
++    module: RateLimiterTransform
++    params:
++      capacity: 10
++      refillRate: 2
++      refillInterval: 1000
++  - id: sink1
++    module: ConsoleSink
++connections:
++  - from: source1.output
++    to: limiter1.input
++  - from: limiter1.output
++    to: sink1.input`
++  },
++  {
++    name: 'http-logs-jsonl',
++    description: 'Fetch HTTP responses and log as JSONL with metrics',
++    useCase: 'API monitoring and structured logging',
++    tags: ['http', 'logging', 'metrics', 'jsonl'],
++    topology: `nodes:
++  - id: http1
++    module: ExternalProcess
++    params:
++      command: curl
++      args: ['-s', '-i', 'https://httpbin.org/get']
++      ioMode: stdio
++  - id: meter1
++    module: PipeMeterTransform
++    params:
++      emitInterval: 1000
++  - id: log1
++    module: FilesystemSink
++    params:
++      path: ./logs/http-response.jsonl
++      mode: append
++      format: jsonl
++connections:
++  - from: http1.output
++    to: meter1.input
++  - from: meter1.output
++    to: log1.input`
++  },
++  {
++    name: 'transform-chain',
++    description: 'Chain multiple transforms for data processing pipeline',
++    useCase: 'Multi-stage data transformation',
++    tags: ['pipeline', 'transform', 'processing'],
++    topology: `nodes:
++  - id: source1
++    module: TimerSource
++    params:
++      periodMs: 500
++      message: "raw data"
++  - id: upper1
++    module: UppercaseTransform
++  - id: meter1
++    module: PipeMeterTransform
++  - id: sink1
++    module: ConsoleSink
++connections:
++  - from: source1.output
++    to: upper1.input
++  - from: upper1.output
++    to: meter1.input
++  - from: meter1.output
++    to: sink1.input`
++  },
++  {
++    name: 'health-check',
++    description: 'External process with startup health verification',
++    useCase: 'Ensure service is healthy before routing traffic',
++    tags: ['health-check', 'external-process', 'reliability'],
++    topology: `nodes:
++  - id: service1
++    module: ExternalProcess
++    params:
++      command: node
++      args: ['server.js']
++      ioMode: stdio
++      healthCheck:
++        type: http
++        url: http://localhost:3000/health
++        timeout: 5000
++        retries: 3
++  - id: sink1
++    module: ConsoleSink
++connections:
++  - from: service1.output
++    to: sink1.input`
++  }
++];
++
++export function listRecipes(): void {
++  console.log('Available Recipes:\n');
++  
++  for (const recipe of RECIPES) {
++    console.log(`  ${recipe.name}`);
++    console.log(`    ${recipe.description}`);
++    console.log(`    Use case: ${recipe.useCase}`);
++    console.log(`    Tags: ${recipe.tags.join(', ')}`);
++    console.log('');
++  }
++  
++  console.log(`Use 'mk recipes --show <name>' to see full topology configuration.`);
++}
++
++export function showRecipe(name: string): void {
++  const recipe = RECIPES.find(r => r.name === name);
++  
++  if (!recipe) {
++    console.error(`Recipe not found: ${name}`);
++    console.error(`\nAvailable recipes: ${RECIPES.map(r => r.name).join(', ')}`);
++    process.exit(1);
++  }
++  
++  console.log(`# Recipe: ${recipe.name}\n`);
++  console.log(`**Description**: ${recipe.description}`);
++  console.log(`**Use Case**: ${recipe.useCase}`);
++  console.log(`**Tags**: ${recipe.tags.join(', ')}\n`);
++  console.log('## Topology Configuration\n');
++  console.log('```yaml');
++  console.log(recipe.topology);
++  console.log('```');
++}

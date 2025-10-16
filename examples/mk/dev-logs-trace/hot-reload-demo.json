@@ -1,0 +1,30 @@
+{
+  "topology": {
+    "nodes": [
+      {
+        "id": "calculator",
+        "module": "CalculatorServer",
+        "runMode": "inproc",
+        "params": {
+          "port": 4000,
+          "precision": 2
+        }
+      },
+      {
+        "id": "http-logger",
+        "module": "FilesystemSink",
+        "runMode": "inproc",
+        "params": {
+          "path": "reports/requests.jsonl",
+          "format": "jsonl"
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from": "calculator.output",
+        "to": "http-logger.input"
+      }
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+mk trace — Analyze flow latency and throughput
+
+USAGE
+  mk trace [--duration <time>] [--format <fmt>] [--output <file>] [--top <n>] [--sort <field>] [--watch] [--threshold <ms>]
+
+DESCRIPTION
+  Capture sampled flow timings for every message through your topology. Answers: which
+  module is slowest? Where do messages spend the most time? What's the tail latency?
+  Traces are non-intrusive (< 1% overhead) and optional to enable.
+
+OPTIONS
+  --duration <time>          Capture for N seconds (e.g., 30, 5m). Default: 30s
+  --format <fmt>             Output format: text|json. Default: text summary
+  --output <file>            Write trace to file (JSON is flamegraph-compatible)
+  --top <n>                  Show top N modules by total latency. Default: 10
+  --sort <field>             Sort by: latency|throughput|count. Default: latency
+  --watch                    Keep capturing until Ctrl+C (continuous mode)
+  --threshold <ms>           Only show modules with > N ms average latency
+  --sample-rate <rate>       Trace fraction of messages (0.0–1.0). Default: 1.0 (all)
+  --module <id>              Trace only specific module (advanced)
+  --no-color                 Disable colored output
+  --json                     Machine-readable output
+  --help                     Show this message
+
+EXAMPLES
+  # Trace for 30 seconds, show summary
+  mk trace --duration 30
+
+  # Top 5 slowest modules
+  mk trace --duration 30 --top 5 --sort latency
+
+  # Export as JSON for analysis
+  mk trace --duration 10 --format json --output my-trace.json
+
+  # Show modules slower than 1ms average
+  mk trace --duration 30 --threshold 1.0
+
+  # Continuous tracing (summary every 10s)
+  mk trace --watch --summary-interval 10
+
+  # Only trace 10% of messages (reduce overhead)
+  mk trace --duration 60 --sample-rate 0.1
+
+PERFORMANCE
+  CPU overhead:     ~0.5% per topology (negligible)
+  Memory overhead:  ~2MB per million messages
+  Latency impact:   < 50 microseconds per message (sub-millisecond noise)
+  Safe to leave enabled during all development.
+
+OUTPUT
+  [mk:trace] Captured 50,000 messages in 30.0s (1,667 msg/sec)
+
+  Top 10 Latency Offenders (total time)
+    1. parser (5.2s, 25%) — 50,000 messages
+    2. http-server (2.8s, 13%) — 50,000 messages
+    3. filesink (1.4s, 7%) — 50,000 messages
+
+  Latency Distribution (p50 / p95 / p99)
+    parser:      2.1ms / 12.3ms / 45.6ms
+    http-server: 0.8ms / 3.4ms  / 12.1ms
+    filesink:    0.4ms / 0.9ms  / 2.2ms
+
+JSON OUTPUT (--format json)
+  [
+    {"module": "parser", "count": 50000, "total_ms": 5200, "p50_ms": 2.1, "p95_ms": 12.3, "p99_ms": 45.6},
+    {"module": "http-server", "count": 50000, "total_ms": 2800, "p50_ms": 0.8, "p95_ms": 3.4, "p99_ms": 12.1},
+    ...
+  ]
+
+LEARN MORE
+  Full guide: https://mkolbol.dev/docs/mk-dev-logs-trace#mk-trace-flow-analysis
+  Recipes: https://mkolbol.dev/docs/recipes#patterns-with-tracing

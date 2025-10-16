@@ -61,9 +61,10 @@ Code: CONFIG_PARSE  Rerun: mk run --file mk.yaml --dry-run
 - Never write to shell rc files; `print` only; reversible.
 
 ## Snapshot Targets (v0)
-- Help text (`mk --help`): stable sections and examples.
+- Help text (`mk --help`, `mk dev --help`, `mk logs --help`, `mk trace --help`): stable sections and examples.
 - 10 canonical error messages: exact 3‑line structure.
 - JSON error payload shape: fields present and typed.
+- **Phase C Additions** (P11): `mk dev`, `mk logs`, `mk trace` help snapshots (see fixtures below).
 
 ## Copywriting Rules
 - Use imperative voice. Avoid jargon. Prefer verbs: “Run”, “Fix”, “Open”.
@@ -112,12 +113,58 @@ npx vitest tests/cli/mkdxErrors.spec.ts --update
 
 ---
 
+## Phase C Help Snapshots (P11 Sprint)
+
+Added help text snapshots for new developer ergonomics commands:
+
+### Files Added
+- `tests/fixtures/mkdx/mk-dev.help.txt` — Help for `mk dev` (hot reload)
+- `tests/fixtures/mkdx/mk-logs.help.txt` — Help for `mk logs` (structured logging)
+- `tests/fixtures/mkdx/mk-trace.help.txt` — Help for `mk trace` (flow analysis)
+
+### Usage Pattern
+
+These fixtures define the exact format and structure expected for CLI help output once these commands are implemented. Each follows the style guide:
+
+1. **Header**: Command name + short description
+2. **Usage**: Command line syntax
+3. **Description**: What the command does (1–2 sentences)
+4. **Options**: Flag reference with defaults
+5. **Examples**: Copy-paste runnable scenarios
+6. **Environment**: Relevant env vars
+7. **Output**: Sample actual output
+8. **Learn More**: Links to full docs and RFC
+
+### Validation
+
+When `scripts/mk.ts` implements these commands, run:
+
+```bash
+# Verify help output matches fixtures
+npm run test:ci -- tests/cli/mkdxHelp.spec.ts
+
+# Update snapshots if intentional changes
+npm run test:ci -- tests/cli/mkdxHelp.spec.ts --update
+```
+
+---
+
 ## Implementation Checklist for Future MK CLI Phases
 
+**Phase A (v0):**
 - [ ] mkdxHelp.spec.ts — Uncomment describe.skip, activate help snapshot tests
 - [ ] mkdxErrors.spec.ts — Extend ERROR_CATALOG for new error scenarios
 - [ ] Implement mk --help with sections matching snapshot expectations
 - [ ] Implement mk --json for machine-readable output
 - [ ] Create mk init/validate/run subcommands following error format
 - [ ] Run full test suite: `npm run test:ci -- tests/cli/mkdx*`
+
+**Phase C (P11+):**
+- [x] Add mk dev/logs/trace help text snapshots (fixtures created)
+- [ ] Implement mk dev subcommand with hot reload
+- [ ] Implement mk logs subcommand with filtering
+- [ ] Implement mk trace subcommand with latency analysis
+- [ ] Verify help snapshots pass: `npm run test:ci -- tests/cli/mkdxHelp.spec.ts`
+- [ ] Test error messages for these commands match mk-dx-style
+- [ ] Update snapshots if UX changes: `--update` flag
 

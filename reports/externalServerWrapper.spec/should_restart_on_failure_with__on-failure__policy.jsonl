@@ -1,3 +1,3 @@
-{"ts":1760635848320,"lvl":"info","case":"should restart on failure with \"on-failure\" policy","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760635848321,"lvl":"info","case":"should restart on failure with \"on-failure\" policy","phase":"execution","evt":"test.run"}
-{"ts":1760635848322,"lvl":"info","case":"should restart on failure with \"on-failure\" policy","phase":"teardown","evt":"case.end","payload":{"duration":637,"status":"passed"}}
+{"ts":1760642997720,"lvl":"info","case":"should restart on failure with \"on-failure\" policy","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760642997721,"lvl":"info","case":"should restart on failure with \"on-failure\" policy","phase":"execution","evt":"test.run"}
+{"ts":1760642997722,"lvl":"info","case":"should restart on failure with \"on-failure\" policy","phase":"teardown","evt":"case.end","payload":{"duration":647,"status":"passed"}}
