@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "name": "CONFIG_NOT_FOUND",
+      "args": ["run", "--file", "nope.yaml", "--dry-run"],
+      "human": "[ERR] CONFIG_NOT_FOUND — Could not find config file.",
+      "json": {
+        "code": "CONFIG_NOT_FOUND",
+        "message": "config file not found",
+        "remediation": "mk init --preset tty",
+        "docs": "https://mkolbol.dev/docs/config#locations"
+      }
+    },
+    {
+      "name": "CONFIG_PARSE",
+      "args": ["run", "--file", "bad.yaml", "--dry-run", "--yaml"],
+      "human": "[ERR] CONFIG_PARSE at bad.yaml:12:7 — invalid indent under \"nodes\".",
+      "json": {
+        "code": "CONFIG_PARSE",
+        "message": "invalid indent under 'nodes'",
+        "details": { "file": "bad.yaml", "line": 12, "column": 7 },
+        "remediation": "mk format --to json --dry-run",
+        "docs": "https://mkolbol.dev/docs/config#yaml-indentation"
+      }
+    },
+    {
+      "name": "SCHEMA_INVALID",
+      "args": ["run", "--file", "bad.json", "--dry-run"],
+      "human": "[ERR] SCHEMA_INVALID at $.topology.nodes[0].runMode — expected one of: inproc, worker, process.",
+      "json": {
+        "code": "SCHEMA_INVALID",
+        "message": "invalid value for runMode",
+        "details": { "path": "$.topology.nodes[0].runMode", "expected": ["inproc","worker","process"] },
+        "remediation": "set runMode to one of: inproc, worker, process",
+        "docs": "https://mkolbol.dev/docs/schema#runMode"
+      }
+    }
+  ]
+}
+
