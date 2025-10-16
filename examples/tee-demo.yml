@@ -1,0 +1,16 @@
+nodes:
+  - id: timer1
+    module: TimerSource
+    params:
+      periodMs: 1000
+      message: "Message to tee transform"
+  
+  - id: tee1
+    module: TeeTransform
+    params:
+      outputCount: 2
+      objectMode: true
+
+connections:
+  - from: timer1.output
+    to: tee1.input

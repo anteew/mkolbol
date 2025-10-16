@@ -104,26 +104,28 @@ interface RunArguments {
   configPath: string;
   durationMs: number;
   snapshotIntervalMs?: number;
+  dryRun: boolean;
 }
 
 function parseRunArgs(args: string[]): RunArguments {
   let configPath: string | undefined;
   let durationMs = 5000;
   let snapshotIntervalMs: number | undefined;
+  let dryRun = false;
 
   for (let i = 0; i < args.length; i++) {
     const token = args[i];
     if (token === '--file') {
       const next = args[i + 1];
       if (!next || next.startsWith('--')) {
-        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>]', EXIT_CODES.USAGE);
+        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]', EXIT_CODES.USAGE);
       }
       configPath = next;
       i++;
     } else if (token === '--duration') {
       const next = args[i + 1];
       if (!next || next.startsWith('--')) {
-        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>]', EXIT_CODES.USAGE);
+        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]', EXIT_CODES.USAGE);
       }
       const parsed = Number.parseInt(next, 10);
       if (Number.isNaN(parsed) || parsed <= 0) {
@@ -142,14 +144,16 @@ function parseRunArgs(args: string[]): RunArguments {
       }
       snapshotIntervalMs = parsed * 1000;
       i++;
+    } else if (token === '--dry-run') {
+      dryRun = true;
     }
   }
 
   if (!configPath) {
-    throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>]', EXIT_CODES.USAGE);
+    throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]', EXIT_CODES.USAGE);
   }
 
-  return { configPath, durationMs, snapshotIntervalMs };
+  return { configPath, durationMs, snapshotIntervalMs, dryRun };
 }
 
 async function waitForDurationOrSignal(durationMs: number): Promise<'timer' | 'signal'> {
@@ -406,7 +410,7 @@ async function writeRouterSnapshot(router: RoutingServer): Promise<void> {
 }
 
 async function handleRunCommand(args: string[]): Promise<number> {
-  const { configPath, durationMs, snapshotIntervalMs } = parseRunArgs(args);
+  const { configPath, durationMs, snapshotIntervalMs, dryRun } = parseRunArgs(args);
 
   const localNodeMode = process.env.MK_LOCAL_NODE === '1';
   if (localNodeMode) {
@@ -450,6 +454,11 @@ async function handleRunCommand(args: string[]): Promise<number> {
       EXIT_CODES.CONFIG_PARSE,
       { cause: err }
     );
+  }
+
+  if (dryRun) {
+    console.log('Configuration is valid.');
+    return EXIT_CODES.SUCCESS;
   }
 
   const kernel = new Kernel();

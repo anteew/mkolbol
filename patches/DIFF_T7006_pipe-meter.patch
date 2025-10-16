@@ -1,0 +1,793 @@
+diff --git a/docs/devex/mkctl-cookbook.md b/docs/devex/mkctl-cookbook.md
+index 422afae..9850cd7 100644
+--- a/docs/devex/mkctl-cookbook.md
++++ b/docs/devex/mkctl-cookbook.md
+@@ -280,6 +280,121 @@ nodes:
+ 
+ ---
+ 
++## PipeMeter Transform
++
++The `PipeMeterTransform` measures throughput in real-time as data flows through a pipeline.
++
++### Basic Usage
++
++```yaml
++nodes:
++  - id: source
++    module: TimerSource
++    params: { periodMs: 100 }
++  - id: meter
++    module: PipeMeterTransform
++    params: { emitInterval: 1000 }
++  - id: sink
++    module: ConsoleSink
++
++connections:
++  - from: source.output
++    to: meter.input
++  - from: meter.output
++    to: sink.input
++```
++
++### Configuration Options
++
++| Option | Type | Default | Description |
++|--------|------|---------|-------------|
++| `emitInterval` | `number` | 1000 | Milliseconds between metric updates |
++
++### Metrics Tracked
++
++The PipeMeter tracks the following metrics:
++- **totalBytes**: Cumulative bytes processed
++- **totalMessages**: Cumulative message count
++- **bytesPerSecond**: Current throughput (bytes/sec)
++- **messagesPerSecond**: Current throughput (messages/sec)
++- **startTime**: Timestamp when meter started
++- **lastUpdateTime**: Timestamp of last metric update
++
++### Use Cases
++
++**Monitor data pipeline performance:**
++```yaml
++# High-throughput monitoring
++nodes:
++  - id: source
++    module: TimerSource
++    params: { periodMs: 10 }
++  - id: meter
++    module: PipeMeterTransform
++    params: { emitInterval: 500 }
++  - id: transform
++    module: UppercaseTransform
++  - id: sink
++    module: ConsoleSink
++
++connections:
++  - from: source.output
++    to: meter.input
++  - from: meter.output
++    to: transform.input
++  - from: transform.output
++    to: sink.input
++```
++
++**Multiple meters in a pipeline:**
++```yaml
++# Measure throughput before and after transform
++nodes:
++  - id: source
++    module: TimerSource
++  - id: meter1
++    module: PipeMeterTransform
++    params: { emitInterval: 1000 }
++  - id: transform
++    module: UppercaseTransform
++  - id: meter2
++    module: PipeMeterTransform
++    params: { emitInterval: 1000 }
++  - id: sink
++    module: ConsoleSink
++
++connections:
++  - from: source.output
++    to: meter1.input
++  - from: meter1.output
++    to: transform.input
++  - from: transform.output
++    to: meter2.input
++  - from: meter2.output
++    to: sink.input
++```
++
++### Programmatic Access
++
++Access metrics from code:
++
++```typescript
++import { PipeMeterTransform } from './transforms/pipeMeter';
++
++const meter = new PipeMeterTransform(kernel, { emitInterval: 1000 });
++
++// Get current metrics
++const metrics = meter.getMetrics();
++console.log(`Processed ${metrics.totalMessages} messages`);
++console.log(`Throughput: ${metrics.messagesPerSecond.toFixed(2)} msg/sec`);
++console.log(`Bandwidth: ${metrics.bytesPerSecond.toFixed(2)} bytes/sec`);
++
++// Clean up when done
++meter.stop();
++```
++
++---
++
+ ## Troubleshooting Cheatsheet
+ 
+ | Symptom | Fix |
+@@ -337,6 +452,104 @@ mkctl run --file config.yml || if [ $? -ne 130 ]; then exit 1; fi
+ 
+ ---
+ 
++## Router Sweeper Metrics
++
++The RoutingServer includes built-in metrics tracking for the sweeper lifecycle. These metrics help you monitor endpoint cleanup performance and health.
++
++### Available Metrics
++
++```typescript
++interface SweeperMetrics {
++  totalSweeps: number;      // Total sweep operations performed
++  totalRemoved: number;      // Cumulative endpoints removed across all sweeps
++  lastSweepTime: number | null;  // Timestamp of most recent sweep (null if no sweeps yet)
++}
++```
++
++### Using Sweeper Metrics
++
++```typescript
++import { RoutingServer } from 'mkolbol';
++
++const router = new RoutingServer({ ttlMs: 30000, sweepIntervalMs: 10000 });
++
++// Start automatic sweeping
++router.startSweeper();
++
++// Later, check metrics
++const metrics = router.getSweeperMetrics();
++console.log(`Total sweeps: ${metrics.totalSweeps}`);
++console.log(`Total removed: ${metrics.totalRemoved}`);
++console.log(`Last sweep: ${new Date(metrics.lastSweepTime!)}`);
++```
++
++### Debug Events
++
++The sweeper emits enhanced debug events with detailed context:
++
++**`sweep.start`** - Emitted at the beginning of each sweep:
++```json
++{
++  "totalEndpoints": 5,
++  "ttlMs": 30000,
++  "sweepIntervalMs": 10000
++}
++```
++
++**`sweep.stale`** - Emitted for each stale endpoint (warning level):
++```json
++{
++  "id": "endpoint-123",
++  "type": "inproc",
++  "age": 45000,
++  "ttlMs": 30000,
++  "lastUpdated": 1697520905123,
++  "coordinates": "node:timer1"
++}
++```
++
++**`sweep.removed`** - Emitted after removing each endpoint:
++```json
++{
++  "id": "endpoint-123",
++  "totalRemaining": 4
++}
++```
++
++**`sweep.complete`** - Emitted at the end of each sweep:
++```json
++{
++  "removed": 2,
++  "remaining": 3,
++  "staleDetails": [
++    { "id": "endpoint-123", "age": 45000, "type": "inproc" },
++    { "id": "endpoint-456", "age": 50000, "type": "output" }
++  ],
++  "totalSweeps": 10,
++  "totalRemoved": 25,
++  "duration": 2
++}
++```
++
++### Monitoring in Production
++
++```typescript
++// Periodic metrics reporting
++setInterval(() => {
++  const metrics = router.getSweeperMetrics();
++  const rate = metrics.totalRemoved / metrics.totalSweeps;
++  console.log(`Sweep removal rate: ${rate.toFixed(2)} endpoints/sweep`);
++}, 60000);
++
++// Health checks
++const metrics = router.getSweeperMetrics();
++if (metrics.lastSweepTime && Date.now() - metrics.lastSweepTime > 60000) {
++  console.warn('Sweeper has not run in over 1 minute');
++}
++```
++
++---
++
+ ## Buffer Handling in ConsoleSink
+ 
+ ConsoleSink automatically formats Buffer objects for human-readable console output:
+diff --git a/src/executor/moduleRegistry.ts b/src/executor/moduleRegistry.ts
+index 204870b..f7cb9f8 100644
+--- a/src/executor/moduleRegistry.ts
++++ b/src/executor/moduleRegistry.ts
+@@ -3,6 +3,7 @@ import { TimerSource } from '../modules/timer.js';
+ import { UppercaseTransform } from '../modules/uppercase.js';
+ import { ConsoleSink } from '../modules/consoleSink.js';
+ import { FilesystemSink } from '../modules/filesystem-sink.js';
++import { PipeMeterTransform } from '../transforms/pipeMeter.js';
+ 
+ export type ModuleConstructor = new (kernel: Kernel, ...args: any[]) => any;
+ 
+@@ -14,6 +15,7 @@ export class ModuleRegistry {
+     this.register('UppercaseTransform', UppercaseTransform);
+     this.register('ConsoleSink', ConsoleSink);
+     this.register('FilesystemSink', FilesystemSink);
++    this.register('PipeMeterTransform', PipeMeterTransform);
+   }
+ 
+   register(name: string, constructor: any): void {
+diff --git a/src/modules/consoleSink.ts b/src/modules/consoleSink.ts
+index 445a454..8bd724e 100644
+--- a/src/modules/consoleSink.ts
++++ b/src/modules/consoleSink.ts
+@@ -1,25 +1,66 @@
+ import type { Pipe } from '../types/stream';
+ import { Writable } from 'stream';
+ 
++export interface ConsoleSinkOptions {
++  prefix?: string;
++  format?: 'text' | 'jsonl';
++}
++
+ export class ConsoleSink {
+   public readonly inputPipe: Pipe;
++  private readonly prefix: string;
++  private readonly format: 'text' | 'jsonl';
++
++  constructor(options?: string | ConsoleSinkOptions) {
++    if (typeof options === 'string') {
++      this.prefix = options;
++      this.format = 'text';
++    } else {
++      this.prefix = options?.prefix ?? '[sink]';
++      this.format = options?.format ?? 'text';
++    }
+ 
+-  constructor(private prefix = '[sink]') {
+     const sink = new Writable({
+       objectMode: true,
+-      write(chunk, _enc, cb) {
+-        if (typeof chunk === 'string') {
+-          console.log(`${prefix} ${chunk}`);
+-        } else if (Buffer.isBuffer(chunk)) {
+-          console.log(`${prefix} ${formatBuffer(chunk)}`);
++      write: (chunk, _enc, cb) => {
++        if (this.format === 'jsonl') {
++          this.writeJsonl(chunk);
+         } else {
+-          console.log(`${prefix} ${JSON.stringify(chunk)}`);
++          this.writeText(chunk);
+         }
+         cb();
+       }
+     });
+     this.inputPipe = sink as unknown as Pipe;
+   }
++
++  private writeText(chunk: any): void {
++    if (typeof chunk === 'string') {
++      console.log(`${this.prefix} ${chunk}`);
++    } else if (Buffer.isBuffer(chunk)) {
++      console.log(`${this.prefix} ${formatBuffer(chunk)}`);
++    } else {
++      console.log(`${this.prefix} ${JSON.stringify(chunk)}`);
++    }
++  }
++
++  private writeJsonl(chunk: any): void {
++    const ts = new Date().toISOString();
++    let data: any;
++
++    if (Buffer.isBuffer(chunk)) {
++      data = {
++        type: 'Buffer',
++        encoding: 'base64',
++        data: chunk.toString('base64')
++      };
++    } else {
++      data = chunk;
++    }
++
++    const line = JSON.stringify({ ts, data });
++    console.log(line);
++  }
+ }
+ 
+ function formatBuffer(buf: Buffer): string {
+diff --git a/src/router/RoutingServer.ts b/src/router/RoutingServer.ts
+index eede7ea..b360035 100644
+--- a/src/router/RoutingServer.ts
++++ b/src/router/RoutingServer.ts
+@@ -6,11 +6,22 @@ export interface RoutingServerConfig {
+   sweepIntervalMs?: number;
+ }
+ 
++export interface SweeperMetrics {
++  totalSweeps: number;
++  totalRemoved: number;
++  lastSweepTime: number | null;
++}
++
+ export class RoutingServer {
+   private endpoints = new Map<string, RoutingEndpoint>();
+   private ttlMs: number;
+   private sweepIntervalMs: number;
+   private sweepTimer?: NodeJS.Timeout;
++  private sweeperMetrics: SweeperMetrics = {
++    totalSweeps: 0,
++    totalRemoved: 0,
++    lastSweepTime: null,
++  };
+ 
+   constructor(config?: RoutingServerConfig) {
+     this.ttlMs = config?.ttlMs ?? 30000;
+@@ -77,30 +88,57 @@ export class RoutingServer {
+   sweep(): void {
+     const now = Date.now();
+     const stale: string[] = [];
++    const staleDetails: Array<{ id: string; age: number; type: string }> = [];
++
++    debug.emit('router', 'sweep.start', {
++      totalEndpoints: this.endpoints.size,
++      ttlMs: this.ttlMs,
++      sweepIntervalMs: this.sweepIntervalMs,
++    });
+ 
+     for (const [id, endpoint] of this.endpoints.entries()) {
+       const age = now - endpoint.updatedAt;
+       if (age > this.ttlMs) {
+         stale.push(id);
++        staleDetails.push({ id, age, type: endpoint.type });
+         debug.emit('router', 'sweep.stale', {
+           id,
++          type: endpoint.type,
+           age,
+           ttlMs: this.ttlMs,
+-          lastUpdated: endpoint.updatedAt
++          lastUpdated: endpoint.updatedAt,
++          coordinates: endpoint.coordinates,
+         }, 'warn');
+       }
+     }
+ 
+     for (const id of stale) {
+       this.endpoints.delete(id);
+-      debug.emit('router', 'sweep.removed', { id });
+-    }
+-
+-    if (stale.length > 0) {
+-      debug.emit('router', 'sweep.complete', {
+-        removed: stale.length,
+-        remaining: this.endpoints.size
++      debug.emit('router', 'sweep.removed', { 
++        id,
++        totalRemaining: this.endpoints.size,
+       });
+     }
++
++    this.sweeperMetrics.totalSweeps++;
++    this.sweeperMetrics.totalRemoved += stale.length;
++    this.sweeperMetrics.lastSweepTime = now;
++
++    debug.emit('router', 'sweep.complete', {
++      removed: stale.length,
++      remaining: this.endpoints.size,
++      staleDetails,
++      totalSweeps: this.sweeperMetrics.totalSweeps,
++      totalRemoved: this.sweeperMetrics.totalRemoved,
++      duration: Date.now() - now,
++    });
++  }
++
++  getSweeperMetrics(): SweeperMetrics {
++    return {
++      totalSweeps: this.sweeperMetrics.totalSweeps,
++      totalRemoved: this.sweeperMetrics.totalRemoved,
++      lastSweepTime: this.sweeperMetrics.lastSweepTime,
++    };
+   }
+ }
+diff --git a/tests/cli/mkctlRun.spec.ts b/tests/cli/mkctlRun.spec.ts
+index 9b0071b..5dde9fb 100644
+--- a/tests/cli/mkctlRun.spec.ts
++++ b/tests/cli/mkctlRun.spec.ts
+@@ -454,4 +454,146 @@ connections: []
+       expect(outcome.stdout).toContain('Bringing topology down');
+     });
+   });
++
++  describe('--dry-run flag', () => {
++    it('should validate and exit with success for valid config', async () => {
++      const validConfig = `
++nodes:
++  - id: timer1
++    module: TimerSource
++    params:
++      periodMs: 500
++
++connections: []
++`;
++      const configPath = join(testConfigDir, 'dry-run-valid.yml');
++      writeFileSync(configPath, validConfig);
++      tempFiles.push(configPath);
++
++      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
++
++      expect(result.code).toBe(EXIT_CODES.SUCCESS);
++      expect(result.stdout).toContain('Loading config from:');
++      expect(result.stdout).toContain('Configuration is valid.');
++      expect(result.stdout).not.toContain('Bringing topology up');
++      expect(result.stdout).not.toContain('Topology running');
++    });
++
++    it('should exit with CONFIG_PARSE error for invalid config', async () => {
++      const invalidConfig = `
++nodes:
++  - id: timer1
++    module: TimerSource
++
++connections:
++  - from: timer1.output
++    to: nonexistent.input
++`;
++      const configPath = join(testConfigDir, 'dry-run-invalid.yml');
++      writeFileSync(configPath, invalidConfig);
++      tempFiles.push(configPath);
++
++      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
++
++      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
++      expect(result.stderr).toContain('Configuration validation failed');
++      expect(result.stderr).toContain('node "nonexistent" referenced in "to" does not exist');
++      expect(result.stdout).not.toContain('Configuration is valid');
++    });
++
++    it('should exit with CONFIG_PARSE error for duplicate node IDs', async () => {
++      const duplicateConfig = `
++nodes:
++  - id: timer1
++    module: TimerSource
++  - id: timer1
++    module: TimerSource
++
++connections: []
++`;
++      const configPath = join(testConfigDir, 'dry-run-duplicate.yml');
++      writeFileSync(configPath, duplicateConfig);
++      tempFiles.push(configPath);
++
++      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
++
++      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
++      expect(result.stderr).toContain('Duplicate node id: "timer1"');
++      expect(result.stdout).not.toContain('Configuration is valid');
++    });
++
++    it('should exit with CONFIG_PARSE error for missing nodes array', async () => {
++      const invalidConfig = `
++connections: []
++`;
++      const configPath = join(testConfigDir, 'dry-run-missing-nodes.yml');
++      writeFileSync(configPath, invalidConfig);
++      tempFiles.push(configPath);
++
++      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
++
++      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
++      expect(result.stderr).toContain('Configuration must have a "nodes" array');
++      expect(result.stdout).not.toContain('Configuration is valid');
++    });
++
++    it('should exit with CONFIG_NOT_FOUND error when config file does not exist', async () => {
++      const result = await runMkctl(['run', '--file', '/nonexistent/config.yml', '--dry-run'], 1000);
++
++      expect(result.code).toBe(EXIT_CODES.CONFIG_NOT_FOUND);
++      expect(result.stderr).toContain('Config file not found');
++      expect(result.stdout).not.toContain('Configuration is valid');
++    });
++
++    it('should work with --dry-run flag in any position', async () => {
++      const validConfig = `
++nodes:
++  - id: timer1
++    module: TimerSource
++
++connections: []
++`;
++      const configPath = join(testConfigDir, 'dry-run-position.yml');
++      writeFileSync(configPath, validConfig);
++      tempFiles.push(configPath);
++
++      const result = await runMkctl(['run', '--dry-run', '--file', configPath], 2000);
++
++      expect(result.code).toBe(EXIT_CODES.SUCCESS);
++      expect(result.stdout).toContain('Configuration is valid.');
++    });
++
++    it('should validate complex config with multiple nodes and connections', async () => {
++      const complexConfig = `
++nodes:
++  - id: timer1
++    module: TimerSource
++    params:
++      periodMs: 200
++
++  - id: upper1
++    module: UppercaseTransform
++
++  - id: console1
++    module: ConsoleSink
++    params:
++      prefix: "[test]"
++
++connections:
++  - from: timer1.output
++    to: upper1.input
++
++  - from: upper1.output
++    to: console1.input
++`;
++      const configPath = join(testConfigDir, 'dry-run-complex.yml');
++      writeFileSync(configPath, complexConfig);
++      tempFiles.push(configPath);
++
++      const result = await runMkctl(['run', '--file', configPath, '--dry-run'], 2000);
++
++      expect(result.code).toBe(EXIT_CODES.SUCCESS);
++      expect(result.stdout).toContain('Configuration is valid.');
++    });
++  });
+ });
+diff --git a/tests/integration/multiModalOutput.spec.ts b/tests/integration/multiModalOutput.spec.ts
+index cff81e7..b16dfde 100644
+--- a/tests/integration/multiModalOutput.spec.ts
++++ b/tests/integration/multiModalOutput.spec.ts
+@@ -115,4 +115,93 @@ describe('Multi-Modal Output Integration', () => {
+     expect(outputs[3]).toContain('Buffer(0) []');
+     expect(outputs[4]).toMatch(/Buffer\(200\) \[.*\.\.\. \+\d+ bytes\]/);
+   });
++
++  it('should output JSONL format when format=jsonl', async () => {
++    const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
++    const sink = new ConsoleSink({ format: 'jsonl' });
++    const outputs: string[] = [];
++    
++    const originalLog = console.log;
++    console.log = (...args: any[]) => {
++      outputs.push(args.join(' '));
++    };
++
++    sink.inputPipe.write('test string');
++    sink.inputPipe.write({ foo: 'bar' });
++    sink.inputPipe.write(42);
++
++    await new Promise(resolve => setTimeout(resolve, 100));
++
++    console.log = originalLog;
++
++    expect(outputs).toHaveLength(3);
++    
++    const json1 = JSON.parse(outputs[0]);
++    expect(json1).toHaveProperty('ts');
++    expect(json1.data).toBe('test string');
++    expect(new Date(json1.ts).toISOString()).toBe(json1.ts);
++
++    const json2 = JSON.parse(outputs[1]);
++    expect(json2).toHaveProperty('ts');
++    expect(json2.data).toEqual({ foo: 'bar' });
++
++    const json3 = JSON.parse(outputs[2]);
++    expect(json3).toHaveProperty('ts');
++    expect(json3.data).toBe(42);
++  });
++
++  it('should encode Buffers as base64 in JSONL format', async () => {
++    const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
++    const sink = new ConsoleSink({ format: 'jsonl' });
++    const outputs: string[] = [];
++    
++    const originalLog = console.log;
++    console.log = (...args: any[]) => {
++      outputs.push(args.join(' '));
++    };
++
++    sink.inputPipe.write(Buffer.from('hello'));
++    sink.inputPipe.write(Buffer.from([0xFF, 0x00, 0xAB, 0xCD]));
++
++    await new Promise(resolve => setTimeout(resolve, 100));
++
++    console.log = originalLog;
++
++    expect(outputs).toHaveLength(2);
++    
++    const json1 = JSON.parse(outputs[0]);
++    expect(json1).toHaveProperty('ts');
++    expect(json1.data).toEqual({
++      type: 'Buffer',
++      encoding: 'base64',
++      data: Buffer.from('hello').toString('base64')
++    });
++
++    const json2 = JSON.parse(outputs[1]);
++    expect(json2).toHaveProperty('ts');
++    expect(json2.data).toEqual({
++      type: 'Buffer',
++      encoding: 'base64',
++      data: Buffer.from([0xFF, 0x00, 0xAB, 0xCD]).toString('base64')
++    });
++  });
++
++  it('should support legacy string constructor', async () => {
++    const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
++    const sink = new ConsoleSink('[legacy]');
++    const outputs: string[] = [];
++    
++    const originalLog = console.log;
++    console.log = (...args: any[]) => {
++      outputs.push(args.join(' '));
++    };
++
++    sink.inputPipe.write('test');
++
++    await new Promise(resolve => setTimeout(resolve, 100));
++
++    console.log = originalLog;
++
++    expect(outputs[0]).toBe('[legacy] test');
++  });
+ });
+diff --git a/tests/integration/router-inproc.spec.ts b/tests/integration/router-inproc.spec.ts
+index d617ea1..40d21b1 100644
+--- a/tests/integration/router-inproc.spec.ts
++++ b/tests/integration/router-inproc.spec.ts
+@@ -137,4 +137,117 @@ describe('RoutingServer (in-process)', () => {
+ 
+     expect(router.list()).toHaveLength(1);
+   });
++
++  describe('Sweeper Metrics', () => {
++    it('initializes metrics to zero', () => {
++      router = new RoutingServer();
++      const metrics = router.getSweeperMetrics();
++
++      expect(metrics.totalSweeps).toBe(0);
++      expect(metrics.totalRemoved).toBe(0);
++      expect(metrics.lastSweepTime).toBeNull();
++    });
++
++    it('tracks totalSweeps after each sweep', () => {
++      router = new RoutingServer({ ttlMs: 1000, sweepIntervalMs: 100 });
++
++      router.sweep();
++      expect(router.getSweeperMetrics().totalSweeps).toBe(1);
++
++      router.sweep();
++      expect(router.getSweeperMetrics().totalSweeps).toBe(2);
++
++      router.sweep();
++      expect(router.getSweeperMetrics().totalSweeps).toBe(3);
++    });
++
++    it('tracks totalRemoved across multiple sweeps', async () => {
++      router = new RoutingServer({ ttlMs: 50, sweepIntervalMs: 100 });
++
++      router.announce({ ...baseAnnouncement, id: 'ep1' });
++      router.announce({ ...baseAnnouncement, id: 'ep2' });
++
++      await new Promise((resolve) => setTimeout(resolve, 100));
++      router.sweep();
++
++      let metrics = router.getSweeperMetrics();
++      expect(metrics.totalSweeps).toBe(1);
++      expect(metrics.totalRemoved).toBe(2);
++
++      router.announce({ ...baseAnnouncement, id: 'ep3' });
++      router.announce({ ...baseAnnouncement, id: 'ep4' });
++      router.announce({ ...baseAnnouncement, id: 'ep5' });
++
++      await new Promise((resolve) => setTimeout(resolve, 100));
++      router.sweep();
++
++      metrics = router.getSweeperMetrics();
++      expect(metrics.totalSweeps).toBe(2);
++      expect(metrics.totalRemoved).toBe(5);
++    });
++
++    it('updates lastSweepTime on each sweep', async () => {
++      router = new RoutingServer({ ttlMs: 1000, sweepIntervalMs: 100 });
++
++      const beforeFirstSweep = Date.now();
++      router.sweep();
++      const afterFirstSweep = Date.now();
++
++      let metrics = router.getSweeperMetrics();
++      expect(metrics.lastSweepTime).not.toBeNull();
++      expect(metrics.lastSweepTime).toBeGreaterThanOrEqual(beforeFirstSweep);
++      expect(metrics.lastSweepTime).toBeLessThanOrEqual(afterFirstSweep);
++
++      await new Promise((resolve) => setTimeout(resolve, 50));
++
++      const beforeSecondSweep = Date.now();
++      router.sweep();
++      const afterSecondSweep = Date.now();
++
++      metrics = router.getSweeperMetrics();
++      expect(metrics.lastSweepTime).toBeGreaterThanOrEqual(beforeSecondSweep);
++      expect(metrics.lastSweepTime).toBeLessThanOrEqual(afterSecondSweep);
++    });
++
++    it('does not mutate returned metrics object', () => {
++      router = new RoutingServer();
++
++      const metrics1 = router.getSweeperMetrics();
++      router.sweep();
++      const metrics2 = router.getSweeperMetrics();
++
++      expect(metrics1.totalSweeps).toBe(0);
++      expect(metrics2.totalSweeps).toBe(1);
++    });
++
++    it('tracks metrics with automatic sweeper', async () => {
++      router = new RoutingServer({ ttlMs: 100, sweepIntervalMs: 60 });
++
++      router.announce({ ...baseAnnouncement, id: 'ep1' });
++      router.announce({ ...baseAnnouncement, id: 'ep2' });
++
++      router.startSweeper();
++
++      await new Promise((resolve) => setTimeout(resolve, 200));
++
++      const metrics = router.getSweeperMetrics();
++      expect(metrics.totalSweeps).toBeGreaterThanOrEqual(2);
++      expect(metrics.totalRemoved).toBeGreaterThanOrEqual(2);
++      expect(metrics.lastSweepTime).not.toBeNull();
++    });
++
++    it('continues tracking after removing no endpoints', () => {
++      router = new RoutingServer({ ttlMs: 1000, sweepIntervalMs: 100 });
++
++      router.announce(baseAnnouncement);
++
++      router.sweep();
++      expect(router.getSweeperMetrics().totalSweeps).toBe(1);
++      expect(router.getSweeperMetrics().totalRemoved).toBe(0);
++
++      router.sweep();
++      expect(router.getSweeperMetrics().totalSweeps).toBe(2);
++      expect(router.getSweeperMetrics().totalRemoved).toBe(0);
++    });
++  });
+ });

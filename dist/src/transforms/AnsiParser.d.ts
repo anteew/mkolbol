@@ -58,6 +58,9 @@ export interface AnsiParserOptions {
     scrollbackLimit?: number;
     cols?: number;
     rows?: number;
+    oscMaxLength?: number;
+    oscTimeoutMs?: number;
+    maxParseIterations?: number;
 }
 export interface ScrollbackLine {
     content: string;
@@ -82,6 +85,10 @@ export declare class AnsiParser {
     private currentLineStyle;
     private cols;
     private rows;
+    private oscMaxLength;
+    private oscTimeoutMs;
+    private maxParseIterations;
+    private parseStartTime;
     constructor(options?: AnsiParserOptions);
     private createInitialState;
     parse(input: string): AnsiParserEvent[];

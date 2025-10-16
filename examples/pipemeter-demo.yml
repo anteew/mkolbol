@@ -1,0 +1,23 @@
+nodes:
+  - id: timer1
+    module: TimerSource
+    params:
+      periodMs: 500
+      message: "Data flowing through the pipeline"
+  
+  - id: meter1
+    module: PipeMeterTransform
+    params:
+      emitInterval: 1000
+  
+  - id: console1
+    module: ConsoleSink
+    params:
+      prefix: "[metered]"
+
+connections:
+  - from: timer1.output
+    to: meter1.input
+  
+  - from: meter1.output
+    to: console1.input

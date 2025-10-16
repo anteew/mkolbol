@@ -115,4 +115,93 @@ describe('Multi-Modal Output Integration', () => {
     expect(outputs[3]).toContain('Buffer(0) []');
     expect(outputs[4]).toMatch(/Buffer\(200\) \[.*\.\.\. \+\d+ bytes\]/);
   });
+
+  it('should output JSONL format when format=jsonl', async () => {
+    const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
+    const sink = new ConsoleSink({ format: 'jsonl' });
+    const outputs: string[] = [];
+    
+    const originalLog = console.log;
+    console.log = (...args: any[]) => {
+      outputs.push(args.join(' '));
+    };
+
+    sink.inputPipe.write('test string');
+    sink.inputPipe.write({ foo: 'bar' });
+    sink.inputPipe.write(42);
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    console.log = originalLog;
+
+    expect(outputs).toHaveLength(3);
+    
+    const json1 = JSON.parse(outputs[0]);
+    expect(json1).toHaveProperty('ts');
+    expect(json1.data).toBe('test string');
+    expect(new Date(json1.ts).toISOString()).toBe(json1.ts);
+
+    const json2 = JSON.parse(outputs[1]);
+    expect(json2).toHaveProperty('ts');
+    expect(json2.data).toEqual({ foo: 'bar' });
+
+    const json3 = JSON.parse(outputs[2]);
+    expect(json3).toHaveProperty('ts');
+    expect(json3.data).toBe(42);
+  });
+
+  it('should encode Buffers as base64 in JSONL format', async () => {
+    const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
+    const sink = new ConsoleSink({ format: 'jsonl' });
+    const outputs: string[] = [];
+    
+    const originalLog = console.log;
+    console.log = (...args: any[]) => {
+      outputs.push(args.join(' '));
+    };
+
+    sink.inputPipe.write(Buffer.from('hello'));
+    sink.inputPipe.write(Buffer.from([0xFF, 0x00, 0xAB, 0xCD]));
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    console.log = originalLog;
+
+    expect(outputs).toHaveLength(2);
+    
+    const json1 = JSON.parse(outputs[0]);
+    expect(json1).toHaveProperty('ts');
+    expect(json1.data).toEqual({
+      type: 'Buffer',
+      encoding: 'base64',
+      data: Buffer.from('hello').toString('base64')
+    });
+
+    const json2 = JSON.parse(outputs[1]);
+    expect(json2).toHaveProperty('ts');
+    expect(json2.data).toEqual({
+      type: 'Buffer',
+      encoding: 'base64',
+      data: Buffer.from([0xFF, 0x00, 0xAB, 0xCD]).toString('base64')
+    });
+  });
+
+  it('should support legacy string constructor', async () => {
+    const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
+    const sink = new ConsoleSink('[legacy]');
+    const outputs: string[] = [];
+    
+    const originalLog = console.log;
+    console.log = (...args: any[]) => {
+      outputs.push(args.join(' '));
+    };
+
+    sink.inputPipe.write('test');
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    console.log = originalLog;
+
+    expect(outputs[0]).toBe('[legacy] test');
+  });
 });

@@ -1,0 +1,13 @@
+# DUPLICATE OF T6004
+
+T7012 requested mapping health failures to exit codes in mkctl.
+
+This was already implemented in T6004 (see patches/DIFF_T6004_mkctl-health-exit.patch).
+
+The implementation includes:
+- Health check failure detection in mkctl.ts
+- Exit code 70 (RUNTIME) for health check failures
+- Test coverage in mkctlRun.spec.ts
+- Documentation in mkctl-cookbook.md
+
+**Status**: Already completed in T6004. No additional work needed.

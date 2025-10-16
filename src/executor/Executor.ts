@@ -262,6 +262,135 @@ export class Executor {
     }
   }
 
+  async cutover(oldNodeId: string, newNodeId: string): Promise<void> {
+    debug.emit('executor', 'cutover.start', { oldNodeId, newNodeId, timestamp: Date.now() });
+
+    const oldInstance = this.modules.get(oldNodeId);
+    if (!oldInstance) {
+      throw new Error(`Old node not found: ${oldNodeId}`);
+    }
+
+    if (!this.config) {
+      throw new Error('No configuration loaded. Cannot perform cutover.');
+    }
+
+    const oldConfig = oldInstance.config;
+    const newConfig = { ...oldConfig, id: newNodeId };
+
+    debug.emit('executor', 'cutover.spawn-new', { newNodeId, timestamp: Date.now() });
+    await this.instantiateNode(newConfig);
+
+    const newInstance = this.modules.get(newNodeId);
+    if (!newInstance) {
+      throw new Error(`Failed to instantiate new node: ${newNodeId}`);
+    }
+
+    if (newInstance.module.outputPipe) {
+      const statePipe = this.stateManager.createPipe(`${newNodeId}.output`, { objectMode: true });
+      newInstance.module.outputPipe.pipe(statePipe);
+    }
+
+    if (newInstance.module.inputPipe) {
+      const statePipe = this.stateManager.createPipe(`${newNodeId}.input`, { objectMode: true });
+      statePipe.pipe(newInstance.module.inputPipe);
+    }
+
+    if (typeof newInstance.module.start === 'function') {
+      newInstance.module.start();
+    }
+
+    debug.emit('executor', 'cutover.drain-old', { 
+      oldNodeId, 
+      drainTimeout: this.cutoverConfig.drainTimeout,
+      timestamp: Date.now() 
+    });
+
+    if (oldInstance.module.outputPipe) {
+      const drainStartTime = Date.now();
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          const elapsed = Date.now() - drainStartTime;
+          debug.emit('executor', 'cutover.drain.timeout', { 
+            oldNodeId,
+            elapsed,
+            configuredTimeout: this.cutoverConfig.drainTimeout,
+            timestamp: Date.now()
+          }, 'warn');
+          resolve();
+        }, this.cutoverConfig.drainTimeout);
+
+        oldInstance.module.outputPipe.once('end', () => {
+          clearTimeout(timeout);
+          const elapsed = Date.now() - drainStartTime;
+          debug.emit('executor', 'cutover.drain.complete', {
+            oldNodeId,
+            elapsed,
+            timestamp: Date.now()
+          });
+          resolve();
+        });
+
+        if (typeof oldInstance.module.stop === 'function') {
+          oldInstance.module.stop();
+        }
+      });
+    } else {
+      if (typeof oldInstance.module.stop === 'function') {
+        oldInstance.module.stop();
+      }
+    }
+
+    debug.emit('executor', 'cutover.switch-connections', { oldNodeId, newNodeId, timestamp: Date.now() });
+
+    const topology = this.stateManager.getTopology();
+    const outgoingConnections = topology.connections.filter(c => c.from.startsWith(`${oldNodeId}.`));
+    const incomingConnections = topology.connections.filter(c => c.to.some(t => t.startsWith(`${oldNodeId}.`)));
+
+    for (const conn of outgoingConnections) {
+      const fromTerminal = conn.from.split('.')[1];
+      const newFrom = `${newNodeId}.${fromTerminal}`;
+      for (const toAddr of conn.to) {
+        this.stateManager.connect(newFrom, toAddr);
+      }
+    }
+
+    for (const conn of incomingConnections) {
+      const oldToAddrs = conn.to.filter(t => t.startsWith(`${oldNodeId}.`));
+      for (const oldToAddr of oldToAddrs) {
+        const toTerminal = oldToAddr.split('.')[1];
+        const newTo = `${newNodeId}.${toTerminal}`;
+        this.stateManager.connect(conn.from, newTo);
+      }
+    }
+
+    debug.emit('executor', 'cutover.teardown-old', { oldNodeId, timestamp: Date.now() });
+
+    if (oldInstance.worker) {
+      oldInstance.worker.postMessage({ type: 'shutdown' });
+      await oldInstance.worker.terminate();
+    } else if (oldInstance.process) {
+      await this.drainAndTeardownProcess(oldInstance);
+    }
+
+    const oldEndpointId = this.routingIndex.get(oldNodeId);
+    if (oldEndpointId) {
+      this.routingServer?.withdraw(oldEndpointId);
+      this.routingIndex.delete(oldNodeId);
+    }
+
+    (this.stateManager as any).nodes.delete(oldNodeId);
+    (this.hostess as any).guestBook.delete(oldEndpointId);
+    (this.hostess as any).endpoints.delete(oldEndpointId);
+
+    this.modules.delete(oldNodeId);
+
+    debug.emit('executor', 'cutover.complete', { 
+      oldNodeId, 
+      newNodeId, 
+      timestamp: Date.now() 
+    });
+  }
+
   registerModule(name: string, constructor: any): void {
     this.moduleRegistry.register(name, constructor);
   }
@@ -532,7 +661,8 @@ export class Executor {
     }
 
     const params = nodeConfig.params || {};
-    const module = new Constructor(this.kernel, ...Object.values(params));
+    // Modules are expected to take `(kernel, options)`; pass params as a single options object
+    const module = new Constructor(this.kernel, params);
 
     this.modules.set(nodeConfig.id, {
       id: nodeConfig.id,
@@ -728,6 +858,9 @@ export class Executor {
       'UppercaseTransform': '../modules/uppercase.js',
       'ConsoleSink': '../modules/consoleSink.js',
       'FilesystemSink': '../modules/filesystem-sink.js',
+      'PipeMeterTransform': '../transforms/pipeMeter.js',
+      'RateLimiterTransform': '../transforms/rateLimiter.js',
+      'TeeTransform': '../transforms/tee.js',
     };
     const relativePath = moduleMap[moduleName];
     if (!relativePath) {

@@ -43,6 +43,7 @@ export declare class Executor {
     down(): Promise<void>;
     private drainAndTeardownProcess;
     restartNode(id: string): Promise<void>;
+    cutover(oldNodeId: string, newNodeId: string): Promise<void>;
     registerModule(name: string, constructor: any): void;
     spawnExternalWrapper(manifest: ExternalServerManifest): Promise<ExternalServerWrapper>;
     private instantiateNode;

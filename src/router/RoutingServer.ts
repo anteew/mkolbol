@@ -6,11 +6,22 @@ export interface RoutingServerConfig {
   sweepIntervalMs?: number;
 }
 
+export interface SweeperMetrics {
+  totalSweeps: number;
+  totalRemoved: number;
+  lastSweepTime: number | null;
+}
+
 export class RoutingServer {
   private endpoints = new Map<string, RoutingEndpoint>();
   private ttlMs: number;
   private sweepIntervalMs: number;
   private sweepTimer?: NodeJS.Timeout;
+  private sweeperMetrics: SweeperMetrics = {
+    totalSweeps: 0,
+    totalRemoved: 0,
+    lastSweepTime: null,
+  };
 
   constructor(config?: RoutingServerConfig) {
     this.ttlMs = config?.ttlMs ?? 30000;
@@ -77,30 +88,57 @@ export class RoutingServer {
   sweep(): void {
     const now = Date.now();
     const stale: string[] = [];
+    const staleDetails: Array<{ id: string; age: number; type: string }> = [];
+
+    debug.emit('router', 'sweep.start', {
+      totalEndpoints: this.endpoints.size,
+      ttlMs: this.ttlMs,
+      sweepIntervalMs: this.sweepIntervalMs,
+    });
 
     for (const [id, endpoint] of this.endpoints.entries()) {
       const age = now - endpoint.updatedAt;
       if (age > this.ttlMs) {
         stale.push(id);
+        staleDetails.push({ id, age, type: endpoint.type });
         debug.emit('router', 'sweep.stale', {
           id,
+          type: endpoint.type,
           age,
           ttlMs: this.ttlMs,
-          lastUpdated: endpoint.updatedAt
+          lastUpdated: endpoint.updatedAt,
+          coordinates: endpoint.coordinates,
         }, 'warn');
       }
     }
 
     for (const id of stale) {
       this.endpoints.delete(id);
-      debug.emit('router', 'sweep.removed', { id });
-    }
-
-    if (stale.length > 0) {
-      debug.emit('router', 'sweep.complete', {
-        removed: stale.length,
-        remaining: this.endpoints.size
+      debug.emit('router', 'sweep.removed', { 
+        id,
+        totalRemaining: this.endpoints.size,
       });
     }
+
+    this.sweeperMetrics.totalSweeps++;
+    this.sweeperMetrics.totalRemoved += stale.length;
+    this.sweeperMetrics.lastSweepTime = now;
+
+    debug.emit('router', 'sweep.complete', {
+      removed: stale.length,
+      remaining: this.endpoints.size,
+      staleDetails,
+      totalSweeps: this.sweeperMetrics.totalSweeps,
+      totalRemoved: this.sweeperMetrics.totalRemoved,
+      duration: Date.now() - now,
+    });
+  }
+
+  getSweeperMetrics(): SweeperMetrics {
+    return {
+      totalSweeps: this.sweeperMetrics.totalSweeps,
+      totalRemoved: this.sweeperMetrics.totalRemoved,
+      lastSweepTime: this.sweeperMetrics.lastSweepTime,
+    };
   }
 }

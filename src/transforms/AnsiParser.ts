@@ -46,6 +46,9 @@ export interface AnsiParserOptions {
   scrollbackLimit?: number;
   cols?: number;
   rows?: number;
+  oscMaxLength?: number;
+  oscTimeoutMs?: number;
+  maxParseIterations?: number;
 }
 
 export interface ScrollbackLine {
@@ -151,11 +154,18 @@ export class AnsiParser {
   private currentLineStyle: AnsiParserState;
   private cols: number;
   private rows: number;
+  private oscMaxLength: number;
+  private oscTimeoutMs: number;
+  private maxParseIterations: number;
+  private parseStartTime: number = 0;
 
   constructor(options: AnsiParserOptions = {}) {
     this.scrollbackLimit = options.scrollbackLimit ?? 1000;
     this.cols = Math.max(1, Math.floor(options.cols ?? 80));
     this.rows = Math.max(1, Math.floor(options.rows ?? 24));
+    this.oscMaxLength = options.oscMaxLength ?? 100000;
+    this.oscTimeoutMs = options.oscTimeoutMs ?? 5000;
+    this.maxParseIterations = options.maxParseIterations ?? 1000000;
     this.state = this.createInitialState();
     this.currentLineStyle = { ...this.state };
   }
@@ -178,9 +188,23 @@ export class AnsiParser {
     this.events.length = 0;
     this.buffer = input;
     this.charBatch = '';
+    this.parseStartTime = Date.now();
     let i = 0;
+    let iterations = 0;
 
     while (i < this.buffer.length) {
+      // Performance guard: prevent infinite loops
+      if (++iterations > this.maxParseIterations) {
+        this.flushCharBatch();
+        break;
+      }
+
+      // Performance guard: prevent long-running parsing
+      if (Date.now() - this.parseStartTime > this.oscTimeoutMs) {
+        this.flushCharBatch();
+        break;
+      }
+
       const charCode = this.buffer.charCodeAt(i);
 
       if (charCode === 0x1B) {
@@ -299,8 +323,21 @@ export class AnsiParser {
 
   private parseOSC(startIndex: number): number {
     let i = startIndex;
+    const oscStart = startIndex;
 
     while (i < this.buffer.length) {
+      // Guard: Prevent OSC payload DOS attacks
+      const oscLength = i - oscStart;
+      if (oscLength > this.oscMaxLength) {
+        // Abort this OSC sequence and skip to end marker or limit
+        return oscLength + 2;
+      }
+
+      // Guard: Timeout check for incomplete sequences
+      if (Date.now() - this.parseStartTime > this.oscTimeoutMs) {
+        return i - startIndex + 2;
+      }
+
       const char = this.buffer[i];
       if (char === '\x07' || (char === '\x1B' && this.buffer[i + 1] === '\\')) {
         return i - startIndex + (char === '\x07' ? 3 : 4);

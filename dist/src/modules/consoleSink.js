@@ -1,25 +1,57 @@
 import { Writable } from 'stream';
 export class ConsoleSink {
-    prefix;
     inputPipe;
-    constructor(prefix = '[sink]') {
-        this.prefix = prefix;
+    prefix;
+    format;
+    constructor(options) {
+        if (typeof options === 'string') {
+            this.prefix = options;
+            this.format = 'text';
+        }
+        else {
+            this.prefix = options?.prefix ?? '[sink]';
+            this.format = options?.format ?? 'text';
+        }
         const sink = new Writable({
             objectMode: true,
-            write(chunk, _enc, cb) {
-                if (typeof chunk === 'string') {
-                    console.log(`${prefix} ${chunk}`);
-                }
-                else if (Buffer.isBuffer(chunk)) {
-                    console.log(`${prefix} ${formatBuffer(chunk)}`);
+            write: (chunk, _enc, cb) => {
+                if (this.format === 'jsonl') {
+                    this.writeJsonl(chunk);
                 }
                 else {
-                    console.log(`${prefix} ${JSON.stringify(chunk)}`);
+                    this.writeText(chunk);
                 }
                 cb();
             }
         });
         this.inputPipe = sink;
+    }
+    writeText(chunk) {
+        if (typeof chunk === 'string') {
+            console.log(`${this.prefix} ${chunk}`);
+        }
+        else if (Buffer.isBuffer(chunk)) {
+            console.log(`${this.prefix} ${formatBuffer(chunk)}`);
+        }
+        else {
+            console.log(`${this.prefix} ${JSON.stringify(chunk)}`);
+        }
+    }
+    writeJsonl(chunk) {
+        const ts = new Date().toISOString();
+        let data;
+        if (Buffer.isBuffer(chunk)) {
+            data = {
+                type: 'Buffer',
+                encoding: 'base64',
+                data: chunk.toString('base64')
+            };
+        }
+        else {
+            data = chunk;
+        }
+        const line = JSON.stringify({ ts, data });
+        console.log(line);
     }
 }
 function formatBuffer(buf) {

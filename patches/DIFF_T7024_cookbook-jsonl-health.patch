@@ -1,0 +1,233 @@
+diff --git a/docs/devex/mkctl-cookbook.md b/docs/devex/mkctl-cookbook.md
+index 9850cd7..f9aa284 100644
+--- a/docs/devex/mkctl-cookbook.md
++++ b/docs/devex/mkctl-cookbook.md
+@@ -31,6 +31,60 @@ mkctl run --file examples/configs/basic.yml
+ - Logs to stdout
+ - Cleans up and exits
+ 
++### Validate topology without running (dry-run)
++
++```bash
++mkctl run --file examples/configs/basic.yml --dry-run
++```
++
++**What happens:**
++- Loads and parses YAML/JSON config
++- Validates configuration structure
++- Checks for duplicate node IDs
++- Verifies all connections reference existing nodes
++- Validates module names against registry
++- **Does NOT** instantiate modules or run topology
++- Exits with appropriate exit code
++
++**Output (valid config):**
++```
++Loading config from: examples/configs/basic.yml
++Configuration is valid.
++```
++
++**Output (invalid config):**
++```
++Configuration validation failed: Connection from 'source' to non-existent node "missing"
++```
++
++**Use cases:**
++- CI/CD validation pipelines
++- Pre-deployment config checks
++- Syntax and structure validation
++- Quick feedback during config development
++
++**Examples:**
++```bash
++# Validate complex topology before deployment
++mkctl run --file production-topology.yml --dry-run
++
++# Use in CI/CD pipeline
++mkctl run --file config.yml --dry-run && echo "Config valid" || exit 1
++
++# Flag can be placed anywhere
++mkctl run --dry-run --file config.yml
++
++# Check multiple configs
++for cfg in configs/*.yml; do
++  mkctl run --file "$cfg" --dry-run || echo "FAIL: $cfg"
++done
++```
++
++**Exit codes with --dry-run:**
++- `0` (SUCCESS) - Configuration is valid
++- `65` (CONFIG_PARSE) - Invalid syntax or validation error
++- `66` (CONFIG_NOT_FOUND) - Config file doesn't exist
++
+ ### Run with custom duration
+ 
+ ```bash
+@@ -395,6 +449,167 @@ meter.stop();
+ 
+ ---
+ 
++## FilesystemSink Output Formats
++
++The `FilesystemSink` module writes pipeline data to files with configurable output formats.
++
++### Raw Format (Default)
++
++```yaml
++nodes:
++  - id: source
++    module: TimerSource
++    params: { periodMs: 1000 }
++  - id: sink
++    module: FilesystemSink
++    params:
++      path: reports/output.log
++      format: raw  # default, can be omitted
++      mode: append  # or 'truncate'
++```
++
++**Output:**
++```
++Hello from timer
++Hello from timer
++```
++
++### JSONL Format (Timestamped JSON Lines)
++
++```yaml
++nodes:
++  - id: source
++    module: TimerSource
++    params: { periodMs: 1000 }
++  - id: sink
++    module: FilesystemSink
++    params:
++      path: reports/output.jsonl
++      format: jsonl  # wraps each chunk as JSON object
++```
++
++**Output:**
++```jsonl
++{"ts":"2025-10-16T12:34:56.789Z","data":"Hello from timer"}
++{"ts":"2025-10-16T12:34:57.789Z","data":"Hello from timer"}
++```
++
++Each line is a valid JSON object with:
++- `ts` - ISO 8601 timestamp when data was written
++- `data` - The actual payload as string
++
++**Use cases:**
++- Log aggregation (Elasticsearch, Splunk)
++- Stream processing (Apache Kafka, AWS Kinesis)
++- Data analysis with jq or Python
++- Audit trails requiring precise timestamps
++
++### Raw Format with Timestamps
++
++```yaml
++nodes:
++  - id: source
++    module: TimerSource
++  - id: sink
++    module: FilesystemSink
++    params:
++      path: reports/output.log
++      format: raw
++      includeTimestamp: true  # prepends ISO timestamp to each line
++```
++
++**Output:**
++```
++2025-10-16T12:34:56.789Z Hello from timer
++2025-10-16T12:34:57.789Z Hello from timer
++```
++
++**Note:** Timestamps are applied per-line, not per-chunk.
++
++### Configuration Options
++
++| Option | Type | Default | Description |
++|--------|------|---------|-------------|
++| `path` | `string` | required | File path (absolute or relative to cwd) |
++| `format` | `'raw' \| 'jsonl'` | `'raw'` | Output format |
++| `includeTimestamp` | `boolean` | `false` | Add timestamp prefix (raw format only) |
++| `mode` | `'append' \| 'truncate'` | `'append'` | File write mode |
++| `encoding` | `BufferEncoding` | `'utf8'` | Text encoding |
++| `fsync` | `'always' \| 'never' \| 'auto'` | `'auto'` | Force flush to disk |
++| `highWaterMark` | `number` | `16384` | Stream buffer size (bytes) |
++
++### Practical Example: HTTP Logs to JSONL
++
++```yaml
++nodes:
++  - id: web
++    module: ExternalProcess
++    params:
++      command: node
++      args:
++        - -e
++        - "require('http').createServer((req,res)=>{console.log(\`[${new Date().toISOString()}] ${req.method} ${req.url}\`);res.end('OK');}).listen(3000)"
++      ioMode: stdio
++
++  - id: sink
++    module: FilesystemSink
++    params:
++      path: reports/http-access.jsonl
++      format: jsonl
++      mode: append
++
++connections:
++  - from: web.output
++    to: sink.input
++```
++
++**Run the topology:**
++```bash
++mkctl run --file examples/configs/http-logs-local-file.yml --duration 30
++```
++
++**In another terminal:**
++```bash
++curl http://localhost:3000/hello
++curl http://localhost:3000/api/users
++curl http://localhost:3000/test
++```
++
++**View structured logs:**
++```bash
++cat reports/http-access.jsonl | jq -r '.data'
++# [2025-10-16T...] GET /hello
++# [2025-10-16T...] GET /api/users
++# [2025-10-16T...] GET /test
++
++# Extract timestamps only
++cat reports/http-access.jsonl | jq -r '.ts'
++
++# Filter by path
++cat reports/http-access.jsonl | jq 'select(.data | contains("/api"))'
++```
++
++### Processing JSONL with jq
++
++```bash
++# Pretty-print each record
++cat output.jsonl | jq '.'
++
++# Extract only the data field
++cat output.jsonl | jq -r '.data'
++
++# Filter by timestamp
++cat output.jsonl | jq 'select(.ts >= "2025-10-16T12:00:00")'
++
++# Count records per minute
++cat output.jsonl | jq -r '.ts[0:16]' | sort | uniq -c
++
++# Convert to CSV
++cat output.jsonl | jq -r '[.ts, .data] | @csv'
++```
++
++---
++
+ ## Troubleshooting Cheatsheet
+ 
+ | Symptom | Fix |

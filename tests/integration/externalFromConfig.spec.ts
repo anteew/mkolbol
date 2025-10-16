@@ -849,10 +849,24 @@ describe('External From Config Integration', () => {
     testTimeout
   );
 
-  // Health check: HTTP type success
+  async function getFreePort(): Promise<number> {
+    return await new Promise((resolve, reject) => {
+      const net = require('net');
+      const s = net.createServer();
+      s.listen(0, () => {
+        const address = s.address();
+        const port = typeof address === 'object' && address ? address.port : 0;
+        s.close(() => resolve(port));
+      });
+      s.on('error', reject);
+    });
+  }
+
+  // Health check: HTTP type success (uses a free ephemeral port to avoid collisions)
   it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
     'should pass HTTP-based health check',
     async () => {
+      const port = await getFreePort();
       const config: TopologyConfig = {
         nodes: [
           {
@@ -860,12 +874,12 @@ describe('External From Config Integration', () => {
             module: 'ExternalProcess',
             params: {
               command: 'node',
-              args: ['-e', 'const http=require("http");const s=http.createServer((req,res)=>res.end("OK"));s.listen(18765);process.on("SIGTERM",()=>s.close())'],
+              args: ['-e', `const http=require("http");const s=http.createServer((req,res)=>res.end("OK"));s.listen(${port});process.on("SIGTERM",()=>s.close())`],
               ioMode: 'stdio',
               restart: 'never',
               healthCheck: {
                 type: 'http',
-                url: 'http://localhost:18765',
+                url: `http://localhost:${port}`,
                 timeout: 2000,
                 retries: 5
               }
@@ -924,10 +938,11 @@ describe('External From Config Integration', () => {
     testTimeout
   );
 
-  // Health check: HTTP type 404 failure
+  // Health check: HTTP type 404 failure (uses a free ephemeral port)
   it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
     'should fail HTTP health check on non-2xx status',
     async () => {
+      const port = await getFreePort();
       const config: TopologyConfig = {
         nodes: [
           {
@@ -935,12 +950,12 @@ describe('External From Config Integration', () => {
             module: 'ExternalProcess',
             params: {
               command: 'node',
-              args: ['-e', 'const http=require("http");const s=http.createServer((req,res)=>{res.statusCode=404;res.end()});s.listen(18766);process.on("SIGTERM",()=>s.close())'],
+              args: ['-e', `const http=require("http");const s=http.createServer((req,res)=>{res.statusCode=404;res.end()});s.listen(${port});process.on("SIGTERM",()=>s.close())`],
               ioMode: 'stdio',
               restart: 'never',
               healthCheck: {
                 type: 'http',
-                url: 'http://localhost:18766',
+                url: `http://localhost:${port}`,
                 timeout: 2000,
                 retries: 2
               }

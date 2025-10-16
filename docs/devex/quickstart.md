@@ -142,9 +142,10 @@ Coordinates: node:sink
 - Output → ConsoleSink (terminal console)
 - Users who want persistent logs can tee output: `… | tee reports/http-demo.log`
 
-**FilesystemSink (file output):**
-- Output → FilesystemSink (writes to `reports/http-logs.jsonl`)
+**FilesystemSink with PipeMeter (file output with metrics):**
+- Output → PipeMeter → FilesystemSink (writes to `reports/http-logs.jsonl`)
 - Use the ready-made config: `examples/configs/http-logs-local-file.yml`
+- Topology: ExternalProcess (HTTP server) → PipeMeterTransform → FilesystemSink (JSONL format)
 
 Run it:
 ```bash
@@ -153,9 +154,17 @@ node dist/scripts/mkctl.js run --file examples/configs/http-logs-local-file.yml 
 # In another shell, hit the server to generate logs
 curl -s http://localhost:3000 >/dev/null
 curl -s http://localhost:3000/test >/dev/null
-ls -l reports/http-logs.jsonl
+cat reports/http-logs.jsonl
 ```
-- Node IDs stay the same (web, sink), so the documentation diff is minimal
+
+Expected output in `reports/http-logs.jsonl`:
+```jsonl
+{"ts":"2025-10-16T12:34:56.789Z","data":"Server listening on http://localhost:3000"}
+{"ts":"2025-10-16T12:34:57.123Z","data":"[2025-10-16T12:34:57.123Z] GET /"}
+{"ts":"2025-10-16T12:34:58.456Z","data":"[2025-10-16T12:34:58.456Z] GET /test"}
+```
+
+**PipeMeter** tracks throughput metrics (bytes/sec, messages/sec) for monitoring and debugging pipeline performance.
 
 ### FilesystemSink Format Options
 
