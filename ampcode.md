@@ -2,51 +2,66 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "R2-A", "parallel": false, "tasks": ["T2001", "T2002"] },
-    { "id": "R2-B", "parallel": true,  "depends_on": ["R2-A"], "tasks": ["T2003"] }
+    { "id": "E1-A", "parallel": false, "tasks": ["T4001", "T4002"] },
+    { "id": "FS1-B", "parallel": true,  "depends_on": ["E1-A"], "tasks": ["T4101", "T4102", "T4103"] }
   ],
   "tasks": [
     {
-      "id": "T2001",
+      "id": "T4001",
       "agent": "susan",
-      "title": "RoutingServer TTL + heartbeat",
-      "allowedFiles": ["src/router/RoutingServer.ts", "tests/integration/router-inproc.spec.ts"],
+      "title": "ExternalProcess Hardening P1: restart/backoff/log capture",
+      "allowedFiles": ["src/wrappers/ExternalServerWrapper.ts", "tests/integration/externalFromConfig.spec.ts", "docs/devex/mkctl-cookbook.md"],
       "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_T2001_router-ttl.patch"]
+      "deliverables": ["patches/DIFF_T4001_restart-backoff.patch"]
     },
     {
-      "id": "T2002",
+      "id": "T4002",
       "agent": "susan",
-      "title": "Executor heartbeat announcements",
-      "allowedFiles": ["src/executor/Executor.ts", "tests/integration/router-announcements.spec.ts"],
+      "title": "ExternalProcess Hardening P1: env/cwd + exit-code mapping",
+      "allowedFiles": ["src/wrappers/ExternalServerWrapper.ts", "tests/integration/externalFromConfig.spec.ts", "docs/devex/mkctl-cookbook.md"],
       "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_T2002_executor-heartbeat.patch"]
+      "deliverables": ["patches/DIFF_T4002_logs-env-exitcodes.patch"]
     },
     {
-      "id": "T2003",
+      "id": "T4101",
       "agent": "susan",
-      "title": "mkctl endpoints --watch + filters",
-      "allowedFiles": ["scripts/mkctl.ts", "tests/cli/mkctlEndpoints.spec.ts"],
+      "title": "FilesystemSink P1: module + append/truncate",
+      "allowedFiles": ["src/modules/filesystem-sink.ts", "tests/renderers/filesystemSink.spec.ts", "examples/configs/http-logs-local.yml"],
       "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_T2003_mkctl-watch.patch"]
-    }
-    ,
+      "deliverables": ["patches/DIFF_T4101_filesystem-sink-core.patch"]
+    },
     {
-      "id": "T2004",
+      "id": "T4102",
       "agent": "susan",
-      "title": "Gate: MK_LOCAL_NODE=1 (loader + mkctl checks)",
-      "allowedFiles": ["src/config/loader.ts", "scripts/mkctl.ts", "docs/devex/quickstart.md"],
+      "title": "FilesystemSink P1: fsync policy + backpressure/errors",
+      "allowedFiles": ["src/modules/filesystem-sink.ts", "tests/renderers/filesystemSink.spec.ts"],
       "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_T2004_local-gate.patch"]
+      "deliverables": ["patches/DIFF_T4102_filesystem-sink-fsync.patch"]
+    },
+    {
+      "id": "T4103",
+      "agent": "susan",
+      "title": "Docs + cookbook: logging to files (Local Node v1.0)",
+      "allowedFiles": ["docs/devex/mkctl-cookbook.md", "docs/devex/quickstart.md", "docs/rfcs/stream-kernel/05-router.md"],
+      "verify": ["npm run build"],
+      "deliverables": ["patches/DIFF_T4103_filesystem-sink-docs.patch"]
     }
   ]
 }
 ```
 
-# Ampcode Template — Subagent Dispatch Plan (Core: Router P2 — Local Node v1.0)
+# Ampcode — Core: ExternalProcess Hardening P1 + FilesystemSink P1 (Local Node v1.0)
 
-Goal: Add TTL/heartbeat to routing and live `mkctl endpoints --watch` for Local Node v1.0 (in‑proc Router only).
+Goal
+- Harden ExternalProcess for production (restart/backoff/logs/env/exit codes) and add a simple FilesystemSink so we can dogfood an HTTP→log demo locally.
 
 Constraints
-- Kernel unchanged; Router/Executor/CLI only.
-- Respect gate: `MK_LOCAL_NODE=1` (no network adapters/transports). Update loader/CLI to warn/reject network references when set.
+- MK_LOCAL_NODE=1 (no network adapters). Kernel unchanged.
+
+Verification Commands
+```bash
+export MK_LOCAL_NODE=1
+npm run build
+npm run test:ci
+MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
+```
