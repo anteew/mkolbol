@@ -2,99 +2,82 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "DX-10A", "parallel": true,  "tasks": ["LAM-1001", "LAM-1002", "LAM-1003", "LAM-1004"] },
-    { "id": "DX-10B", "parallel": true,  "tasks": ["DEVEX-101", "DEVEX-102", "DEVEX-103"] }
+    { "id": "DX-11A", "parallel": true,  "tasks": ["LAM-1101", "LAM-1102", "LAM-1103"] },
+    { "id": "DX-11B", "parallel": true,  "tasks": ["DEVEX-111", "DEVEX-112", "DEVEX-113"] }
   ],
   "tasks": [
     {
-      "id": "LAM-1001",
+      "id": "LAM-1101",
       "agent": "devex",
-      "title": "Laminar trends cache (persist history across CI runs)",
-      "allowedFiles": [".github/workflows/tests.yml", "VEGA/laminar-ci-visibility-plan.md"],
+      "title": "Laminar cache keys per node+branch; aggregate PR comment",
+      "allowedFiles": [".github/workflows/tests.yml", "scripts/post-laminar-pr-comment.js"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_LAM-1001_trends-cache.patch"]
+      "deliverables": ["patches/DIFF_LAM-1101_cache-keys-aggregate.patch"]
     },
     {
-      "id": "LAM-1002",
+      "id": "LAM-1102",
       "agent": "devex",
-      "title": "Suite tagging per lane (threads/forks/process-unix)",
-      "allowedFiles": [".github/workflows/tests.yml"],
+      "title": "Flake budget summary in PR (last 5 runs)",
+      "allowedFiles": ["scripts/post-laminar-pr-comment.js", "scripts/append-laminar-history.js"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_LAM-1002_suite-tags.patch"]
+      "deliverables": ["patches/DIFF_LAM-1102_flake-budget.patch"]
     },
     {
-      "id": "LAM-1003",
+      "id": "LAM-1103",
       "agent": "devex",
-      "title": "PR comment with Laminar summary + top trends (best-effort)",
-      "allowedFiles": [".github/workflows/tests.yml", "package.json", "docs/devex/mkctl-cookbook.md"],
+      "title": "Acceptance smoke job: run mkctl http-logs-local-file.yml in CI (best-effort)",
+      "allowedFiles": [".github/workflows/tests.yml", "examples/configs/http-logs-local-file.yml"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_LAM-1003_pr-comment.patch"]
+      "deliverables": ["patches/DIFF_LAM-1103_acceptance-smoke.patch"]
     },
     {
-      "id": "LAM-1004",
+      "id": "DEVEX-111",
       "agent": "devex",
-      "title": "Repro hints artifact (LAMINAR_REPRO.md) for failures",
-      "allowedFiles": [".github/workflows/tests.yml", "reports/**"],
+      "title": "Acceptance doc: expand FileSink walkthrough end-to-end",
+      "allowedFiles": ["tests/devex/acceptance/local-node-v1.md", "docs/devex/quickstart.md"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_LAM-1004_repro-hints.patch"]
+      "deliverables": ["patches/DIFF_DEVEX-111_filesink-walkthrough.patch"]
     },
     {
-      "id": "DEVEX-101",
+      "id": "DEVEX-112",
       "agent": "devex",
-      "title": "Quickstart update: prefer FilesystemSink (http-logs-local-file.yml)",
-      "allowedFiles": ["examples/configs/http-logs-local-file.yml", "docs/devex/quickstart.md", "docs/devex/mkctl-cookbook.md", "tests/devex/acceptance/local-node-v1.md"],
+      "title": "First Five Minutes: polish and add troubleshooting anchors",
+      "allowedFiles": ["docs/devex/first-five-minutes.md", "README.md"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_DEVEX-101_filesink-quickstart.patch"]
+      "deliverables": ["patches/DIFF_DEVEX-112_first-five-minutes-polish.patch"]
     },
     {
-      "id": "DEVEX-102",
+      "id": "DEVEX-113",
       "agent": "devex",
-      "title": "First Five Minutes landing (Local Node) + troubleshooting",
-      "allowedFiles": ["README.md", "docs/devex/quickstart.md", "docs/devex/mkctl-cookbook.md"],
+      "title": "mkctl cookbook: add endpoints --json + filters + health error mapping",
+      "allowedFiles": ["docs/devex/mkctl-cookbook.md"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_DEVEX-102_first-five-minutes.patch"]
-    },
-    {
-      "id": "DEVEX-103",
-      "agent": "devex",
-      "title": "mkctl docs polish: error matrix + exit codes",
-      "allowedFiles": ["docs/devex/mkctl-cookbook.md", "docs/devex/quickstart.md"],
-      "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_DEVEX-103_mkctl-docs-polish.patch"]
+      "deliverables": ["patches/DIFF_DEVEX-113_mkctl-cookbook-updates.patch"]
     }
   ]
 }
 ```
 
-# DevEx Sprint 10 — Laminar CI Visibility + Local Node Developer Experience
+# DevEx Sprint 11 — Laminar CI Refinement + Acceptance Docs
 
 Goal
-- Elevate CI insight with Laminar (trends, suite tags, PR comments, repro hints) and refine early-adopter experience (FileSink-first quickstart, first-five-minutes, mkctl docs polish).
+- Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expand FileSink acceptance walkthroughs; keep early-adopter docs cohesive with upcoming mkctl/health features.
 
-Constraints
-- Local Node only (`MK_LOCAL_NODE=1`); no network adapters. CI changes should be best-effort where appropriate to avoid blocking merges on comment posting.
-
-Execution Notes for Vex
-- Autonomy: In addition to DevEx, you now own “Laminar and test strategy improvements”. You may run mini-sprints inside this sprint. Create `Vex/minisprints/vex-sprint10-ms1.md` (use agent_template/AMPCODE_TEMPLATE.md) and append progress to `Vex/devex.log`.
-- Scope management: Maximize what you can deliver per mini-sprint without compromising quality. If tradeoffs arise, leave a concise note in ampcode.log for the architect (VEGA) and ping Danny with questions.
-- Planning runway: Propose a rolling 2–3 sprint Laminar roadmap (flake budgets, dashboards, diffing), but only land items gated by Local Node v1.0.
+Autonomy & Direction for Vex
+- You continue to own “Laminar and test strategy improvements.” You may run mini-sprints; create `Vex/minisprints/vex-sprint11-ms1.md` (use agent_template/AMPCODE_TEMPLATE.md) and log updates in `Vex/devex.log`.
+- Please sweep your prior notes (see Vex/sprint10-investigation.md) and pull any outstanding items into this sprint if they accelerate Local Node v1.0.
+- Keep changes best-effort in CI (never block merges on comment-post steps). Surface concerns and propose mitigations in ampcode.log.
 
 Verification Commands
 ```bash
 export MK_LOCAL_NODE=1
 npm run build
 npm run test:ci
-# Laminar best-effort reports (locally):
-npm run lam -- summary || true
-npm run lam -- trends --top 10 || true
+MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
 ```
 
 Success Criteria
-- CI caches `reports/history.jsonl`; suite-tagged runs visible in Laminar summaries.
-- PRs include a short Laminar summary/trends comment when actions permissions permit.
-- Quickstart prefers FilesystemSink variant and acceptance doc references it.
-- mkctl docs include an error matrix and exit code mapping.
-
-Communication
-- Use ampcode.log for status and questions. Danny will route between you and VEGA.
-- If you need input on testing strategy priorities, propose options and proceed with the highest impact minimal change.
+- Laminar history uses per-node/per-branch cache keys and a single aggregated PR comment per run.
+- PR comment includes a flake budget summary (e.g., ≥2 failures in last 5 runs).
+- Acceptance doc shows a complete FileSink flow; quickstart/first‑five‑minutes remain consistent.
+- Cookbook documents endpoints --json, metadata filters, and health exit mapping.
