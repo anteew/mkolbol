@@ -1252,3 +1252,80 @@ mkctl run --file config.yml --duration 60 --snapshot-interval 10
 **Report generated**: 2025-10-17
 **Agent**: Claude Code (Vex) — DevEx + Laminar Infrastructure Architect
 **Brand**: mkolbol — Stream kernel with Laminar CI Visibility and enhanced Developer Experience
+
+---
+
+## Post-Sprint P11: Health Check Error Handling Polish — 2025-10-17 06:30Z
+
+**Goal**: Complete DEVEX-113 by adding comprehensive health check documentation and error handling to mkctl
+
+**Status**: ✅ **COMPLETE**
+
+**Scope**: Health check feature follow-up (documentation + error handling + tests + fixture)
+
+### TASK: Health Check Documentation & Error Handling ✅ PASS
+
+**Commit**: `cde2d05 feat: Add health check documentation and error handling to mkctl`
+
+**Files Modified**:
+- `docs/devex/mkctl-cookbook.md` — Added "Health Checks for External Processes" section (76 lines)
+- `scripts/mkctl.ts` — Enhanced error handling for health check failures (10 lines)
+- `src/executor/Executor.ts` — Forward health check config to ExternalServerWrapper (3 lines)
+- `tests/cli/mkctlRun.spec.ts` — Added health check failure test case (28 lines)
+- `tests/integration/externalFromConfig.spec.ts` — Improved HTTP server cleanup (4 lines)
+
+**Files Created**:
+- `examples/configs/bad-health-check.yml` — New fixture for learning
+
+**Implementation Details**:
+
+1. **Documentation** (mkctl-cookbook.md):
+   - "Health Checks for External Processes" section with two subsections
+   - Command-based health check: shell command with exit code 0 expectation
+   - HTTP-based health check: GET request with 2xx status expectation
+   - Health check options table (type, command/url, timeout, retries)
+   - Backoff behavior explained (1s, 2s, 4s, max 10s)
+   - Troubleshooting: added health check failure to cheatsheet
+
+2. **Error Handling** (mkctl.ts):
+   - Detect "Health check failed" errors with specific messaging
+   - Provide helpful hint about verifying external process responsiveness
+   - Exit code 70 (RUNTIME) for consistency with other topology failures
+
+3. **Configuration Forwarding** (Executor.ts):
+   - Pass restart, restartDelay, maxRestarts, and healthCheck to ExternalServerWrapper
+   - Enables health check validation during topology startup
+
+4. **Test Coverage** (mkctlRun.spec.ts):
+   - New test: "should exit with RUNTIME code when health check fails"
+   - Verifies exit code 70 on health check failure
+   - Confirms error message contains "Health check failed"
+   - Verifies helpful hint is provided
+
+5. **Server Cleanup** (externalFromConfig.spec.ts):
+   - HTTP servers now handle SIGTERM gracefully
+   - Improved test reliability during termination
+
+6. **Fixture** (bad-health-check.yml):
+   - Sleep process with intentionally failing health check (exit 1 command)
+   - Used for learning: demonstrates error output and recovery
+
+**Verification**:
+- ✅ `npm run build` — Success
+- ✅ `npm run test:ci` — All tests pass (including new health check test)
+- ✅ Health check failure test validates exit codes and error messages
+- ✅ Bad fixture available and properly formatted
+
+**Quality Checklist**:
+- ✅ Documentation with practical examples
+- ✅ Error messages follow mkctl convention ([mkctl] prefix + hint)
+- ✅ Exit codes aligned with mkctl standards
+- ✅ Test coverage includes health check failure path
+- ✅ Bad config fixture available for learning
+- ✅ Backward compatible with existing configs
+
+**Impact**:
+- Completes DEVEX-113 requirement for "health error mapping"
+- mkctl now provides comprehensive guidance for health check failures
+- Error matrix in mkctl-cookbook now includes health check scenario
+- Users can self-diagnose health check issues with provided fixture
