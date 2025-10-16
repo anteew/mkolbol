@@ -1,0 +1,337 @@
+diff --git docs/devex/packaging.md docs/devex/packaging.md
+index a208077..95a0d69 100644
+--- docs/devex/packaging.md
++++ docs/devex/packaging.md
+@@ -2,6 +2,132 @@
+ 
+ This guide shows you how to package your mkolbol-based application and its custom servers into a single distributable executable or bundle. This is essential for shipping your application to users or deploying to production environments.
+ 
++## Table of Contents
++
++1. [Tarball Installation](#tarball-installation)
++2. [Git Tag Pinning](#git-tag-pinning)
++3. [Bundling Approaches](#bundling-approaches)
++4. [Runtime Configuration](#runtime-configuration-discovery)
++5. [Deployment Checklist](#deployment-checklist)
++
++## Tarball Installation
++
++mkolbol releases are published as `.tgz` tarballs on GitHub. You can install specific versions using either npm directly or the `mk fetch` command.
++
++### Using npm
++
++Install a specific release from a local tarball:
++
++```bash
++npm install ./mkolbol-v0.2.0.tgz
++```
++
++Or from a URL:
++
++```bash
++npm install https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-v0.2.0.tgz
++```
++
++### Using mk fetch (Experimental)
++
++The `mk fetch` command downloads and installs a release tarball by tag:
++
++```bash
++# Install a specific version
++mk fetch v0.2.0
++
++# Install the latest release
++mk fetch latest
++```
++
++**What it does**:
++1. Queries GitHub releases API for the specified tag
++2. Downloads the `.tgz` asset to your current directory
++3. Runs `npm install <tarball>` to install it
++4. Updates your `package.json` and `package-lock.json`
++
++**Examples**:
++
++```bash
++# Install specific version
++$ mk fetch v0.2.0
++Fetching release v0.2.0...
++Downloaded to /path/to/mkolbol-v0.2.0.tgz
++Installing from /path/to/mkolbol-v0.2.0.tgz...
++Installation complete
++
++# Install latest stable release
++$ mk fetch latest
++Fetching release latest...
++Downloaded to /path/to/mkolbol-v0.3.0.tgz
++Installing from /path/to/mkolbol-v0.3.0.tgz...
++Installation complete
++```
++
++**Limitations**:
++- Requires internet connection to GitHub
++- Only works with published GitHub releases
++- Does not support pre-release tags (alpha, beta)
++- Experimental feature, API may change
++
++## Git Tag Pinning
++
++For development or CI/CD, you can pin mkolbol to a specific git commit or tag using npm's git protocol:
++
++### Pin to a tag
++
++```json
++{
++  "dependencies": {
++    "mkolbol": "github:anteew/mkolbol#v0.2.0"
++  }
++}
++```
++
++### Pin to a commit SHA
++
++```json
++{
++  "dependencies": {
++    "mkolbol": "github:anteew/mkolbol#a1b2c3d4"
++  }
++}
++```
++
++### Pin to a branch
++
++```json
++{
++  "dependencies": {
++    "mkolbol": "github:anteew/mkolbol#main"
++  }
++}
++```
++
++**Install**:
++
++```bash
++npm install
++```
++
++**Pros**:
++- Pin to any commit, tag, or branch
++- No need to wait for npm registry publish
++- Works in CI/CD environments
++- Reproducible builds
++
++**Cons**:
++- Requires git checkout and build on install
++- Slower than tarball install
++- Requires build dependencies (TypeScript, etc.)
++- Not suitable for production deployments
++
++**When to use**:
++- Development against unreleased features
++- Testing release candidates
++- CI/CD pipelines with specific version requirements
++- Contributing to mkolbol development
++
+ ## Overview
+ 
+ When you build an application with mkolbol, you typically have:
+diff --git scripts/mk.ts scripts/mk.ts
+index 05829ef..2cf317c 100644
+--- scripts/mk.ts
++++ scripts/mk.ts
+@@ -124,6 +124,35 @@ const commands: Command[] = [
+       return EXIT_SUCCESS;
+     },
+   },
++  {
++    name: 'fetch',
++    description: 'Download and install release tarball by tag (experimental)',
++    usage: 'mk fetch <tag>',
++    handler: async (args: string[]) => {
++      if (args.length === 0) {
++        console.error('Error: Missing release tag');
++        console.error('Usage: mk fetch <tag>');
++        console.error('Examples: mk fetch v0.2.0, mk fetch latest');
++        return EXIT_USAGE;
++      }
++
++      const tag = args[0];
++      
++      try {
++        const { downloadRelease, installTarball } = await import('../src/mk/fetch.js');
++        
++        console.log(`Fetching release ${tag}...`);
++        const tarballPath = await downloadRelease(tag);
++        
++        await installTarball(tarballPath);
++        
++        return EXIT_SUCCESS;
++      } catch (error) {
++        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++        return EXIT_ERROR;
++      }
++    },
++  },
+ ];
+ 
+ function printMainHelp() {
+diff --git src/mk/fetch.ts src/mk/fetch.ts
+new file mode 100644
+index 0000000..ac65ae9
+--- /dev/null
++++ src/mk/fetch.ts
+@@ -0,0 +1,154 @@
++import { createWriteStream, existsSync } from 'node:fs';
++import { mkdir, chmod, access, constants as fsConstants } from 'node:fs/promises';
++import { dirname, join } from 'node:path';
++import { pipeline } from 'node:stream/promises';
++import { execSync } from 'node:child_process';
++import https from 'node:https';
++
++const GITHUB_OWNER = 'anteew';
++const GITHUB_REPO = 'mkolbol';
++
++export async function downloadRelease(tag: string): Promise<string> {
++  const tarballUrl = await getReleaseTarballUrl(tag);
++  const fileName = `mkolbol-${tag}.tgz`;
++  const outputPath = join(process.cwd(), fileName);
++
++  await downloadFile(tarballUrl, outputPath);
++  return outputPath;
++}
++
++export async function installTarball(tarballPath: string): Promise<void> {
++  if (!existsSync(tarballPath)) {
++    throw new Error(`Tarball not found: ${tarballPath}`);
++  }
++
++  try {
++    await access(tarballPath, fsConstants.R_OK);
++  } catch {
++    throw new Error(`Cannot read tarball: ${tarballPath}`);
++  }
++
++  console.log(`Installing from ${tarballPath}...`);
++  
++  try {
++    execSync(`npm install "${tarballPath}"`, {
++      stdio: 'inherit',
++      cwd: process.cwd(),
++    });
++    console.log('Installation complete');
++  } catch (error) {
++    throw new Error(`Installation failed: ${error instanceof Error ? error.message : String(error)}`);
++  }
++}
++
++async function getReleaseTarballUrl(tag: string): Promise<string> {
++  const normalizedTag = tag === 'latest' ? await getLatestReleaseTag() : tag;
++  
++  return new Promise((resolve, reject) => {
++    const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${normalizedTag}`;
++    
++    https.get(apiUrl, {
++      headers: {
++        'User-Agent': 'mkolbol-fetch',
++        'Accept': 'application/vnd.github+json',
++      },
++    }, (res) => {
++      if (res.statusCode === 404) {
++        reject(new Error(`Release ${normalizedTag} not found`));
++        return;
++      }
++      
++      if (res.statusCode !== 200) {
++        reject(new Error(`GitHub API returned status ${res.statusCode}`));
++        return;
++      }
++
++      let data = '';
++      res.on('data', (chunk) => { data += chunk; });
++      res.on('end', () => {
++        try {
++          const release = JSON.parse(data);
++          const tgzAsset = release.assets?.find((asset: any) => 
++            asset.name.endsWith('.tgz') || asset.name.endsWith('.tar.gz')
++          );
++
++          if (!tgzAsset) {
++            reject(new Error(`No .tgz asset found for release ${normalizedTag}`));
++            return;
++          }
++
++          resolve(tgzAsset.browser_download_url);
++        } catch (error) {
++          reject(new Error(`Failed to parse release data: ${error instanceof Error ? error.message : String(error)}`));
++        }
++      });
++    }).on('error', reject);
++  });
++}
++
++async function getLatestReleaseTag(): Promise<string> {
++  return new Promise((resolve, reject) => {
++    const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
++    
++    https.get(apiUrl, {
++      headers: {
++        'User-Agent': 'mkolbol-fetch',
++        'Accept': 'application/vnd.github+json',
++      },
++    }, (res) => {
++      if (res.statusCode !== 200) {
++        reject(new Error(`Failed to fetch latest release: status ${res.statusCode}`));
++        return;
++      }
++
++      let data = '';
++      res.on('data', (chunk) => { data += chunk; });
++      res.on('end', () => {
++        try {
++          const release = JSON.parse(data);
++          resolve(release.tag_name);
++        } catch (error) {
++          reject(new Error(`Failed to parse latest release: ${error instanceof Error ? error.message : String(error)}`));
++        }
++      });
++    }).on('error', reject);
++  });
++}
++
++async function downloadFile(url: string, outputPath: string): Promise<void> {
++  const dir = dirname(outputPath);
++  await mkdir(dir, { recursive: true });
++
++  return new Promise((resolve, reject) => {
++    https.get(url, {
++      headers: {
++        'User-Agent': 'mkolbol-fetch',
++      },
++    }, async (res) => {
++      if (res.statusCode === 302 || res.statusCode === 301) {
++        if (res.headers.location) {
++          await downloadFile(res.headers.location, outputPath);
++          resolve();
++        } else {
++          reject(new Error('Redirect without location header'));
++        }
++        return;
++      }
++
++      if (res.statusCode !== 200) {
++        reject(new Error(`Download failed with status ${res.statusCode}`));
++        return;
++      }
++
++      const fileStream = createWriteStream(outputPath);
++      
++      try {
++        await pipeline(res, fileStream);
++        console.log(`Downloaded to ${outputPath}`);
++        resolve();
++      } catch (error) {
++        reject(new Error(`Download failed: ${error instanceof Error ? error.message : String(error)}`));
++      }
++    }).on('error', reject);
++  });
++}

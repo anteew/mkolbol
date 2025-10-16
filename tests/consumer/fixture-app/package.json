@@ -1,0 +1,14 @@
+{
+  "name": "mkolbol-consumer-fixture",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Consumer acceptance test fixture for mkolbol",
+  "dependencies": {
+    "mkolbol": "file:../../../mkolbol-0.2.0-rfc.tgz",
+    "yaml": "^2.3.4"
+  },
+  "scripts": {
+    "test": "node test-run.js"
+  }
+}

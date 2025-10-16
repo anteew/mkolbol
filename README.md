@@ -26,8 +26,8 @@
 Get started with Laminar testing in 5 minutes:
 
 ```bash
-# Install locally in your project
-npm install mkolbol
+# Install mkolbol in your project (tarball or git tag)
+# See docs/devex/distribution.md for instructions
 
 # Initialize Laminar config
 npx lam init
@@ -198,11 +198,13 @@ The RFC is organized into focused documents:
 
 ## Installation
 
+📋 **[Distribution Matrix](docs/devex/distribution.md)** — Choose the right installation path for your use case (Tarball, Git Tag, or Vendor). Note: mkolbol is not published to npm.
+
 ### Local Installation (Recommended)
 
 ```bash
-# Install in your project
-npm install mkolbol
+# Install in your project (tarball method recommended)
+npm install ./mkolbol-0.2.0.tgz
 
 # Use with npx (no global install needed)
 npx lam init
@@ -210,30 +212,9 @@ npx lam run --lane auto
 npx lam digest
 ```
 
-### Global Installation
+### Global/npx
 
-```bash
-# Install globally
-npm install -g mkolbol
-
-# Use lam command directly (without npx)
-lam init
-lam run --lane auto
-lam digest
-lam repro --bundle
-```
-
-### npx Usage (No Installation Required)
-
-```bash
-# Run commands without installing
-npx mkolbol lam init
-npx mkolbol lam run --lane auto
-npx mkolbol lam digest
-
-# Force latest version with -y flag
-npx -y mkolbol@latest lam run --lane auto
-```
+> Not applicable: mkolbol is not published to npm. Use local tarball, Git tag, or vendor path instead.
 
 ### Troubleshooting
 

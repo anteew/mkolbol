@@ -7,12 +7,170 @@ Quick reference guide for the most common `mkctl` commands and patterns. Use thi
 **What is mkctl?**
 `mkctl` is the Microkernel Control CLI—a lightweight tool to run topologies and discover running modules without writing code.
 
-**Installation:**
+**Installation Methods:**
+
 ```bash
-npm install -g mkolbol
-# or use npx
+# Option 1: From Tarball (Recommended - offline-capable, reproducible)
+# Local tarball from this repo (Release tarball also works when available)
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol && npm ci && npm run build && npm pack
+cd -
+npm install ./mkolbol/mkolbol-*.tgz
+npx mkctl
+
+# Option 2: From Git Tag (Version-controlled, requires git)
+npm install github:anteew/mkolbol#v0.2.0
+npx mkctl
+
+# Option 3: From Vendor/Local Path (Full control, monorepo)
+npm install file:../packages/mkolbol
+npx mkctl
+
+# Option 4: Development (local clone)
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol
+npm install
+npm run build
 npx mkctl
 ```
+
+**See [Distribution Matrix](./distribution.md) for detailed comparison and migration paths.**
+
+---
+
+## Installing from Different Sources
+
+### Recipe 1: Install from Tarball (Recommended)
+
+Best for reproducibility, offline use, and CI/CD.
+
+**Step 1–2: Build and install a local tarball**
+```bash
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol && npm ci && npm run build && npm pack
+cd /your/app && npm install ../mkolbol/mkolbol-*.tgz
+```
+
+**Step 3: Use mkctl**
+```bash
+npx mkctl run --file config.yml
+```
+
+**Why tarball?**
+- ✅ Reproducible (same file always, byte-for-byte)
+- ✅ Offline after download (no network needed)
+- ✅ Verifiable (you can inspect contents)
+- ✅ CI/CD friendly (store in artifact repos)
+- ✅ Version-clear (filename includes version)
+
+**See also:** [Distribution Matrix](./distribution.md#1-tarball-recommended), [Releases Guide](./releases.md)
+
+---
+
+### Recipe 2: Pin to Git Tag
+
+Best for version tracking in your git history.
+
+**Step 1: Add to package.json**
+```json
+{
+  "dependencies": {
+    "mkolbol": "github:anteew/mkolbol#v0.2.0"
+  }
+}
+```
+
+**Step 2: Install**
+```bash
+npm install
+```
+
+**Step 3: Use mkctl**
+```bash
+npx mkctl run --file config.yml
+```
+
+**Update to a new version:**
+```bash
+# Edit package.json with new tag
+{
+  "dependencies": {
+    "mkolbol": "github:anteew/mkolbol#v0.3.0"
+  }
+}
+
+npm install
+```
+
+**Why git tag?**
+- ✅ Git-native (integrates with your workflow)
+- ✅ Version visible in package.json
+- ✅ Easy to update and rollback
+- ✅ Use exact commit hashes for maximum precision
+
+**Note:** Requires network (clones from GitHub) and may have npm cache issues.
+
+**See also:** [Distribution Matrix](./distribution.md#2-git-tag-pinned), [Releases Guide](./releases.md)
+
+---
+
+### Recipe 3: Vendor with File Path (Monorepo)
+
+Best for full control, offline use, and active development.
+
+**Step 1: Copy mkolbol source into your repo**
+```bash
+mkdir -p packages
+git clone https://github.com/anteew/mkolbol.git packages/mkolbol
+```
+
+**Step 2: Create root workspace (package.json)**
+```json
+{
+  "name": "my-workspace",
+  "workspaces": [
+    "packages/mkolbol",
+    "packages/my-app"
+  ]
+}
+```
+
+**Step 3: Reference in your app**
+```json
+{
+  "name": "my-app",
+  "dependencies": {
+    "mkolbol": "workspace:*"
+  }
+}
+```
+
+**Step 4: Install everything**
+```bash
+npm install
+```
+
+**Step 5: Use mkctl**
+```bash
+cd packages/my-app
+npx mkctl run --file config.yml
+```
+
+**Why vendor?**
+- ✅ No network (works completely offline)
+- ✅ Full control (modify source directly)
+- ✅ Fast development (changes take effect immediately)
+- ✅ Monorepo-native (everything in one repo)
+
+**Updating mkolbol in vendor:**
+```bash
+cd packages/mkolbol
+git fetch origin
+git checkout v0.3.0
+npm run build  # rebuild if needed
+```
+
+**See also:** [Distribution Matrix](./distribution.md#3-vendorlocal-monorepo), [Using mkolbol in Your Repo](./using-mkolbol-in-your-repo.md)
 
 ---
 
@@ -328,9 +486,58 @@ nodes:
 
 **Backoff behavior:**
 - Retry 1: wait 1 second
-- Retry 2: wait 2 seconds  
+- Retry 2: wait 2 seconds
 - Retry 3: wait 4 seconds
 - Maximum backoff: capped at 10 seconds
+
+### Health Check Error Messages & Solutions
+
+Common health check failures and how to fix them:
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| `Health check failed after N retries` | Process didn't respond to health check | Check that process is actually started; verify command/URL is correct |
+| `Connection refused on http://localhost:PORT` | Port not listening or process crashed | Verify process starts without health check; increase retries or timeout |
+| `curl: command not found` | Using command health check but curl not in PATH | Use full path: `/usr/bin/curl` or check PATH in process environment |
+| `Timeout waiting for response` | Process is slow to start | Increase `timeout` value (default 5000ms) |
+| `HTTP 503: Service Unavailable` | Process started but not ready | Process may be initializing; increase `retries` or check startup logic |
+
+**Debugging Health Checks:**
+
+```bash
+# Test the health check command manually before configuring
+# For command health check:
+curl -f http://localhost:8080/health  # Should return exit code 0
+
+# For HTTP health check:
+curl -v http://localhost:3000/health  # Should return 2xx status
+
+# Add debug logging to health check response:
+# In your service code
+console.error('[health] /health endpoint called');
+```
+
+**Example: Adding Health Check to Existing Service**
+
+```yaml
+nodes:
+  - id: slow-server
+    module: ExternalProcess
+    params:
+      command: /usr/bin/node
+      args: ['server.js']
+      ioMode: stdio
+      healthCheck:
+        type: http
+        url: 'http://localhost:3000/health'
+        timeout: 10000  # Give server 10 seconds
+        retries: 5      # Try up to 5 times
+
+      # Optional: Run server without health check initially
+      # Just remove healthCheck block below, then add it back
+
+connections: []
+```
 
 ---
 
@@ -899,3 +1106,123 @@ examples/configs/
 ```
 
 **Pro Tip**: Compare each bad config to the working examples (basic.yml, external-stdio.yaml, external-pty.yaml) to see what's different. This is a great way to internalize the correct config format!
+
+---
+
+## CI Acceptance Smoke Testing
+
+The mkolbol project runs automated acceptance smoke tests in CI/CD to catch integration issues that unit tests can't catch.
+
+### Understanding the Acceptance Smoke Test
+
+The smoke test is a **non-gating, best-effort** CI job that runs `mkctl` with a real topology and validates:
+
+1. **Topology execution** — Does mkctl run without errors?
+2. **Data flow** — Does data actually flow through pipes?
+3. **Endpoint registration** — Are modules tracked by the router?
+
+**Why non-gating?**
+- Prevents false positives from blocking development
+- Provides visibility without forcing remediation
+- Can be made gating in future when proven stable
+- Results aggregated in PR comments for awareness
+
+### Smoke Test Configuration
+
+The smoke test runs the `http-logs-local-file.yml` topology:
+
+```yaml
+# Topology that captures HTTP server logs to JSONL
+nodes:
+  - id: web
+    module: ExternalProcess
+    params:
+      command: node
+      args: ['inline HTTP server...']
+      ioMode: stdio
+
+  - id: sink
+    module: FilesystemSink
+    params:
+      filename: reports/http-logs.jsonl
+
+connections:
+  - from: web.output
+    to: sink.input
+```
+
+### Three Validation Checks
+
+After running the topology for 5 seconds, the smoke test checks:
+
+```bash
+# ✅ Check 1: Did topology run successfully?
+grep -q "Topology running" /tmp/smoke-test.log
+
+# ✅ Check 2: Was JSONL file created with data?
+[ -f reports/http-logs.jsonl ] && [ -s reports/http-logs.jsonl ]
+
+# ✅ Check 3: Were endpoints registered in router snapshot?
+[ -f reports/router-endpoints.json ] && [ $(jq 'length' reports/router-endpoints.json) -gt 0 ]
+```
+
+### PR Comment Integration
+
+Results are aggregated into the Laminar test report PR comment:
+
+```markdown
+### 🧪 Acceptance Smoke Test
+✅ Topology | ✅ FilesystemSink | ✅ Router Endpoints
+```
+
+Or if one fails:
+
+```markdown
+### 🧪 Acceptance Smoke Test
+✅ Topology | ❌ FilesystemSink | ✅ Router Endpoints
+```
+
+**Note:** The status is **advisory only** — failures don't block PR merge. Developers should review warnings in the comment.
+
+### Manual Reproduction
+
+To reproduce the smoke test locally:
+
+```bash
+# 1. Build
+npm run build
+
+# 2. Run the same topology
+export MK_LOCAL_NODE=1
+timeout 10 node dist/scripts/mkctl.js run \
+  --file examples/configs/http-logs-local-file.yml \
+  --duration 5
+
+# 3. Verify all three artifacts exist
+ls -la reports/http-logs.jsonl
+ls -la reports/router-endpoints.json
+cat reports/router-endpoints.json | jq 'length'
+```
+
+### Debugging Smoke Test Failures
+
+**If "Topology" check fails:**
+- Check for module not found errors
+- Verify config file is accessible
+- See [Doctor Guide](./doctor.md) for config errors
+
+**If "FilesystemSink" check fails:**
+- Verify pipes connected in YAML
+- Check file permissions on reports/ directory
+- Ensure HTTP server emitted data
+
+**If "Router Endpoints" check fails:**
+- Verify RoutingServer initialization
+- Check that both modules registered
+- May indicate pipe connection issue
+
+### Related Documentation
+
+- **[CI Acceptance Smoke Documentation](./ci-acceptance-smoke.md)** — Complete guide to smoke test architecture and debugging
+- **[Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md)** — Full acceptance test scenarios
+- **[Doctor Guide](./doctor.md)** — Troubleshooting mkctl errors

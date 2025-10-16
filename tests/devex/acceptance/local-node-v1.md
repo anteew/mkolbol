@@ -589,6 +589,42 @@ cat reports/http-logs.jsonl
 | **Query** | Manual inspection | Log aggregation tools, `grep`, `tail` |
 | **Integration** | Shell pipelines, `tee` | ELK, Splunk, CloudWatch, Datadog |
 
+### Analyzing JSONL Logs with jq
+
+Once logs are captured, you can analyze them programmatically:
+
+**Extract just the HTTP requests:**
+```bash
+# Show only the GET requests
+cat reports/http-logs.jsonl | jq -r 'select(.data | contains("GET")) | .data'
+
+# Output:
+# [2025-10-17T04:15:23.789Z] GET /request-1
+# [2025-10-17T04:15:24.290Z] GET /request-2
+```
+
+**Count requests per second:**
+```bash
+# Extract timestamps and count by minute
+cat reports/http-logs.jsonl | jq -r '.ts[0:16]' | sort | uniq -c
+
+# Output:
+#   2 2025-10-17T04:15
+#   3 2025-10-17T04:16
+```
+
+**Convert JSONL to CSV for analysis:**
+```bash
+# Export as CSV for spreadsheet import
+cat reports/http-logs.jsonl | jq -r '[.ts, .data] | @csv' > logs-export.csv
+```
+
+**Find slow requests:**
+```bash
+# Filter by timestamp range (production debugging)
+cat reports/http-logs.jsonl | jq 'select(.ts >= "2025-10-17T04:15:24" and .ts < "2025-10-17T04:15:25")'
+```
+
 ### Next: Integration with Monitoring
 
 After validating FilesystemSink works, you can:
@@ -606,6 +642,106 @@ aws s3 cp logs/http-response.log s3://my-bucket/logs/$(date +%Y-%m-%d-%H-%M-%S).
 
 # Or archive locally
 tar -czf logs-backup-$(date +%s).tar.gz logs/
+```
+
+### Production Workflow: FilesystemSink End-to-End
+
+Here's a complete production workflow using FilesystemSink for observability:
+
+**File:** `examples/configs/http-logs-production.yml`
+
+```yaml
+nodes:
+  - id: web
+    module: ExternalProcess
+    params:
+      command: node
+      args:
+        - -e
+        - "require('http').createServer((req,res)=>{const ts = new Date().toISOString(); const log = JSON.stringify({ts, method: req.method, path: req.url, ip: req.socket.remoteAddress}); console.log(log); res.end('ok')}).listen(3000)"
+      ioMode: stdio
+      restart: on-failure
+      maxRestarts: 3
+
+  - id: meter
+    module: PipeMeterTransform
+    params:
+      emitInterval: 5000
+
+  - id: file-sink
+    module: FilesystemSink
+    params:
+      path: logs/access.jsonl
+      format: jsonl
+      mode: append
+      fsync: auto
+      encoding: utf8
+
+connections:
+  - from: web.output
+    to: meter.input
+  - from: meter.output
+    to: file-sink.input
+```
+
+**Run it:**
+```bash
+export MK_LOCAL_NODE=1
+node dist/scripts/mkctl.js run --file examples/configs/http-logs-production.yml --duration 60
+```
+
+**Monitor metrics while running (in another terminal):**
+```bash
+# Watch the log file grow
+tail -f logs/access.jsonl | jq .
+
+# Count total events
+tail -f logs/access.jsonl | wc -l
+```
+
+**Post-run analysis:**
+```bash
+# Total requests
+wc -l < logs/access.jsonl
+
+# Unique paths accessed
+cat logs/access.jsonl | jq -r '.data | fromjson | .path' | sort | uniq -c
+
+# Requests per IP
+cat logs/access.jsonl | jq -r '.data | fromjson | .ip' | sort | uniq -c
+
+# Create hourly summaries for trending
+cat logs/access.jsonl | jq -r '.ts[0:13]' | sort | uniq -c > logs/hourly-summary.txt
+```
+
+**CI/CD Integration:**
+```bash
+#!/bin/bash
+# verify-logging.sh
+
+node dist/scripts/mkctl.js run --file examples/configs/http-logs-production.yml --duration 30
+
+# Verify log file was created and has content
+if [ ! -f logs/access.jsonl ] || [ ! -s logs/access.jsonl ]; then
+  echo "ERROR: Log file not created or empty"
+  exit 1
+fi
+
+# Verify all logs are valid JSON
+if ! jq -e '.' logs/access.jsonl > /dev/null 2>&1; then
+  echo "ERROR: JSONL format invalid"
+  exit 1
+fi
+
+# Verify we got events
+LINE_COUNT=$(wc -l < logs/access.jsonl)
+if [ "$LINE_COUNT" -lt 1 ]; then
+  echo "ERROR: Expected at least 1 log line, got $LINE_COUNT"
+  exit 1
+fi
+
+echo "✅ FilesystemSink verification passed: $LINE_COUNT events logged"
+exit 0
 ```
 
 ---

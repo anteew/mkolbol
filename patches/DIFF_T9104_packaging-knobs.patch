@@ -1,0 +1,24 @@
+diff --git a/package.json b/package.json
+index 03a96bd..8e02672 100644
+--- a/package.json
++++ b/package.json
+@@ -33,13 +33,16 @@
+     "README.md",
+     "LICENSE",
+     "STREAM_KERNEL_RFC.md",
+-    "docs/"
++    "docs/",
++    "schemas/"
+   ],
+   "bin": {
+-    "lam": "dist/scripts/lam.js",
+-    "mk": "dist/scripts/mk.js"
++    "mk": "dist/scripts/mk.js",
++    "mkctl": "dist/scripts/mkctl.js",
++    "lam": "dist/scripts/lam.js"
+   },
+   "scripts": {
++    "prepare": "test -f tsconfig.json && npm run build || true",
+     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
+     "build": "tsc -p tsconfig.json",
+     "test": "vitest run",

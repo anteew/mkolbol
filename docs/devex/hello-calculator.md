@@ -26,8 +26,24 @@ Number Generator → Calculator → Display Results
 mkdir hello-calculator
 cd hello-calculator
 npm init -y
-npm install mkolbol
 ```
+
+### Install mkolbol (Recommended: Tarball)
+
+**Tarball (Reproducible, Recommended):**
+```bash
+# Local tarball from this repo
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol && npm ci && npm run build && npm pack
+cd - && npm install ./mkolbol/mkolbol-*.tgz
+```
+
+**Or from Git tag:**
+```bash
+npm install github:anteew/mkolbol#v0.2.0
+```
+
+> Distribution note: mkolbol is not on npm. Use tarball or Git tag (above).
 
 ### Create folders
 
@@ -411,4 +427,3 @@ npm run run
 ```
 
 Welcome to mkolbol! 🚀
-

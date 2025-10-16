@@ -38,18 +38,205 @@ export class MyModule {
 }
 ```
 
-## Constructor Pattern
+## Constructor Pattern: (kernel, options)
 
-The mkolbol framework instantiates modules with a standard pattern:
+The mkolbol framework instantiates ALL modules with this standardized pattern. This is mandatory for framework compatibility.
+
+### Standard Signature
 
 ```typescript
-// Framework calls:
-const module = new ModuleClass(kernel, options);
+constructor(private kernel: Kernel, options?: ModuleOptions) {
+  // Always accept kernel as first parameter
+  // Always accept optional options object as second parameter
+  this.options = {
+    // Set defaults
+    enabled: options?.enabled ?? true,
+    timeout: options?.timeout ?? 5000,
+    // Merge user options over defaults
+    ...options
+  };
+}
 ```
 
-**Constructor Parameters:**
-- `kernel`: Microkernel instance for creating pipes
-- `options`: Configuration object from YAML
+### Why This Pattern?
+
+1. **Consistency**: Framework can instantiate any module the same way
+2. **Configuration**: Options come from YAML `params` block
+3. **Flexibility**: Modules can add their own options without breaking framework
+4. **Testability**: Easy to mock kernel and pass options in tests
+
+### Constructor Lifecycle
+
+```typescript
+interface MyModuleOptions {
+  enabled?: boolean;
+  timeout?: number;
+}
+
+export class MyModule {
+  private options: Required<MyModuleOptions>;
+
+  // 1. CONSTRUCTOR: Framework calls this
+  constructor(private kernel: Kernel, options: MyModuleOptions = {}) {
+    // Set defaults for all options
+    this.options = {
+      enabled: options.enabled ?? true,
+      timeout: options.timeout ?? 5000,
+      ...options  // Merge overrides
+    };
+
+    // Validate options
+    if (this.options.timeout < 0) {
+      throw new Error('timeout must be >= 0');
+    }
+
+    // NOTE: Do NOT connect pipes here!
+    // Framework will set inputPipe/outputPipe after construction
+  }
+
+  // 2. PIPES CONNECTED: Framework sets these properties
+  inputPipe?: NodeJS.ReadableStream;   // Set by framework
+  outputPipe?: NodeJS.WritableStream;  // Set by framework
+
+  // 3. START CALLED: Framework calls start() after pipes are connected
+  start(): void {
+    if (!this.inputPipe || !this.outputPipe) {
+      throw new Error('Pipes must be connected before start()');
+    }
+    // Now you can safely use the pipes
+    this.inputPipe.on('data', (chunk: Buffer) => {
+      // Process data
+    });
+  }
+
+  // 4. STOP CALLED: Framework calls stop() on shutdown
+  stop(): void {
+    // Cleanup resources
+  }
+}
+```
+
+### Anti-Pattern: Avoid This
+
+```typescript
+// ❌ DON'T do this
+export class BadModule {
+  constructor(kernel: Kernel, private options: any) {
+    // ❌ Don't access inputPipe/outputPipe here - they're not connected yet
+    // ❌ Don't start processing in constructor
+    // ❌ Don't use non-standard constructor signature
+    this.inputPipe?.on('data', ...);  // WRONG - inputPipe is undefined!
+  }
+}
+```
+
+---
+
+## ModuleRegistry & Framework Instantiation
+
+### How the Framework Creates Modules
+
+1. **Config defines module**:
+```yaml
+nodes:
+  - id: my-processor
+    module: MyModule          # ← Framework looks this up in registry
+    params:
+      timeout: 10000         # ← Passed as options to constructor
+```
+
+2. **Framework looks up in registry**:
+```typescript
+const ModuleClass = moduleRegistry.get('MyModule');
+// Returns: typeof MyModule (the class itself)
+```
+
+3. **Framework instantiates**:
+```typescript
+// This is what the framework does internally:
+const module = new ModuleClass(kernel, {
+  timeout: 10000  // From config params
+});
+```
+
+4. **Framework connects pipes**:
+```typescript
+module.inputPipe = createReadStream();    // If module needs input
+module.outputPipe = createWriteStream();  // If module produces output
+```
+
+5. **Framework calls lifecycle**:
+```typescript
+module.start();   // When topology starts
+// ... topology runs ...
+module.stop();    // When topology shuts down
+```
+
+### Registering in ModuleRegistry
+
+Every custom module must be registered before use:
+
+```typescript
+// src/executor/moduleRegistry.ts
+
+import { MyModule } from '../modules/myModule';
+import { MyTransform } from '../modules/myTransform';
+
+export class ModuleRegistry {
+  private registry = new Map<string, any>();
+
+  constructor() {
+    // Built-in modules
+    this.register('TimerSource', TimerSource);
+    this.register('ConsoleSink', ConsoleSink);
+
+    // Your custom modules
+    this.register('MyModule', MyModule);        // Add this
+    this.register('MyTransform', MyTransform);  // Add this
+  }
+
+  register(name: string, constructor: any): void {
+    // Name must match exactly what's in YAML config
+    this.registry.set(name, constructor);
+  }
+
+  get(name: string): any {
+    const constructor = this.registry.get(name);
+    if (!constructor) {
+      throw new Error(`Unknown module: ${name}`);
+    }
+    return constructor;
+  }
+
+  has(name: string): boolean {
+    return this.registry.has(name);
+  }
+}
+```
+
+### For Worker-Mode Modules
+
+If you're using worker mode (modules in separate processes), also update the module path map:
+
+```typescript
+// src/executor/Executor.ts
+
+private getModulePath(moduleName: string): string {
+  const moduleMap: Record<string, string> = {
+    'TimerSource': '../modules/timer.js',
+    'MyModule': '../modules/myModule.js',      // Add path
+    'MyTransform': '../modules/myTransform.js', // Add path
+  };
+
+  const path = moduleMap[moduleName];
+  if (!path) {
+    throw new Error(`No module path for: ${moduleName}`);
+  }
+  return path;
+}
+```
+
+---
 
 ## Example: Simple Transform
 

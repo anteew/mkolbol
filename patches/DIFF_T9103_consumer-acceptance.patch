@@ -1,0 +1,355 @@
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index e4c795f..2b93589 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -115,6 +115,40 @@ jobs:
+           path: reports
+           if-no-files-found: warn
+ 
++  # Consumer acceptance test: install from tarball
++  consumer-test:
++    name: Consumer Acceptance Test
++    runs-on: ubuntu-latest
++    needs: test
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Setup Node.js
++        uses: actions/setup-node@v4
++        with:
++          node-version: '24'
++          cache: npm
++
++      - name: Install
++        run: npm ci
++
++      - name: Build
++        run: npm run build
++
++      - name: Run consumer acceptance test
++        run: npm run test:consumer
++
++      - name: Upload test artifacts
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: consumer-test-logs
++          path: |
++            *.tgz
++            /tmp/mkolbol-consumer-test-*/
++          if-no-files-found: warn
++
+   # Acceptance smoke test: run mkctl with FilesystemSink config (best-effort)
+   acceptance-smoke:
+     name: Acceptance Smoke Test (FilesystemSink)
+diff --git a/package.json b/package.json
+index 03a96bd..e345d70 100644
+--- a/package.json
++++ b/package.json
+@@ -33,16 +33,20 @@
+     "README.md",
+     "LICENSE",
+     "STREAM_KERNEL_RFC.md",
+-    "docs/"
++    "docs/",
++    "schemas/"
+   ],
+   "bin": {
+-    "lam": "dist/scripts/lam.js",
+-    "mk": "dist/scripts/mk.js"
++    "mk": "dist/scripts/mk.js",
++    "mkctl": "dist/scripts/mkctl.js",
++    "lam": "dist/scripts/lam.js"
+   },
+   "scripts": {
++    "prepare": "test -f tsconfig.json && npm run build || true",
+     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
+     "build": "tsc -p tsconfig.json",
+     "test": "vitest run",
++    "test:consumer": "tsx scripts/test-consumer.ts",
+     "test:ci": "LAMINAR_SUITE=threads vitest run --pool=threads --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts' --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
+     "test:pty": "LAMINAR_SUITE=forks vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts tests/integration/endpointsList.spec.ts tests/integration/processMode.spec.ts tests/integration/processUnix.spec.ts tests/integration/workerMode.spec.ts tests/integration/stdioPath.spec.ts tests/integration/externalFromConfig.spec.ts --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
+     "lam:append-history": "node scripts/append-laminar-history.js",
+diff --git a/scripts/test-consumer.ts b/scripts/test-consumer.ts
+new file mode 100644
+index 0000000..c3dbdff
+--- /dev/null
++++ b/scripts/test-consumer.ts
+@@ -0,0 +1,149 @@
++#!/usr/bin/env tsx
++/**
++ * Consumer acceptance test
++ * 
++ * Tests mkolbol installation from a local tarball in a fresh fixture app.
++ * This validates the packaging, exports, and basic functionality from a
++ * consumer's perspective.
++ */
++
++import { execSync, spawn } from 'child_process';
++import { mkdtempSync, cpSync, existsSync, rmSync, writeFileSync, readFileSync } from 'fs';
++import { tmpdir } from 'os';
++import { join } from 'path';
++
++const PROJECT_ROOT = new URL('..', import.meta.url).pathname;
++const FIXTURE_DIR = join(PROJECT_ROOT, 'tests/consumer/fixture-app');
++const DIST_DIR = join(PROJECT_ROOT, 'dist');
++
++function exec(cmd: string, cwd: string = PROJECT_ROOT): string {
++  console.log(`\n[test-consumer] $ ${cmd}`);
++  try {
++    return execSync(cmd, { 
++      cwd, 
++      encoding: 'utf8',
++      stdio: ['inherit', 'pipe', 'pipe']
++    });
++  } catch (err: any) {
++    console.error(`Command failed: ${cmd}`);
++    console.error(err.stdout);
++    console.error(err.stderr);
++    throw err;
++  }
++}
++
++function execAsync(cmd: string, args: string[], cwd: string): Promise<{ code: number, stdout: string, stderr: string }> {
++  return new Promise((resolve) => {
++    console.log(`\n[test-consumer] $ ${cmd} ${args.join(' ')}`);
++    const proc = spawn(cmd, args, { cwd });
++    
++    let stdout = '';
++    let stderr = '';
++    
++    proc.stdout?.on('data', (data) => {
++      const str = data.toString();
++      stdout += str;
++      process.stdout.write(str);
++    });
++    
++    proc.stderr?.on('data', (data) => {
++      const str = data.toString();
++      stderr += str;
++      process.stderr.write(str);
++    });
++    
++    proc.on('close', (code) => {
++      resolve({ code: code || 0, stdout, stderr });
++    });
++  });
++}
++
++async function main() {
++  console.log('==========================================');
++  console.log('Consumer Acceptance Test');
++  console.log('==========================================\n');
++
++  // Step 1: Build the project
++  console.log('[1/6] Building mkolbol...');
++  if (!existsSync(DIST_DIR)) {
++    exec('npm run build');
++  } else {
++    console.log('  ✓ dist/ already exists, skipping build');
++  }
++
++  // Step 2: Create tarball
++  console.log('\n[2/6] Creating tarball...');
++  const packOutput = exec('npm pack');
++  const tarballName = packOutput.trim().split('\n').pop()!;
++  console.log(`  ✓ Created: ${tarballName}`);
++
++  // Step 3: Create temporary test directory
++  console.log('\n[3/6] Setting up test environment...');
++  const tempDir = mkdtempSync(join(tmpdir(), 'mkolbol-consumer-test-'));
++  console.log(`  ✓ Temp dir: ${tempDir}`);
++
++  try {
++    // Copy fixture files to temp directory
++    cpSync(FIXTURE_DIR, tempDir, { recursive: true });
++    console.log('  ✓ Copied fixture app');
++
++    // Copy tarball to temp directory  
++    const tarballPath = join(PROJECT_ROOT, tarballName);
++    const targetTarball = join(tempDir, '..', tarballName);
++    cpSync(tarballPath, targetTarball);
++    console.log(`  ✓ Copied tarball to ${targetTarball}`);
++
++    // Update package.json to point to the tarball
++    const pkgJsonPath = join(tempDir, 'package.json');
++    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
++    pkgJson.dependencies.mkolbol = `file:${targetTarball}`;
++    writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
++    console.log('  ✓ Updated package.json with tarball path');
++
++    // Step 4: Install dependencies
++    console.log('\n[4/6] Installing dependencies...');
++    exec('npm install', tempDir);
++    console.log('  ✓ Installation successful');
++
++    // Step 5: Verify installation
++    console.log('\n[5/6] Verifying installation...');
++    try {
++      exec('node -e "import(\\"mkolbol\\").then(() => console.log(\\"✓ Import successful\\"))"', tempDir);
++    } catch (err) {
++      console.error('  ✗ Failed to import mkolbol');
++      throw err;
++    }
++
++    // Step 6: Run the test
++    console.log('\n[6/6] Running topology test...');
++    const result = await execAsync('npm', ['test'], tempDir);
++    
++    if (result.code !== 0) {
++      console.error(`\n❌ Test failed with exit code ${result.code}`);
++      process.exit(1);
++    }
++
++    console.log('\n==========================================');
++    console.log('✅ Consumer Acceptance Test PASSED');
++    console.log('==========================================\n');
++
++    // Clean up tarball
++    console.log('Cleaning up...');
++    rmSync(tarballPath, { force: true });
++    rmSync(targetTarball, { force: true });
++    rmSync(tempDir, { recursive: true, force: true });
++    console.log('  ✓ Cleanup complete');
++
++  } catch (error: any) {
++    console.error('\n==========================================');
++    console.error('❌ Consumer Acceptance Test FAILED');
++    console.error('==========================================');
++    console.error(error.message || error);
++    
++    // Clean up on failure
++    rmSync(tempDir, { recursive: true, force: true });
++    process.exit(1);
++  }
++}
++
++main();
+diff --git a/tests/consumer/fixture-app/package.json b/tests/consumer/fixture-app/package.json
+new file mode 100644
+index 0000000..a680262
+--- /dev/null
++++ b/tests/consumer/fixture-app/package.json
+@@ -0,0 +1,14 @@
++{
++  "name": "mkolbol-consumer-fixture",
++  "version": "1.0.0",
++  "type": "module",
++  "private": true,
++  "description": "Consumer acceptance test fixture for mkolbol",
++  "dependencies": {
++    "mkolbol": "file:../../../mkolbol-0.2.0-rfc.tgz",
++    "yaml": "^2.3.4"
++  },
++  "scripts": {
++    "test": "node test-run.js"
++  }
++}
+diff --git a/tests/consumer/fixture-app/test-run.js b/tests/consumer/fixture-app/test-run.js
+new file mode 100644
+index 0000000..2f9ad83
+--- /dev/null
++++ b/tests/consumer/fixture-app/test-run.js
+@@ -0,0 +1,73 @@
++#!/usr/bin/env node
++import { Kernel, Hostess, StateManager, Executor } from 'mkolbol';
++import { readFileSync, existsSync, unlinkSync } from 'fs';
++import { fileURLToPath } from 'url';
++import { dirname, join } from 'path';
++import { parse as parseYaml } from 'yaml';
++
++const __dirname = dirname(fileURLToPath(import.meta.url));
++const outputFile = join(__dirname, 'test-output.jsonl');
++
++async function runTest() {
++  console.log('[Consumer Test] Starting topology test...');
++
++  // Clean up previous output
++  if (existsSync(outputFile)) {
++    unlinkSync(outputFile);
++  }
++
++  // Read topology config
++  const configPath = join(__dirname, 'topology.yml');
++  const configYaml = readFileSync(configPath, 'utf8');
++  const config = parseYaml(configYaml);
++
++  // Create kernel, hostess, state manager, and executor
++  const kernel = new Kernel();
++  const hostess = new Hostess();
++  const stateManager = new StateManager(kernel);
++  const executor = new Executor(kernel, hostess, stateManager);
++  
++  let success = false;
++
++  try {
++    console.log('[Consumer Test] Loading topology...');
++    executor.load(config);
++    
++    console.log('[Consumer Test] Starting topology...');
++    await executor.up();
++
++    // Wait for some output to be generated
++    console.log('[Consumer Test] Running topology for 2 seconds...');
++    await new Promise(resolve => setTimeout(resolve, 2000));
++
++    // Check if output file was created and has content
++    if (existsSync(outputFile)) {
++      const content = readFileSync(outputFile, 'utf8');
++      const lines = content.trim().split('\n').filter(l => l.length > 0);
++      
++      if (lines.length > 0) {
++        console.log(`[Consumer Test] ✅ SUCCESS: Generated ${lines.length} events`);
++        console.log(`[Consumer Test] Sample event: ${lines[0].substring(0, 100)}...`);
++        success = true;
++      } else {
++        console.error('[Consumer Test] ❌ FAIL: Output file is empty');
++      }
++    } else {
++      console.error('[Consumer Test] ❌ FAIL: Output file was not created');
++    }
++
++    await executor.down();
++  } catch (error) {
++    console.error('[Consumer Test] ❌ FAIL: Error during test:', error.message);
++    process.exit(1);
++  }
++
++  if (!success) {
++    process.exit(1);
++  }
++
++  console.log('[Consumer Test] Test completed successfully');
++  process.exit(0);
++}
++
++runTest();
+diff --git a/tests/consumer/fixture-app/topology.yml b/tests/consumer/fixture-app/topology.yml
+new file mode 100644
+index 0000000..b30a00b
+--- /dev/null
++++ b/tests/consumer/fixture-app/topology.yml
+@@ -0,0 +1,22 @@
++nodes:
++  - id: timer
++    module: TimerSource
++    params:
++      periodMs: 500
++
++  - id: transform
++    module: UppercaseTransform
++
++  - id: filesink
++    module: FilesystemSink
++    params:
++      path: test-output.jsonl
++      format: raw
++      mode: append
++
++connections:
++  - from: timer.output
++    to: transform.input
++  
++  - from: transform.output
++    to: filesink.input

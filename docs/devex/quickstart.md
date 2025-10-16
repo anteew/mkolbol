@@ -3,6 +3,8 @@
 This guide shows you how to run a simple demonstration of mkolbol's PTY (pseudo-terminal) capabilities with the XtermTTYRenderer module. The demo spawns a bash shell in a PTY, pipes its output through the renderer to your terminal, sends a simple echo command, and then exits cleanly.
 
 > **First time here?** Start with the **[First Five Minutes](./first-five-minutes.md)** guide to see all your options (mkctl run, StdIO path, or interactive). Then come back here for the deep dive.
+>
+> **Installing mkolbol?** See **[Distribution Matrix](./distribution.md)** to choose the right installation path (Tarball, Git Tag, or Vendor).
 
 ## Quick Start with mkctl (Recommended)
 

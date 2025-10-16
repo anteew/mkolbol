@@ -1,0 +1,689 @@
+diff --git a/docs/devex/authoring-a-module.md b/docs/devex/authoring-a-module.md
+index 09e4ee8..00249b9 100644
+--- a/docs/devex/authoring-a-module.md
++++ b/docs/devex/authoring-a-module.md
+@@ -38,18 +38,205 @@ export class MyModule {
+ }
+ ```
+ 
+-## Constructor Pattern
++## Constructor Pattern: (kernel, options)
+ 
+-The mkolbol framework instantiates modules with a standard pattern:
++The mkolbol framework instantiates ALL modules with this standardized pattern. This is mandatory for framework compatibility.
++
++### Standard Signature
++
++```typescript
++constructor(private kernel: Kernel, options?: ModuleOptions) {
++  // Always accept kernel as first parameter
++  // Always accept optional options object as second parameter
++  this.options = {
++    // Set defaults
++    enabled: options?.enabled ?? true,
++    timeout: options?.timeout ?? 5000,
++    // Merge user options over defaults
++    ...options
++  };
++}
++```
++
++### Why This Pattern?
++
++1. **Consistency**: Framework can instantiate any module the same way
++2. **Configuration**: Options come from YAML `params` block
++3. **Flexibility**: Modules can add their own options without breaking framework
++4. **Testability**: Easy to mock kernel and pass options in tests
++
++### Constructor Lifecycle
+ 
+ ```typescript
+-// Framework calls:
+-const module = new ModuleClass(kernel, options);
++interface MyModuleOptions {
++  enabled?: boolean;
++  timeout?: number;
++}
++
++export class MyModule {
++  private options: Required<MyModuleOptions>;
++
++  // 1. CONSTRUCTOR: Framework calls this
++  constructor(private kernel: Kernel, options: MyModuleOptions = {}) {
++    // Set defaults for all options
++    this.options = {
++      enabled: options.enabled ?? true,
++      timeout: options.timeout ?? 5000,
++      ...options  // Merge overrides
++    };
++
++    // Validate options
++    if (this.options.timeout < 0) {
++      throw new Error('timeout must be >= 0');
++    }
++
++    // NOTE: Do NOT connect pipes here!
++    // Framework will set inputPipe/outputPipe after construction
++  }
++
++  // 2. PIPES CONNECTED: Framework sets these properties
++  inputPipe?: NodeJS.ReadableStream;   // Set by framework
++  outputPipe?: NodeJS.WritableStream;  // Set by framework
++
++  // 3. START CALLED: Framework calls start() after pipes are connected
++  start(): void {
++    if (!this.inputPipe || !this.outputPipe) {
++      throw new Error('Pipes must be connected before start()');
++    }
++    // Now you can safely use the pipes
++    this.inputPipe.on('data', (chunk: Buffer) => {
++      // Process data
++    });
++  }
++
++  // 4. STOP CALLED: Framework calls stop() on shutdown
++  stop(): void {
++    // Cleanup resources
++  }
++}
++```
++
++### Anti-Pattern: Avoid This
++
++```typescript
++// ❌ DON'T do this
++export class BadModule {
++  constructor(kernel: Kernel, private options: any) {
++    // ❌ Don't access inputPipe/outputPipe here - they're not connected yet
++    // ❌ Don't start processing in constructor
++    // ❌ Don't use non-standard constructor signature
++    this.inputPipe?.on('data', ...);  // WRONG - inputPipe is undefined!
++  }
++}
++```
++
++---
++
++## ModuleRegistry & Framework Instantiation
++
++### How the Framework Creates Modules
++
++1. **Config defines module**:
++```yaml
++nodes:
++  - id: my-processor
++    module: MyModule          # ← Framework looks this up in registry
++    params:
++      timeout: 10000         # ← Passed as options to constructor
++```
++
++2. **Framework looks up in registry**:
++```typescript
++const ModuleClass = moduleRegistry.get('MyModule');
++// Returns: typeof MyModule (the class itself)
++```
++
++3. **Framework instantiates**:
++```typescript
++// This is what the framework does internally:
++const module = new ModuleClass(kernel, {
++  timeout: 10000  // From config params
++});
++```
++
++4. **Framework connects pipes**:
++```typescript
++module.inputPipe = createReadStream();    // If module needs input
++module.outputPipe = createWriteStream();  // If module produces output
++```
++
++5. **Framework calls lifecycle**:
++```typescript
++module.start();   // When topology starts
++// ... topology runs ...
++module.stop();    // When topology shuts down
++```
++
++### Registering in ModuleRegistry
++
++Every custom module must be registered before use:
++
++```typescript
++// src/executor/moduleRegistry.ts
++
++import { MyModule } from '../modules/myModule';
++import { MyTransform } from '../modules/myTransform';
++
++export class ModuleRegistry {
++  private registry = new Map<string, any>();
++
++  constructor() {
++    // Built-in modules
++    this.register('TimerSource', TimerSource);
++    this.register('ConsoleSink', ConsoleSink);
++
++    // Your custom modules
++    this.register('MyModule', MyModule);        // Add this
++    this.register('MyTransform', MyTransform);  // Add this
++  }
++
++  register(name: string, constructor: any): void {
++    // Name must match exactly what's in YAML config
++    this.registry.set(name, constructor);
++  }
++
++  get(name: string): any {
++    const constructor = this.registry.get(name);
++    if (!constructor) {
++      throw new Error(`Unknown module: ${name}`);
++    }
++    return constructor;
++  }
++
++  has(name: string): boolean {
++    return this.registry.has(name);
++  }
++}
++```
++
++### For Worker-Mode Modules
++
++If you're using worker mode (modules in separate processes), also update the module path map:
++
++```typescript
++// src/executor/Executor.ts
++
++private getModulePath(moduleName: string): string {
++  const moduleMap: Record<string, string> = {
++    'TimerSource': '../modules/timer.js',
++    'MyModule': '../modules/myModule.js',      // Add path
++    'MyTransform': '../modules/myTransform.js', // Add path
++  };
++
++  const path = moduleMap[moduleName];
++  if (!path) {
++    throw new Error(`No module path for: ${moduleName}`);
++  }
++  return path;
++}
+ ```
+ 
+-**Constructor Parameters:**
+-- `kernel`: Microkernel instance for creating pipes
+-- `options`: Configuration object from YAML
++---
+ 
+ ## Example: Simple Transform
+ 
+diff --git a/docs/devex/doctor.md b/docs/devex/doctor.md
+index e0b9047..8ae6dbe 100644
+--- a/docs/devex/doctor.md
++++ b/docs/devex/doctor.md
+@@ -1,8 +1,12 @@
+-# mk doctor — Environment Diagnostics
++# Doctor Guide: Troubleshooting mkolbol & mkctl
++
++This guide helps diagnose and fix common issues with mkolbol development, mkctl commands, and mkolbol topologies.
++
++## mk doctor — Environment Diagnostics
+ 
+ The `mk doctor` command performs comprehensive environment diagnostics to ensure your mkolbol development environment is correctly configured.
+ 
+-## Usage
++### Usage
+ 
+ ```bash
+ mk doctor [--verbose]
+@@ -12,6 +16,324 @@ mk doctor [--verbose]
+ 
+ - `--verbose` — Show detailed output (future enhancement)
+ 
++---
++
++## Common mkctl Errors & Fixes
++
++### Error: "Config file not found"
++
++**Exit code**: `66`
++
++**Symptom**: `Configuration validation failed: Error reading file...`
++
++**Root causes**:
++- File path is incorrect or relative
++- File doesn't exist at the specified location
++- Directory path invalid
++
++**Fix**:
++```bash
++# Use absolute path
++mkctl run --file $(pwd)/examples/configs/http-logs-local.yml --duration 10
++
++# Or verify file exists
++ls -la examples/configs/http-logs-local.yml
++
++# Check current directory
++pwd
++```
++
++---
++
++### Error: "Configuration validation failed"
++
++**Exit code**: `65`
++
++**Symptoms**:
++- `"nodes" must be an array`
++- `Duplicate node id 'xyz'`
++- `Connection from 'X' to non-existent node 'Y'`
++- `Unknown module 'XYZ'`
++
++**Root causes**:
++- YAML syntax error (indentation, colons, quotes)
++- Missing required fields
++- Invalid module names
++- Duplicate node IDs
++- Broken connections
++
++**Fix**:
++```bash
++# 1. Validate YAML syntax
++python3 -m yaml examples/configs/http-logs-local.yml
++
++# 2. Check for common issues
++grep -n "^  - id:" examples/configs/http-logs-local.yml  # Count nodes
++grep "nodes:\|connections:" examples/configs/http-logs-local.yml
++
++# 3. Test with known-good config
++mkctl run --file examples/configs/external-stdio.yaml --dry-run
++
++# 4. Use --dry-run to validate without running
++mkctl run --file my-topology.yml --dry-run
++```
++
++---
++
++### Error: "Health check failed"
++
++**Exit code**: `70`
++
++**Symptom**: `Health check failed for node 'X' after 3 attempts`
++
++**Root causes**:
++- External process doesn't start
++- Process doesn't listen on configured port
++- Health check URL/command wrong
++- Process startup is too slow
++- Port already in use
++
++**Fix**:
++```bash
++# 1. Test process manually
++node server.js &  # Start process
++curl http://localhost:3000/health  # Test endpoint
++jobs  # See background jobs
++kill %1  # Kill the job
++
++# 2. Check if port is available
++lsof -i :3000  # See what's on port 3000
++kill -9 $(lsof -t -i :3000)  # Kill it
++
++# 3. Increase health check timeouts
++healthCheck:
++  type: http
++  url: 'http://localhost:3000/health'
++  timeout: 10000  # Increase from 5000ms to 10s
++  retries: 5      # Increase retries
++
++# 4. Debug the process startup
++# Add logging to your service:
++console.log('[startup] Server starting...');
++setTimeout(() => console.log('[startup] Ready'), 1000);
++```
++
++---
++
++### Error: "Port already in use"
++
++**Exit code**: `70`
++
++**Symptom**:
++```
++Error: listen EADDRINUSE: address already in use :::3000
++```
++
++**Root causes**:
++- Previous topology still running
++- Different service using port
++- Port not released from previous crash
++
++**Fix**:
++```bash
++# Find what's using the port
++lsof -i :3000
++
++# Kill the process
++kill -9 $(lsof -t -i :3000)
++
++# Or use a different port in config:
++params:
++  port: 3001  # Change from 3000
++```
++
++---
++
++### Error: "Module not found / Unknown module"
++
++**Exit code**: `65`
++
++**Symptom**: `Unknown module 'MyCustomModule'`
++
++**Root causes**:
++- Module not registered in registry
++- Typo in module name
++- Module not imported/exported
++- Case mismatch (MyModule vs myModule)
++
++**Fix**:
++```bash
++# 1. Verify built-in modules available
++mkctl run --file examples/configs/basic.yml --dry-run
++
++# 2. Check your custom module is exported
++// In src/my-module.ts
++export class MyCustomModule { ... }
++
++// In config:
++module: MyCustomModule  # Must match exactly
++
++# 3. Verify TypeScript compiled
++npm run build
++ls dist/src/my-module.js  # Should exist
++
++# 4. Test with simple config
++nodes:
++  - id: test
++    module: TimerSource  # Use known good module first
++```
++
++---
++
++## dry-run Validation Mode
++
++Use `--dry-run` to validate config WITHOUT running the topology:
++
++```bash
++mkctl run --file config.yml --dry-run
++```
++
++**What it checks**:
++- ✓ Config file exists and is readable
++- ✓ YAML/JSON syntax is valid
++- ✓ All required fields present
++- ✓ No duplicate node IDs
++- ✓ All connections reference existing nodes
++- ✓ All modules are registered
++- ✗ Does NOT check external processes or connectivity
++
++**Use cases**:
++- Pre-deployment validation
++- CI/CD pipeline checks
++- Config development iteration
++- Syntax verification before running
++
++**Exit codes**:
++- `0` — Config is valid
++- `65` — Config validation failed
++- `66` — Config file not found
++
++---
++
++## Health Check Debugging
++
++### Testing HTTP Health Checks
++
++```bash
++# 1. Start your service
++node server.js &
++SERVER_PID=$!
++
++# 2. Test the health endpoint
++curl -v http://localhost:3000/health
++
++# Expected: HTTP 200 with response body
++# curl exit code 0
++
++# 3. Check timing
++time curl http://localhost:3000/health
++
++# 4. Stop service
++kill $SERVER_PID
++```
++
++### Testing Command Health Checks
++
++```bash
++# Test the command that will be run
++/usr/bin/curl -f http://localhost:3000/health
++
++# Check exit code
++echo $?  # Should be 0 for success
++
++# Test in a loop (simulate retries)
++for i in {1..5}; do
++  echo "Attempt $i:"
++  /usr/bin/curl -f http://localhost:3000/health && break
++  sleep 1
++done
++```
++
++---
++
++## File Permissions Issues
++
++### Error: "Permission denied"
++
++**Symptoms**:
++- Can't read config file
++- Can't write to logs/ directory
++- Can't execute external process
++
++**Fix**:
++```bash
++# Check file ownership and permissions
++ls -la config/topology.yml
++ls -la logs/
++
++# Make config readable
++chmod 644 config/topology.yml
++
++# Make directory writable
++chmod 755 logs/
++
++# Make external script executable
++chmod +x scripts/my-processor.sh
++
++# Fix ownership (if needed)
++chown $USER:$USER config/ logs/
++```
++
++---
++
++## MK_LOCAL_NODE Environment Variable
++
++### Issue: Network features not disabled
++
++**Symptoms**:
++- Want to ensure only local mode is used
++- mkctl doesn't print "Running in Local Node mode"
++
++**Fix**:
++```bash
++# Set environment variable before running
++export MK_LOCAL_NODE=1
++
++# Verify it's set
++echo $MK_LOCAL_NODE  # Should print "1"
++
++# Now run mkctl
++mkctl run --file config.yml
++
++# Should see: [mkctl] Running in Local Node mode...
++```
++
++### Issue: "Network features not available in local mode"
++
++**Symptoms**:
++- Config references `type=network` or `address` fields
++- Error: "Network addressing not allowed in Local Node mode"
++
++**Fix**:
++```bash
++# Remove network config from topology
++# Replace:
++nodes:
++  - id: remote
++    type: network          # ❌ Not allowed in LOCAL_NODE=1
++    address: 192.168.1.5
++
++# With:
++nodes:
++  - id: local
++    module: ExternalProcess  # ✓ Local module OK
++    params:
++      command: node
++      args: ['server.js']
++```
++
++---
++
+ ## Checks Performed
+ 
+ ### 1. Node.js Version
+diff --git a/docs/devex/mkctl-cookbook.md b/docs/devex/mkctl-cookbook.md
+index e4c064c..fd5fcba 100644
+--- a/docs/devex/mkctl-cookbook.md
++++ b/docs/devex/mkctl-cookbook.md
+@@ -1108,3 +1108,123 @@ examples/configs/
+ ```
+ 
+ **Pro Tip**: Compare each bad config to the working examples (basic.yml, external-stdio.yaml, external-pty.yaml) to see what's different. This is a great way to internalize the correct config format!
++
++---
++
++## CI Acceptance Smoke Testing
++
++The mkolbol project runs automated acceptance smoke tests in CI/CD to catch integration issues that unit tests can't catch.
++
++### Understanding the Acceptance Smoke Test
++
++The smoke test is a **non-gating, best-effort** CI job that runs `mkctl` with a real topology and validates:
++
++1. **Topology execution** — Does mkctl run without errors?
++2. **Data flow** — Does data actually flow through pipes?
++3. **Endpoint registration** — Are modules tracked by the router?
++
++**Why non-gating?**
++- Prevents false positives from blocking development
++- Provides visibility without forcing remediation
++- Can be made gating in future when proven stable
++- Results aggregated in PR comments for awareness
++
++### Smoke Test Configuration
++
++The smoke test runs the `http-logs-local-file.yml` topology:
++
++```yaml
++# Topology that captures HTTP server logs to JSONL
++nodes:
++  - id: web
++    module: ExternalProcess
++    params:
++      command: node
++      args: ['inline HTTP server...']
++      ioMode: stdio
++
++  - id: sink
++    module: FilesystemSink
++    params:
++      filename: reports/http-logs.jsonl
++
++connections:
++  - from: web.output
++    to: sink.input
++```
++
++### Three Validation Checks
++
++After running the topology for 5 seconds, the smoke test checks:
++
++```bash
++# ✅ Check 1: Did topology run successfully?
++grep -q "Topology running" /tmp/smoke-test.log
++
++# ✅ Check 2: Was JSONL file created with data?
++[ -f reports/http-logs.jsonl ] && [ -s reports/http-logs.jsonl ]
++
++# ✅ Check 3: Were endpoints registered in router snapshot?
++[ -f reports/router-endpoints.json ] && [ $(jq 'length' reports/router-endpoints.json) -gt 0 ]
++```
++
++### PR Comment Integration
++
++Results are aggregated into the Laminar test report PR comment:
++
++```markdown
++### 🧪 Acceptance Smoke Test
++✅ Topology | ✅ FilesystemSink | ✅ Router Endpoints
++```
++
++Or if one fails:
++
++```markdown
++### 🧪 Acceptance Smoke Test
++✅ Topology | ❌ FilesystemSink | ✅ Router Endpoints
++```
++
++**Note:** The status is **advisory only** — failures don't block PR merge. Developers should review warnings in the comment.
++
++### Manual Reproduction
++
++To reproduce the smoke test locally:
++
++```bash
++# 1. Build
++npm run build
++
++# 2. Run the same topology
++export MK_LOCAL_NODE=1
++timeout 10 node dist/scripts/mkctl.js run \
++  --file examples/configs/http-logs-local-file.yml \
++  --duration 5
++
++# 3. Verify all three artifacts exist
++ls -la reports/http-logs.jsonl
++ls -la reports/router-endpoints.json
++cat reports/router-endpoints.json | jq 'length'
++```
++
++### Debugging Smoke Test Failures
++
++**If "Topology" check fails:**
++- Check for module not found errors
++- Verify config file is accessible
++- See [Doctor Guide](./doctor.md) for config errors
++
++**If "FilesystemSink" check fails:**
++- Verify pipes connected in YAML
++- Check file permissions on reports/ directory
++- Ensure HTTP server emitted data
++
++**If "Router Endpoints" check fails:**
++- Verify RoutingServer initialization
++- Check that both modules registered
++- May indicate pipe connection issue
++
++### Related Documentation
++
++- **[CI Acceptance Smoke Documentation](./ci-acceptance-smoke.md)** — Complete guide to smoke test architecture and debugging
++- **[Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md)** — Full acceptance test scenarios
++- **[Doctor Guide](./doctor.md)** — Troubleshooting mkctl errors
