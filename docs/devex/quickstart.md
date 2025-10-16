@@ -63,7 +63,118 @@ MK_LOCAL_NODE=1 node dist/scripts/mkctl.js run --file examples/configs/basic.yml
 
 **Future:** When `MK_LOCAL_NODE` is not set (or set to `0`), network adapters and distributed routing will be available. This feature is planned for future releases.
 
+---
 
+## Local Node v1.0 Demo: HTTP to Console
+
+This is the canonical "hello world" for Local Node routing. It demonstrates:
+- ExternalProcess (HTTP server) → ConsoleSink (terminal output)
+- RoutingServer endpoint discovery
+- Local Node topology lifecycle (spawn, run, shutdown)
+
+### Quick Start
+
+**Terminal 1: Start the topology**
+
+```bash
+export MK_LOCAL_NODE=1
+node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 10
+```
+
+Expected output:
+```
+Loading config from: examples/configs/http-logs-local.yml
+Bringing topology up...
+Topology running for 10 seconds...
+
+[http] Server listening on http://localhost:3000
+```
+
+**Terminal 2: Send a request**
+
+```bash
+curl -s http://localhost:3000/hello
+```
+
+You'll see logged in Terminal 1:
+```
+[http] [2025-10-17T04:15:23.456Z] GET /hello
+```
+
+### Inspect Endpoints
+
+While the topology runs (or immediately after with mkctl endpoints --watch):
+
+**Terminal 3: Watch endpoints**
+
+```bash
+export MK_LOCAL_NODE=1
+node dist/scripts/mkctl.js endpoints --watch
+```
+
+You'll see:
+```
+Registered Endpoints (RoutingServer snapshot)
+
+ID:          localhost:web:0x0001:...
+Type:        external
+Coordinates: node:web
+Metadata:    {"command":"node","ioMode":"stdio"}
+Announced:   2025-10-17T04:15:20.123Z
+Updated:     2025-10-17T04:15:20.123Z
+
+ID:          localhost:sink:0x0002:...
+Type:        output
+Coordinates: node:sink
+...
+```
+
+### What's Happening
+
+1. **web node** (ExternalProcess): Runs a Node.js HTTP server that logs requests to stdout
+2. **sink node** (ConsoleSink): Reads from web's output and displays to terminal with `[http]` prefix
+3. **Router**: Announced and tracked both endpoints; snapshot captured at shutdown
+4. **Local Node gate** (MK_LOCAL_NODE=1): In-process routing only; no network features
+
+### Today vs Soon
+
+**Today (Current):**
+- Output → ConsoleSink (terminal console)
+- Users who want persistent logs can tee output: `… | tee reports/http-demo.log`
+
+**Soon (FilesystemSink):**
+- Output → FilesystemSink (writes to `reports/http-logs.jsonl`)
+- Just update the config: change `module: ConsoleSink` to `module: FilesystemSink`
+- Node IDs stay the same (web, sink), so the documentation diff is minimal
+
+### Configuration
+
+The config `examples/configs/http-logs-local.yml` demonstrates:
+
+```yaml
+nodes:
+  - id: web
+    module: ExternalProcess
+    params:
+      command: node
+      args:
+        - -e
+        - "require('http').createServer((req,res)=>{ … }).listen(3000)"
+      ioMode: stdio  # stdio for non-interactive (vs. pty for shells)
+
+  - id: sink
+    module: ConsoleSink
+    params:
+      prefix: "[http]"  # Add prefix to all console output
+
+connections:
+  - from: web.output
+    to: sink.input  # Wire HTTP logs to console
+```
+
+Learn more: **[Wiring and Testing](./wiring-and-tests.md)** for complete config schema.
+
+---
 
 ## Manual Demo (Direct Code Execution)
 

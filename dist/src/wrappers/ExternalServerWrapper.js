@@ -12,6 +12,12 @@ export class ExternalServerWrapper {
     restartCount = 0;
     spawnTime = 0;
     explicitShutdown = false;
+    stdoutCapture = [];
+    stderrCapture = [];
+    captureLimit = 1024 * 100; // 100KB per stream
+    currentCaptureSize = { stdout: 0, stderr: 0 };
+    lastExitCode = null;
+    lastSignal = null;
     constructor(kernel, hostess, manifest) {
         this.kernel = kernel;
         this.hostess = hostess;
@@ -68,6 +74,7 @@ export class ExternalServerWrapper {
         });
         this._inputPipe.pipe(this.process.stdin);
         this.process.stdout.on('data', (chunk) => {
+            this.captureOutput(chunk, 'stdout');
             debug.emit('external', 'server.output', {
                 servername: this.manifest.servername,
                 bytes: chunk.length
@@ -75,6 +82,7 @@ export class ExternalServerWrapper {
         });
         this.process.stdout.pipe(this._outputPipe);
         this.process.stderr.on('data', (chunk) => {
+            this.captureOutput(chunk, 'stderr');
             debug.emit('external', 'server.error', {
                 servername: this.manifest.servername,
                 bytes: chunk.length
@@ -92,12 +100,28 @@ export class ExternalServerWrapper {
         await this.registerWithHostess();
     }
     async restart() {
+        debug.emit('external', 'server.restarting', {
+            servername: this.manifest.servername,
+            attempt: this.restartCount + 1,
+            maxRestarts: this.manifest.maxRestarts
+        }, 'info');
         await this.shutdown();
-        if (this.manifest.restartDelay) {
-            await new Promise(resolve => setTimeout(resolve, this.manifest.restartDelay));
-        }
+        const backoffDelay = this.calculateBackoffDelay();
+        debug.emit('external', 'server.backoff', {
+            servername: this.manifest.servername,
+            delayMs: backoffDelay,
+            attempt: this.restartCount + 1
+        }, 'info');
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
         this.restartCount++;
+        this.clearCapture();
         await this.spawn();
+    }
+    calculateBackoffDelay() {
+        const baseDelay = this.manifest.restartDelay || 1000;
+        const exponentialDelay = baseDelay * Math.pow(2, this.restartCount);
+        const maxDelay = 30000; // Cap at 30 seconds
+        return Math.min(exponentialDelay, maxDelay);
     }
     async shutdown(timeout = 5000) {
         if (!this.process)
@@ -160,7 +184,17 @@ export class ExternalServerWrapper {
     async deregisterFromHostess() {
     }
     handleExit(code, signal) {
-        console.log(`Process ${this.manifest.servername} exited with code ${code}, signal ${signal}`);
+        this.lastExitCode = code;
+        this.lastSignal = signal;
+        const exitInfo = this.getExitCodeInfo(code, signal);
+        debug.emit('external', 'server.exit', {
+            servername: this.manifest.servername,
+            exitCode: code,
+            signal,
+            exitType: exitInfo.type,
+            exitMessage: exitInfo.message
+        }, exitInfo.level);
+        console.log(`Process ${this.manifest.servername} exited: ${exitInfo.message}`);
         this.process = undefined;
         if (this.explicitShutdown) {
             this.explicitShutdown = false;
@@ -173,6 +207,46 @@ export class ExternalServerWrapper {
             });
         }
     }
+    getExitCodeInfo(code, signal) {
+        if (signal) {
+            return {
+                type: 'signal',
+                message: `killed by signal ${signal}`,
+                level: 'warn'
+            };
+        }
+        if (code === null) {
+            return {
+                type: 'unknown',
+                message: 'exited with unknown status',
+                level: 'warn'
+            };
+        }
+        if (code === 0) {
+            return {
+                type: 'success',
+                message: 'exited successfully (code 0)',
+                level: 'info'
+            };
+        }
+        // Common exit codes
+        const exitCodeMap = {
+            1: 'general error',
+            2: 'misuse of shell builtin',
+            126: 'command cannot execute',
+            127: 'command not found',
+            128: 'invalid exit argument',
+            130: 'terminated by Ctrl+C (SIGINT)',
+            137: 'killed (SIGKILL)',
+            143: 'terminated (SIGTERM)'
+        };
+        const description = exitCodeMap[code] || `unknown error code ${code}`;
+        return {
+            type: 'failure',
+            message: `exited with code ${code} (${description})`,
+            level: 'error'
+        };
+    }
     shouldRestart(exitCode) {
         const { restart, maxRestarts } = this.manifest;
         if (restart === 'never')
@@ -184,6 +258,48 @@ export class ExternalServerWrapper {
         if (restart === 'on-failure')
             return exitCode !== 0;
         return false;
+    }
+    captureOutput(chunk, stream) {
+        const capture = stream === 'stdout' ? this.stdoutCapture : this.stderrCapture;
+        const currentSize = this.currentCaptureSize[stream];
+        if (currentSize + chunk.length <= this.captureLimit) {
+            capture.push(chunk);
+            this.currentCaptureSize[stream] += chunk.length;
+        }
+        else {
+            const remaining = this.captureLimit - currentSize;
+            if (remaining > 0) {
+                capture.push(chunk.slice(0, remaining));
+                this.currentCaptureSize[stream] = this.captureLimit;
+            }
+        }
+    }
+    clearCapture() {
+        this.stdoutCapture = [];
+        this.stderrCapture = [];
+        this.currentCaptureSize = { stdout: 0, stderr: 0 };
+    }
+    getCapturedStdout() {
+        return Buffer.concat(this.stdoutCapture).toString('utf8');
+    }
+    getCapturedStderr() {
+        return Buffer.concat(this.stderrCapture).toString('utf8');
+    }
+    getRestartCount() {
+        return this.restartCount;
+    }
+    getLastExitCode() {
+        return this.lastExitCode;
+    }
+    getLastSignal() {
+        return this.lastSignal;
+    }
+    getExitInfo() {
+        if (this.lastExitCode === null && this.lastSignal === null) {
+            return null;
+        }
+        const info = this.getExitCodeInfo(this.lastExitCode, this.lastSignal);
+        return info.message;
     }
 }
 //# sourceMappingURL=ExternalServerWrapper.js.map

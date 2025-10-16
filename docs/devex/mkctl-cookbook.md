@@ -125,6 +125,27 @@ mkctl run --file examples/configs/external-stdio.yaml --duration 5
 
 Use for non-interactive filters, streaming pipelines, or quick performance checks.
 
+### HTTP Logs Demo (Local Node v1.0)
+
+```bash
+export MK_LOCAL_NODE=1
+mkctl run --file examples/configs/http-logs-local.yml --duration 10
+```
+
+**In another terminal, send requests:**
+```bash
+curl -s http://localhost:3000/hello
+curl -s http://localhost:3000/test
+```
+
+This demonstrates:
+- ExternalProcess (HTTP server) → ConsoleSink (console output)
+- RoutingServer endpoint discovery and lifecycle
+- Local Node in-process routing
+- Using `--watch` to monitor endpoints while topology runs
+
+See **[Local Node v1.0 Demo](./quickstart.md#local-node-v10-demo-http-to-console)** for full walkthrough.
+
 ### Custom Config
 
 ```bash

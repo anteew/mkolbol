@@ -1,6 +1,12 @@
 # DevEx Acceptance Tests
 
-This directory contains **acceptance tests** for early adopters building custom servers on mkolbol. These tests demonstrate how to verify that your server:
+This directory contains **acceptance tests and scenarios** for early adopters building custom servers on mkolbol.
+
+## Quick Start
+
+**New to mkolbol?** Start with the **Local Node v1.0 scenario** in `acceptance/local-node-v1.md`. It walks through a complete end-to-end topology (HTTP server → console sink) and serves as the canonical reference for single-host deployments.
+
+**Want to validate your server?** Copy the test suite from `acceptance/` and adapt it to your module. Tests demonstrate:
 
 1. Registers correctly with Hostess
 2. Handles stream I/O (stdin/stdout) properly
@@ -9,7 +15,7 @@ This directory contains **acceptance tests** for early adopters building custom 
 
 ## Purpose
 
-These tests serve as **reference implementations** that you can copy into your own project to validate your custom server wrapper. They are designed to be:
+These tests and scenarios serve as **reference implementations** that you can copy into your own project to validate your custom server wrapper. They are designed to be:
 
 - **Copy-pasteable**: Minimal dependencies on mkolbol internals
 - **Deterministic**: No flaky timeouts or race conditions

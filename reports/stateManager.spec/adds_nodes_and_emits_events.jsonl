@@ -1,3 +1,3 @@
-{"ts":1760616829469,"lvl":"info","case":"adds nodes and emits events","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760616829470,"lvl":"info","case":"adds nodes and emits events","phase":"execution","evt":"test.run"}
-{"ts":1760616829471,"lvl":"info","case":"adds nodes and emits events","phase":"teardown","evt":"case.end","payload":{"duration":30,"status":"passed"}}
+{"ts":1760619186878,"lvl":"info","case":"adds nodes and emits events","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760619186879,"lvl":"info","case":"adds nodes and emits events","phase":"execution","evt":"test.run"}
+{"ts":1760619186880,"lvl":"info","case":"adds nodes and emits events","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}

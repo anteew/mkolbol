@@ -24,6 +24,42 @@ These tests are designed to be:
 - Third-party integrators validating implementations
 - CI/CD pipelines for continuous validation
 
+## Acceptance Scenarios
+
+### `local-node-v1.md`
+**Category:** Integration Scenario (Docs)
+**Purpose:** Canonical end-to-end validation for Local Node v1.0
+
+**Scenario:** HTTP application to console sink on a single host.
+
+**What it validates:**
+- Config loading and validation
+- ExternalProcess module spawning and stdio I/O
+- Stream wiring (kernel connections)
+- RoutingServer endpoint registration and discovery
+- Graceful topology lifecycle (spawn → run → shutdown)
+- Local Node gate enforcement (MK_LOCAL_NODE=1)
+- Router snapshot generation for post-run inspection
+
+**Verification Checklist:**
+- [ ] Topology starts without errors
+- [ ] HTTP server listens on localhost:3000
+- [ ] curl requests are logged with timestamps
+- [ ] mkctl endpoints shows both web and sink nodes
+- [ ] Graceful shutdown completes cleanly
+- [ ] reports/router-endpoints.json is generated
+
+**Run the scenario:**
+```bash
+# Follow steps in local-node-v1.md
+# This is a manual walkthrough, not an automated test
+```
+
+**For Adopters:**
+Copy this scenario as a template for validating your own topologies. The HTTP server example is self-contained with no external dependencies.
+
+---
+
 ## Test Files
 
 ### `hostess.spec.ts`

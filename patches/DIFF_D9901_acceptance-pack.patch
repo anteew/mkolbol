@@ -1,0 +1,558 @@
+diff --git a/tests/devex/README.md b/tests/devex/README.md
+index c59116d..c1a2795 100644
+--- a/tests/devex/README.md
++++ b/tests/devex/README.md
+@@ -1,6 +1,12 @@
+ # DevEx Acceptance Tests
+ 
+-This directory contains **acceptance tests** for early adopters building custom servers on mkolbol. These tests demonstrate how to verify that your server:
++This directory contains **acceptance tests and scenarios** for early adopters building custom servers on mkolbol.
++
++## Quick Start
++
++**New to mkolbol?** Start with the **Local Node v1.0 scenario** in `acceptance/local-node-v1.md`. It walks through a complete end-to-end topology (HTTP server → console sink) and serves as the canonical reference for single-host deployments.
++
++**Want to validate your server?** Copy the test suite from `acceptance/` and adapt it to your module. Tests demonstrate:
+ 
+ 1. Registers correctly with Hostess
+ 2. Handles stream I/O (stdin/stdout) properly
+@@ -9,7 +15,7 @@ This directory contains **acceptance tests** for early adopters building custom
+ 
+ ## Purpose
+ 
+-These tests serve as **reference implementations** that you can copy into your own project to validate your custom server wrapper. They are designed to be:
++These tests and scenarios serve as **reference implementations** that you can copy into your own project to validate your custom server wrapper. They are designed to be:
+ 
+ - **Copy-pasteable**: Minimal dependencies on mkolbol internals
+ - **Deterministic**: No flaky timeouts or race conditions
+diff --git a/tests/devex/acceptance/README.md b/tests/devex/acceptance/README.md
+index 9924798..2e24079 100644
+--- a/tests/devex/acceptance/README.md
++++ b/tests/devex/acceptance/README.md
+@@ -24,6 +24,42 @@ These tests are designed to be:
+ - Third-party integrators validating implementations
+ - CI/CD pipelines for continuous validation
+ 
++## Acceptance Scenarios
++
++### `local-node-v1.md`
++**Category:** Integration Scenario (Docs)
++**Purpose:** Canonical end-to-end validation for Local Node v1.0
++
++**Scenario:** HTTP application to console sink on a single host.
++
++**What it validates:**
++- Config loading and validation
++- ExternalProcess module spawning and stdio I/O
++- Stream wiring (kernel connections)
++- RoutingServer endpoint registration and discovery
++- Graceful topology lifecycle (spawn → run → shutdown)
++- Local Node gate enforcement (MK_LOCAL_NODE=1)
++- Router snapshot generation for post-run inspection
++
++**Verification Checklist:**
++- [ ] Topology starts without errors
++- [ ] HTTP server listens on localhost:3000
++- [ ] curl requests are logged with timestamps
++- [ ] mkctl endpoints shows both web and sink nodes
++- [ ] Graceful shutdown completes cleanly
++- [ ] reports/router-endpoints.json is generated
++
++**Run the scenario:**
++```bash
++# Follow steps in local-node-v1.md
++# This is a manual walkthrough, not an automated test
++```
++
++**For Adopters:**
++Copy this scenario as a template for validating your own topologies. The HTTP server example is self-contained with no external dependencies.
++
++---
++
+ ## Test Files
+ 
+ ### `hostess.spec.ts`
+diff --git a/tests/devex/acceptance/local-node-v1.md b/tests/devex/acceptance/local-node-v1.md
+new file mode 100644
+index 0000000..a6870cb
+--- /dev/null
++++ b/tests/devex/acceptance/local-node-v1.md
+@@ -0,0 +1,478 @@
++# Acceptance Pack: Local Node v1.0
++
++This document describes the canonical acceptance scenario for **Local Node v1.0**—a single-host topology demonstrating the core integration of mkolbol's Router, Executor, and Local Node mode.
++
++**Scenario:** HTTP application to console sink on a single host.
++
++---
++
++## Scenario Overview
++
++### What We're Testing
++
++This scenario validates that a complete mkolbol topology can:
++
++1. **Load from YAML config** - Configuration loader accepts well-formed config files
++2. **Spawn external processes** - ExternalProcess module spawns HTTP server in stdio mode
++3. **Wire connections** - StateManager connects modules via streams (kernel pipes)
++4. **Register endpoints** - RoutingServer captures endpoint announcements with metadata
++5. **Handle I/O** - Data flows from server stdout → sink input → console
++6. **Graceful shutdown** - Topology terminates cleanly on signal or timer
++7. **Generate snapshots** - Router persists endpoint list for post-run inspection
++8. **Enforce Local Node gate** - Network features are disabled when `MK_LOCAL_NODE=1`
++
++### Why This Matters
++
++This scenario is the **entry point for early adopters**. If this works, adopters can:
++- Build custom server wrappers (reference: `ExternalServerWrapper`)
++- Extend topologies with their own modules
++- Deploy on single machines before scaling to distributed setups
++- Validate their understanding of mkolbol's core concepts
++
++### Canonical Config
++
++The acceptance scenario uses this config:
++
++**File:** `examples/configs/http-logs-local.yml`
++
++```yaml
++nodes:
++  - id: web
++    module: ExternalProcess
++    params:
++      command: node
++      args:
++        - -e
++        - "require('http').createServer((req,res)=>{console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);res.end('ok')}).listen(3000,()=>console.log('Server listening on http://localhost:3000'))"
++      ioMode: stdio
++      restart: never
++
++  - id: sink
++    module: ConsoleSink
++    params:
++      prefix: "[http]"
++
++connections:
++  - from: web.output
++    to: sink.input
++```
++
++**Key Design Choices:**
++
++- **`ioMode: stdio`** - Lightweight, non-interactive data piping (vs. pty for shells)
++- **`restart: never`** - HTTP server should not auto-restart on crash (policy enforcement)
++- **`prefix: "[http]"`** - ConsoleSink adds prefix to all output lines for visibility
++- **Inline server** - No external dependency; server is defined in config args
++- **Stable node IDs** - `web` and `sink` remain constant even when sink implementation changes in future
++
++---
++
++## Acceptance Criteria
++
++### Preconditions
++
++- mkolbol source cloned and `npm install` + `npm run build` completed
++- Node.js 20 or higher available
++- Terminal supports UTF-8 output
++- `MK_LOCAL_NODE=1` environment variable set (gates out network features)
++
++### Steps
++
++#### Step 1: Start the Topology
++
++```bash
++# Set Local Node mode
++export MK_LOCAL_NODE=1
++
++# Run the topology for 10 seconds (provides time for testing)
++node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 10
++```
++
++**Expected Output (Terminal 1):**
++```
++[mkctl] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.
++Loading config from: examples/configs/http-logs-local.yml
++Bringing topology up...
++Topology running for 10 seconds...
++
++[http] Server listening on http://localhost:3000
++```
++
++**What's Happening:**
++1. mkctl validates config and loads into Executor
++2. Executor instantiates `web` (ExternalProcess) node
++3. ExternalProcess spawns Node.js HTTP server with inline script
++4. Server logs "Server listening..." to stdout
++5. ConsoleSink reads from server's stdout and adds `[http]` prefix to output
++6. Topology enters running state
++
++#### Step 2: Send HTTP Request (in another terminal, while topology runs)
++
++```bash
++# Terminal 2: Send a simple request
++curl -s http://localhost:3000/hello
++```
++
++**Expected Output (Terminal 2):**
++```
++ok
++```
++
++**Expected Output (Terminal 1, sink receives log):**
++```
++[http] [2025-10-17T04:15:23.456Z] GET /hello
++```
++
++**What's Happening:**
++1. curl sends HTTP GET request to server on localhost:3000
++2. Server receives request and logs timestamp + method + path
++3. Log line flows through stdout → ConsoleSink.input
++4. ConsoleSink prepends `[http]` prefix and writes to console
++5. Topology continues running (no crash or disconnect)
++
++#### Step 3: Inspect Live Endpoints (in another terminal, while topology runs)
++
++```bash
++# Terminal 3: Watch endpoints with 1-second refresh
++export MK_LOCAL_NODE=1
++node dist/scripts/mkctl.js endpoints --watch --interval 1
++```
++
++**Expected Output (Terminal 3):**
++```
++[2025-10-17T04:15:20.123Z] Watching endpoints (refresh every 1s)...
++Press Ctrl+C to stop.
++
++Registered Endpoints (RoutingServer snapshot)
++
++ID:          localhost:web:0x0001:external:stdio:node:…
++Type:        external
++Coordinates: node:web
++Metadata:    {"command":"node","ioMode":"stdio"}
++Announced:   2025-10-17T04:15:20.123Z
++Updated:     2025-10-17T04:15:20.123Z
++
++ID:          localhost:sink:0x0002:output:…
++Type:        output
++Coordinates: node:sink
++Metadata:    {"prefix":"[http]"}
++Announced:   2025-10-17T04:15:20.234Z
++Updated:     2025-10-17T04:15:20.234Z
++```
++
++**What's Happening:**
++1. RoutingServer maintains live registry of all active endpoints
++2. Each endpoint has unique ID, type, coordinates, and metadata
++3. `--watch --interval 1` refreshes endpoint view every second
++4. Shows both `web` (external process) and `sink` (output module)
++5. Timestamps indicate when endpoint was announced and last updated
++6. Metadata reflects module-specific configuration
++
++#### Step 4: Graceful Shutdown
++
++**Option A: Wait for timer (automatic)**
++```
++# After 10 seconds, topology automatically shuts down
++Topology running for 10 seconds...
++[http] Server listening on http://localhost:3000
++[http] [2025-10-17T04:15:23.456Z] GET /hello
++
++Bringing topology down...
++Done.
++```
++
++**Option B: Interrupt early (manual, Ctrl+C)**
++```
++# Press Ctrl+C in Terminal 1
++Topology running for 10 seconds...
++[http] Server listening on http://localhost:3000
++
++^C
++Received SIGINT. Shutting down...
++Bringing topology down...
++Interrupted.
++```
++
++**What's Happening:**
++1. Executor triggers graceful shutdown sequence
++2. Each module's shutdown hook is called (e.g., ExternalProcess sends SIGTERM to server)
++3. ConsoleSink flushes any buffered output
++4. Resources are cleaned up
++5. Process exits with status 0 (success) or 130 (interrupted)
++
++#### Step 5: Verify Router Snapshot
++
++After the topology exits, inspect the endpoint snapshot:
++
++```bash
++# Terminal 1 (after mkctl run completes):
++node dist/scripts/mkctl.js endpoints
++
++# Or from any terminal:
++cat reports/router-endpoints.json | jq .
++```
++
++**Expected Output:**
++```json
++[
++  {
++    "id": "localhost:web:0x0001:external:stdio:node:…",
++    "type": "external",
++    "coordinates": "node:web",
++    "metadata": {
++      "command": "node",
++      "ioMode": "stdio"
++    },
++    "announcedAt": 1697520920123,
++    "updatedAt": 1697520920123
++  },
++  {
++    "id": "localhost:sink:0x0002:output:…",
++    "type": "output",
++    "coordinates": "node:sink",
++    "metadata": {
++      "prefix": "[http]"
++    },
++    "announcedAt": 1697520920234,
++    "updatedAt": 1697520920234
++  }
++]
++```
++
++**What's Happening:**
++1. mkctl persists RoutingServer endpoints to `reports/router-endpoints.json` at shutdown
++2. This snapshot allows post-run inspection (e.g., CI/CD validation)
++3. Each endpoint captures identity (id, coordinates), classification (type), and config (metadata)
++4. Timestamps enable auditability
++
++---
++
++## Verification Checklist
++
++Use this checklist to validate the scenario works correctly:
++
++- [ ] **Config loads without errors** - mkctl accepts `http-logs-local.yml` without validation errors
++- [ ] **Topology starts** - "Bringing topology up..." message appears; no startup crashes
++- [ ] **Server starts** - "[http] Server listening on http://localhost:3000" appears in output
++- [ ] **HTTP request succeeds** - `curl http://localhost:3000/hello` returns "ok"
++- [ ] **Log captured** - "[http] [2025-10-...] GET /hello" appears in Terminal 1 output
++- [ ] **Endpoints visible** - `mkctl endpoints --watch` shows both "web" and "sink" endpoints
++- [ ] **Endpoint metadata correct** - web endpoint shows `ioMode: stdio`; sink shows `prefix: [http]`
++- [ ] **Graceful shutdown** - Topology shuts down cleanly (no timeouts or crashes)
++- [ ] **Router snapshot generated** - `reports/router-endpoints.json` exists after run completes
++- [ ] **Snapshot contains endpoints** - Snapshot JSON is valid and contains both endpoints
++- [ ] **Local Node gate enforced** - mkctl prints "[mkctl] Running in Local Node mode..."
++
++---
++
++## Expected Artifacts
++
++After a successful run, you should see:
++
++```
++reports/
++├── router-endpoints.json          # RoutingServer snapshot (generated at shutdown)
++├── endpoints.json                 # Hostess snapshot (if available)
++└── http-response.log              # Optional: if using tee workaround for persistent logs
++```
++
++### `reports/router-endpoints.json`
++
++This is the **primary artifact**. Validate:
++
++1. **File exists** - mkctl successfully persisted the snapshot
++2. **Valid JSON** - Contains endpoint array
++3. **Both endpoints present** - web (external) and sink (output)
++4. **Metadata complete** - Each endpoint has type, coordinates, metadata, timestamps
++5. **Timestamps reasonable** - announcedAt ≤ updatedAt, within expected range
++
++### How to Inspect
++
++```bash
++# View as formatted JSON
++cat reports/router-endpoints.json | jq .
++
++# Count endpoints
++cat reports/router-endpoints.json | jq 'length'
++
++# Extract just endpoint IDs and types
++cat reports/router-endpoints.json | jq '.[] | {id, type}'
++
++# Filter by type
++cat reports/router-endpoints.json | jq '.[] | select(.type == "external")'
++```
++
++---
++
++## Troubleshooting
++
++### Error: "Config file not found"
++
++**Cause:** File path is incorrect.
++
++**Fix:**
++```bash
++# Verify file exists
++ls -la examples/configs/http-logs-local.yml
++
++# Use absolute path if needed
++node dist/scripts/mkctl.js run --file $(pwd)/examples/configs/http-logs-local.yml --duration 10
++```
++
++### Error: "Configuration validation failed"
++
++**Cause:** YAML syntax error or missing required fields.
++
++**Fix:**
++```bash
++# Validate YAML syntax
++python3 -m yaml examples/configs/http-logs-local.yml
++
++# Check that nodes and connections arrays exist
++grep -E "^\s*(nodes|connections):" examples/configs/http-logs-local.yml
++```
++
++### No output from server
++
++**Cause:** Server may not be flushing stdout, or ConsoleSink is not wired correctly.
++
++**Fix:**
++1. Verify connection exists: `grep -A2 "connections:" examples/configs/http-logs-local.yml`
++2. Check ConsoleSink is receiving data: add temporary logging in ConsoleSink module
++3. Ensure ExternalProcess ioMode is `stdio` (not `pty`)
++
++### Curl request times out
++
++**Cause:** Server may not be listening on 3000, or topology crashed.
++
++**Fix:**
++```bash
++# Check if port 3000 is listening
++lsof -i :3000
++
++# Check mkctl output for errors in Terminal 1
++# Try sending request to different port (if you modified config)
++curl -v http://localhost:3000/test
++```
++
++### mkctl endpoints returns "No endpoints registered"
++
++**Cause:** Router snapshot not yet written, or topology didn't run long enough.
++
++**Fix:**
++```bash
++# Run topology with longer duration to allow snapshot to be written
++node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 15
++
++# Then immediately check endpoints (before snapshot expires)
++node dist/scripts/mkctl.js endpoints
++```
++
++---
++
++## Today vs Soon: Logging Path
++
++### Today (Current - v1.0)
++
++The acceptance scenario uses **ConsoleSink** for output:
++
++```yaml
++- id: sink
++  module: ConsoleSink
++  params:
++    prefix: "[http]"
++```
++
++**Pros:**
++- Simple and immediate
++- No file I/O overhead
++- Works in CI/CD pipelines
++- Easy to combine with shell redirection
++
++**Cons:**
++- Logs ephemeral (lost when process exits)
++- Difficult to query historical logs
++
++**User Workaround (Persistent Logs):**
++
++If you want logs to persist, use shell redirection or tee:
++
++```bash
++# Option 1: Redirect stdout to file
++node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 10 | tee reports/http-logs.txt
++
++# Option 2: Tee to file and console (prints to both)
++node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 10 | tee -a reports/http-logs.log
++```
++
++This gives you the best of both worlds: live console output + persistent file logs.
++
++### Soon (Future - FilesystemSink Module)
++
++When Susan's sprint delivers **FilesystemSink**, you'll be able to write logs directly to files without tee workaround:
++
++```yaml
++- id: sink
++  module: FilesystemSink          # ← Swap ConsoleSink for FilesystemSink
++  params:
++    path: ./logs/http-response.log
++    mode: append
++```
++
++**Benefits:**
++- Native mkolbol module (no shell trickery)
++- Structured logging (JSONL format option)
++- Integration with monitoring systems
++- No external dependencies
++
++**Migration Path:**
++
++The node IDs (`web`, `sink`) stay the same, so the diff is minimal:
++
++```diff
++- module: ConsoleSink
+++ module: FilesystemSink
++```
++
++No topology restructuring needed. Users can update their configs incrementally as the ecosystem grows.
++
++---
++
++## Integration with Acceptance Suite
++
++This scenario is the **anchor** for the acceptance test suite:
++
++- **Unit tests** (threads lane) validate individual modules in isolation
++- **Process tests** (forks lane) validate spawning and lifecycle
++- **Integration scenario** (this document) validates end-to-end topology with real I/O
++
++**How to extend this scenario:**
++
++1. **Add error injection** - What happens if server crashes? Is it restarted (no, restart: never)?
++2. **Add backpressure** - What happens if client sends many rapid requests? Does ConsoleSink buffer correctly?
++3. **Add cancellation** - What happens if user presses Ctrl+C mid-request? Is cleanup immediate?
++4. **Add multi-instance** - Run multiple web nodes feeding one sink. Does routing merge streams correctly?
++
++---
++
++## Next Steps for Adopters
++
++After validating this scenario, explore:
++
++1. **[Early Adopter Guide](../../../docs/devex/early-adopter-guide.md)** - Concepts and architecture
++2. **[Wiring and Testing Guide](../../../docs/devex/wiring-and-tests.md)** - Build custom topologies
++3. **[First Server Tutorial](../../../docs/devex/first-server-tutorial.md)** - Create your own module
++4. **[Laminar Workflow](../../../docs/laminar-workflow.md)** - Test observability
++
++---
++
++## Support
++
++Questions about this scenario?
++
++- **[GitHub Issues](https://github.com/anteew/mkolbol/issues)** - Report bugs or request features
++- **[Discussions](https://github.com/anteew/mkolbol/discussions)** - Ask for help
++
++---
++
++**Ready to validate?** Follow the steps above, check off the verification checklist, and you're ready to build custom topologies!

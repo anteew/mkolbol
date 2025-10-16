@@ -14,6 +14,12 @@ export class ExternalServerWrapper {
   protected restartCount = 0;
   protected spawnTime = 0;
   protected explicitShutdown = false;
+  protected stdoutCapture: Buffer[] = [];
+  protected stderrCapture: Buffer[] = [];
+  protected captureLimit = 1024 * 100; // 100KB per stream
+  protected currentCaptureSize = { stdout: 0, stderr: 0 };
+  protected lastExitCode: number | null = null;
+  protected lastSignal: NodeJS.Signals | null = null;
 
   constructor(
     protected kernel: Kernel,
@@ -85,6 +91,7 @@ export class ExternalServerWrapper {
     this._inputPipe.pipe(this.process.stdin);
     
     this.process.stdout.on('data', (chunk) => {
+      this.captureOutput(chunk, 'stdout');
       debug.emit('external', 'server.output', { 
         servername: this.manifest.servername, 
         bytes: chunk.length 
@@ -93,6 +100,7 @@ export class ExternalServerWrapper {
     this.process.stdout.pipe(this._outputPipe);
     
     this.process.stderr.on('data', (chunk) => {
+      this.captureOutput(chunk, 'stderr');
       debug.emit('external', 'server.error', { 
         servername: this.manifest.servername, 
         bytes: chunk.length 
@@ -114,14 +122,33 @@ export class ExternalServerWrapper {
   }
 
   async restart(): Promise<void> {
+    debug.emit('external', 'server.restarting', { 
+      servername: this.manifest.servername,
+      attempt: this.restartCount + 1,
+      maxRestarts: this.manifest.maxRestarts
+    }, 'info');
+
     await this.shutdown();
     
-    if (this.manifest.restartDelay) {
-      await new Promise(resolve => setTimeout(resolve, this.manifest.restartDelay));
-    }
+    const backoffDelay = this.calculateBackoffDelay();
+    debug.emit('external', 'server.backoff', {
+      servername: this.manifest.servername,
+      delayMs: backoffDelay,
+      attempt: this.restartCount + 1
+    }, 'info');
+
+    await new Promise(resolve => setTimeout(resolve, backoffDelay));
     
     this.restartCount++;
+    this.clearCapture();
     await this.spawn();
+  }
+
+  protected calculateBackoffDelay(): number {
+    const baseDelay = this.manifest.restartDelay || 1000;
+    const exponentialDelay = baseDelay * Math.pow(2, this.restartCount);
+    const maxDelay = 30000; // Cap at 30 seconds
+    return Math.min(exponentialDelay, maxDelay);
   }
 
   async shutdown(timeout: number = 5000): Promise<void> {
@@ -199,7 +226,20 @@ export class ExternalServerWrapper {
   }
 
   protected handleExit(code: number | null, signal: NodeJS.Signals | null): void {
-    console.log(`Process ${this.manifest.servername} exited with code ${code}, signal ${signal}`);
+    this.lastExitCode = code;
+    this.lastSignal = signal;
+
+    const exitInfo = this.getExitCodeInfo(code, signal);
+    
+    debug.emit('external', 'server.exit', {
+      servername: this.manifest.servername,
+      exitCode: code,
+      signal,
+      exitType: exitInfo.type,
+      exitMessage: exitInfo.message
+    }, exitInfo.level);
+
+    console.log(`Process ${this.manifest.servername} exited: ${exitInfo.message}`);
     
     this.process = undefined;
 
@@ -216,6 +256,56 @@ export class ExternalServerWrapper {
     }
   }
 
+  protected getExitCodeInfo(code: number | null, signal: NodeJS.Signals | null): {
+    type: string;
+    message: string;
+    level: 'info' | 'warn' | 'error';
+  } {
+    if (signal) {
+      return {
+        type: 'signal',
+        message: `killed by signal ${signal}`,
+        level: 'warn'
+      };
+    }
+
+    if (code === null) {
+      return {
+        type: 'unknown',
+        message: 'exited with unknown status',
+        level: 'warn'
+      };
+    }
+
+    if (code === 0) {
+      return {
+        type: 'success',
+        message: 'exited successfully (code 0)',
+        level: 'info'
+      };
+    }
+
+    // Common exit codes
+    const exitCodeMap: Record<number, string> = {
+      1: 'general error',
+      2: 'misuse of shell builtin',
+      126: 'command cannot execute',
+      127: 'command not found',
+      128: 'invalid exit argument',
+      130: 'terminated by Ctrl+C (SIGINT)',
+      137: 'killed (SIGKILL)',
+      143: 'terminated (SIGTERM)'
+    };
+
+    const description = exitCodeMap[code] || `unknown error code ${code}`;
+
+    return {
+      type: 'failure',
+      message: `exited with code ${code} (${description})`,
+      level: 'error'
+    };
+  }
+
   protected shouldRestart(exitCode: number | null): boolean {
     const { restart, maxRestarts } = this.manifest;
     
@@ -225,5 +315,55 @@ export class ExternalServerWrapper {
     if (restart === 'on-failure') return exitCode !== 0;
     
     return false;
+  }
+
+  protected captureOutput(chunk: Buffer, stream: 'stdout' | 'stderr'): void {
+    const capture = stream === 'stdout' ? this.stdoutCapture : this.stderrCapture;
+    const currentSize = this.currentCaptureSize[stream];
+
+    if (currentSize + chunk.length <= this.captureLimit) {
+      capture.push(chunk);
+      this.currentCaptureSize[stream] += chunk.length;
+    } else {
+      const remaining = this.captureLimit - currentSize;
+      if (remaining > 0) {
+        capture.push(chunk.slice(0, remaining));
+        this.currentCaptureSize[stream] = this.captureLimit;
+      }
+    }
+  }
+
+  protected clearCapture(): void {
+    this.stdoutCapture = [];
+    this.stderrCapture = [];
+    this.currentCaptureSize = { stdout: 0, stderr: 0 };
+  }
+
+  getCapturedStdout(): string {
+    return Buffer.concat(this.stdoutCapture).toString('utf8');
+  }
+
+  getCapturedStderr(): string {
+    return Buffer.concat(this.stderrCapture).toString('utf8');
+  }
+
+  getRestartCount(): number {
+    return this.restartCount;
+  }
+
+  getLastExitCode(): number | null {
+    return this.lastExitCode;
+  }
+
+  getLastSignal(): NodeJS.Signals | null {
+    return this.lastSignal;
+  }
+
+  getExitInfo(): string | null {
+    if (this.lastExitCode === null && this.lastSignal === null) {
+      return null;
+    }
+    const info = this.getExitCodeInfo(this.lastExitCode, this.lastSignal);
+    return info.message;
   }
 }

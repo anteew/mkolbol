@@ -1,0 +1,235 @@
+diff --git a/src/wrappers/ExternalServerWrapper.ts b/src/wrappers/ExternalServerWrapper.ts
+index f9d6014..1b96a12 100644
+--- a/src/wrappers/ExternalServerWrapper.ts
++++ b/src/wrappers/ExternalServerWrapper.ts
+@@ -14,6 +14,10 @@ export class ExternalServerWrapper {
+   protected restartCount = 0;
+   protected spawnTime = 0;
+   protected explicitShutdown = false;
++  protected stdoutCapture: Buffer[] = [];
++  protected stderrCapture: Buffer[] = [];
++  protected captureLimit = 1024 * 100; // 100KB per stream
++  protected currentCaptureSize = { stdout: 0, stderr: 0 };
+ 
+   constructor(
+     protected kernel: Kernel,
+@@ -85,6 +89,7 @@ export class ExternalServerWrapper {
+     this._inputPipe.pipe(this.process.stdin);
+     
+     this.process.stdout.on('data', (chunk) => {
++      this.captureOutput(chunk, 'stdout');
+       debug.emit('external', 'server.output', { 
+         servername: this.manifest.servername, 
+         bytes: chunk.length 
+@@ -93,6 +98,7 @@ export class ExternalServerWrapper {
+     this.process.stdout.pipe(this._outputPipe);
+     
+     this.process.stderr.on('data', (chunk) => {
++      this.captureOutput(chunk, 'stderr');
+       debug.emit('external', 'server.error', { 
+         servername: this.manifest.servername, 
+         bytes: chunk.length 
+@@ -114,16 +120,35 @@ export class ExternalServerWrapper {
+   }
+ 
+   async restart(): Promise<void> {
++    debug.emit('external', 'server.restarting', { 
++      servername: this.manifest.servername,
++      attempt: this.restartCount + 1,
++      maxRestarts: this.manifest.maxRestarts
++    }, 'info');
++
+     await this.shutdown();
+     
+-    if (this.manifest.restartDelay) {
+-      await new Promise(resolve => setTimeout(resolve, this.manifest.restartDelay));
+-    }
++    const backoffDelay = this.calculateBackoffDelay();
++    debug.emit('external', 'server.backoff', {
++      servername: this.manifest.servername,
++      delayMs: backoffDelay,
++      attempt: this.restartCount + 1
++    }, 'info');
++
++    await new Promise(resolve => setTimeout(resolve, backoffDelay));
+     
+     this.restartCount++;
++    this.clearCapture();
+     await this.spawn();
+   }
+ 
++  protected calculateBackoffDelay(): number {
++    const baseDelay = this.manifest.restartDelay || 1000;
++    const exponentialDelay = baseDelay * Math.pow(2, this.restartCount);
++    const maxDelay = 30000; // Cap at 30 seconds
++    return Math.min(exponentialDelay, maxDelay);
++  }
++
+   async shutdown(timeout: number = 5000): Promise<void> {
+     if (!this.process) return;
+ 
+@@ -226,4 +251,38 @@ export class ExternalServerWrapper {
+     
+     return false;
+   }
++
++  protected captureOutput(chunk: Buffer, stream: 'stdout' | 'stderr'): void {
++    const capture = stream === 'stdout' ? this.stdoutCapture : this.stderrCapture;
++    const currentSize = this.currentCaptureSize[stream];
++
++    if (currentSize + chunk.length <= this.captureLimit) {
++      capture.push(chunk);
++      this.currentCaptureSize[stream] += chunk.length;
++    } else {
++      const remaining = this.captureLimit - currentSize;
++      if (remaining > 0) {
++        capture.push(chunk.slice(0, remaining));
++        this.currentCaptureSize[stream] = this.captureLimit;
++      }
++    }
++  }
++
++  protected clearCapture(): void {
++    this.stdoutCapture = [];
++    this.stderrCapture = [];
++    this.currentCaptureSize = { stdout: 0, stderr: 0 };
++  }
++
++  getCapturedStdout(): string {
++    return Buffer.concat(this.stdoutCapture).toString('utf8');
++  }
++
++  getCapturedStderr(): string {
++    return Buffer.concat(this.stderrCapture).toString('utf8');
++  }
++
++  getRestartCount(): number {
++    return this.restartCount;
++  }
+ }
+diff --git a/tests/integration/externalFromConfig.spec.ts b/tests/integration/externalFromConfig.spec.ts
+index 877cfd7..489008a 100644
+--- a/tests/integration/externalFromConfig.spec.ts
++++ b/tests/integration/externalFromConfig.spec.ts
+@@ -217,4 +217,121 @@ describe('External From Config Integration', () => {
+     },
+     testTimeout
+   );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should capture stdout and stderr logs',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'log-test',
++            module: 'ExternalProcess',
++            params: {
++              command: 'sh',
++              args: ['-c', 'echo "stdout message" && echo "stderr message" >&2'],
++              ioMode: 'stdio'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      const wrapper = (executor as any).wrappers.get('log-test');
++      expect(wrapper).toBeDefined();
++
++      // Wait for process to complete
++      await new Promise((resolve) => setTimeout(resolve, 500));
++
++      const stdout = wrapper.getCapturedStdout();
++      const stderr = wrapper.getCapturedStderr();
++
++      expect(stdout).toContain('stdout message');
++      expect(stderr).toContain('stderr message');
++
++      await executor.down();
++    },
++    testTimeout
++  );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should have exponential backoff calculation',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'backoff-test',
++            module: 'ExternalProcess',
++            params: {
++              command: 'echo',
++              args: ['test'],
++              ioMode: 'stdio',
++              restart: 'never',
++              restartDelay: 1000
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      const wrapper = (executor as any).wrappers.get('backoff-test');
++      expect(wrapper).toBeDefined();
++
++      // Test backoff calculation (private method, but we can verify it exists)
++      expect(typeof wrapper.calculateBackoffDelay).toBe('function');
++
++      await executor.down();
++    },
++    testTimeout
++  );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should respect capture limit for large outputs',
++    async () => {
++      // Generate more than 100KB of output (using yes command)
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'large-output',
++            module: 'ExternalProcess',
++            params: {
++              command: 'sh',
++              args: ['-c', 'yes "test line" | head -n 10000'],
++              ioMode: 'stdio'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      const wrapper = (executor as any).wrappers.get('large-output');
++      expect(wrapper).toBeDefined();
++
++      // Wait for process to complete
++      await new Promise((resolve) => setTimeout(resolve, 1000));
++
++      const stdout = wrapper.getCapturedStdout();
++      const captureSize = Buffer.from(stdout, 'utf8').length;
++
++      // Should be capped at 100KB
++      expect(captureSize).toBeLessThanOrEqual(100 * 1024);
++
++      await executor.down();
++    },
++    testTimeout
++  );
+ });

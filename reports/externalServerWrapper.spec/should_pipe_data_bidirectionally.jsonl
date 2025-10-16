@@ -1,3 +1,3 @@
-{"ts":1760616830387,"lvl":"info","case":"should pipe data bidirectionally","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760616830388,"lvl":"info","case":"should pipe data bidirectionally","phase":"execution","evt":"test.run"}
-{"ts":1760616830389,"lvl":"info","case":"should pipe data bidirectionally","phase":"teardown","evt":"case.end","payload":{"duration":165,"status":"passed"}}
+{"ts":1760618628597,"lvl":"info","case":"should pipe data bidirectionally","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760618628598,"lvl":"info","case":"should pipe data bidirectionally","phase":"execution","evt":"test.run"}
+{"ts":1760618628599,"lvl":"info","case":"should pipe data bidirectionally","phase":"teardown","evt":"case.end","payload":{"duration":253,"status":"passed"}}
