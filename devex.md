@@ -83,68 +83,56 @@
 }
 ```
 
-# DevEx — Distribution Without npm Registry (Tarball‑first Developer Experience)
+# DevEx — MKD Phase C Docs (Dev/Logs/Trace/Recipes)
 
 ```json
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "DEVX-P2-A", "parallel": true,  "tasks": ["D9901","D9902"] },
-    { "id": "DEVX-P2-B", "parallel": true,  "depends_on": ["DEVX-P2-A"], "tasks": ["D9903","D9904","D9905"] },
-    { "id": "DEVX-P2-C", "parallel": false, "depends_on": ["DEVX-P2-B"], "tasks": ["D9906","D9907"] }
+    { "id": "DEVX-P3-A", "parallel": true,  "tasks": ["D9951","D9952"] },
+    { "id": "DEVX-P3-B", "parallel": true,  "depends_on": ["DEVX-P3-A"], "tasks": ["D9953","D9954","D9955"] }
   ],
   "tasks": [
-    {"id":"D9901","agent":"devex","title":"Docs: Distribution matrix (Tarball recommended, Git tag pinned, Vendor path)",
-      "allowedFiles":["docs/devex/using-mkolbol-in-your-repo.md","docs/devex/packaging.md","README.md"],
+    {"id":"D9951","agent":"devex","title":"Docs: mk dev / mk logs / mk trace — usage + troubleshooting",
+      "allowedFiles":["docs/devex/first-five-minutes.md","docs/devex/quickstart.md","docs/devex/recipes.md","docs/devex/doctor.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9901_docs-distribution-matrix.patch"]},
+      "deliverables":["patches/DIFF_D9951_docs-dev-logs-trace.patch"]},
 
-    {"id":"D9902","agent":"devex","title":"Hello Calculator: tarball install path; update Quickstart & First‑Five‑Minutes",
-      "allowedFiles":["docs/devex/hello-calculator.md","docs/devex/quickstart.md","docs/devex/first-five-minutes.md","examples/mk/hello-calculator/**"],
+    {"id":"D9952","agent":"devex","title":"Examples: hot‑reload demo + logs/trace filters; acceptance notes",
+      "allowedFiles":["examples/mk/dev-logs-trace/**","tests/devex/acceptance/local-node-v1.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9902_docs-hello-calculator-tarball.patch"]},
+      "deliverables":["patches/DIFF_D9952_examples-dev-logs-trace.patch"]},
 
-    {"id":"D9903","agent":"devex","title":"Releases doc: how to create tags and consume GitHub Release tarballs",
-      "allowedFiles":["docs/devex/releases.md"],
-      "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9903_docs-releases.patch"]},
+    {"id":"D9953","agent":"devex","title":"CLI help snapshots: update mk help with new commands (style guide)",
+      "allowedFiles":["tests/cli/mkdxHelp.spec.ts","docs/devex/mk-dx-style.md"],
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_D9953_cli-help-snapshots.patch"]},
 
-    {"id":"D9904","agent":"devex","title":"Cookbook: install from tarball, pin to GitHub tag, vendor via file:",
-      "allowedFiles":["docs/devex/mkctl-cookbook.md"],
+    {"id":"D9954","agent":"devex","title":"Recipes page: curated patterns (tee→filesink, rate‑limit, backpressure)",
+      "allowedFiles":["docs/devex/recipes.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9904_docs-cookbook-no-registry.patch"]},
+      "deliverables":["patches/DIFF_D9954_docs-recipes.patch"]},
 
-    {"id":"D9905","agent":"devex","title":"Consumer acceptance doc: running the fixture app locally",
-      "allowedFiles":["tests/consumer/README.md"],
+    {"id":"D9955","agent":"devex","title":"Troubleshooting: hot‑reload edge cases, logs formatting, trace overhead",
+      "allowedFiles":["docs/devex/doctor.md","docs/devex/troubleshooting.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9905_docs-consumer-acceptance.patch"]},
-
-    {"id":"D9906","agent":"devex","title":"PR template note: prefer tarball path; keep CI comment non‑gating",
-      "allowedFiles":[".github/pull_request_template.md"],
-      "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9906_pr-template-tarball-note.patch"]},
-
-    {"id":"D9907","agent":"devex","title":"mk fetch (experimental) docs; clearly flagged as optional",
-      "allowedFiles":["docs/devex/packaging.md"],
-      "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9907_docs-mk-fetch-experimental.patch"]}
+      "deliverables":["patches/DIFF_D9955_docs-troubleshooting-dev.patch"]}
   ]
 }
 ```
 
-Direction & Autonomy
-- Treat “Tarball‑first distribution” as the default path in docs. Do not mention npm registry publishing. Keep tone neutral and focused on reproducibility.
-- Keep CI steps best‑effort and non‑gating for comments/artifacts.
-- Use agent_template/AMPCODE_TEMPLATE.md when you run mini‑sprints; keep logs in Vex/devex.log.
+Autonomy & Direction
+- Focus on developer joy: ensure docs mirror actual CLI behavior, examples are copy‑paste runnable, and troubleshooting is practical.
+- Use agent_template/AMPCODE_TEMPLATE.md; keep logs in `Vex/devex.log`.
 
 Verification Commands
 ```bash
 export MK_LOCAL_NODE=1
 npm run build
+npm run test:ci
 ```
 
 Success Criteria
-- New developer can install mkolbol via tarball and complete Hello Calculator in < 10 minutes.
-- Using‑in‑your‑repo and Quickstart are internally consistent and link to the same steps.
-- Cookbook entries include copy‑paste commands for tarball, git tag pin, vendor.
-- Consumer acceptance README provides an exact “try-it-now” flow.
+- First‑Five‑Minutes and Quickstart reflect mk dev/logs/trace and link to recipes.
+- Examples run as‑is and demonstrate hot‑reload + logs + trace together.
+- CLI help snapshots updated; style guide adhered to.
