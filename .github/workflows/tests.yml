@@ -148,13 +148,40 @@ jobs:
             --duration 5 \
             > /tmp/smoke-test.log 2>&1 || true
 
+          # Capture test results
+          TEST_RESULT_FILE="reports/acceptance-smoke.jsonl"
+          mkdir -p reports
+
+          # Check if topology ran successfully
+          if grep -q "Topology running" /tmp/smoke-test.log; then
+            TOPOLOGY_PASS="true"
+          else
+            TOPOLOGY_PASS="false"
+          fi
+
           # Check if logs file was created
           if [ -f logs/http-response.log ]; then
-            echo "✅ FilesystemSink smoke test PASSED: logs file created"
+            FILESINK_PASS="true"
+            LOG_LINES=$(wc -l < logs/http-response.log)
+            echo "✅ FilesystemSink smoke test PASSED: logs file created with $LOG_LINES lines"
             cat logs/http-response.log
           else
-            echo "⚠️  FilesystemSink smoke test: logs directory not found (may be expected if FilesystemSink not fully initialized)"
+            FILESINK_PASS="false"
+            echo "⚠️  FilesystemSink smoke test: logs directory not found"
           fi
+
+          # Check if router endpoints were recorded
+          if [ -f reports/router-endpoints.json ]; then
+            ENDPOINTS_PASS="true"
+            ENDPOINT_COUNT=$(jq 'length' reports/router-endpoints.json)
+            echo "✅ Router endpoints recorded: $ENDPOINT_COUNT endpoints"
+          else
+            ENDPOINTS_PASS="false"
+            echo "⚠️  Router endpoints not found"
+          fi
+
+          # Record results as JSONL for aggregation
+          echo "{\"type\":\"acceptance\",\"topology\":$TOPOLOGY_PASS,\"filesink\":$FILESINK_PASS,\"endpoints\":$ENDPOINTS_PASS,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$TEST_RESULT_FILE"
 
       - name: Upload smoke test logs
         if: always()
