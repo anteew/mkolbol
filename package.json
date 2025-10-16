@@ -76,6 +76,8 @@
     "dev:pty-wrapper": "node --enable-source-maps dist/examples/pty-wrapper-demo.js",
     "dev:multi-modal": "node --enable-source-maps dist/examples/multi-modal-output.js",
     "dev:worker-demo": "node --enable-source-maps dist/examples/worker-demo.js",
+    "dev:bash-host": "node --enable-source-maps dist/src/examples/bash-shell-host.js",
+    "dev:web-terminal": "node --enable-source-maps dist/src/examples/web-terminal-server.js",
     "acceptance:mk": "tsx scripts/mk-acceptance.ts"
   },
   "dependencies": {
