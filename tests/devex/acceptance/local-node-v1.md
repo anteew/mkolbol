@@ -852,3 +852,65 @@ Questions about this scenario?
 ---
 
 **Ready to validate?** Follow the steps above, check off the verification checklist, and you're ready to build custom topologies!
+
+
+---
+
+## mk CLI Acceptance Test Results
+
+**Last Run:** 2025-10-16T20:26:03.690Z
+
+```
+✓ mk init test-project (1ms)
+✓ mk run topology.yml --dry-run (92ms)
+✓ mk doctor (3034ms)
+✓ mk format topology.yml --to json (87ms)
+✓ mk run topology.yml --yaml (94ms)
+```
+
+**Summary:** 5/5 tests passed
+
+See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
+
+**Last Run:** 2025-10-16T20:03:59.003Z
+
+```
+✓ mk init test-project (0ms)
+✓ mk run topology.yml --dry-run (95ms)
+✓ mk doctor (2716ms)
+✓ mk format topology.yml --to json (94ms)
+✓ mk run topology.yml --yaml (90ms)
+```
+
+**Summary:** 5/5 tests passed
+
+See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
+
+**Last Run:** 2025-10-16T20:03:05.084Z
+
+```
+✓ mk init test-project (1ms)
+✓ mk run topology.yml --dry-run (91ms)
+✓ mk doctor (2782ms)
+✓ mk format topology.yml --to json (92ms)
+✓ mk run topology.yml --yaml (90ms)
+```
+
+**Summary:** 5/5 tests passed
+
+See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
+
+**Last Run:** 2025-10-16T20:02:40.326Z
+
+```
+✓ mk init test-project (0ms)
+✓ mk run topology.yml --dry-run (90ms)
+✓ mk doctor (2751ms)
+✓ mk format topology.yml --to json (86ms)
+✓ mk run topology.yml --yaml (93ms)
+```
+
+**Summary:** 5/5 tests passed
+
+See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
+

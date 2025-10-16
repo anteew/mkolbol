@@ -1,0 +1,35 @@
+# VEGA Diary — RC Sweep Prep (2025-10-16 18:05Z)
+
+Status
+- MK Dev Orchestrator core is implemented and passing locally: run, graph, doctor, format, prompt, fetch, dev, logs, trace, recipes.
+- Phase D landed (init/build/package/ci plan + did-you-mean). Docs and tests updated.
+- Distribution path is tarball/git-tag only; all docs reference mkolbol (no npm).
+
+Recent PRs
+- #76 DevEx docs corrections (no-registry, repo refs) — merged
+- #77 Phase C (dev/logs/trace/recipes) mailboxes — merged
+- #78 Phase D (init/build/package/ci-plan) mailboxes — merged
+
+Active Branch
+- mkolbol-devex-p13 — RC sweep staging (acceptance script + CI smoke + polish + RC docs)
+
+Next Actions (p13)
+- Acceptance one-shot: mk init → run → doctor → format → run --yaml
+- CI (best-effort): mk init/build/package smoke
+- Build/Package polish: provenance path line; friendly summary
+- ci plan: add --env output
+- Help snapshots + did-you-mean finalization
+- RC docs: “Hello in 10 Minutes”, Release Notes (features, install paths, limitations)
+
+Sanity Commands
+- export MK_LOCAL_NODE=1
+- npm run build && npm run test:ci
+- node dist/scripts/mk.js --help
+- node dist/scripts/mk.js init demo-app --force && cd demo-app
+- node ../dist/scripts/mk.js build && node ../dist/scripts/mk.js package && node ../dist/scripts/mk.js ci plan --format json
+
+Rehydrate Pointers
+- ampcode.md:1 (Susan), devex.md:1 (Vex)
+- scripts/mk.ts:1 (CLI), src/mk/*.ts (impl)
+- docs/devex/* (First-Five-Minutes, Packaging, Releases, CI plan)
+

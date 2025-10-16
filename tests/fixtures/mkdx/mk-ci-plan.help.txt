@@ -1,0 +1,46 @@
+mk ci plan — Generate CI matrix and cache keys for GitHub Actions
+
+USAGE
+  mk ci plan [--env | --json]
+
+DESCRIPTION
+  Outputs CI configuration for GitHub Actions workflows. Generates:
+  - Node.js version matrix (e.g., 20, 24)
+  - Test lane matrix (e.g., threads, forks)
+  - Cache keys for node_modules
+
+OPTIONS
+  --env                  Output as shell export statements for sourcing
+  --json                 Output as JSON (default)
+  --help                 Show this message
+
+EXAMPLES
+  # JSON output (default)
+  mk ci plan
+
+  # Shell export format
+  mk ci plan --env
+
+  # Source into shell
+  eval "$(mk ci plan --env)"
+
+OUTPUT FORMATS
+  JSON:
+    {
+      "matrix": {
+        "node": ["20", "24"],
+        "lane": ["threads", "forks"]
+      },
+      "cacheKeys": {
+        "node-modules-20": "node-modules-20-abc123"
+      }
+    }
+
+  ENV:
+    export MATRIX_NODE='["20","24"]'
+    export MATRIX_LANE='["threads","forks"]'
+    export CACHE_KEY_NODE_MODULES_20=node-modules-20-abc123
+    export CACHE_KEY_NODE_MODULES_24=node-modules-24-def456
+
+LEARN MORE
+  Full guide: https://mkolbol.dev/docs/devex/ci-acceptance-smoke

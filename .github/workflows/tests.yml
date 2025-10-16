@@ -228,3 +228,98 @@ jobs:
             /tmp/smoke-test.log
             logs/
           if-no-files-found: warn
+
+  # RC smoke test: validate mk init/build/package commands (best-effort)
+  mk-rc-smoke:
+    name: MK RC Smoke Test (init/build/package)
+    runs-on: ubuntu-latest
+    needs: test
+    if: ${{ always() }}
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run mk RC smoke test
+        run: |
+          mkdir -p reports
+          TEST_RESULT_FILE="reports/mk-rc-smoke.jsonl"
+
+          # Test 1: mk init test-project
+          echo "▶ Testing: mk init test-project"
+          if node dist/scripts/mk.js init test-project > /tmp/mk-init.log 2>&1; then
+            INIT_PASS="true"
+            echo "✅ mk init PASSED"
+          else
+            INIT_PASS="false"
+            echo "⚠️  mk init FAILED"
+            cat /tmp/mk-init.log
+          fi
+
+          # Test 2: mk build
+          echo "▶ Testing: mk build"
+          if [ "$INIT_PASS" = "true" ] && [ -d test-project ]; then
+            cd test-project
+            if node ../dist/scripts/mk.js build > /tmp/mk-build.log 2>&1; then
+              BUILD_PASS="true"
+              echo "✅ mk build PASSED"
+            else
+              BUILD_PASS="false"
+              echo "⚠️  mk build FAILED"
+              cat /tmp/mk-build.log
+            fi
+
+            # Test 3: mk package
+            echo "▶ Testing: mk package"
+            if [ "$BUILD_PASS" = "true" ]; then
+              if node ../dist/scripts/mk.js package > /tmp/mk-package.log 2>&1; then
+                PACKAGE_PASS="true"
+                echo "✅ mk package PASSED"
+                
+                # Verify outputs
+                if [ -f *.tgz ]; then
+                  echo "✅ Package tarball created: $(ls *.tgz)"
+                else
+                  echo "⚠️  No .tgz file found"
+                fi
+              else
+                PACKAGE_PASS="false"
+                echo "⚠️  mk package FAILED"
+                cat /tmp/mk-package.log
+              fi
+            else
+              PACKAGE_PASS="false"
+              echo "⚠️  mk package skipped (build failed)"
+            fi
+
+            cd ..
+          else
+            BUILD_PASS="false"
+            PACKAGE_PASS="false"
+            echo "⚠️  mk build/package skipped (init failed)"
+          fi
+
+          # Record results
+          echo "{\"type\":\"mk-rc-smoke\",\"init\":$INIT_PASS,\"build\":$BUILD_PASS,\"package\":$PACKAGE_PASS,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$TEST_RESULT_FILE"
+
+      - name: Upload mk smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mk-rc-smoke-logs
+          path: |
+            /tmp/mk-*.log
+            test-project/
+          if-no-files-found: warn

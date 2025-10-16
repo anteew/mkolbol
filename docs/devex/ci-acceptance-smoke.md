@@ -483,6 +483,173 @@ acceptance-smoke:
 
 ---
 
+---
+
+## MK RC Smoke Test Job
+
+### Overview
+
+The `mk-rc-smoke` job validates the **mk CLI release candidate** workflow: `mk init`, `mk build`, and `mk package`. This is a **non-gating, best-effort** CI job that runs in parallel with the acceptance smoke test.
+
+### Job Configuration
+
+```yaml
+mk-rc-smoke:
+  name: MK RC Smoke Test (init/build/package)
+  runs-on: ubuntu-latest
+  needs: test
+  if: ${{ always() }}           # Run even if test job fails
+  continue-on-error: true       # Don't block PR on smoke test failure
+```
+
+### Test Sequence
+
+The job performs three sequential tests:
+
+1. **mk init test-project** — Initialize a new mkolbol project
+2. **mk build** — Build the initialized project
+3. **mk package** — Create a distributable tarball
+
+Each test is conditional on the previous step passing.
+
+### Validation Checks
+
+**Check 1: mk init**
+```bash
+node dist/scripts/mk.js init test-project > /tmp/mk-init.log 2>&1
+# Validates: Project scaffolding, package.json creation, default config generation
+```
+
+**Check 2: mk build**
+```bash
+cd test-project
+node ../dist/scripts/mk.js build > /tmp/mk-build.log 2>&1
+# Validates: TypeScript compilation, module bundling, dist/ output
+```
+
+**Check 3: mk package**
+```bash
+node ../dist/scripts/mk.js package > /tmp/mk-package.log 2>&1
+# Validates: Tarball creation, dependency bundling, package metadata
+```
+
+### Results Format
+
+Results are recorded to `reports/mk-rc-smoke.jsonl`:
+
+```json
+{
+  "type": "mk-rc-smoke",
+  "init": true,
+  "build": true,
+  "package": true,
+  "timestamp": "2025-10-16T04:15:23Z"
+}
+```
+
+### Artifacts
+
+CI artifacts include:
+- `/tmp/mk-init.log` — mk init command output
+- `/tmp/mk-build.log` — mk build command output
+- `/tmp/mk-package.log` — mk package command output
+- `test-project/` — Generated project directory
+
+### Local Reproduction
+
+```bash
+npm run build
+node dist/scripts/mk.js init test-project
+cd test-project && node ../dist/scripts/mk.js build
+node ../dist/scripts/mk.js package
+ls -la *.tgz
+```
+
+---
+
+## MK CI Plan Command
+
+### Overview
+
+The `mk ci plan` command generates CI configuration for GitHub Actions workflows. It outputs test matrices and cache keys in JSON or shell-sourceable format.
+
+### Usage
+
+```bash
+# JSON output (default)
+mk ci plan
+
+# Shell export format for CI
+mk ci plan --env
+```
+
+### Output Formats
+
+**JSON (default):**
+```json
+{
+  "matrix": {
+    "node": ["20", "24"],
+    "lane": ["threads", "forks"]
+  },
+  "cacheKeys": {
+    "node-modules-20": "node-modules-20-abc123",
+    "node-modules-24": "node-modules-24-def456"
+  }
+}
+```
+
+**ENV format (--env):**
+```bash
+export MATRIX_NODE='["20","24"]'
+export MATRIX_LANE='["threads","forks"]'
+export CACHE_KEY_NODE_MODULES_20=node-modules-20-abc123
+export CACHE_KEY_NODE_MODULES_24=node-modules-24-def456
+```
+
+### GitHub Actions Integration
+
+```yaml
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix-node: ${{ steps.plan.outputs.matrix-node }}
+      matrix-lane: ${{ steps.plan.outputs.matrix-lane }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate CI plan
+        id: plan
+        run: |
+          eval "$(node dist/scripts/mk.js ci plan --env)"
+          echo "matrix-node=$MATRIX_NODE" >> $GITHUB_OUTPUT
+          echo "matrix-lane=$MATRIX_LANE" >> $GITHUB_OUTPUT
+
+  test:
+    needs: plan
+    strategy:
+      matrix:
+        node: ${{ fromJson(needs.plan.outputs.matrix-node) }}
+        lane: ${{ fromJson(needs.plan.outputs.matrix-lane) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run tests
+        run: npm run test:${{ matrix.lane }}
+```
+
+### Local Usage
+
+```bash
+# Generate and source environment variables
+eval "$(mk ci plan --env)"
+
+# Use in scripts
+echo "Node versions: $MATRIX_NODE"
+echo "Cache key: $CACHE_KEY_NODE_MODULES_20"
+```
+
+---
+
 ## Related Documentation
 
 - **[Doctor Guide](./doctor.md)** — Troubleshooting mkctl errors and health checks
