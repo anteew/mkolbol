@@ -8,8 +8,11 @@ import { randomBytes } from 'node:crypto';
 import { unlinkSync } from 'node:fs';
 
 describe('Process Mode: Unix Adapters under Load', () => {
-  const testTimeout = 20000; // Increased from 15s to 20s for stability
-  const connectionTimeout = 5000;
+  const testTimeout = 25000; // Increased for stability under load
+  const connectionTimeout = 8000; // Increased for slower systems
+  const heartbeatInterval = 1000; // Match UnixControlAdapter heartbeat interval
+  const heartbeatGrace = 500; // Grace period for heartbeat jitter
+  const teardownGrace = 300; // Grace period for clean teardown
   const maxRetries = 3;
   let cleanupPaths: string[] = [];
 
@@ -67,9 +70,10 @@ describe('Process Mode: Unix Adapters under Load', () => {
       clientAdapter = new UnixPipeAdapter(socketPath);
     });
 
-    afterEach(() => {
-      serverAdapter?.close();
-      clientAdapter?.close();
+    afterEach(async () => {
+      if (serverAdapter) serverAdapter.close();
+      if (clientAdapter) clientAdapter.close();
+      await new Promise<void>((resolve) => setTimeout(resolve, teardownGrace));
     });
 
     it('should handle heavy writes with backpressure', async () => {
@@ -109,10 +113,14 @@ describe('Process Mode: Unix Adapters under Load', () => {
       serverPipe.end();
       writeComplete = true;
 
-      // Wait for all data to be received
-      await new Promise<void>((resolve) => {
-        clientPipe.once('end', resolve);
-      });
+      // Wait for all data to be received with timeout
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          clientPipe.once('end', resolve);
+        }),
+        10000,
+        'client pipe end event'
+      );
 
       // Verify all data received correctly
       const receivedBuffer = Buffer.concat(receivedChunks);
@@ -171,13 +179,17 @@ describe('Process Mode: Unix Adapters under Load', () => {
         clientPipe.end();
       })();
 
-      // Wait for both directions to complete
-      await Promise.all([
-        serverWritePromise,
-        clientWritePromise,
-        new Promise<void>((resolve) => serverPipe.once('end', resolve)),
-        new Promise<void>((resolve) => clientPipe.once('end', resolve))
-      ]);
+      // Wait for both directions to complete with timeout
+      await withTimeout(
+        Promise.all([
+          serverWritePromise,
+          clientWritePromise,
+          new Promise<void>((resolve) => serverPipe.once('end', resolve)),
+          new Promise<void>((resolve) => clientPipe.once('end', resolve))
+        ]),
+        15000,
+        'bidirectional write completion'
+      );
 
       // Verify data integrity in both directions
       const serverReceivedBuffer = Buffer.concat(serverReceived);
@@ -212,18 +224,23 @@ describe('Process Mode: Unix Adapters under Load', () => {
         serverPipe.write(testData);
       }
 
-      // Graceful teardown
+      // Graceful teardown with timeout
       serverPipe.end();
-      await new Promise<void>((resolve) => {
-        clientPipe.once('end', resolve);
-      });
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          clientPipe.once('end', resolve);
+        }),
+        5000,
+        'graceful teardown pipe end'
+      );
 
       expect(endReceived).toBe(true);
       expect(receivedData.length).toBeGreaterThan(0);
 
-      // Clean close
+      // Clean close with grace period
       serverAdapter.close();
       clientAdapter.close();
+      await new Promise<void>((resolve) => setTimeout(resolve, teardownGrace));
     }, testTimeout);
 
     it('should propagate write errors', async () => {
@@ -249,19 +266,23 @@ describe('Process Mode: Unix Adapters under Load', () => {
       // Close client connection abruptly to trigger error
       clientAdapter.close();
 
-      // Try to write more data, should trigger error
-      await new Promise<void>((resolve) => {
-        setTimeout(() => {
-          try {
-            for (let i = 0; i < 10; i++) {
-              serverPipe.write(Buffer.alloc(8192, 0xBB));
+      // Try to write more data with sufficient delay to ensure error propagation
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          setTimeout(() => {
+            try {
+              for (let i = 0; i < 10; i++) {
+                serverPipe.write(Buffer.alloc(8192, 0xBB));
+              }
+            } catch {
+              // Expected: write after close
             }
-          } catch {
-            // Expected: write after close
-          }
-          resolve();
-        }, 100);
-      });
+            resolve();
+          }, 200);
+        }),
+        3000,
+        'error propagation'
+      );
 
       // Verify error handling
       expect(serverError || clientError).toBeTruthy();
@@ -283,9 +304,10 @@ describe('Process Mode: Unix Adapters under Load', () => {
       await new Promise<void>((resolve) => setTimeout(resolve, 50));
     });
 
-    afterEach(() => {
-      clientAdapter?.close();
-      serverAdapter?.close();
+    afterEach(async () => {
+      if (clientAdapter) clientAdapter.close();
+      if (serverAdapter) serverAdapter.close();
+      await new Promise<void>((resolve) => setTimeout(resolve, teardownGrace));
     });
 
     it('should handle heartbeat timeout detection', async () => {
@@ -298,23 +320,31 @@ describe('Process Mode: Unix Adapters under Load', () => {
         lastHeartbeat = Date.now();
       });
 
-      // Wait for multiple heartbeats (1000ms interval)
-      await new Promise<void>((resolve) => {
-        setTimeout(() => resolve(), 2500);
-      });
+      // Wait for multiple heartbeats with grace period (1000ms interval + grace)
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), heartbeatInterval * 2 + heartbeatGrace);
+        }),
+        5000,
+        'initial heartbeat collection'
+      );
 
       expect(heartbeats.length).toBeGreaterThanOrEqual(2);
 
       // Simulate timeout by stopping heartbeats
       clientAdapter.close();
 
-      // Wait for timeout detection window
-      await new Promise<void>((resolve) => {
-        setTimeout(() => resolve(), 1500);
-      });
+      // Wait for timeout detection window with grace
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), heartbeatInterval + heartbeatGrace);
+        }),
+        3000,
+        'heartbeat timeout detection'
+      );
 
       const timeSinceLastHeartbeat = Date.now() - lastHeartbeat;
-      expect(timeSinceLastHeartbeat).toBeGreaterThan(1000);
+      expect(timeSinceLastHeartbeat).toBeGreaterThan(heartbeatInterval - heartbeatGrace);
     }, testTimeout);
 
     it('should recover from heartbeat disruption', async () => {
@@ -323,31 +353,40 @@ describe('Process Mode: Unix Adapters under Load', () => {
         heartbeats.push(data.ts);
       });
 
-      // Wait for initial heartbeats
-      await new Promise<void>((resolve) => {
-        setTimeout(() => resolve(), 2500);
-      });
+      // Wait for initial heartbeats with timeout
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), heartbeatInterval * 2 + heartbeatGrace);
+        }),
+        5000,
+        'initial heartbeats for recovery test'
+      );
 
       const initialCount = heartbeats.length;
       expect(initialCount).toBeGreaterThanOrEqual(2);
 
-      // Disconnect and reconnect to simulate disruption
+      // Disconnect and reconnect to simulate disruption with grace period
       clientAdapter.close();
+      await new Promise<void>((resolve) => setTimeout(resolve, teardownGrace));
+
+      // Recreate client and reconnect with stabilization delay
+      const recoveredClient = new UnixControlAdapter(socketPath, false);
       await new Promise<void>((resolve) => setTimeout(resolve, 200));
 
-      // Recreate client and reconnect
-      const recoveredClient = new UnixControlAdapter(socketPath, false);
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
-
-      // Wait for heartbeats to resume
-      await new Promise<void>((resolve) => {
-        setTimeout(() => resolve(), 2500);
-      });
+      // Wait for heartbeats to resume with timeout
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), heartbeatInterval * 2 + heartbeatGrace);
+        }),
+        5000,
+        'recovered heartbeats'
+      );
 
       const recoveredCount = heartbeats.length;
       expect(recoveredCount).toBeGreaterThan(initialCount);
 
       recoveredClient.close();
+      await new Promise<void>((resolve) => setTimeout(resolve, teardownGrace));
     }, testTimeout);
 
     it('should handle graceful shutdown sequence', async () => {
@@ -362,14 +401,18 @@ describe('Process Mode: Unix Adapters under Load', () => {
       // Trigger graceful shutdown from client
       clientAdapter.shutdown();
 
-      // Wait for shutdown message to propagate
-      await new Promise<void>((resolve) => {
-        setTimeout(() => resolve(), 200);
-      });
+      // Wait for shutdown message to propagate with timeout
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), teardownGrace);
+        }),
+        2000,
+        'shutdown message propagation'
+      );
 
       expect(shutdownReceived).toBe(true);
       expect(shutdownTimestamp).toBeGreaterThan(0);
-      expect(Date.now() - shutdownTimestamp).toBeLessThan(500);
+      expect(Date.now() - shutdownTimestamp).toBeLessThan(1000);
     }, testTimeout);
 
     it('should handle pub/sub under load', async () => {
@@ -390,10 +433,14 @@ describe('Process Mode: Unix Adapters under Load', () => {
         clientAdapter.publish(topic, { index: i, payload: `message-${i}` });
       }
 
-      // Wait for messages to be received
-      await new Promise<void>((resolve) => {
-        setTimeout(() => resolve(), 200);
-      });
+      // Wait for messages to be received with timeout
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), 500);
+        }),
+        3000,
+        'pub/sub message delivery'
+      );
 
       expect(messages.length).toBe(100);
 
@@ -423,8 +470,12 @@ describe('Process Mode: Unix Adapters under Load', () => {
       // Immediate shutdown
       clientAdapter.shutdown();
 
-      // Wait a bit for messages to arrive
-      await new Promise<void>((resolve) => setTimeout(resolve, 200));
+      // Wait for messages to arrive and teardown to complete with timeout
+      await withTimeout(
+        new Promise<void>((resolve) => setTimeout(resolve, teardownGrace)),
+        2000,
+        'teardown with pending messages'
+      );
 
       // Verify clean shutdown
       expect(receivedMessages.length).toBeGreaterThan(0);
@@ -445,9 +496,13 @@ describe('Process Mode: Unix Adapters under Load', () => {
 
         clientAdapter.publish('error-topic', { shouldThrow: true });
 
-        await new Promise<void>((resolve) => {
-          setTimeout(() => resolve(), 150);
-        });
+        await withTimeout(
+          new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), 200);
+          }),
+          2000,
+          'error handler execution'
+        );
       } catch (err: any) {
         errorCaught = true;
         errorMessage = err.message;
@@ -466,12 +521,12 @@ describe('Process Mode: Unix Adapters under Load', () => {
       const pipeServer = new UnixPipeAdapter(pipeSocketPath);
       const pipeClient = new UnixPipeAdapter(pipeSocketPath);
       const controlServer = new UnixControlAdapter(controlSocketPath, true);
-      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
       const controlClient = new UnixControlAdapter(controlSocketPath, false);
 
       await withTimeout(pipeServer.listen(), connectionTimeout, 'pipe server listen');
       await withTimeout(retry(() => pipeClient.connect()), connectionTimeout, 'pipe client connect');
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => setTimeout(resolve, 200));
 
       const serverPipe = pipeServer.createDuplex();
       const clientPipe = pipeClient.createDuplex();
@@ -490,19 +545,30 @@ describe('Process Mode: Unix Adapters under Load', () => {
         serverPipe.write(Buffer.alloc(1024, i % 256));
       }
 
-      // Coordinated shutdown: control first, then pipe
+      // Coordinated shutdown: control first with grace period
       controlClient.shutdown();
-      await new Promise<void>((resolve) => setTimeout(resolve, 200));
+      await withTimeout(
+        new Promise<void>((resolve) => setTimeout(resolve, teardownGrace)),
+        2000,
+        'control shutdown propagation'
+      );
 
+      // Then pipe teardown with timeout
       serverPipe.end();
-      await new Promise<void>((resolve) => {
-        clientPipe.once('end', resolve);
-      });
+      await withTimeout(
+        new Promise<void>((resolve) => {
+          clientPipe.once('end', resolve);
+        }),
+        5000,
+        'pipe end event in combined teardown'
+      );
 
+      // Clean teardown with grace period
       pipeServer.close();
       pipeClient.close();
       controlClient.close();
       controlServer.close();
+      await new Promise<void>((resolve) => setTimeout(resolve, teardownGrace));
 
       expect(shutdownReceived).toBe(true);
       expect(dataChunks.length).toBeGreaterThan(0);

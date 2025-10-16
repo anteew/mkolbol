@@ -73,8 +73,16 @@ export class UnixControlAdapter implements ProcessControlAdapter {
       }
     });
 
-    socket.on('error', () => {
-      // Suppress errors during shutdown
+    socket.on('error', (err) => {
+      if (!this.closed) {
+        this.handleIncoming('control.error', { error: err.message });
+      }
+    });
+
+    socket.on('close', () => {
+      if (!this.closed) {
+        this.handleIncoming('control.close', {});
+      }
     });
   }
 
@@ -95,7 +103,10 @@ export class UnixControlAdapter implements ProcessControlAdapter {
     const payload = JSON.stringify(msg) + '\n';
 
     try {
-      this.socket.write(payload);
+      const canContinue = this.socket.write(payload);
+      if (!canContinue) {
+        this.socket.once('drain', () => {});
+      }
     } catch {
       // Ignore write errors
     }

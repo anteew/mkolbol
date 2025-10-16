@@ -1,0 +1,388 @@
+diff --git a/package.json b/package.json
+index e3a7fb8..710989e 100644
+--- a/package.json
++++ b/package.json
+@@ -43,7 +43,7 @@
+     "build": "tsc -p tsconfig.json",
+     "test": "vitest run",
+     "test:ci": "vitest run --pool=threads --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts' --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
+-    "test:pty": "vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts tests/integration/endpointsList.spec.ts tests/integration/processMode.spec.ts tests/integration/processUnix.spec.ts tests/integration/workerMode.spec.ts --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
++    "test:pty": "vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts tests/integration/endpointsList.spec.ts tests/integration/processMode.spec.ts tests/integration/processUnix.spec.ts tests/integration/workerMode.spec.ts tests/integration/stdioPath.spec.ts tests/integration/externalFromConfig.spec.ts --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
+     "test:ci:lam": "npm run test:ci && mkdir -p reports && npm run lam -- summary > reports/LAMINAR_SUMMARY.txt && npm run lam -- trends --top 10 > reports/LAMINAR_TRENDS.txt",
+     "test:pty:lam": "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty && mkdir -p reports && npm run lam -- summary >> reports/LAMINAR_SUMMARY.txt && npm run lam -- trends --top 10 >> reports/LAMINAR_TRENDS.txt",
+     "lam:dogfood:ci": "tsx scripts/dogfood-ci.ts",
+diff --git a/src/executor/Executor.ts b/src/executor/Executor.ts
+index 16868a3..a3f5a7c 100644
+--- a/src/executor/Executor.ts
++++ b/src/executor/Executor.ts
+@@ -4,7 +4,7 @@ import { StateManager } from '../state/StateManager.js';
+ import { ModuleRegistry } from './moduleRegistry.js';
+ import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
+ import type { TopologyConfig, NodeConfig } from '../config/schema.js';
+-import type { ServerManifest, ExternalServerManifest } from '../types.js';
++import type { ServerManifest, ExternalServerManifest, IOMode } from '../types.js';
+ import { Worker, MessageChannel } from 'node:worker_threads';
+ import type { ChildProcess } from 'node:child_process';
+ import { fileURLToPath } from 'node:url';
+@@ -254,6 +254,11 @@ export class Executor {
+   }
+ 
+   private async instantiateNode(nodeConfig: NodeConfig): Promise<void> {
++    if (nodeConfig.module === 'ExternalProcess') {
++      await this.instantiateExternalProcessNode(nodeConfig);
++      return;
++    }
++
+     const runMode = (nodeConfig.runMode ?? 'inproc') as string;
+ 
+     if (runMode === 'worker') {
+@@ -265,6 +270,78 @@ export class Executor {
+     }
+   }
+ 
++  private async instantiateExternalProcessNode(nodeConfig: NodeConfig): Promise<void> {
++    const params = nodeConfig.params || {};
++    const command = params.command || 'cat';
++    const args = params.args || [];
++    const ioMode = params.ioMode || 'stdio';
++
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: nodeConfig.id,
++      classHex: '0x0000',
++      owner: 'system',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' },
++        { name: 'error', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform',
++        accepts: [],
++        produces: []
++      },
++      command,
++      args,
++      env: params.env || {},
++      cwd: params.cwd || process.cwd(),
++      ioMode: ioMode as IOMode
++    };
++
++    const wrapper = new ExternalServerWrapper(this.kernel, this.hostess, manifest);
++    await wrapper.spawn();
++
++    this.modules.set(nodeConfig.id, {
++      id: nodeConfig.id,
++      module: wrapper,
++      config: nodeConfig
++    });
++
++    // Store wrapper reference for test access
++    if (!(this as any).wrappers) {
++      (this as any).wrappers = new Map();
++    }
++    (this as any).wrappers.set(nodeConfig.id, wrapper);
++
++    // Register with Hostess properly
++    const identity = this.hostess.register(manifest);
++    this.hostess.registerEndpoint(identity, {
++      type: 'process',
++      coordinates: `node:${nodeConfig.id}`,
++      metadata: {
++        module: nodeConfig.module,
++        runMode: 'process',
++        command,
++        args,
++        ioMode
++      }
++    });
++
++    this.stateManager.addNode({
++      id: nodeConfig.id,
++      name: nodeConfig.module,
++      terminals: [
++        { name: 'input', direction: 'input' as const },
++        { name: 'output', direction: 'output' as const },
++        { name: 'error', direction: 'output' as const }
++      ],
++      capabilities: [],
++      location: 'process'
++    });
++  }
++
+   private async instantiateProcessNode(nodeConfig: NodeConfig): Promise<void> {
+     const { spawn } = await import('node:child_process');
+ 
+diff --git a/src/wrappers/ExternalServerWrapper.ts b/src/wrappers/ExternalServerWrapper.ts
+index 2c6a869..f9d6014 100644
+--- a/src/wrappers/ExternalServerWrapper.ts
++++ b/src/wrappers/ExternalServerWrapper.ts
+@@ -108,6 +108,8 @@ export class ExternalServerWrapper {
+       console.error(`Process error for ${this.manifest.servername}:`, err);
+     });
+ 
++    // Note: registerWithHostess() is called by ExternalServerWrapper.spawn()
++    // but the Executor now handles proper endpoint registration for ExternalProcess nodes
+     await this.registerWithHostess();
+   }
+ 
+diff --git a/examples/configs/external-pty.yaml b/examples/configs/external-pty.yaml
+new file mode 100644
+index 0000000..58a3f62
+--- /dev/null
++++ b/examples/configs/external-pty.yaml
+@@ -0,0 +1,10 @@
++nodes:
++  - id: echo-pty
++    module: ExternalProcess
++    params:
++      command: cat
++      args: []
++      ioMode: pty
++    runMode: process
++
++connections: []
+diff --git a/examples/configs/external-stdio.yaml b/examples/configs/external-stdio.yaml
+new file mode 100644
+index 0000000..c62ec55
+--- /dev/null
++++ b/examples/configs/external-stdio.yaml
+@@ -0,0 +1,10 @@
++nodes:
++  - id: echo-stdio
++    module: ExternalProcess
++    params:
++      command: cat
++      args: []
++      ioMode: stdio
++    runMode: process
++
++connections: []
+diff --git a/tests/integration/externalFromConfig.spec.ts b/tests/integration/externalFromConfig.spec.ts
+new file mode 100644
+index 0000000..877cfd7
+--- /dev/null
++++ b/tests/integration/externalFromConfig.spec.ts
+@@ -0,0 +1,220 @@
++import { describe, it, expect, beforeEach, afterEach } from 'vitest';
++import { Kernel } from '../../src/kernel/Kernel.js';
++import { Hostess } from '../../src/hostess/Hostess.js';
++import { StateManager } from '../../src/state/StateManager.js';
++import { Executor } from '../../src/executor/Executor.js';
++import type { TopologyConfig } from '../../src/config/schema.js';
++
++describe('External From Config Integration', () => {
++  let kernel: Kernel;
++  let hostess: Hostess;
++  let stateManager: StateManager;
++  let executor: Executor;
++
++  const testTimeout = 10000;
++
++  beforeEach(() => {
++    kernel = new Kernel();
++    hostess = new Hostess();
++    stateManager = new StateManager(kernel);
++    executor = new Executor(kernel, hostess, stateManager);
++  });
++
++  afterEach(async () => {
++    if (executor) {
++      await executor.down();
++    }
++  });
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should spawn external process with stdio mode from config',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'echo-stdio',
++            module: 'ExternalProcess',
++            params: {
++              command: 'cat',
++              args: [],
++              ioMode: 'stdio'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      // Verify endpoint registration
++      const endpoints = hostess.listEndpoints();
++      const stdioEndpoint = Array.from(endpoints.entries()).find(
++        ([_, ep]) => ep.coordinates === 'node:echo-stdio'
++      );
++
++      expect(stdioEndpoint).toBeDefined();
++      expect(stdioEndpoint![1].type).toBe('process');
++      expect(stdioEndpoint![1].metadata?.runMode).toBe('process');
++      expect(stdioEndpoint![1].metadata?.command).toBe('cat');
++
++      // Verify state manager registered the node
++      const state = stateManager.getState();
++      const stdioNode = state.nodes.find((n: any) => n.id === 'echo-stdio');
++      expect(stdioNode).toBeDefined();
++      expect(stdioNode.location).toBe('process');
++
++      // Test roundtrip: write data and read it back
++      const wrapper = (executor as any).wrappers.get('echo-stdio');
++      expect(wrapper).toBeDefined();
++
++      const testData = Buffer.from('stdio-test\n');
++      const outputChunks: Buffer[] = [];
++
++      wrapper.outputPipe.on('data', (chunk: Buffer) => {
++        outputChunks.push(chunk);
++      });
++
++      wrapper.inputPipe.write(testData);
++      wrapper.inputPipe.end();
++
++      // Wait for data to process
++      await new Promise((resolve) => setTimeout(resolve, 500));
++
++      const output = Buffer.concat(outputChunks).toString();
++      expect(output).toBe('stdio-test\n');
++
++      await executor.down();
++    },
++    testTimeout
++  );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should spawn external process with pty mode from config',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'echo-pty',
++            module: 'ExternalProcess',
++            params: {
++              command: 'cat',
++              args: [],
++              ioMode: 'pty'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      // Verify endpoint registration
++      const endpoints = hostess.listEndpoints();
++      const ptyEndpoint = Array.from(endpoints.entries()).find(
++        ([_, ep]) => ep.coordinates === 'node:echo-pty'
++      );
++
++      expect(ptyEndpoint).toBeDefined();
++      expect(ptyEndpoint![1].type).toBe('process');
++      expect(ptyEndpoint![1].metadata?.runMode).toBe('process');
++      expect(ptyEndpoint![1].metadata?.command).toBe('cat');
++
++      // Verify state manager registered the node
++      const state = stateManager.getState();
++      const ptyNode = state.nodes.find((n: any) => n.id === 'echo-pty');
++      expect(ptyNode).toBeDefined();
++      expect(ptyNode.location).toBe('process');
++
++      // Test roundtrip: write data and read it back
++      const wrapper = (executor as any).wrappers.get('echo-pty');
++      expect(wrapper).toBeDefined();
++
++      const testData = Buffer.from('pty-test\n');
++      const outputChunks: Buffer[] = [];
++
++      wrapper.outputPipe.on('data', (chunk: Buffer) => {
++        outputChunks.push(chunk);
++      });
++
++      wrapper.inputPipe.write(testData);
++      wrapper.inputPipe.end();
++
++      // Wait for data to process
++      await new Promise((resolve) => setTimeout(resolve, 500));
++
++      const output = Buffer.concat(outputChunks).toString();
++      expect(output).toBe('pty-test\n');
++
++      await executor.down();
++    },
++    testTimeout
++  );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should handle both stdio and pty modes concurrently',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'echo-stdio',
++            module: 'ExternalProcess',
++            params: {
++              command: 'cat',
++              args: [],
++              ioMode: 'stdio'
++            },
++            runMode: 'process'
++          },
++          {
++            id: 'echo-pty',
++            module: 'ExternalProcess',
++            params: {
++              command: 'cat',
++              args: [],
++              ioMode: 'pty'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      // Verify both endpoints are registered
++      const endpoints = hostess.listEndpoints();
++      const endpointsArray = Array.from(endpoints.entries());
++
++      const stdioEndpoint = endpointsArray.find(
++        ([_, ep]) => ep.coordinates === 'node:echo-stdio'
++      );
++      const ptyEndpoint = endpointsArray.find(
++        ([_, ep]) => ep.coordinates === 'node:echo-pty'
++      );
++
++      expect(stdioEndpoint).toBeDefined();
++      expect(ptyEndpoint).toBeDefined();
++
++      // Verify both nodes in state manager
++      const state = stateManager.getState();
++      const stdioNode = state.nodes.find((n: any) => n.id === 'echo-stdio');
++      const ptyNode = state.nodes.find((n: any) => n.id === 'echo-pty');
++
++      expect(stdioNode).toBeDefined();
++      expect(ptyNode).toBeDefined();
++      expect(stdioNode.location).toBe('process');
++      expect(ptyNode.location).toBe('process');
++
++      await executor.down();
++    },
++    testTimeout
++  );
++});

@@ -1,63 +1,31 @@
 {
-  "state": {
-    "summary": "Config Loader sprint merged (PR #49). Worker Pipe sprint open (PR #50) adds WorkerPipeAdapter + Executor wiring and restores minimal process-mode; tests/docs updated.",
-    "kernel": "unchanged (pure plumbing)",
-    "recent_prs": ["#49 config-loader merged", "#50 worker-pipe open"]
-  },
-  "branches": {
-    "main": "7b03f73",
-    "active_sprint_branch": "mkolbol-worker-pipe-p1",
-    "active_head": "590b524",
-    "preserved": ["laminar-integrations", "workspace-vanilla-eval"]
-  },
-  "sprints": {
-    "last": [
-      "SB-MK-CONFIG-LOADER-P1"
-    ],
-    "next": "SB-MK-WORKER-PIPE-P1",
-    "ampcode_file": "ampcode.md"
-  },
-  "rehydration": {
-    "read_files": [
-      "VEGA/my-state-of-mind-today.txt",
-      "VEGA/near-term-and-future-plan.md",
-      "VEGA/diary-2025-10-15T1648Z.txt",
-      "VEGA/whats-next-after-context-compaction.txt"
-    ],
-    "commands": [
-      "npm ci && npm run build && npm run test:ci && MK_PROCESS_EXPERIMENTAL=1 npm run test:pty",
-      "node dist/examples/hostess-demo.js &",
-      "node dist/scripts/mkctl.js endpoints"
-    ],
-    "env_flags": ["MK_PROCESS_EXPERIMENTAL"],
-    "lanes": {
-      "threads": "test:ci excludes PTY/process",
-      "forks": "test:pty runs PTY/process"
-    }
-  },
-  "artifacts": {
-    "endpoints_snapshot": "reports/endpoints.json",
-    "logs": "reports/*.jsonl",
-    "index": "reports/index.json"
-  },
-  "links": {
-    "status_doc": "docs/rfcs/stream-kernel/status.md",
-    "open_pr_url": "https://github.com/anteew/mkolbol/pull/50",
-    "open_pr_checks": [
-      "Smoke Test (Node 20): <pending>",
-      "Smoke Test (Node 24): <pending>"
-    ],
-    "ampcode_sprint_id": "SB-MK-WORKER-PIPE-P1",
-    "ampcode_file": "ampcode.md"
-  },
-  "risks": [
-    "Worker adapter edge-cases under heavy load (ensure backpressure parity)",
-    "Process-mode I/O path not unified with UnixPipeAdapter yet"
+  "timestamp": "$(cat /tmp/utcts)",
+  "repo": "mkolbol",
+  "head": "$(cat /tmp/headsha)",
+  "recent_prs": [
+    { "number": 55, "title": "ANSI Parser P1", "state": "merged" },
+    { "number": 56, "title": "ANSI Parser P2", "state": "merged" },
+    { "number": 57, "title": "CI Stabilize P1", "state": "merged" },
+    { "number": 58, "title": "Digest Generator P1", "state": "merged" }
   ],
-  "next_steps": [
-    "Merge PR #50 if green",
-    "Branch for ANSI Parser (P1) or process-mode I/O unification",
-    "Add tests/docs as needed before semantics changes"
+  "ci": {
+    "threads": { "strict": true, "digest": true },
+    "forks": { "strict": true },
+    "process_mode": { "enforcement_job": true }
+  },
+  "rehydrate": {
+    "sanity": [
+      "npm ci && npm run build",
+      "npm run test:ci",
+      "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty"
+    ],
+    "laminar": [
+      "npm run lam -- summary",
+      "npm run lam -- trends --top 10"
+    ]
+  },
+  "next_candidates": [
+    "Process‑mode enforcement to required",
+    "Packaging/Quickstart + docs polish"
   ]
 }
-

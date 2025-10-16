@@ -41,6 +41,9 @@ async function main() {
                 console.log(`ID:          ${endpoint.id}`);
                 console.log(`Type:        ${endpoint.type}`);
                 console.log(`Coordinates: ${endpoint.coordinates}`);
+                if (endpoint.metadata?.ioMode) {
+                    console.log(`IO Mode:     ${endpoint.metadata.ioMode}`);
+                }
                 if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
                     console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
                 }

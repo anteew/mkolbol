@@ -1,0 +1,387 @@
+diff --git a/src/examples/keyboard-pty-tty.ts b/src/examples/keyboard-pty-tty.ts
+new file mode 100644
+index 0000000..e6e2fd8
+--- /dev/null
++++ b/src/examples/keyboard-pty-tty.ts
+@@ -0,0 +1,100 @@
++import { Kernel } from '../kernel/Kernel.js';
++import { Hostess } from '../hostess/Hostess.js';
++import { StateManager } from '../state/StateManager.js';
++import { PTYServerWrapper } from '../wrappers/PTYServerWrapper.js';
++import { KeyboardInput } from '../modules/keyboard-input.js';
++import type { ExternalServerManifest } from '../types.js';
++
++async function main() {
++  if (!process.stdin.isTTY) {
++    console.log('[keyboard-pty-tty] No TTY available. This demo requires an interactive terminal.');
++    console.log('[keyboard-pty-tty] Please run this demo in a terminal with TTY support.');
++    process.exit(0);
++  }
++
++  console.log('[keyboard-pty-tty] Starting Keyboard → PTY → TTY demo...');
++  console.log('[keyboard-pty-tty] Press keys to see them echoed. Press Ctrl+C to exit.\n');
++
++  const kernel = new Kernel();
++  const hostess = new Hostess();
++  const stateManager = new StateManager(kernel);
++
++  const catManifest: ExternalServerManifest = {
++    fqdn: 'localhost',
++    servername: 'cat-pty',
++    classHex: '0xCAT1',
++    owner: 'demo',
++    auth: 'no',
++    authMechanism: 'none',
++    terminals: [
++      { name: 'input', type: 'local', direction: 'input' },
++      { name: 'output', type: 'local', direction: 'output' },
++      { name: 'error', type: 'local', direction: 'output' }
++    ],
++    capabilities: {
++      type: 'transform',
++      accepts: ['text'],
++      produces: ['text'],
++      features: ['interactive', 'pty']
++    },
++    command: '/bin/cat',
++    args: [],
++    env: {},
++    cwd: process.cwd(),
++    ioMode: 'pty',
++    terminalType: 'xterm-256color',
++    initialCols: 80,
++    initialRows: 24,
++    restart: 'never'
++  };
++
++  const catPTY = new PTYServerWrapper(kernel, hostess, catManifest);
++  await catPTY.spawn();
++
++  catPTY.outputPipe.on('data', (data) => {
++    process.stdout.write(data.toString());
++  });
++
++  catPTY.errorPipe.on('data', (data) => {
++    process.stderr.write(`[ERROR] ${data.toString()}`);
++  });
++
++  const keyboard = new KeyboardInput();
++
++  keyboard.on('error', (err) => {
++    console.error('[keyboard-pty-tty] Keyboard error:', err);
++    cleanup();
++  });
++
++  keyboard.on('keypress', (event) => {
++    catPTY.inputPipe.write(event.sequence);
++  });
++
++  keyboard.on('ctrl-c', async () => {
++    console.log('\n[keyboard-pty-tty] Received Ctrl+C, shutting down...');
++    await cleanup();
++  });
++
++  async function cleanup() {
++    keyboard.stop();
++    await catPTY.shutdown();
++    process.exit(0);
++  }
++
++  keyboard.start();
++
++  process.on('SIGINT', async () => {
++    console.log('\n[keyboard-pty-tty] Received SIGINT, shutting down...');
++    await cleanup();
++  });
++
++  process.on('SIGTERM', async () => {
++    console.log('\n[keyboard-pty-tty] Received SIGTERM, shutting down...');
++    await cleanup();
++  });
++}
++
++main().catch((err) => {
++  console.error('[keyboard-pty-tty] Error:', err);
++  process.exit(1);
++});
+diff --git a/tests/modules/keyboardInput.spec.ts b/tests/modules/keyboardInput.spec.ts
+new file mode 100644
+index 0000000..1de8376
+--- /dev/null
++++ b/tests/modules/keyboardInput.spec.ts
+@@ -0,0 +1,275 @@
++import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
++import { EventEmitter } from 'events';
++import { KeyboardInput } from '../../src/modules/keyboard-input.js';
++
++describe('KeyboardInput', () => {
++  let keyboard: KeyboardInput;
++  let originalIsTTY: boolean;
++  let originalIsRaw: boolean | undefined;
++  let originalSetRawMode: ((mode: boolean) => void) | undefined;
++
++  beforeEach(() => {
++    keyboard = new KeyboardInput();
++    originalIsTTY = process.stdin.isTTY;
++    originalIsRaw = process.stdin.isRaw;
++    originalSetRawMode = process.stdin.setRawMode;
++  });
++
++  afterEach(() => {
++    keyboard.stop();
++    process.stdin.isTTY = originalIsTTY;
++    process.stdin.isRaw = originalIsRaw;
++    process.stdin.setRawMode = originalSetRawMode;
++  });
++
++  describe('TTY detection', () => {
++    it('should emit error when stdin is not a TTY', (context) => {
++      process.stdin.isTTY = false;
++
++      const errorSpy = vi.fn();
++      keyboard.on('error', errorSpy);
++
++      keyboard.start();
++
++      expect(errorSpy).toHaveBeenCalledOnce();
++      expect(errorSpy).toHaveBeenCalledWith(
++        expect.objectContaining({
++          message: 'stdin is not a TTY'
++        })
++      );
++    });
++
++    it('should not activate when stdin is not a TTY', () => {
++      process.stdin.isTTY = false;
++
++      const errorSpy = vi.fn();
++      keyboard.on('error', errorSpy);
++
++      keyboard.start();
++
++      expect((keyboard as any).isActive).toBe(false);
++      expect(errorSpy).toHaveBeenCalled();
++    });
++
++    it('should activate when stdin is a TTY', () => {
++      process.stdin.isTTY = true;
++      process.stdin.setRawMode = vi.fn();
++
++      keyboard.start();
++
++      expect((keyboard as any).isActive).toBe(true);
++    });
++  });
++
++  describe('raw mode enable/restore', () => {
++    it('should enable raw mode when starting', () => {
++      process.stdin.isTTY = true;
++      const setRawModeMock = vi.fn();
++      process.stdin.setRawMode = setRawModeMock;
++      process.stdin.isRaw = false;
++
++      keyboard.start();
++
++      expect(setRawModeMock).toHaveBeenCalledWith(true);
++    });
++
++    it('should store original raw mode state', () => {
++      process.stdin.isTTY = true;
++      process.stdin.setRawMode = vi.fn();
++      process.stdin.isRaw = false;
++
++      keyboard.start();
++
++      expect((keyboard as any).originalMode).toBe(false);
++    });
++
++    it('should restore original raw mode when stopping', () => {
++      process.stdin.isTTY = true;
++      const setRawModeMock = vi.fn();
++      process.stdin.setRawMode = setRawModeMock;
++      process.stdin.isRaw = false;
++
++      keyboard.start();
++      setRawModeMock.mockClear();
++
++      keyboard.stop();
++
++      expect(setRawModeMock).toHaveBeenCalledWith(false);
++    });
++
++    it('should not call setRawMode when stopping if not started', () => {
++      const setRawModeMock = vi.fn();
++      process.stdin.setRawMode = setRawModeMock;
++
++      keyboard.stop();
++
++      expect(setRawModeMock).not.toHaveBeenCalled();
++    });
++
++    it('should handle missing setRawMode gracefully', () => {
++      process.stdin.isTTY = true;
++      process.stdin.setRawMode = undefined;
++
++      expect(() => keyboard.start()).not.toThrow();
++      expect(() => keyboard.stop()).not.toThrow();
++    });
++  });
++
++  describe('keypress events', () => {
++    it('should emit keypress event for regular keys', () => {
++      process.stdin.isTTY = true;
++      process.stdin.setRawMode = vi.fn();
++
++      const keypressSpy = vi.fn();
++      keyboard.on('keypress', keypressSpy);
++
++      keyboard.start();
++
++      process.stdin.emit('keypress', 'a', {
++        name: 'a',
++        ctrl: false,
++        meta: false,
++        shift: false
++      });
++
++      expect(keypressSpy).toHaveBeenCalledWith({
++        name: 'a',
++        sequence: 'a',
++        ctrl: false,
++        meta: false,
++        shift: false
++      });
++    });
++
++    it('should handle ctrl modifier', () => {
++      process.stdin.isTTY = true;
++      process.stdin.setRawMode = vi.fn();
++
++      const keypressSpy = vi.fn();
++      keyboard.on('keypress', keypressSpy);
++
++      keyboard.start();
++
++      process.stdin.emit('keypress', '\u0001', {
++        name: 'a',
++        ctrl: true,
++        meta: false,
++        shift: false
++      });
++
++      expect(keypressSpy).toHaveBeenCalledWith({
++        name: 'a',
++        sequence: '\u0001',
++        ctrl: true,
++        meta: false,
++        shift: false
++      });
++    });
++
++    it('should handle meta and shift modifiers', () => {
++      process.stdin.isTTY = true;
++      process.stdin.setRawMode = vi.fn();
++
++      const keypressSpy = vi.fn();
++      keyboard.on('keypress', keypressSpy);
++
++      keyboard.start();
++
++      process.stdin.emit('keypress', 'A', {
++        name: 'a',
++        ctrl: false,
++        meta: true,
++        shift: true
++      });
++
++      expect(keypressSpy).toHaveBeenCalledWith({
++        name: 'a',
++        sequence: 'A',
++        ctrl: false,
++        meta: true,
++        shift: true
++      });
++    });
++
++    it('should emit ctrl-c event and stop on Ctrl+C', () => {
++      process.stdin.isTTY = true;
++      process.stdin.setRawMode = vi.fn();
++
++      const ctrlcSpy = vi.fn();
++      const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
++      
++      keyboard.on('ctrl-c', ctrlcSpy);
++      keyboard.start();
++
++      process.stdin.emit('keypress', '\u0003', {
++        name: 'c',
++        ctrl: true,
++        meta: false,
++        shift: false
++      });
++
++      expect(ctrlcSpy).toHaveBeenCalledOnce();
++      expect((keyboard as any).isActive).toBe(false);
++      expect(exitSpy).toHaveBeenCalledWith(0);
++
++      exitSpy.mockRestore();
++    });
++
++    it('should not emit events after stop', () => {
++      process.stdin.isTTY = true;
++      process.stdin.setRawMode = vi.fn();
++
++      const keypressSpy = vi.fn();
++      keyboard.on('keypress', keypressSpy);
++
++      keyboard.start();
++      keyboard.stop();
++
++      process.stdin.emit('keypress', 'a', {
++        name: 'a',
++        ctrl: false,
++        meta: false,
++        shift: false
++      });
++
++      expect(keypressSpy).not.toHaveBeenCalled();
++    });
++
++    it('should handle multiple start calls gracefully', () => {
++      process.stdin.isTTY = true;
++      const setRawModeMock = vi.fn();
++      process.stdin.setRawMode = setRawModeMock;
++
++      keyboard.start();
++      keyboard.start();
++      keyboard.start();
++
++      expect(setRawModeMock).toHaveBeenCalledTimes(1);
++    });
++
++    it('should handle special keys', () => {
++      process.stdin.isTTY = true;
++      process.stdin.setRawMode = vi.fn();
++
++      const keypressSpy = vi.fn();
++      keyboard.on('keypress', keypressSpy);
++
++      keyboard.start();
++
++      process.stdin.emit('keypress', '\r', {
++        name: 'return',
++        ctrl: false,
++        meta: false,
++        shift: false
++      });
++
++      expect(keypressSpy).toHaveBeenCalledWith({
++        name: 'return',
++        sequence: '\r',
++        ctrl: false,
++        meta: false,
++        shift: false
++      });
++    });
++  });
++});

@@ -28,18 +28,12 @@ class UnixPipeAdapterDuplex extends Duplex {
         this.socket.resume();
     }
     _write(chunk, encoding, callback) {
-        const canContinue = this.socket.write(chunk, encoding, (err) => {
-            if (err) {
-                callback(err);
-            }
-        });
+        const canContinue = this.socket.write(chunk, encoding);
         if (canContinue) {
             callback();
         }
         else {
-            this.socket.once('drain', () => {
-                callback();
-            });
+            this.socket.once('drain', callback);
         }
     }
     _final(callback) {

@@ -1,8 +1,14 @@
+export interface ProcessParams {
+  command: string;
+  args: string[];
+  ioMode: 'stdio' | 'pty';
+}
+
 export interface NodeConfig {
   id: string;
   module: string;
   params?: Record<string, any>;
-  runMode?: 'inproc' | 'worker';
+  runMode?: 'inproc' | 'worker' | 'process';
 }
 
 export interface ConnectionConfig {

@@ -1,3 +1,3 @@
-{"ts":1760566305998,"lvl":"info","case":"evicts after missed heartbeats","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760566305999,"lvl":"info","case":"evicts after missed heartbeats","phase":"execution","evt":"test.run"}
-{"ts":1760566306000,"lvl":"info","case":"evicts after missed heartbeats","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
+{"ts":1760577249127,"lvl":"info","case":"evicts after missed heartbeats","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760577249128,"lvl":"info","case":"evicts after missed heartbeats","phase":"execution","evt":"test.run"}
+{"ts":1760577249129,"lvl":"info","case":"evicts after missed heartbeats","phase":"teardown","evt":"case.end","payload":{"duration":30,"status":"passed"}}

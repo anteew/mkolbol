@@ -43,7 +43,7 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:ci": "vitest run --pool=threads --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts' --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
-    "test:pty": "vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts tests/integration/endpointsList.spec.ts tests/integration/processMode.spec.ts tests/integration/processUnix.spec.ts tests/integration/workerMode.spec.ts --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
+    "test:pty": "vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts tests/integration/endpointsList.spec.ts tests/integration/processMode.spec.ts tests/integration/processUnix.spec.ts tests/integration/workerMode.spec.ts tests/integration/stdioPath.spec.ts tests/integration/externalFromConfig.spec.ts --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
     "test:ci:lam": "npm run test:ci && mkdir -p reports && npm run lam -- summary > reports/LAMINAR_SUMMARY.txt && npm run lam -- trends --top 10 > reports/LAMINAR_TRENDS.txt",
     "test:pty:lam": "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty && mkdir -p reports && npm run lam -- summary >> reports/LAMINAR_SUMMARY.txt && npm run lam -- trends --top 10 >> reports/LAMINAR_TRENDS.txt",
     "lam:dogfood:ci": "tsx scripts/dogfood-ci.ts",

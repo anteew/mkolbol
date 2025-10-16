@@ -108,6 +108,8 @@ export class ExternalServerWrapper {
       console.error(`Process error for ${this.manifest.servername}:`, err);
     });
 
+    // Note: registerWithHostess() is called by ExternalServerWrapper.spawn()
+    // but the Executor now handles proper endpoint registration for ExternalProcess nodes
     await this.registerWithHostess();
   }
 
