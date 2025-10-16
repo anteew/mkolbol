@@ -5,6 +5,7 @@ import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
 import type { TopologyConfig } from '../config/schema.js';
 import type { ExternalServerManifest } from '../types.js';
 import type { TestLogger } from '../logging/logger.js';
+import type { RoutingServer } from '../router/RoutingServer.js';
 interface HeartbeatConfig {
     timeout: number;
     maxMissed: number;
@@ -14,6 +15,10 @@ interface CutoverConfig {
     drainTimeout: number;
     killTimeout: number;
 }
+interface RouterHeartbeatConfig {
+    enabled: boolean;
+    intervalMs: number;
+}
 export declare class Executor {
     private kernel;
     private hostess;
@@ -22,11 +27,17 @@ export declare class Executor {
     private modules;
     private moduleRegistry;
     private logger?;
+    private routingServer?;
+    private routingIndex;
     private heartbeatConfig;
     private cutoverConfig;
+    private routerHeartbeatConfig;
+    private heartbeatTimer?;
     constructor(kernel: Kernel, hostess: Hostess, stateManager: StateManager, logger?: TestLogger);
     setHeartbeatConfig(config: Partial<HeartbeatConfig>): void;
     setCutoverConfig(config: Partial<CutoverConfig>): void;
+    setRoutingServer(server: RoutingServer): void;
+    setRouterHeartbeatConfig(config: Partial<RouterHeartbeatConfig>): void;
     load(config: TopologyConfig): void;
     up(): Promise<void>;
     down(): Promise<void>;
@@ -39,11 +50,15 @@ export declare class Executor {
     private instantiateProcessNode;
     private instantiateInProcNode;
     private instantiateWorkerNode;
+    private announceRoutingEndpoint;
     private getModulePath;
     private inferTerminalsForHostess;
     private inferTerminalsForStateManager;
     private getClassHex;
     private getModuleType;
+    private startRouterHeartbeats;
+    private stopRouterHeartbeats;
+    private sendRouterHeartbeats;
 }
 export {};
 //# sourceMappingURL=Executor.d.ts.map

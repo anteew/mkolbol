@@ -1,0 +1,9 @@
+# This file uses stdio for an interactive shell (should use pty)
+nodes:
+  - id: shell
+    module: ExternalProcess
+    params:
+      command: /bin/bash
+      ioMode: stdio  # Wrong! Interactive shells need pty
+
+connections: []

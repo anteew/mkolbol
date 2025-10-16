@@ -6,6 +6,8 @@ import { Hostess } from '../src/hostess/Hostess.js';
 import { StateManager } from '../src/state/StateManager.js';
 import { Executor } from '../src/executor/Executor.js';
 import { loadConfig } from '../src/config/loader.js';
+import { RoutingServer } from '../src/router/RoutingServer.js';
+import type { RoutingEndpoint } from '../src/types.js';
 
 const EXIT_CODES = {
   SUCCESS: 0,
@@ -54,6 +56,9 @@ COMMANDS
 
 EXAMPLES
   mkctl endpoints
+  mkctl endpoints --watch
+  mkctl endpoints --filter type=inproc
+  mkctl endpoints --watch --filter type=worker --interval 2
   mkctl run --file examples/configs/basic.yml
   mkctl run --file config.yml --duration 10
 
@@ -67,37 +72,7 @@ async function main() {
 
   switch (cmd) {
     case 'endpoints': {
-      const snapshotPath = path.resolve(process.cwd(), 'reports', 'endpoints.json');
-      
-      let endpoints: Array<{ id: string; type: string; coordinates: string; metadata?: Record<string, any> }>;
-      try {
-        const data = await fs.readFile(snapshotPath, 'utf-8');
-        endpoints = JSON.parse(data);
-      } catch (err) {
-        console.log('No endpoints registered.');
-        break;
-      }
-
-      if (endpoints.length === 0) {
-        console.log('No endpoints registered.');
-        break;
-      }
-
-      console.log('Registered Endpoints:');
-      console.log('');
-
-      for (const endpoint of endpoints) {
-        console.log(`ID:          ${endpoint.id}`);
-        console.log(`Type:        ${endpoint.type}`);
-        console.log(`Coordinates: ${endpoint.coordinates}`);
-        if (endpoint.metadata?.ioMode) {
-          console.log(`IO Mode:     ${endpoint.metadata.ioMode}`);
-        }
-        if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
-          console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
-        }
-        console.log('');
-      }
+      await handleEndpointsCommand(process.argv.slice(3));
       break;
     }
     case 'run': {
@@ -194,8 +169,218 @@ async function waitForDurationOrSignal(durationMs: number): Promise<'timer' | 's
   });
 }
 
+type EndpointSnapshot = {
+  id: string;
+  type: string;
+  coordinates: string;
+  metadata?: Record<string, any>;
+  announcedAt?: number;
+  updatedAt?: number;
+};
+
+async function loadEndpointSnapshot(): Promise<{ endpoints: EndpointSnapshot[]; source: 'router' | 'hostess' }> {
+  const routerSnapshotPath = path.resolve(process.cwd(), 'reports', 'router-endpoints.json');
+  try {
+    const raw = await fs.readFile(routerSnapshotPath, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const endpoints = parsed.map(normalizeRouterEndpoint);
+      return { endpoints, source: 'router' };
+    }
+  } catch {
+    // fall through to hostess snapshot
+  }
+
+  const hostessSnapshotPath = path.resolve(process.cwd(), 'reports', 'endpoints.json');
+  try {
+    const raw = await fs.readFile(hostessSnapshotPath, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const endpoints = parsed.map((entry: any) => normalizeRouterEndpoint({
+        id: entry.id,
+        type: entry.type,
+        coordinates: entry.coordinates,
+        metadata: entry.metadata,
+        announcedAt: entry.announcedAt,
+        updatedAt: entry.updatedAt,
+      }));
+      return { endpoints, source: 'hostess' };
+    }
+  } catch {
+    // ignore
+  }
+
+  return { endpoints: [], source: 'router' };
+}
+
+function normalizeRouterEndpoint(entry: any): EndpointSnapshot {
+  return {
+    id: String(entry?.id ?? ''),
+    type: String(entry?.type ?? 'unknown'),
+    coordinates: String(entry?.coordinates ?? ''),
+    metadata: entry && typeof entry.metadata === 'object' ? entry.metadata : undefined,
+    announcedAt: typeof entry?.announcedAt === 'number' ? entry.announcedAt : undefined,
+    updatedAt: typeof entry?.updatedAt === 'number' ? entry.updatedAt : undefined,
+  };
+}
+
+function formatTimestamp(value?: number): string {
+  if (value === undefined || value === null) return 'n/a';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'n/a';
+  return date.toISOString();
+}
+
+interface EndpointsArguments {
+  watch: boolean;
+  interval: number;
+  filters: Array<{ key: string; value: string }>;
+}
+
+function parseEndpointsArgs(args: string[]): EndpointsArguments {
+  let watch = false;
+  let interval = 1;
+  const filters: Array<{ key: string; value: string }> = [];
+
+  for (let i = 0; i < args.length; i++) {
+    const token = args[i];
+    if (token === '--watch') {
+      watch = true;
+    } else if (token === '--interval') {
+      const next = args[i + 1];
+      if (!next || next.startsWith('--')) {
+        throw new MkctlError('--interval requires a number (seconds)', EXIT_CODES.USAGE);
+      }
+      const parsed = Number.parseInt(next, 10);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        throw new MkctlError('--interval must be a positive integer', EXIT_CODES.USAGE);
+      }
+      interval = parsed;
+      i++;
+    } else if (token === '--filter') {
+      const next = args[i + 1];
+      if (!next || next.startsWith('--')) {
+        throw new MkctlError('--filter requires key=value format', EXIT_CODES.USAGE);
+      }
+      const parts = next.split('=');
+      if (parts.length !== 2) {
+        throw new MkctlError('--filter requires key=value format', EXIT_CODES.USAGE);
+      }
+      filters.push({ key: parts[0], value: parts[1] });
+      i++;
+    }
+  }
+
+  return { watch, interval, filters };
+}
+
+function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: string; value: string }>): EndpointSnapshot[] {
+  if (filters.length === 0) return endpoints;
+
+  return endpoints.filter((endpoint) => {
+    for (const { key, value } of filters) {
+      if (key === 'type' && endpoint.type !== value) return false;
+      if (key === 'id' && !endpoint.id.includes(value)) return false;
+      if (key === 'coordinates' && !endpoint.coordinates.includes(value)) return false;
+    }
+    return true;
+  });
+}
+
+function displayEndpoints(endpoints: EndpointSnapshot[], source: 'router' | 'hostess'): void {
+  if (endpoints.length === 0) {
+    console.log('No endpoints match the filters.');
+    return;
+  }
+
+  console.log(`Registered Endpoints (${source === 'router' ? 'RoutingServer snapshot' : 'Hostess snapshot'})`);
+  console.log('');
+
+  for (const endpoint of endpoints) {
+    console.log(`ID:          ${endpoint.id}`);
+    console.log(`Type:        ${endpoint.type}`);
+    console.log(`Coordinates: ${endpoint.coordinates}`);
+    if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
+      console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
+    }
+    if (endpoint.announcedAt !== undefined) {
+      console.log(`Announced:   ${formatTimestamp(endpoint.announcedAt)}`);
+    }
+    if (endpoint.updatedAt !== undefined) {
+      console.log(`Updated:     ${formatTimestamp(endpoint.updatedAt)}`);
+    }
+    console.log('');
+  }
+}
+
+async function handleEndpointsCommand(args: string[]): Promise<void> {
+  const { watch, interval, filters } = parseEndpointsArgs(args);
+
+  if (!watch) {
+    const { endpoints, source } = await loadEndpointSnapshot();
+    
+    if (endpoints.length === 0) {
+      console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
+      return;
+    }
+
+    const filtered = applyFilters(endpoints, filters);
+    displayEndpoints(filtered, source);
+    return;
+  }
+
+  console.log(`Watching endpoints (refresh every ${interval}s)...`);
+  console.log('Press Ctrl+C to stop.\n');
+
+  let running = true;
+  const cleanup = () => {
+    running = false;
+    process.off('SIGINT', onSignal);
+    process.off('SIGTERM', onSignal);
+  };
+
+  const onSignal = () => {
+    cleanup();
+    console.log('\nWatch stopped.');
+  };
+
+  process.once('SIGINT', onSignal);
+  process.once('SIGTERM', onSignal);
+
+  while (running) {
+    const { endpoints, source } = await loadEndpointSnapshot();
+    const filtered = applyFilters(endpoints, filters);
+
+    console.clear();
+    console.log(`[${formatTimestamp(Date.now())}] Watching endpoints (refresh every ${interval}s)...`);
+    console.log('Press Ctrl+C to stop.\n');
+
+    if (endpoints.length === 0) {
+      console.log('No endpoints registered.');
+    } else {
+      displayEndpoints(filtered, source);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval * 1000));
+  }
+}
+
+async function writeRouterSnapshot(router: RoutingServer): Promise<void> {
+  const snapshotDir = path.resolve(process.cwd(), 'reports');
+  const snapshotPath = path.join(snapshotDir, 'router-endpoints.json');
+  await fs.mkdir(snapshotDir, { recursive: true });
+  const payload: RoutingEndpoint[] = router.list();
+  await fs.writeFile(snapshotPath, JSON.stringify(payload, null, 2), 'utf-8');
+  console.log(`[mkctl] Router endpoints captured at ${snapshotPath}`);
+}
+
 async function handleRunCommand(args: string[]): Promise<number> {
   const { configPath, durationMs } = parseRunArgs(args);
+
+  const localNodeMode = process.env.MK_LOCAL_NODE === '1';
+  if (localNodeMode) {
+    console.log('[mkctl] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.');
+  }
 
   try {
     await fs.access(configPath);
@@ -240,6 +425,8 @@ async function handleRunCommand(args: string[]): Promise<number> {
   const hostess = new Hostess();
   const stateManager = new StateManager(kernel);
   const executor = new Executor(kernel, hostess, stateManager);
+  const router = new RoutingServer();
+  executor.setRoutingServer(router);
 
   try {
     executor.load(config);
@@ -267,6 +454,10 @@ async function handleRunCommand(args: string[]): Promise<number> {
   console.log(`Topology running for ${durationMs / 1000} seconds...\n`);
 
   const outcome = await waitForDurationOrSignal(durationMs);
+
+  await writeRouterSnapshot(router).catch((err) => {
+    logError(`Failed to write router snapshot: ${err instanceof Error ? err.message : String(err)}`);
+  });
 
   console.log('\nBringing topology down...');
   try {

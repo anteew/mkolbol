@@ -1,0 +1,20 @@
+diff --git a/src/types.ts b/src/types.ts
+index 1f2b5a9..893b60c 100644
+--- a/src/types.ts
++++ b/src/types.ts
+@@ -128,3 +128,15 @@ export interface HostessEndpoint {
+   coordinates: string;
+   metadata?: Record<string, any>;
+ }
++
++export interface RoutingAnnouncement {
++  id: string;
++  type: string;
++  coordinates: string;
++  metadata?: Record<string, any>;
++}
++
++export interface RoutingEndpoint extends RoutingAnnouncement {
++  announcedAt: number;
++  updatedAt: number;
++}

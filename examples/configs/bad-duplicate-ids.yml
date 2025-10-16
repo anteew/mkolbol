@@ -1,0 +1,13 @@
+# This file has duplicate node IDs (error: "Duplicate node id 'timer'")
+nodes:
+  - id: timer
+    module: TimerSource
+    params:
+      periodMs: 1000
+
+  - id: timer
+    module: ConsoleSink
+
+connections:
+  - from: timer.output
+    to: timer.input

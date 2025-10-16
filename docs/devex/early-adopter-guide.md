@@ -9,6 +9,7 @@ Welcome to mkolbol! This guide will get you up to speed in 5 minutes.
 ### 🚀 **I want to see it in action** (5 min)
 Run a live topology demo without writing code:
 - **[Quickstart: mkctl run](./quickstart.md#quick-start-with-mkctl-recommended)** - Execute pre-built topologies from YAML
+- After it runs, inspect the RoutingServer snapshot with `mkctl endpoints`
 - **[Interactive Topology](./interactive-topology.md)** - Keyboard → PTY → Terminal demo
 - **[StdIO Path](./stdio-path.md)** - Non-interactive data pipeline (no terminal overhead)
 
@@ -22,6 +23,7 @@ Create and wire a custom server:
 Prepare modules for production:
 - **[Laminar Dev Workflow](./laminar-workflow.md)** - Test observability and debugging
 - **[Packaging Guide](./packaging.md)** - Bundle your modules into single executables
+- **[mkctl Cookbook](./mkctl-cookbook.md)** - Daily cheatsheet for `mkctl run` / `mkctl endpoints`
 - **[Contributing](../../../CONTRIBUTING-DEVEX.md)** - Share feedback and get help
 
 ---
@@ -113,6 +115,13 @@ AnsiParser (transform)
  ↓         ↓
 Screen   Canvas  (both output)
 ```
+
+### RoutingServer at a glance
+
+- The in-process RoutingServer records every endpoint announcement from the Executor.
+- `mkctl run` automatically announces/withdraws endpoints as nodes start and stop.
+- Use `mkctl endpoints` (see the [mkctl Cookbook](./mkctl-cookbook.md)) to read `reports/router-endpoints.json` and confirm what is live.
+- Architecture details live in [RoutingServer RFC](../rfcs/stream-kernel/05-router.md); future work will extend this to worker and network transports.
 
 ## Run Modes Explained
 

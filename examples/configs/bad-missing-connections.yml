@@ -1,0 +1,9 @@
+# This file has nodes but no connections defined
+nodes:
+  - id: source
+    module: TimerSource
+    params:
+      periodMs: 1000
+
+  - id: sink
+    module: ConsoleSink

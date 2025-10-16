@@ -58,12 +58,14 @@ jobs:
       # Enforced process-mode adapters run (required)
       - name: Process-mode (Unix adapters)
         run: |
+          mkdir -p reports
           MK_PROCESS_EXPERIMENTAL=1 npx vitest run \
             --pool=forks \
             --poolOptions.forks.singleFork=true \
             tests/integration/processUnix.spec.ts \
             --reporter=default \
-            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
+            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
+            > reports/process_raw.log 2>&1
 
       - name: Laminar summary/trends (best‑effort)
         if: ${{ always() }}

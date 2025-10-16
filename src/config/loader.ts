@@ -52,6 +52,8 @@ export function validateTopology(config: any): void {
   if (!Array.isArray(config.connections)) {
     throw new Error('"connections" must be an array');
   }
+
+  const localNodeMode = process.env.MK_LOCAL_NODE === '1';
   
   const nodeIds = new Set<string>();
   
@@ -78,6 +80,12 @@ export function validateTopology(config: any): void {
     
     if (typeof node.module !== 'string') {
       throw new Error(`Node "${node.id}" has invalid "module" (must be a string)`);
+    }
+
+    if (localNodeMode && node.params) {
+      if (node.params.type === 'network' || node.params.address) {
+        throw new Error(`Node "${node.id}" uses network features (type=network or address field) which are not allowed when MK_LOCAL_NODE=1. Local Node mode only supports in-process routing.`);
+      }
     }
   }
   

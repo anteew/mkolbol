@@ -1,0 +1,13 @@
+# This file has a connection to a node that doesn't exist
+nodes:
+  - id: source
+    module: TimerSource
+    params:
+      periodMs: 1000
+
+  - id: sink
+    module: ConsoleSink
+
+connections:
+  - from: source.output
+    to: nonexistent.input  # This node doesn't exist

@@ -1,0 +1,7 @@
+# This file references a module that doesn't exist in the registry
+nodes:
+  - id: custom
+    module: NonexistentModule
+    params: {}
+
+connections: []

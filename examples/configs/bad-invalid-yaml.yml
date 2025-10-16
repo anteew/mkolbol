@@ -1,0 +1,10 @@
+# This file has invalid YAML syntax (broken indentation)
+nodes:
+- id: bad-node
+module: TimerSource
+  params:
+    periodMs: 1000
+
+connections:
+  - from: bad-node.output
+to: sink.input

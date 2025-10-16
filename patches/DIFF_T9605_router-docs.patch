@@ -1,0 +1,81 @@
+diff --git a/README.md b/README.md
+index 40efad4..edff5f3 100644
+--- a/README.md
++++ b/README.md
+@@ -119,6 +119,13 @@ node dist/examples/config-runner.js --file examples/configs/basic.yml
+ 
+ mkctl error messages now include matching hints; the CLI prefixes every message with `[mkctl]` so they’re easy to spot in logs.
+ 
++### Routing & Discovery
++
++- `mkctl endpoints` prints the currently announced endpoints by reading the RoutingServer snapshot (`reports/router-endpoints.json`).
++- Every `mkctl run` invocation now writes that snapshot automatically; rerun `mkctl endpoints` to confirm what’s live.
++- Need a longer reference? See the **[mkctl Cookbook](docs/devex/mkctl-cookbook.md)** for end-to-end command examples.
++- Architectural details live in **[RoutingServer RFC](docs/rfcs/stream-kernel/05-router.md)**, which tracks the in-process announcement API and future multi-node work.
++
+ ## ANSI Parser
+ 
+ Parse ANSI escape sequences from terminal output into structured events:
+@@ -724,6 +731,7 @@ Metadata:    {"cols":80,"rows":24,"terminalType":"xterm-256color","ioMode":"pty"
+ ```
+ 
+ **See Also:**
++- **[mkctl Cookbook](docs/devex/mkctl-cookbook.md)** - Quick reference for common commands and patterns
+ - **[Wiring and Testing Guide](docs/devex/wiring-and-tests.md#external-process-configuration)** - Complete explanation of stdio vs pty modes
+ - **[StdIO Path Guide](docs/devex/stdio-path.md)** - Deep dive on stdio mode for data pipelines
+ 
+diff --git a/docs/devex/early-adopter-guide.md b/docs/devex/early-adopter-guide.md
+index 3ea7963..da055a4 100644
+--- a/docs/devex/early-adopter-guide.md
++++ b/docs/devex/early-adopter-guide.md
+@@ -9,6 +9,7 @@ Welcome to mkolbol! This guide will get you up to speed in 5 minutes.
+ ### 🚀 **I want to see it in action** (5 min)
+ Run a live topology demo without writing code:
+ - **[Quickstart: mkctl run](./quickstart.md#quick-start-with-mkctl-recommended)** - Execute pre-built topologies from YAML
++- After it runs, inspect the RoutingServer snapshot with `mkctl endpoints`
+ - **[Interactive Topology](./interactive-topology.md)** - Keyboard → PTY → Terminal demo
+ - **[StdIO Path](./stdio-path.md)** - Non-interactive data pipeline (no terminal overhead)
+ 
+@@ -22,6 +23,7 @@ Create and wire a custom server:
+ Prepare modules for production:
+ - **[Laminar Dev Workflow](./laminar-workflow.md)** - Test observability and debugging
+ - **[Packaging Guide](./packaging.md)** - Bundle your modules into single executables
++- **[mkctl Cookbook](./mkctl-cookbook.md)** - Daily cheatsheet for `mkctl run` / `mkctl endpoints`
+ - **[Contributing](../../../CONTRIBUTING-DEVEX.md)** - Share feedback and get help
+ 
+ ---
+@@ -114,6 +116,13 @@ AnsiParser (transform)
+ Screen   Canvas  (both output)
+ ```
+ 
++### RoutingServer at a glance
++
++- The in-process RoutingServer records every endpoint announcement from the Executor.
++- `mkctl run` automatically announces/withdraws endpoints as nodes start and stop.
++- Use `mkctl endpoints` (see the [mkctl Cookbook](./mkctl-cookbook.md)) to read `reports/router-endpoints.json` and confirm what is live.
++- Architecture details live in [RoutingServer RFC](../rfcs/stream-kernel/05-router.md); future work will extend this to worker and network transports.
++
+ ## Run Modes Explained
+ 
+ mkolbol supports four run modes, giving you flexibility for development, testing, and production:
+diff --git a/docs/devex/quickstart.md b/docs/devex/quickstart.md
+index 986dce3..87f7053 100644
+--- a/docs/devex/quickstart.md
++++ b/docs/devex/quickstart.md
+@@ -31,6 +31,16 @@ node dist/scripts/mkctl.js run --file examples/configs/external-pty.yaml --durat
+ - Same approach scales from local development to distributed deployments
+ - See **[Wiring and Testing Guide](./wiring-and-tests.md)** for how to build your own config files
+ 
++### Inspect routing announcements
++
++After `mkctl run` finishes it writes a RoutingServer snapshot to `reports/router-endpoints.json`. View it with:
++
++```bash
++mkctl endpoints
++```
++
++You’ll see the endpoint id, module type, coordinates (`node:<id>` for in-process modules), and the timestamps when the announcement was recorded. Re-run the command any time to confirm which modules are currently live.
++
+ ---
+ 
+ ## Manual Demo (Direct Code Execution)

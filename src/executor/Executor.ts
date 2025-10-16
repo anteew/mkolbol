@@ -4,7 +4,7 @@ import { StateManager } from '../state/StateManager.js';
 import { ModuleRegistry } from './moduleRegistry.js';
 import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
 import type { TopologyConfig, NodeConfig } from '../config/schema.js';
-import type { ServerManifest, ExternalServerManifest, IOMode } from '../types.js';
+import type { ServerManifest, ExternalServerManifest, IOMode, RoutingAnnouncement } from '../types.js';
 import { Worker, MessageChannel } from 'node:worker_threads';
 import type { ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path';
 import type { TestLogger } from '../logging/logger.js';
 import { createLogger } from '../logging/logger.js';
 import { debug } from '../debug/api.js';
+import type { RoutingServer } from '../router/RoutingServer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,11 +36,18 @@ interface CutoverConfig {
   killTimeout: number;
 }
 
+interface RouterHeartbeatConfig {
+  enabled: boolean;
+  intervalMs: number;
+}
+
 export class Executor {
   private config?: TopologyConfig;
   private modules = new Map<string, ModuleInstance>();
   private moduleRegistry: ModuleRegistry;
   private logger?: TestLogger;
+  private routingServer?: RoutingServer;
+  private routingIndex = new Map<string, string>();
   private heartbeatConfig: HeartbeatConfig = {
     timeout: 10000,
     maxMissed: 3,
@@ -49,6 +57,11 @@ export class Executor {
     drainTimeout: 8000,
     killTimeout: 5000
   };
+  private routerHeartbeatConfig: RouterHeartbeatConfig = {
+    enabled: false,
+    intervalMs: 10000
+  };
+  private heartbeatTimer?: NodeJS.Timeout;
 
   constructor(
     private kernel: Kernel,
@@ -71,6 +84,14 @@ export class Executor {
 
   setCutoverConfig(config: Partial<CutoverConfig>): void {
     this.cutoverConfig = { ...this.cutoverConfig, ...config };
+  }
+
+  setRoutingServer(server: RoutingServer): void {
+    this.routingServer = server;
+  }
+
+  setRouterHeartbeatConfig(config: Partial<RouterHeartbeatConfig>): void {
+    this.routerHeartbeatConfig = { ...this.routerHeartbeatConfig, ...config };
   }
 
   load(config: TopologyConfig): void {
@@ -117,10 +138,16 @@ export class Executor {
         instance.module.start();
       }
     }
+
+    if (this.routerHeartbeatConfig.enabled && this.routingServer) {
+      this.startRouterHeartbeats();
+    }
   }
 
   async down(): Promise<void> {
     debug.emit('executor', 'stop', { nodeCount: this.modules.size });
+
+    this.stopRouterHeartbeats();
 
     for (const instance of this.modules.values()) {
       if (instance.worker) {
@@ -132,6 +159,11 @@ export class Executor {
         instance.module.stop();
       }
     }
+
+    for (const endpointId of this.routingIndex.values()) {
+      this.routingServer?.withdraw(endpointId);
+    }
+    this.routingIndex.clear();
 
     this.modules.clear();
   }
@@ -328,6 +360,18 @@ export class Executor {
         ioMode
       }
     });
+    this.announceRoutingEndpoint(nodeConfig.id, identity, {
+      id: identity,
+      type: 'process',
+      coordinates: `node:${nodeConfig.id}`,
+      metadata: {
+        module: nodeConfig.module,
+        runMode: 'process',
+        command,
+        args,
+        ioMode
+      }
+    });
 
     this.stateManager.addNode({
       id: nodeConfig.id,
@@ -444,6 +488,17 @@ export class Executor {
         args
       }
     });
+    this.announceRoutingEndpoint(nodeConfig.id, identity, {
+      id: identity,
+      type: 'process',
+      coordinates: `node:${nodeConfig.id}`,
+      metadata: {
+        module: nodeConfig.module,
+        runMode: 'process',
+        command,
+        args
+      }
+    });
 
     this.stateManager.addNode({
       id: nodeConfig.id,
@@ -501,6 +556,15 @@ export class Executor {
     const identity = this.hostess.register(manifest);
 
     this.hostess.registerEndpoint(identity, {
+      type: 'inproc',
+      coordinates: `node:${nodeConfig.id}`,
+      metadata: {
+        module: nodeConfig.module,
+        runMode: 'inproc'
+      }
+    });
+    this.announceRoutingEndpoint(nodeConfig.id, identity, {
+      id: identity,
       type: 'inproc',
       coordinates: `node:${nodeConfig.id}`,
       metadata: {
@@ -605,6 +669,15 @@ export class Executor {
         runMode: 'worker'
       }
     });
+    this.announceRoutingEndpoint(nodeConfig.id, identity, {
+      id: identity,
+      type: 'worker',
+      coordinates: `node:${nodeConfig.id}`,
+      metadata: {
+        module: nodeConfig.module,
+        runMode: 'worker'
+      }
+    });
 
     this.stateManager.addNode({
       id: nodeConfig.id,
@@ -629,6 +702,20 @@ export class Executor {
         payload: { module: nodeConfig.module, exitCode: code }
       });
     });
+  }
+
+  private announceRoutingEndpoint(nodeId: string, endpointId: string, announcement: RoutingAnnouncement): void {
+    const previous = this.routingIndex.get(nodeId);
+    if (previous && previous !== endpointId) {
+      this.routingServer?.withdraw(previous);
+    }
+    this.routingIndex.set(nodeId, endpointId);
+    if (this.routingServer) {
+      this.routingServer.announce({
+        ...announcement,
+        metadata: announcement.metadata ? { ...announcement.metadata } : undefined,
+      });
+    }
   }
 
   private getModulePath(moduleName: string): string {
@@ -678,5 +765,50 @@ export class Executor {
     if (moduleName.includes('Transform') || moduleName.includes('Uppercase')) return 'transform';
     if (moduleName.includes('Sink') || moduleName.includes('Console')) return 'output';
     return 'transform';
+  }
+
+  private startRouterHeartbeats(): void {
+    if (this.heartbeatTimer) return;
+    
+    this.heartbeatTimer = setInterval(() => {
+      this.sendRouterHeartbeats();
+    }, this.routerHeartbeatConfig.intervalMs);
+
+    debug.emit('executor', 'router-heartbeat.start', {
+      intervalMs: this.routerHeartbeatConfig.intervalMs,
+      endpointCount: this.routingIndex.size
+    });
+  }
+
+  private stopRouterHeartbeats(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = undefined;
+      debug.emit('executor', 'router-heartbeat.stop', {});
+    }
+  }
+
+  private sendRouterHeartbeats(): void {
+    if (!this.routingServer) return;
+
+    for (const [nodeId, endpointId] of this.routingIndex.entries()) {
+      const instance = this.modules.get(nodeId);
+      if (!instance) continue;
+
+      const endpoint = this.routingServer.list().find(ep => ep.id === endpointId);
+      if (!endpoint) continue;
+
+      this.routingServer.announce({
+        id: endpointId,
+        type: endpoint.type,
+        coordinates: endpoint.coordinates,
+        metadata: endpoint.metadata
+      });
+
+      debug.emit('executor', 'router-heartbeat.sent', {
+        nodeId,
+        endpointId
+      }, 'debug');
+    }
   }
 }

@@ -1,0 +1,4 @@
+# This file is missing the nodes array
+connections:
+  - from: source.output
+    to: sink.input

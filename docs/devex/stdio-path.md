@@ -118,6 +118,17 @@ npm run build
 
 # Run the StdIO echo demo
 node dist/examples/stdio-echo-demo.js
+
+# Inspecting Active StdIO Endpoints
+
+When you launch a topology with `mkctl run`, the executor now publishes endpoint announcements to the in-process RoutingServer. A snapshot is stored under `reports/router-endpoints.json`, and you can view it with:
+
+```bash
+mkctl run --file examples/configs/external-stdio.yaml --duration 2
+mkctl endpoints
+```
+
+Typical output lists endpoint IDs, coordinates, and the timestamp of the last announcement so you can confirm your StdIO adapters came online.
 ```
 
 ### Expected Output

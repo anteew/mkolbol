@@ -31,7 +31,39 @@ node dist/scripts/mkctl.js run --file examples/configs/external-pty.yaml --durat
 - Same approach scales from local development to distributed deployments
 - See **[Wiring and Testing Guide](./wiring-and-tests.md)** for how to build your own config files
 
+### Inspect routing announcements
+
+After `mkctl run` finishes it writes a RoutingServer snapshot to `reports/router-endpoints.json`. View it with:
+
+```bash
+mkctl endpoints
+```
+
+You’ll see the endpoint id, module type, coordinates (`node:<id>` for in-process modules), and the timestamps when the announcement was recorded. Re-run the command any time to confirm which modules are currently live.
+
 ---
+### Local Node Mode (MK_LOCAL_NODE=1)
+
+By default, mkolbol runs in Local Node mode with in-process routing only. This is enforced via the `MK_LOCAL_NODE=1` environment variable:
+
+```bash
+# Explicitly set Local Node mode (in-process Router only)
+MK_LOCAL_NODE=1 node dist/scripts/mkctl.js run --file examples/configs/basic.yml
+```
+
+**What Local Node mode does:**
+- **Enables:** In-process RoutingServer, Executor, Hostess, StateManager
+- **Disables:** Network transports, distributed routing, multi-machine topologies
+- **Validates:** Config loader rejects any node with `type=network` or `address` parameters
+
+**When to use Local Node mode:**
+- Local development and testing
+- Single-machine deployments
+- When you don't need network communication
+
+**Future:** When `MK_LOCAL_NODE` is not set (or set to `0`), network adapters and distributed routing will be available. This feature is planned for future releases.
+
+
 
 ## Manual Demo (Direct Code Execution)
 

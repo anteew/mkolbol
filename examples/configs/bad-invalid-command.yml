@@ -1,0 +1,9 @@
+# This file tries to spawn a command that doesn't exist
+nodes:
+  - id: filter
+    module: ExternalProcess
+    params:
+      command: /nonexistent/bin/jq
+      ioMode: stdio
+
+connections: []
