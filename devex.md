@@ -83,26 +83,69 @@
 }
 ```
 
-# DevEx Sprint 11–12 — Laminar CI Refinement + Acceptance Docs + Doctor
+# DevEx — MK Dev Orchestrator Phase A (Docs, Examples, CI UX)
 
-Goal
-- Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expand FileSink acceptance walkthroughs; add a “Doctor” page and an “Authoring a Module” guide to reduce support burden; keep docs aligned with TTY renderer and health features.
+```json
+{
+  "ampcode": "v1",
+  "waves": [
+    { "id": "DEVX-P1-A", "parallel": true,  "tasks": ["D9801","D9802"] },
+    { "id": "DEVX-P1-B", "parallel": true,  "depends_on": ["DEVX-P1-A"], "tasks": ["D9803","D9804","D9805"] },
+    { "id": "DEVX-P1-C", "parallel": false, "depends_on": ["DEVX-P1-B"], "tasks": ["D9806","D9807"] }
+  ],
+  "tasks": [
+    {"id":"D9801","agent":"devex","title":"PR template requiring DX checklist (link to mk-dx-checklist)",
+      "allowedFiles":[".github/pull_request_template.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9801_pr-template-dx-checklist.patch"]},
+
+    {"id":"D9802","agent":"devex","title":"Docs: Using mkolbol in your repo + Hello Calculator tutorial",
+      "allowedFiles":["docs/devex/using-mkolbol-in-your-repo.md","docs/devex/hello-calculator.md","docs/devex/first-five-minutes.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9802_docs-using-and-hello-calculator.patch"]},
+
+    {"id":"D9803","agent":"devex","title":"Examples: hello-calculator (mk.json default + YAML variant)",
+      "allowedFiles":["examples/mk/hello-calculator/**"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9803_examples-hello-calculator.patch"]},
+
+    {"id":"D9804","agent":"devex","title":"CI: non‑gating acceptance smoke + aggregated Laminar PR comment",
+      "allowedFiles":[".github/workflows/tests.yml","scripts/post-laminar-pr-comment.js"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9804_ci-acceptance-smoke-aggregate.patch"]},
+
+    {"id":"D9805","agent":"devex","title":"Cookbook polish: endpoints --json, health exit mapping, FileSink JSONL",
+      "allowedFiles":["docs/devex/mkctl-cookbook.md","docs/devex/quickstart.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9805_cookbook-polsih.patch"]},
+
+    {"id":"D9806","agent":"devex","title":"DX style enforcements: finalize mk-dx-style/checklist; note snapshot scaffolds",
+      "allowedFiles":["docs/devex/mk-dx-style.md","docs/devex/mk-dx-checklist.md","tests/cli/mkdxHelp.spec.ts","tests/cli/mkdxErrors.spec.ts"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9806_dx-style-and-snapshots.patch"]},
+
+    {"id":"D9807","agent":"devex","title":"Laminar flake budget section (≥2 failures in last 5 runs)",
+      "allowedFiles":["scripts/post-laminar-pr-comment.js","reports/history.jsonl"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9807_laminar-flake-budget.patch"]}
+  ]
+}
+```
 
 Autonomy & Direction for Vex
-- You continue to own “Laminar and test strategy improvements.” You may run mini-sprints; create `Vex/minisprints/vex-sprint11-ms1.md` (use agent_template/AMPCODE_TEMPLATE.md) and log updates in `Vex/devex.log`.
-- Please sweep your prior notes (see Vex/sprint10-investigation.md) and pull any outstanding items into this sprint if they accelerate Local Node v1.0.
-- Keep changes best-effort in CI (never block merges on comment-post steps). Surface concerns and propose mitigations in ampcode.log.
+- You own “Laminar and test strategy improvements.” Run mini-sprints as needed; use `agent_template/AMPCODE_TEMPLATE.md` to create `Vex/minisprints/...` and log in `Vex/devex.log`.
+- Prioritize developer onboarding clarity: “Using mkolbol in your repo” and “Hello Calculator” must be copy‑paste runnable.
+- Keep CI additions non‑gating; graceful degradation if PR comment steps fail.
 
 Verification Commands
 ```bash
 export MK_LOCAL_NODE=1
 npm run build
 npm run test:ci
-MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
 ```
 
 Success Criteria
-- Laminar history uses per-node/per-branch cache keys and a single aggregated PR comment per run.
-- PR comment includes a flake budget summary (e.g., ≥2 failures in last 5 runs).
-- Acceptance doc shows a complete FileSink flow; quickstart/first‑five‑minutes remain consistent.
-- Cookbook documents endpoints --json, metadata filters, and health exit mapping.
+- New dev completes “Hello Calculator” (init → run → bundle) in < 10 minutes.
+- PR template includes checklist and links to DX style/guide.
+- Aggregated PR comment shows Laminar summary + flake budget section.
+- Quickstart/cookbook/first‑five‑minutes remain consistent and link to each other.

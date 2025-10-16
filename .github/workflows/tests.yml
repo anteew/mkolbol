@@ -159,15 +159,15 @@ jobs:
             TOPOLOGY_PASS="false"
           fi
 
-          # Check if logs file was created
-          if [ -f logs/http-response.log ]; then
+          # Check if FilesystemSink JSONL was created (reports/http-logs.jsonl)
+          if [ -f reports/http-logs.jsonl ]; then
             FILESINK_PASS="true"
-            LOG_LINES=$(wc -l < logs/http-response.log)
-            echo "✅ FilesystemSink smoke test PASSED: logs file created with $LOG_LINES lines"
-            cat logs/http-response.log
+            LOG_LINES=$(wc -l < reports/http-logs.jsonl)
+            echo "✅ FilesystemSink smoke test PASSED: JSONL file created with $LOG_LINES lines"
+            head -n 5 reports/http-logs.jsonl || true
           else
             FILESINK_PASS="false"
-            echo "⚠️  FilesystemSink smoke test: logs directory not found"
+            echo "⚠️  FilesystemSink smoke test: reports/http-logs.jsonl not found"
           fi
 
           # Check if router endpoints were recorded

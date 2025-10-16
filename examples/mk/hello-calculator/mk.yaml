@@ -1,0 +1,37 @@
+# Hello Calculator - YAML Variant
+#
+# Demonstrates mkolbol basics with TimerSource → UppercaseTransform → ConsoleSink
+#
+# Usage:
+#   npx mkctl run --file mk.yaml --duration 5
+#
+# Expected output:
+#   [hello-calc] TICK
+#   [hello-calc] TICK
+#   [hello-calc] TICK
+
+nodes:
+  - id: number-generator
+    module: TimerSource
+    params:
+      periodMs: 1000
+      # Emit a tick every 1 second
+
+  - id: transformer
+    module: UppercaseTransform
+    # Transform to uppercase
+
+  - id: console-output
+    module: ConsoleSink
+    params:
+      prefix: "[hello-calc]"
+      # Add prefix to console output
+
+connections:
+  - from: number-generator.output
+    to: transformer.input
+    # Connect generator output to transformer input
+
+  - from: transformer.output
+    to: console-output.input
+    # Connect transformer output to console output
