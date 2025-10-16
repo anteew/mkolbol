@@ -1,0 +1,146 @@
+diff --git a/src/transforms/AnsiParser.ts b/src/transforms/AnsiParser.ts
+index f3c760e..71ea341 100644
+--- a/src/transforms/AnsiParser.ts
++++ b/src/transforms/AnsiParser.ts
+@@ -3,8 +3,8 @@ export interface AnsiParserState {
+   cursorY: number;
+   bold: boolean;
+   underline: boolean;
+-  foregroundColor: number | null;
+-  backgroundColor: number | null;
++  foregroundColor: number | string | null;
++  backgroundColor: number | string | null;
+   inverse: boolean;
+ }
+ 
+@@ -25,10 +25,20 @@ interface EraseEvent {
+ 
+ interface StyleEvent {
+   type: 'style';
+-  data: { cursorX: number; cursorY: number; bold: boolean; underline: boolean; foregroundColor: number | null; backgroundColor: number | null; inverse: boolean };
++  data: { cursorX: number; cursorY: number; bold: boolean; underline: boolean; foregroundColor: number | string | null; backgroundColor: number | string | null; inverse: boolean };
+ }
+ 
+-export type AnsiParserEvent = PrintEvent | CursorEvent | EraseEvent | StyleEvent;
++interface ResizeEvent {
++  type: 'resize';
++  data: { cols: number; rows: number };
++}
++
++interface ModeEvent {
++  type: 'mode';
++  data: { mode: number; enabled: boolean; isDEC: boolean };
++}
++
++export type AnsiParserEvent = PrintEvent | CursorEvent | EraseEvent | StyleEvent | ResizeEvent | ModeEvent;
+ 
+ export interface AnsiParserOptions {
+   scrollbackLimit?: number;
+@@ -57,6 +67,8 @@ export class AnsiParser {
+   private scrollbackLimit: number;
+   private currentLine: string = '';
+   private currentLineStyle: AnsiParserState;
++  private cols: number = 80;
++  private rows: number = 24;
+ 
+   constructor(options: AnsiParserOptions = {}) {
+     this.scrollbackLimit = options.scrollbackLimit ?? 1000;
+@@ -214,6 +226,7 @@ export class AnsiParser {
+ 
+   private executeCSI(paramStr: string, command: string): void {
+     const params = this.parseParams(paramStr);
++    const isDEC = paramStr.startsWith('?');
+ 
+     switch (command) {
+       case 'm':
+@@ -241,18 +254,29 @@ export class AnsiParser {
+       case 'K':
+         this.handleEL(params[0] || 0);
+         break;
++      case 'h':
++        this.handleSetMode(params, isDEC, true);
++        break;
++      case 'l':
++        this.handleSetMode(params, isDEC, false);
++        break;
+     }
+   }
+ 
+   private parseParams(paramStr: string): number[] {
+     if (paramStr.length === 0) return [];
+     
++    let str = paramStr;
++    if (str.startsWith('?')) {
++      str = str.slice(1);
++    }
++    
+     const params: number[] = [];
+     let current = 0;
+     let hasDigits = false;
+ 
+-    for (let i = 0; i < paramStr.length; i++) {
+-      const charCode = paramStr.charCodeAt(i);
++    for (let i = 0; i < str.length; i++) {
++      const charCode = str.charCodeAt(i);
+       if (charCode >= 48 && charCode <= 57) {
+         current = current * 10 + (charCode - 48);
+         hasDigits = true;
+@@ -293,10 +317,42 @@ export class AnsiParser {
+         this.state.inverse = false;
+       } else if (param >= 30 && param <= 37) {
+         this.state.foregroundColor = param - 30;
++      } else if (param === 38) {
++        // 256-color or truecolor foreground
++        if (i + 1 < params.length) {
++          if (params[i + 1] === 5 && i + 2 < params.length) {
++            // ESC[38;5;n - 256-color
++            this.state.foregroundColor = params[i + 2];
++            i += 2;
++          } else if (params[i + 1] === 2 && i + 4 < params.length) {
++            // ESC[38;2;r;g;b - truecolor
++            const r = params[i + 2];
++            const g = params[i + 3];
++            const b = params[i + 4];
++            this.state.foregroundColor = `rgb(${r},${g},${b})`;
++            i += 4;
++          }
++        }
+       } else if (param === 39) {
+         this.state.foregroundColor = null;
+       } else if (param >= 40 && param <= 47) {
+         this.state.backgroundColor = param - 40;
++      } else if (param === 48) {
++        // 256-color or truecolor background
++        if (i + 1 < params.length) {
++          if (params[i + 1] === 5 && i + 2 < params.length) {
++            // ESC[48;5;n - 256-color
++            this.state.backgroundColor = params[i + 2];
++            i += 2;
++          } else if (params[i + 1] === 2 && i + 4 < params.length) {
++            // ESC[48;2;r;g;b - truecolor
++            const r = params[i + 2];
++            const g = params[i + 3];
++            const b = params[i + 4];
++            this.state.backgroundColor = `rgb(${r},${g},${b})`;
++            i += 4;
++          }
++        }
+       } else if (param === 49) {
+         this.state.backgroundColor = null;
+       } else if (param >= 90 && param <= 97) {
+@@ -378,6 +434,15 @@ export class AnsiParser {
+     });
+   }
+ 
++  private handleSetMode(params: number[], isDEC: boolean, enabled: boolean): void {
++    for (const mode of params) {
++      this.events.push({
++        type: 'mode',
++        data: { mode, enabled, isDEC },
++      });
++    }
++  }
++
+   private handleLineFeed(): void {
+     this.pushLineToScrollback();
+     this.state.cursorY++;

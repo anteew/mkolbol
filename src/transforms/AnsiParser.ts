@@ -3,9 +3,11 @@ export interface AnsiParserState {
   cursorY: number;
   bold: boolean;
   underline: boolean;
-  foregroundColor: number | null;
-  backgroundColor: number | null;
+  foregroundColor: number | string | null;
+  backgroundColor: number | string | null;
   inverse: boolean;
+  autoWrap: boolean;
+  screenInverse: boolean;
 }
 
 interface PrintEvent {
@@ -25,13 +27,25 @@ interface EraseEvent {
 
 interface StyleEvent {
   type: 'style';
-  data: { cursorX: number; cursorY: number; bold: boolean; underline: boolean; foregroundColor: number | null; backgroundColor: number | null; inverse: boolean };
+  data: AnsiParserState;
 }
 
-export type AnsiParserEvent = PrintEvent | CursorEvent | EraseEvent | StyleEvent;
+interface ResizeEvent {
+  type: 'resize';
+  data: { cols: number; rows: number };
+}
+
+interface ModeEvent {
+  type: 'mode';
+  data: { mode: number; enabled: boolean; isDEC: boolean };
+}
+
+export type AnsiParserEvent = PrintEvent | CursorEvent | EraseEvent | StyleEvent | ResizeEvent | ModeEvent;
 
 export interface AnsiParserOptions {
   scrollbackLimit?: number;
+  cols?: number;
+  rows?: number;
 }
 
 export interface ScrollbackLine {
@@ -46,6 +60,84 @@ export interface TerminalSnapshot {
   timestamp: number;
 }
 
+const ANSI_BASE_COLORS = [
+  '#000000', '#800000', '#008000', '#808000',
+  '#000080', '#800080', '#008080', '#c0c0c0',
+  '#808080', '#ff0000', '#00ff00', '#ffff00',
+  '#0000ff', '#ff00ff', '#00ffff', '#ffffff',
+];
+
+const ANSI_COLOR_LEVELS = [0, 95, 135, 175, 215, 255];
+
+const TRUECOLOR_CACHE = new Map<number, string>();
+
+function clampByte(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  if (value <= 0) return 0;
+  if (value >= 255) return 255;
+  return Math.round(value);
+}
+
+function componentToHex(value: number): string {
+  return clampByte(value).toString(16).padStart(2, '0');
+}
+
+function composeHex(r: number, g: number, b: number): string {
+  return `#${componentToHex(r)}${componentToHex(g)}${componentToHex(b)}`;
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const rr = clampByte(r);
+  const gg = clampByte(g);
+  const bb = clampByte(b);
+  const key = (rr << 16) | (gg << 8) | bb;
+  let cached = TRUECOLOR_CACHE.get(key);
+  if (!cached) {
+    cached = composeHex(rr, gg, bb);
+    TRUECOLOR_CACHE.set(key, cached);
+  }
+  return cached;
+}
+
+const ANSI_256_PALETTE: string[] = (() => {
+  const palette = new Array<string>(256);
+
+  for (let i = 0; i < ANSI_BASE_COLORS.length; i++) {
+    palette[i] = ANSI_BASE_COLORS[i];
+  }
+
+  let index = 16;
+  for (let r = 0; r < 6; r++) {
+    for (let g = 0; g < 6; g++) {
+      for (let b = 0; b < 6; b++) {
+        const red = ANSI_COLOR_LEVELS[r];
+        const green = ANSI_COLOR_LEVELS[g];
+        const blue = ANSI_COLOR_LEVELS[b];
+        palette[index++] = composeHex(red, green, blue);
+      }
+    }
+  }
+
+  for (let i = 0; i < 24; i++) {
+    const level = 8 + i * 10;
+    palette[232 + i] = composeHex(level, level, level);
+  }
+
+  // safety fallback
+  for (let i = 0; i < palette.length; i++) {
+    if (!palette[i]) {
+      palette[i] = '#000000';
+    }
+  }
+
+  return palette;
+})();
+
+function ansi256ToHex(index: number): string {
+  const clamped = clampByte(index);
+  return ANSI_256_PALETTE[clamped] ?? '#000000';
+}
+
 export class AnsiParser {
   private state: AnsiParserState;
   private buffer: string = '';
@@ -57,9 +149,13 @@ export class AnsiParser {
   private scrollbackLimit: number;
   private currentLine: string = '';
   private currentLineStyle: AnsiParserState;
+  private cols: number;
+  private rows: number;
 
   constructor(options: AnsiParserOptions = {}) {
     this.scrollbackLimit = options.scrollbackLimit ?? 1000;
+    this.cols = Math.max(1, Math.floor(options.cols ?? 80));
+    this.rows = Math.max(1, Math.floor(options.rows ?? 24));
     this.state = this.createInitialState();
     this.currentLineStyle = { ...this.state };
   }
@@ -73,6 +169,8 @@ export class AnsiParser {
       foregroundColor: null,
       backgroundColor: null,
       inverse: false,
+      autoWrap: true,
+      screenInverse: false,
     };
   }
 
@@ -116,6 +214,15 @@ export class AnsiParser {
         }
         this.charBatch += this.buffer[i];
         this.state.cursorX++;
+        if (this.cols > 0 && this.state.cursorX >= this.cols) {
+          if (this.state.autoWrap) {
+            this.flushCharBatch();
+            this.state.cursorX = 0;
+            this.state.cursorY++;
+          } else {
+            this.state.cursorX = this.cols - 1;
+          }
+        }
         i++;
       } else {
         i++;
@@ -138,15 +245,7 @@ export class AnsiParser {
         char: this.charBatch, 
         x: this.batchStartX, 
         y: this.batchStartY, 
-        style: { 
-          cursorX: this.state.cursorX,
-          cursorY: this.state.cursorY,
-          bold: this.state.bold,
-          underline: this.state.underline,
-          foregroundColor: this.state.foregroundColor,
-          backgroundColor: this.state.backgroundColor,
-          inverse: this.state.inverse,
-        } 
+        style: { ...this.state },
       },
     });
     this.charBatch = '';
@@ -214,6 +313,7 @@ export class AnsiParser {
 
   private executeCSI(paramStr: string, command: string): void {
     const params = this.parseParams(paramStr);
+    const isDEC = paramStr.startsWith('?');
 
     switch (command) {
       case 'm':
@@ -241,18 +341,32 @@ export class AnsiParser {
       case 'K':
         this.handleEL(params[0] || 0);
         break;
+      case 'h':
+        this.handleSetMode(params, isDEC, true);
+        break;
+      case 'l':
+        this.handleSetMode(params, isDEC, false);
+        break;
+      case 't':
+        this.handleWindowCommand(params);
+        break;
     }
   }
 
   private parseParams(paramStr: string): number[] {
     if (paramStr.length === 0) return [];
     
+    let str = paramStr;
+    if (str.startsWith('?')) {
+      str = str.slice(1);
+    }
+    
     const params: number[] = [];
     let current = 0;
     let hasDigits = false;
 
-    for (let i = 0; i < paramStr.length; i++) {
-      const charCode = paramStr.charCodeAt(i);
+    for (let i = 0; i < str.length; i++) {
+      const charCode = str.charCodeAt(i);
       if (charCode >= 48 && charCode <= 57) {
         current = current * 10 + (charCode - 48);
         hasDigits = true;
@@ -293,10 +407,42 @@ export class AnsiParser {
         this.state.inverse = false;
       } else if (param >= 30 && param <= 37) {
         this.state.foregroundColor = param - 30;
+      } else if (param === 38) {
+        // 256-color or truecolor foreground
+        if (i + 1 < params.length) {
+          if (params[i + 1] === 5 && i + 2 < params.length) {
+            // ESC[38;5;n - 256-color
+            this.state.foregroundColor = ansi256ToHex(params[i + 2]);
+            i += 2;
+          } else if (params[i + 1] === 2 && i + 4 < params.length) {
+            // ESC[38;2;r;g;b - truecolor
+            const r = params[i + 2];
+            const g = params[i + 3];
+            const b = params[i + 4];
+            this.state.foregroundColor = rgbToHex(r, g, b);
+            i += 4;
+          }
+        }
       } else if (param === 39) {
         this.state.foregroundColor = null;
       } else if (param >= 40 && param <= 47) {
         this.state.backgroundColor = param - 40;
+      } else if (param === 48) {
+        // 256-color or truecolor background
+        if (i + 1 < params.length) {
+          if (params[i + 1] === 5 && i + 2 < params.length) {
+            // ESC[48;5;n - 256-color
+            this.state.backgroundColor = ansi256ToHex(params[i + 2]);
+            i += 2;
+          } else if (params[i + 1] === 2 && i + 4 < params.length) {
+            // ESC[48;2;r;g;b - truecolor
+            const r = params[i + 2];
+            const g = params[i + 3];
+            const b = params[i + 4];
+            this.state.backgroundColor = rgbToHex(r, g, b);
+            i += 4;
+          }
+        }
       } else if (param === 49) {
         this.state.backgroundColor = null;
       } else if (param >= 90 && param <= 97) {
@@ -308,15 +454,7 @@ export class AnsiParser {
 
     this.events.push({
       type: 'style',
-      data: { 
-        cursorX: this.state.cursorX,
-        cursorY: this.state.cursorY,
-        bold: this.state.bold,
-        underline: this.state.underline,
-        foregroundColor: this.state.foregroundColor,
-        backgroundColor: this.state.backgroundColor,
-        inverse: this.state.inverse,
-      },
+      data: { ...this.state },
     });
   }
 
@@ -378,6 +516,64 @@ export class AnsiParser {
     });
   }
 
+  private handleSetMode(params: number[], isDEC: boolean, enabled: boolean): void {
+    for (const mode of params) {
+      if (isDEC) {
+        if (mode === 7) {
+          this.state.autoWrap = enabled;
+        } else if (mode === 5) {
+          this.state.screenInverse = enabled;
+        }
+      }
+
+      this.events.push({
+        type: 'mode',
+        data: { mode, enabled, isDEC },
+      });
+    }
+  }
+
+  private handleWindowCommand(params: number[]): void {
+    if (params.length === 0) return;
+
+    const command = params[0];
+
+    if (command === 8) {
+      const rows = params[1] ?? this.rows;
+      const cols = params[2] ?? this.cols;
+      const resizeEvent = this.applyResize(cols, rows);
+      this.events.push(resizeEvent);
+    }
+  }
+
+  private applyResize(cols: number, rows: number): ResizeEvent {
+    const normalizedCols = Math.max(1, Math.floor(cols));
+    const normalizedRows = Math.max(1, Math.floor(rows));
+
+    this.cols = normalizedCols;
+    this.rows = normalizedRows;
+
+    if (this.state.cursorX >= normalizedCols) {
+      this.state.cursorX = Math.max(0, normalizedCols - 1);
+    }
+
+    if (this.state.cursorY >= normalizedRows) {
+      this.state.cursorY = Math.max(0, normalizedRows - 1);
+    }
+
+    this.batchStartX = Math.min(this.batchStartX, this.state.cursorX);
+    this.batchStartY = Math.min(this.batchStartY, this.state.cursorY);
+
+    return {
+      type: 'resize',
+      data: { cols: normalizedCols, rows: normalizedRows },
+    };
+  }
+
+  resize(cols: number, rows: number): ResizeEvent {
+    return this.applyResize(cols, rows);
+  }
+
   private handleLineFeed(): void {
     this.pushLineToScrollback();
     this.state.cursorY++;
@@ -429,19 +625,15 @@ export class AnsiParser {
   }
 
   getState(): AnsiParserState {
-    return { 
-      cursorX: this.state.cursorX,
-      cursorY: this.state.cursorY,
-      bold: this.state.bold,
-      underline: this.state.underline,
-      foregroundColor: this.state.foregroundColor,
-      backgroundColor: this.state.backgroundColor,
-      inverse: this.state.inverse,
-    };
+    return { ...this.state };
   }
 
   getScrollback(): ScrollbackLine[] {
     return [...this.scrollback];
+  }
+
+  getDimensions(): { cols: number; rows: number } {
+    return { cols: this.cols, rows: this.rows };
   }
 
   snapshot(): TerminalSnapshot {

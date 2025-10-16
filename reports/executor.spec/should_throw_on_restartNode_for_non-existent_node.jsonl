@@ -1,3 +1,3 @@
-{"ts":1760577251672,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760577251673,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"execution","evt":"test.run"}
-{"ts":1760577251674,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"teardown","evt":"case.end","payload":{"duration":16,"status":"passed"}}
+{"ts":1760583376556,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760583376557,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"execution","evt":"test.run"}
+{"ts":1760583376558,"lvl":"info","case":"should throw on restartNode for non-existent node","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}

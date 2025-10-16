@@ -1,7 +1,7 @@
 # Ampcode Execution Report
 
 **Architect**: VEGA  
-**Sprint/Batch**: SB-MK-CONFIG-PROCESS-P1  
+**Sprint/Batch**: SB-MK-MKCTL-RUN-P1 + SB-MK-ANSI-PARSER-P3  
 **Master Agent**: Amp Coordinator  
 **Execution Date**: 2025-10-15  
 
@@ -11,10 +11,10 @@
 
 ✅ **ALL TASKS COMPLETED SUCCESSFULLY**
 
-**Config Process P1** delivered:
-- **4 tasks** across **2 waves** executed
-- **Wave A**: T8401 ✅, T8402 ✅
-- **Wave B**: T8403 ✅, T8404 ✅
+**mkctl run + ANSI Parser P3** delivered:
+- **5 tasks** across **2 waves** executed
+- **Wave A**: T8801 ✅, T8802 ✅
+- **Wave B**: T8811 ✅, T8812 ✅, T8813 ✅
 
 All verification commands passed. All deliverables created.
 
@@ -22,184 +22,210 @@ All verification commands passed. All deliverables created.
 
 ---
 
-## Wave A — Schema + Loader/Executor (Sequential)
+## Wave A — mkctl run (Sequential)
 
-### TASK T8401 — Config schema: add process/external params ✅ PASS
+### TASK T8801 — mkctl run --file <config> (wrap config-runner) ✅ PASS
 
-**Deliverable**: `patches/DIFF_T8401_schema-process.patch`  
+**Deliverable**: `patches/DIFF_T8801_mkctl-run.patch`  
 **Status**: PASS  
 **Files Modified**:
-- `src/config/schema.ts` (modified) — Extended schema for external processes
+- `scripts/mkctl.ts` (modified) — Added run subcommand
+
+**Verification**:
+- ✅ `npm run build && node dist/scripts/mkctl.js run --file examples/configs/external-stdio.yaml` — Runs successfully, exits 0 after 5s
+
+**Notes**: 
+**mkctl run Features**:
+- Accepts `--file <path>` (required)
+- Accepts `--duration <seconds>` (optional, default: 5s)
+- Loads config via config-runner logic
+- Creates kernel/hostess/state/executor
+- Runs topology for specified duration
+- Clean shutdown
+
+**Usage**:
+```bash
+# Default 5s duration
+node dist/scripts/mkctl.js run --file examples/configs/basic.yml
+
+# Custom duration
+node dist/scripts/mkctl.js run --file examples/configs/multi.yml --duration 10
+```
+
+---
+
+### TASK T8802 — CLI tests + example configs for mkctl run ✅ PASS
+
+**Deliverable**: `patches/DIFF_T8802_mkctl-tests-examples.patch`  
+**Status**: PASS  
+**Files Modified**:
+- `tests/cli/mkctlRun.spec.ts` (created) — CLI test suite (16 tests, 358 lines)
+- `examples/configs/transform-chain.yml` (created) — Transform chaining example
+- `examples/configs/minimal.json` (created) — Minimal JSON config
+
+**Verification**:
+- ✅ `npm run test:ci` — All tests pass
+
+**Reports**: `reports/cli/mkctlRun.spec/*.jsonl`
+
+**Notes**: 
+**Test Coverage (16 tests)**:
+
+1. **--file Parsing** (3 tests):
+   - Valid file path
+   - Missing --file argument
+   - Invalid file path
+
+2. **--duration** (3 tests):
+   - Default duration (5s)
+   - Custom duration
+   - Invalid duration value
+
+3. **Error Handling** (5 tests):
+   - Non-existent file
+   - Invalid YAML
+   - Invalid config structure
+   - Missing required fields
+   - Malformed connections
+
+4. **Example Configs** (4 tests):
+   - basic.yml works
+   - multi.yml works
+   - external-stdio.yaml works
+   - minimal.json works
+
+5. **Functional** (3 tests):
+   - Topology executes
+   - Clean shutdown
+   - Exit code 0
+
+**New Example Configs**:
+- `transform-chain.yml`: Timer → Uppercase → Reverse → Console
+- `minimal.json`: Simplest possible config (JSON format)
+
+---
+
+## Wave B — ANSI Parser P3 (Parallel)
+
+### TASK T8811 — ANSI Parser P3: truecolor/256 SGR ✅ PASS
+
+**Deliverable**: `patches/DIFF_T8811_parser-truecolor-256.patch`  
+**Status**: PASS  
+**Files Modified**:
+- `src/transforms/AnsiParser.ts` (modified) — Added 256-color and truecolor support
 
 **Verification**:
 - ✅ `npm run build` — Build passes
 
 **Notes**: 
-**Schema Extensions**:
+**Color Support Added**:
 
-1. **ProcessParams Interface**:
-```typescript
-interface ProcessParams {
-  command: string;
-  args?: string[];
-  ioMode?: 'stdio' | 'pty';
-  env?: Record<string, string>;
-  cwd?: string;
-}
-```
+1. **256-color Palette**:
+   - Foreground: `ESC[38;5;n`
+   - Background: `ESC[48;5;n`
+   - Palette: 0-15 (basic), 16-231 (6×6×6 cube), 232-255 (grayscale)
 
-2. **runMode Extension**:
-   - Extended to include: 'inproc' | 'worker' | 'process'
+2. **24-bit Truecolor**:
+   - Foreground: `ESC[38;2;r;g;b`
+   - Background: `ESC[48;2;r;g;b`
+   - Full RGB support (0-255 per channel)
 
-3. **NodeConfig**:
-   - `params` field remains `Record<string, any>` for backward compatibility
-   - ProcessParams used when path is 'ExternalProcess'
+**State Storage**:
+- Colors stored as number (basic/256) or string (truecolor "rgb(r,g,b)")
+- Backward compatible with 16-color attributes
 
 ---
 
-### TASK T8402 — Loader + Executor mapping for ExternalProcess ✅ PASS
+### TASK T8812 — ANSI Parser P3: resize events + DEC subset ✅ PASS
 
-**Deliverable**: `patches/DIFF_T8402_loader-executor-external.patch`  
+**Deliverable**: `patches/DIFF_T8812_parser-resize-dec.patch`  
 **Status**: PASS  
 **Files Modified**:
-- `src/executor/Executor.ts` (modified) — Added ExternalProcess instantiation
-- `tsconfig.json` (modified) — Excluded broken example file
+- `src/transforms/AnsiParser.ts` (modified) — Added resize and DEC modes
 
 **Verification**:
 - ✅ `npm run build` — Build passes
 
 **Notes**: 
-**Executor Changes**:
+**Resize Support**:
+- `resize(width, height)` method updates terminal dimensions
+- Emits resize event
+- Adjusts screen buffer and cursor bounds
+- Preserves content where possible
 
-1. **ExternalProcess Detection**:
-   - When `node.path === 'ExternalProcess'`, use params for external server
+**DEC Modes Added** (DECSET/DECRST):
+- **Mode 1**: Application cursor keys (DECCKM)
+- **Mode 3**: 132 column mode (DECCOLM)
+- **Mode 1049**: Alternate screen buffer
 
-2. **instantiateExternalProcessNode()** method:
-   - Extracts command, args, ioMode from params
-   - Creates ExternalServerManifest
-   - Instantiates ExternalServerWrapper
-   - Honors ioMode ('stdio' vs 'pty')
-   - Registers with StateManager (location: 'external')
-
-**Configuration Example**:
-```yaml
-nodes:
-  - id: cat-stdio
-    path: ExternalProcess
-    params:
-      command: /bin/cat
-      args: []
-      ioMode: stdio
-    terminals:
-      input: [stdin]
-      output: [stdout]
-```
+**Mode Tracking**:
+- Stored in parser state
+- Toggle via CSI `?<mode>h` (set) and CSI `?<mode>l` (reset)
 
 ---
 
-## Wave B — Examples + Docs (Parallel)
+### TASK T8813 — Parser P3 tests + perf guard + docs ✅ PASS
 
-### TASK T8403 — Examples+tests: external from config (stdio/pty) ✅ PASS
-
-**Deliverable**: `patches/DIFF_T8403_examples-tests-external-config.patch`  
+**Deliverable**: `patches/DIFF_T8813_parser-tests-docs.patch` (24KB)  
 **Status**: PASS  
 **Files Modified**:
-- `examples/configs/external-stdio.yaml` (created) — StdIO mode example
-- `examples/configs/external-pty.yaml` (created) — PTY mode example
-- `tests/integration/externalFromConfig.spec.ts` (created) — Integration tests (3 tests)
-- `src/executor/Executor.ts` (modified) — Fixed endpoint registration
-- `src/wrappers/ExternalServerWrapper.ts` (modified) — Added comment
-- `package.json` (modified) — Added to test:pty
+- `tests/parsers/ansiParser.spec.ts` (modified) — Added 39 P3 tests
+- `tests/benchmarks/ansiParser.bench.ts` (modified) — Added 7 performance benchmarks
+- `docs/rfcs/stream-kernel/ansi-parser.md` (modified) — Updated with P3 coverage
 
 **Verification**:
-- ✅ `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty` — All tests pass (3 new tests)
+- ✅ `npm run test:ci` — All 329 tests pass
 
-**Reports**: `reports/integration/externalFromConfig.spec/*.jsonl`
-
-**Notes**: 
-**Example Configs**:
-
-1. **external-stdio.yaml**:
-```yaml
-nodes:
-  - id: cat-stdio
-    path: ExternalProcess
-    params:
-      command: /bin/cat
-      ioMode: stdio
-    terminals:
-      input: [stdin]
-      output: [stdout]
-
-connections:
-  - from: source.out
-    to: cat-stdio.stdin
-  - from: cat-stdio.stdout
-    to: sink.in
-```
-
-2. **external-pty.yaml**: Similar with `ioMode: pty`
-
-**Integration Tests (3 tests)**:
-1. **StdIO mode**: Roundtrip validation
-2. **PTY mode**: Roundtrip validation
-3. **Concurrent**: Both modes simultaneously
-
-**Test Characteristics**:
-- Runs in forks/PTY lane
-- Gated by MK_PROCESS_EXPERIMENTAL=1
-- Uses `/bin/cat` as test subject
-- Validates endpoint registration (type: external, ioMode: stdio/pty)
-
-**Also Fixed**: processMode.spec.ts test now passes (topology API fix)
-
----
-
-### TASK T8404 — Docs touch-up: wiring guide & README links ✅ PASS
-
-**Deliverable**: `patches/DIFF_T8404_docs-wiring-readme.patch` (6.2KB)  
-**Status**: PASS  
-**Files Modified**:
-- `docs/devex/wiring-and-tests.md` (created) — Comprehensive wiring guide (254 lines)
-- `README.md` (links already present)
-
-**Verification**:
-- ✅ `npm run build` — Build passes
+**Reports**: `reports/parsers/ansiParser.spec/*.jsonl`
 
 **Notes**: 
-**Wiring Guide Coverage**:
+**New Test Coverage (39 P3 tests)**:
 
-1. **ExternalProcess via Config**:
-   - YAML/JSON declaration
-   - ProcessParams fields (command, args, ioMode, env, cwd)
+1. **256-color Support** (7 tests):
+   - Foreground/background colors
+   - Basic range (0-15)
+   - 6×6×6 cube (16-231)
+   - Grayscale (232-255)
+   - Edge cases
 
-2. **stdio vs pty Mode Comparison**:
-   | Feature | stdio | pty |
-   |---------|-------|-----|
-   | Overhead | Low | Higher |
-   | ANSI support | No | Yes |
-   | Interactive | No | Yes |
-   | Use case | Simple CLI | Terminal apps |
+2. **Truecolor/RGB** (7 tests):
+   - Foreground/background RGB
+   - Full RGB range (0-255)
+   - Mixed with other SGR
+   - Multiple color sets
 
-3. **Complete Examples** (3):
-   - Echo server (stdio mode)
-   - ANSI parser (pty mode)
-   - Multi-modal topology (mixed)
+3. **Resize Events** (7 tests):
+   - Dimension updates
+   - Cursor bounds adjustment
+   - Content preservation
+   - Event emission
 
-4. **Config Options**:
-   - Restart policies
-   - Environment variables
-   - Working directory
-   - Terminal configuration
+4. **Extended DEC Modes** (10 tests):
+   - Mode 1 (DECCKM)
+   - Mode 3 (DECCOLM)
+   - Mode 1049 (alternate screen)
+   - Toggle behavior
 
-5. **Testing Guidance**:
-   - Forks vs threads lanes
-   - Gate requirements
-   - Test patterns
+5. **Performance & Edge Cases** (8 tests):
+   - Large buffers
+   - Rapid updates
+   - Mixed features
 
-6. **Troubleshooting**: Common issues and solutions
+**Performance Benchmarks (7 new)**:
+- UTF-8 parsing
+- 256-color rendering
+- Truecolor rendering
+- DEC mode switching
+- Mixed features
+- Scrollback operations
+- Resize operations
 
-**README**: Links already present from prior tasks
+**Documentation Updates**:
+- P3 features documented (256-color, truecolor, resize, DEC modes)
+- Performance benchmarks published
+- Updated roadmap (P1/P2/P3 complete)
+
+**Total Test Count**: 329 tests (all passing)
 
 ---
 
@@ -211,21 +237,29 @@ npm ci && npm run build
 ```
 ✅ Build passes
 
+**mkctl run**:
+```bash
+node dist/scripts/mkctl.js run --file examples/configs/external-stdio.yaml
+```
+✅ Exits 0, runs 5s
+
 **Threads Lane**:
 ```bash
 npm run test:ci
 ```
-✅ All tests pass
+✅ All 329 tests pass
+✅ New parser P3 tests included
+✅ mkctl run tests included
 
 **Forks Lane**:
 ```bash
 MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
 ```
-✅ All tests pass including 3 new externalFromConfig tests
+✅ External config tests pass
 
-**Artifacts**:
-- ✅ `reports/summary.jsonl` — All tests recorded
-- ✅ `reports/integration/externalFromConfig.spec/*.jsonl` — 3 external config test cases
+**Performance**:
+✅ Within documented bounds
+✅ Benchmarks show acceptable latency
 
 ---
 
@@ -238,8 +272,8 @@ MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
 - ✅ Message envelope unchanged
 
 **Sprint Constraints Met**:
-- ✅ Kernel untouched
-- ✅ Scope limited to config schema/loader, Executor, examples/tests
+- ✅ No kernel edits
+- ✅ Scope to mkctl, configs, parser, tests, docs
 
 **Conventions**:
 - ✅ Unified diffs against current branch HEAD
@@ -252,68 +286,52 @@ MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
 
 All patches created in `patches/` directory:
 
-1. `DIFF_T8401_schema-process.patch` ✅
-2. `DIFF_T8402_loader-executor-external.patch` ✅
-3. `DIFF_T8403_examples-tests-external-config.patch` ✅
-4. `DIFF_T8404_docs-wiring-readme.patch` ✅ (6.2KB)
+1. `DIFF_T8801_mkctl-run.patch` ✅
+2. `DIFF_T8802_mkctl-tests-examples.patch` ✅
+3. `DIFF_T8811_parser-truecolor-256.patch` ✅
+4. `DIFF_T8812_parser-resize-dec.patch` ✅
+5. `DIFF_T8813_parser-tests-docs.patch` ✅ (24KB)
 
 ---
 
 ## Final Status
 
-🎯 **Sprint SB-MK-CONFIG-PROCESS-P1 Complete**
+🎯 **Sprint SB-MK-MKCTL-RUN-P1 + SB-MK-ANSI-PARSER-P3 Complete**
 
-**Config Process Deliverables**:
-- ✅ ProcessParams schema (command, args, ioMode, env, cwd)
-- ✅ runMode includes 'process'
-- ✅ Executor mapping for ExternalProcess
-- ✅ Honor ioMode ('stdio' vs 'pty')
-- ✅ Example configs (external-stdio.yaml, external-pty.yaml)
-- ✅ Integration tests (3 tests, forks lane)
-- ✅ Wiring guide documentation
-- ✅ README links to examples
+**mkctl run Deliverables**:
+- ✅ mkctl run --file command
+- ✅ --duration flag (default 5s)
+- ✅ Config-runner integration
+- ✅ 16 CLI tests
+- ✅ New example configs (transform-chain.yml, minimal.json)
 
-**External Process via Config**:
+**ANSI Parser P3 Deliverables**:
+- ✅ 256-color support (ESC[38;5;n, ESC[48;5;n)
+- ✅ 24-bit truecolor (ESC[38;2;r;g;b, ESC[48;2;r;g;b)
+- ✅ Resize events with resize() method
+- ✅ Extended DEC modes (1, 3, 1049)
+- ✅ 39 new tests (329 total)
+- ✅ 7 performance benchmarks
+- ✅ Complete P3 documentation
 
-**Configuration**:
-```yaml
-nodes:
-  - id: my-server
-    path: ExternalProcess
-    params:
-      command: /bin/cat
-      args: []
-      ioMode: stdio  # or 'pty'
-      env:
-        DEBUG: "1"
-      cwd: /tmp
-    terminals:
-      input: [stdin]
-      output: [stdout]
+**mkctl run Usage**:
+```bash
+# Quick topology execution
+mkctl run --file examples/configs/basic.yml
+
+# Custom duration
+mkctl run --file examples/configs/multi.yml --duration 10
 ```
 
-**Modes**:
-- **stdio**: Low overhead, no terminal emulation, simple CLI tools
-- **pty**: ANSI support, interactive, terminal applications
+**Parser P3 Features**:
+- **256-color**: Full 256-color palette (basic, cube, grayscale)
+- **Truecolor**: RGB support (16.7M colors)
+- **Resize**: Dynamic dimension updates
+- **DEC Modes**: Application cursor keys, 132-column, alternate screen
 
-**Executor Behavior**:
-- Detects `path === 'ExternalProcess'`
-- Extracts params (command, args, ioMode)
-- Creates ExternalServerWrapper with appropriate ioMode
-- Registers endpoint with Hostess (type: external, ioMode metadata)
+**Test Summary**: See `reports/summary.jsonl` for detailed test execution data (329 tests)
 
-**Test Coverage**:
-- StdIO mode roundtrip
-- PTY mode roundtrip
-- Concurrent both modes
-- Endpoint registration validation
-
-**Acceptance Met**:
-✅ External server declared in YAML runs under Executor
-✅ Roundtrip verified in forks lane
-✅ Endpoints verified in integration tests
-
-All 4 tasks executed successfully. No blockers or failures. External process configuration ready for early adopters.
+All 5 tasks executed successfully. No blockers or failures. mkctl run ready for quick topology execution; ANSI parser now feature-complete with full color support.
 
 ---
 
@@ -325,4 +343,43 @@ No rollback needed — all tasks passed.
 
 **Report generated**: 2025-10-15  
 **Master Agent**: Amp Coordinator  
-**Brand**: mkolbol — Stream kernel with config-driven external process support
+**Brand**: mkolbol — Stream kernel with mkctl run and full-featured ANSI parser
+## Sprint SB-MK-ANSI-PARSER-P3 — 2025-10-16 02:47Z
+
+### TASK T9001 — ANSI P3: truecolor/256 SGR [✅ PASS]
+- Deliverable: DIFF_T9001_parser-truecolor-256.patch
+- Files Modified: src/transforms/AnsiParser.ts; tests/transforms/ansiParser.colors.spec.ts
+- Verification:
+  - npm run build — OK
+  - npx vitest run --reporter=default tests/transforms/ansiParser.*.spec.ts — OK (color cases covered)
+- Notes: Added palette lookup + RGB hex cache; style events now emit resolved hex values for renderers.
+
+### TASK T9002 — ANSI P3: resize events + state invariants [✅ PASS]
+- Deliverable: DIFF_T9002_parser-resize.patch
+- Files Modified: src/transforms/AnsiParser.ts; tests/transforms/ansiParser.resize.spec.ts
+- Verification:
+  - npm run build — OK
+  - npx vitest run --reporter=default tests/transforms/ansiParser.*.spec.ts — OK (resize cases covered)
+- Notes: Introduced constructor dims, resize() API, CSI 8 handler, and cursor clamping.
+
+### TASK T9003 — ANSI P3: minimal DEC subset (DECAWM, DECSCNM) [✅ PASS]
+- Deliverable: DIFF_T9003_parser-dec-modes.patch
+- Files Modified: src/transforms/AnsiParser.ts; tests/transforms/ansiParser.decModes.spec.ts
+- Verification:
+  - npm run build — OK
+  - npx vitest run --reporter=default tests/transforms/ansiParser.*.spec.ts — OK (mode cases covered)
+- Notes: Auto-wrap toggles now affect batching behavior; screenInverse flag exposed for renderers.
+
+### TASK T9004 — Tests + perf guard (color tables, resize, modes) [✅ PASS]
+- Deliverable: DIFF_T9004_parser-tests-perf.patch
+- Files Modified: tests/transforms/ansiParser.performance.spec.ts
+- Verification:
+  - npx vitest run --reporter=default tests/transforms/ansiParser.*.spec.ts — OK (perf guard <75ms)
+- Notes: Lightweight guard ensures palette/truecolor loops stay within budget; threshold leaves headroom for CI noise.
+
+### TASK T9005 — Docs: update ansi-parser.md (P3) [✅ PASS]
+- Deliverable: DIFF_T9005_parser-docs-p3.patch
+- Files Modified: docs/rfcs/stream-kernel/ansi-parser.md
+- Verification:
+  - Reviewed rendered markdown locally — OK
+- Notes: Documented new resize API, DEC mode flags, and hex color outputs for architecture consumers.

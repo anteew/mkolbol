@@ -246,10 +246,46 @@ await wrapper.shutdown(2000); // 2 second timeout
 5. **Close cleanly**: Always call `shutdown()` to avoid zombie processes
 6. **Monitor stderr**: Don't ignore the error pipe
 
+## Discovering Running Processes with mkctl
+
+Once you have external processes running in a topology, you can inspect them using `mkctl endpoints`:
+
+```bash
+# After running a topology with external processes
+node dist/scripts/mkctl.js endpoints
+```
+
+This will show all registered endpoints, including their **ioMode**:
+
+```
+Registered Endpoints:
+
+ID:          localhost:my-filter:0xFFFF:test:no:none:abc123
+Type:        external
+Coordinates: /usr/bin/jq
+IO Mode:     stdio
+Metadata:    {"command":"/usr/bin/jq","args":["-r",".name"],"ioMode":"stdio"}
+
+ID:          localhost:bash-interactive:0xFFFF:test:no:none:def456
+Type:        pty
+Coordinates: pid:1234567
+IO Mode:     pty
+Metadata:    {"cols":80,"rows":24,"terminalType":"xterm-256color","ioMode":"pty"}
+```
+
+**Key fields:**
+- **IO Mode: stdio** - Lightweight pipe-based process (no terminal emulation)
+- **IO Mode: pty** - Pseudo-terminal process (interactive, terminal emulation)
+- **Type: external** - External process (vs inproc, worker)
+- **Coordinates** - How to reach the process (command/PID)
+
+See [mkctl CLI documentation](../../README.md#mkctl---microkernel-control-cli) for complete endpoint discovery details.
+
 ## Related Documentation
 
 - [Early Adopter Guide](./early-adopter-guide.md) - Overview of mkolbol concepts
 - [Quickstart: PTY Demo](./quickstart.md) - PTY mode example
+- [Wiring and Testing Guide](./wiring-and-tests.md) - Configuration and running topologies
 - [ExternalServerWrapper Source](../../src/wrappers/ExternalServerWrapper.ts) - Implementation details
 
 ## See Also
@@ -257,3 +293,4 @@ await wrapper.shutdown(2000); // 2 second timeout
 - [PTYServerWrapper](../../src/wrappers/PTYServerWrapper.ts) - PTY mode implementation
 - [Executor](../../src/executor/Executor.ts) - Wrapper spawning interface
 - [Kernel Pipes](../../src/kernel/Kernel.ts) - Stream management
+- [mkctl run](../../README.md#config-loader) - Running config files with mkctl

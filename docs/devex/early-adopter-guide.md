@@ -2,6 +2,30 @@
 
 Welcome to mkolbol! This guide will get you up to speed in 5 minutes.
 
+## Quick Start: Choose Your Path
+
+**New to mkolbol?** Pick one of these entry points based on what you want to do:
+
+### 🚀 **I want to see it in action** (5 min)
+Run a live topology demo without writing code:
+- **[Quickstart: mkctl run](./quickstart.md#quick-start-with-mkctl-recommended)** - Execute pre-built topologies from YAML
+- **[Interactive Topology](./interactive-topology.md)** - Keyboard → PTY → Terminal demo
+- **[StdIO Path](./stdio-path.md)** - Non-interactive data pipeline (no terminal overhead)
+
+### 🔨 **I want to build my first module** (20-30 min)
+Create and wire a custom server:
+- **[First Server Tutorial](./first-server-tutorial.md)** - Code your first Transform or External process
+- **[Wiring and Testing Guide](./wiring-and-tests.md)** - Configure topologies and test them
+- **[Acceptance Tests](./tests/devex/README.md)** - Validate your module works
+
+### 🚢 **I want to deploy and observe** (15-20 min)
+Prepare modules for production:
+- **[Laminar Dev Workflow](./laminar-workflow.md)** - Test observability and debugging
+- **[Packaging Guide](./packaging.md)** - Bundle your modules into single executables
+- **[Contributing](../../../CONTRIBUTING-DEVEX.md)** - Share feedback and get help
+
+---
+
 ## What is mkolbol?
 
 mkolbol is a stream-based microkernel for building flexible AI agent systems and terminal I/O applications. Think of it as "plumbing for data" - a tiny (~100 line) kernel that provides pipes and connections, while all the interesting functionality lives in composable modules. You can run modules in-process for speed, in separate threads for isolation, or as external processes for maximum flexibility.
@@ -310,22 +334,16 @@ npm run dev:split   # Fan-out example
 npm run dev:merge   # Fan-in example
 ```
 
-## Learning Paths
+---
 
-### Path 1: Try It Interactively (5-10 minutes)
-1. **[Quickstart: PTY Demo](./quickstart.md)** - See live terminal rendering
-2. **[Interactive Topology Guide](./interactive-topology.md)** - Build keyboard → PTY → screen
-3. **[StdIO Path Guide](./stdio-path.md)** - Explore non-interactive data pipelines
+## Your Next Steps
 
-### Path 2: Build Your First Module (20-30 minutes)
-1. **[First Server Tutorial](./first-server-tutorial.md)** - Step-by-step module creation
-2. **[Wiring and Testing Guide](./wiring-and-tests.md)** - Configure topologies, run tests
-3. **[Acceptance Suite](./acceptance-suite.md)** - Copy-pasteable test examples
+See the **Quick Start: Choose Your Path** section near the top of this guide to pick your entry point. Each path includes links to everything you need.
 
-### Path 3: Deploy & Observe (15-20 minutes)
-1. **[Laminar Dev Workflow](./laminar-workflow.md)** - Test observability from GitHub
-2. **[Packaging Guide](./packaging.md)** - Bundle your modules for distribution
-3. **[Feedback & Contribution](../../../CONTRIBUTING-DEVEX.md)** - Report issues, get help
+**Not sure which path?** Here's how to decide:
+- **Just want to explore?** → Choose **"I want to see it in action"**
+- **Ready to code?** → Choose **"I want to build my first module"**
+- **Building something real?** → Choose **"I want to deploy and observe"**
 
 ## Deep Dives (Architecture & Design)
 

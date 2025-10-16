@@ -204,16 +204,34 @@ connections:
 
 ## Running Configurations
 
+The easiest way to run a config file is with `mkctl run`:
+
 ```bash
 # Build project
 npm run build
 
-# Run config with config-runner
+# Run config with mkctl run (recommended)
+node dist/scripts/mkctl.js run --file examples/configs/my-topology.yml
+
+# Customize duration (default 5 seconds)
+node dist/scripts/mkctl.js run --file examples/configs/my-topology.yml --duration 10
+```
+
+**Legacy alternatives** (still supported):
+
+```bash
+# Via config-runner script
 node dist/examples/config-runner.js --file examples/configs/my-topology.yml
 
 # Or via tsx (development)
 npx tsx examples/config-runner.ts --file examples/configs/my-topology.yml
 ```
+
+**Why mkctl run?**
+- Unified interface for running any topology
+- Automatically registers modules with Hostess
+- Endpoint metadata is captured for `mkctl endpoints` discovery
+- Works identically locally and in distributed deployments
 
 ## Testing External Processes
 
@@ -247,13 +265,38 @@ npm run test:ci
 
 ## Acceptance Testing Notes
 
-For developers testing executor-based topologies, enable the executor integration test:
+### Executor Integration Testing
+
+For developers testing executor-based topologies, enable the executor integration test using the `MK_DEVEX_EXECUTOR` flag:
 
 ```bash
+# Enable executor integration tests (requires forks lane)
 MK_DEVEX_EXECUTOR=1 npm run test:pty
+
+# Or with Laminar for structured test logging
+MK_DEVEX_EXECUTOR=1 npm run test:pty:lam
 ```
 
-This flag enables tests that exercise the full Executor topology loading and wiring flow. Requires forks lane for process-mode isolation.
+**What this flag does:**
+- Enables tests that exercise the full Executor topology loading and wiring flow
+- Requires forks lane for process-mode isolation (prevents stdio/pty cross-talk)
+- Tests complete topology lifecycle: load → up → down
+
+**Why gate executor tests?**
+- Executor tests spawn real processes and are resource-intensive
+- Longer execution time than basic unit tests
+- Optional for simple server implementations
+
+### Verification Checklist
+
+After wiring your external process config, verify:
+
+1. **Config syntax** - YAML/JSON parses without errors
+2. **Command path** - Use absolute paths or ensure command is in PATH
+3. **I/O mode** - Explicit `ioMode: stdio` or `ioMode: pty`
+4. **Connections** - Wire nodes correctly (source → process → sink)
+5. **Test execution** - Run in forks lane for process-based tests
+6. **Endpoint registration** - `mkctl endpoints` shows your process
 
 ## References
 

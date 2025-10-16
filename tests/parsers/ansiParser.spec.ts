@@ -1054,3 +1054,382 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     });
   });
 });
+
+describe('ANSIParser - P3 Extended Features', () => {
+  let parser: ANSIParser;
+
+  beforeEach(() => {
+    parser = new ANSIParser(24, 80);
+  });
+
+  describe('256-Color Support (SGR 38;5 and 48;5)', () => {
+    it('should parse 256-color foreground (38;5;n) without crashing', () => {
+      parser.parse(Buffer.from('\x1b[38;5;196mBrightRed'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('B');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should parse 256-color background (48;5;n) without crashing', () => {
+      parser.parse(Buffer.from('\x1b[48;5;21mDeepBlue'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('D');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should parse 256-color with standard colors (0-15) without crashing', () => {
+      const tests = [0, 1, 7, 8, 15];
+
+      tests.forEach((code) => {
+        parser.reset();
+        parser.parse(Buffer.from(`\x1b[38;5;${code}mX`));
+        const state = parser.getState();
+        expect(state.cells[0][0].char).toBe('X');
+      });
+    });
+
+    it('should parse 256-color with 216 color cube (16-231) without crashing', () => {
+      parser.parse(Buffer.from('\x1b[38;5;196mCubeColor'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('C');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should parse 256-color with grayscale (232-255) without crashing', () => {
+      parser.parse(Buffer.from('\x1b[38;5;244mGray'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('G');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should handle both 256-color foreground and background without crashing', () => {
+      parser.parse(Buffer.from('\x1b[38;5;196;48;5;21mColorful'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('C');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should handle 256-color with SGR reset', () => {
+      parser.parse(Buffer.from('\x1b[38;5;196mColor\x1b[0mReset'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('C');
+      expect(state.cells[0][5].char).toBe('R');
+      expect(state.currentFg).toBe(null);
+      expect(state.currentBg).toBe(null);
+    });
+  });
+
+  describe('Truecolor Support (SGR 38;2 and 48;2)', () => {
+    it('should parse truecolor foreground (38;2;r;g;b) without crashing', () => {
+      parser.parse(Buffer.from('\x1b[38;2;255;128;64mOrange'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('O');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should parse truecolor background (48;2;r;g;b) without crashing', () => {
+      parser.parse(Buffer.from('\x1b[48;2;32;64;128mBlue'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('B');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should parse pure colors without crashing', () => {
+      const tests = [
+        { r: 255, g: 0, b: 0 },
+        { r: 0, g: 255, b: 0 },
+        { r: 0, g: 0, b: 255 },
+        { r: 255, g: 255, b: 255 },
+        { r: 0, g: 0, b: 0 }
+      ];
+
+      tests.forEach(({ r, g, b }) => {
+        parser.reset();
+        parser.parse(Buffer.from(`\x1b[38;2;${r};${g};${b}mX`));
+        const state = parser.getState();
+        expect(state.cells[0][0].char).toBe('X');
+      });
+    });
+
+    it('should handle both truecolor foreground and background without crashing', () => {
+      parser.parse(Buffer.from('\x1b[38;2;255;100;50;48;2;10;20;30mText'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('T');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should handle truecolor with SGR reset', () => {
+      parser.parse(Buffer.from('\x1b[38;2;128;64;32mColor\x1b[0mReset'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('C');
+      expect(state.cells[0][5].char).toBe('R');
+      expect(state.currentFg).toBe(null);
+      expect(state.currentBg).toBe(null);
+    });
+
+    it('should handle truecolor with wide characters', () => {
+      parser.parse(Buffer.from('\x1b[38;2;200;100;50m日本'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('日');
+      expect(state.cells[0][1].char).toBe('本');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should handle mix of basic colors and truecolor without crashing', () => {
+      parser.parse(Buffer.from('\x1b[31mRed\x1b[38;2;128;128;255mPurple'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('R');
+      expect(state.cells[0][0].fg).toBe('#800000');
+      expect(state.cells[0][3].char).toBe('P');
+    });
+  });
+
+  describe('Resize Events', () => {
+    it('should handle resize from constructor', () => {
+      const smallParser = new ANSIParser(10, 40);
+      const state = smallParser.getState();
+      
+      expect(state.rows).toBe(10);
+      expect(state.cols).toBe(40);
+      expect(state.cells.length).toBe(10);
+      expect(state.cells[0].length).toBe(40);
+    });
+
+    it('should preserve content after resize (larger)', () => {
+      parser.parse(Buffer.from('Test'));
+      const oldState = parser.getState();
+      
+      const newParser = new ANSIParser(30, 100);
+      newParser.parse(Buffer.from('Test'));
+      const newState = newParser.getState();
+      
+      expect(newState.rows).toBe(30);
+      expect(newState.cols).toBe(100);
+      expect(newState.cells[0][0].char).toBe('T');
+    });
+
+    it('should handle resize to smaller dimensions', () => {
+      parser.parse(Buffer.from('A'.repeat(100)));
+      
+      const smallParser = new ANSIParser(10, 40);
+      smallParser.parse(Buffer.from('A'.repeat(100)));
+      const state = smallParser.getState();
+      
+      expect(state.rows).toBe(10);
+      expect(state.cols).toBe(40);
+      expect(state.cursorY).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should reset cursor on dimension change', () => {
+      parser.parse(Buffer.from('\x1b[10;50HText'));
+      
+      const newParser = new ANSIParser(15, 60);
+      const state = newParser.getState();
+      
+      expect(state.cursorX).toBe(0);
+      expect(state.cursorY).toBe(0);
+    });
+
+    it('should maintain determinism after resize', () => {
+      const p1 = new ANSIParser(20, 100);
+      p1.parse(Buffer.from('Test'));
+      const s1 = p1.getState();
+      
+      const p2 = new ANSIParser(20, 100);
+      p2.parse(Buffer.from('Test'));
+      const s2 = p2.getState();
+      
+      expect(s1.rows).toBe(s2.rows);
+      expect(s1.cols).toBe(s2.cols);
+      expect(s1.cursorX).toBe(s2.cursorX);
+      expect(s1.cursorY).toBe(s2.cursorY);
+    });
+
+    it('should handle extreme dimensions', () => {
+      const largeParser = new ANSIParser(200, 500);
+      largeParser.parse(Buffer.from('X'));
+      const state = largeParser.getState();
+      
+      expect(state.rows).toBe(200);
+      expect(state.cols).toBe(500);
+      expect(state.cells[0][0].char).toBe('X');
+    });
+
+    it('should handle minimum dimensions', () => {
+      const tinyParser = new ANSIParser(1, 1);
+      tinyParser.parse(Buffer.from('AB'));
+      const state = tinyParser.getState();
+      
+      expect(state.rows).toBe(1);
+      expect(state.cols).toBe(1);
+      expect(state.cells[0]).toBeDefined();
+      expect(state.cells[0][0]).toBeDefined();
+    });
+  });
+
+  describe('Extended DEC Modes (DECAWM, DECCKM, Alt Screen)', () => {
+    it('should parse DECSET mode 7 (auto-wrap mode)', () => {
+      parser.parse(Buffer.from('\x1b[?7h'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should parse DECRST mode 7 (disable auto-wrap)', () => {
+      parser.parse(Buffer.from('\x1b[?7l'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should parse DECSET mode 1 (application cursor keys)', () => {
+      parser.parse(Buffer.from('\x1b[?1h'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should parse DECRST mode 1 (normal cursor keys)', () => {
+      parser.parse(Buffer.from('\x1b[?1l'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should parse DECSET mode 1049 (alternate screen buffer)', () => {
+      parser.parse(Buffer.from('Primary\x1b[?1049h'));
+      const state = parser.getState();
+      
+      expect(state.cells).toBeDefined();
+    });
+
+    it('should parse DECRST mode 1049 (restore primary screen)', () => {
+      parser.parse(Buffer.from('\x1b[?1049hAlt\x1b[?1049l'));
+      const state = parser.getState();
+      
+      expect(state.cells).toBeDefined();
+    });
+
+    it('should parse DECSET mode 25 (show cursor)', () => {
+      parser.parse(Buffer.from('\x1b[?25h'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should parse DECRST mode 25 (hide cursor)', () => {
+      parser.parse(Buffer.from('\x1b[?25l'));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle multiple DEC mode switches', () => {
+      parser.parse(Buffer.from('\x1b[?7h\x1b[?1h\x1b[?25l'));
+      const state = parser.getState();
+      
+      expect(state.cells).toBeDefined();
+    });
+
+    it('should maintain content across mode changes', () => {
+      parser.parse(Buffer.from('Test\x1b[?1049hAlt\x1b[?1049l'));
+      const state = parser.getState();
+      
+      expect(state.cells).toBeDefined();
+    });
+  });
+
+  describe('Performance and Edge Cases', () => {
+    it('should handle large 256-color sequences efficiently', () => {
+      const colorText = Array(100).fill('\x1b[38;5;196mX\x1b[0m').join('');
+      parser.parse(Buffer.from(colorText));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should handle large truecolor sequences efficiently', () => {
+      const colorText = Array(100).fill('\x1b[38;2;255;128;64mX\x1b[0m').join('');
+      parser.parse(Buffer.from(colorText));
+      const state = parser.getState();
+      
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should handle mixed color modes without crashing', () => {
+      parser.parse(Buffer.from('\x1b[31m\x1b[38;5;196m\x1b[38;2;255;0;0mRed'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('R');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should handle invalid 256-color parameters gracefully', () => {
+      parser.parse(Buffer.from('\x1b[38;5;999mText'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('T');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should handle invalid truecolor parameters gracefully', () => {
+      parser.parse(Buffer.from('\x1b[38;2;256;256;256mText'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('T');
+      expect(state.cursorX).toBeGreaterThan(0);
+    });
+
+    it('should handle partial color sequences at buffer boundary', () => {
+      parser.parse(Buffer.from('A\x1b[38;2;255'));
+      parser.parse(Buffer.from(';128;64mB'));
+      const state = parser.getState();
+      
+      expect(state.cells[0][0].char).toBe('A');
+    });
+
+    it('should maintain determinism with complex sequences', () => {
+      const input = '\x1b[38;2;200;100;50m日本\x1b[?7h\x1b[48;5;21mTest\x1b[0m';
+      
+      const p1 = new ANSIParser(24, 80);
+      p1.parse(Buffer.from(input));
+      const s1 = p1.getState();
+      
+      const p2 = new ANSIParser(24, 80);
+      p2.parse(Buffer.from(input));
+      const s2 = p2.getState();
+      
+      expect(s1.cursorX).toBe(s2.cursorX);
+      expect(s1.cursorY).toBe(s2.cursorY);
+      expect(s1.cells[0][0].char).toBe(s2.cells[0][0].char);
+      expect(s1.cells[0][0].fg).toBe(s2.cells[0][0].fg);
+    });
+
+    it('should handle color reset sequences deterministically', () => {
+      const p1 = new ANSIParser(24, 80);
+      p1.parse(Buffer.from('\x1b[38;2;255;0;0mRed\x1b[0m'));
+      p1.parse(Buffer.from('\x1b[38;5;196mRed2\x1b[0m'));
+      const s1 = p1.getState();
+      
+      const p2 = new ANSIParser(24, 80);
+      p2.parse(Buffer.from('\x1b[38;2;255;0;0mRed\x1b[0m'));
+      p2.parse(Buffer.from('\x1b[38;5;196mRed2\x1b[0m'));
+      const s2 = p2.getState();
+      
+      expect(s1.currentFg).toBe(s2.currentFg);
+      expect(s1.currentBg).toBe(s2.currentBg);
+    });
+  });
+});

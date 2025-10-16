@@ -272,6 +272,25 @@ it('should work in Executor topology', async () => {
 });
 ```
 
+## Gating Executor Integration Tests
+
+The Executor integration tests (Pattern 5) exercise full topology loading and are resource-intensive. In mkolbol's own test suite, these are gated behind the `MK_DEVEX_EXECUTOR` environment variable:
+
+```bash
+# Enable executor integration tests (requires forks lane)
+MK_DEVEX_EXECUTOR=1 npm run test:pty
+
+# Or with Laminar for structured test logging
+MK_DEVEX_EXECUTOR=1 npm run test:pty:lam
+```
+
+**Why gate these tests?**
+- Executor tests spawn real processes and require fork isolation
+- They take longer to run than basic unit tests
+- Optional for adopters building simple servers without Executor
+
+**For external projects**, you don't need this flag—just run your acceptance tests normally. The flag is specific to mkolbol's internal development workflow where Executor tests are opt-in.
+
 ## Running Tests
 
 ### Locally
