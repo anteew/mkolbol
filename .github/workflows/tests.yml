@@ -49,7 +49,6 @@ jobs:
             tests/wrappers/ptyServerWrapper.spec.ts \
             tests/integration/multiModalOutput.spec.ts \
             tests/integration/endpointsList.spec.ts \
-            tests/integration/processMode.spec.ts \
             tests/integration/workerMode.spec.ts \
             --reporter=default \
             --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \

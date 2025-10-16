@@ -615,6 +615,7 @@ export class Executor {
             'TimerSource': '../modules/timer.js',
             'UppercaseTransform': '../modules/uppercase.js',
             'ConsoleSink': '../modules/consoleSink.js',
+            'FilesystemSink': '../modules/filesystem-sink.js',
         };
         const relativePath = moduleMap[moduleName];
         if (!relativePath) {

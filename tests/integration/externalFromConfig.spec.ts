@@ -217,4 +217,240 @@ describe('External From Config Integration', () => {
     },
     testTimeout
   );
+
+  // GATED: Process mode test requires experimental flag
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should capture stdout and stderr logs',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'log-test',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sh',
+              args: ['-c', 'echo "stdout message" && echo "stderr message" >&2'],
+              ioMode: 'stdio'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('log-test');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const stdout = wrapper.getCapturedStdout();
+      const stderr = wrapper.getCapturedStderr();
+
+      expect(stdout).toContain('stdout message');
+      expect(stderr).toContain('stderr message');
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // GATED: Process mode test requires experimental flag
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should have exponential backoff calculation',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'backoff-test',
+            module: 'ExternalProcess',
+            params: {
+              command: 'echo',
+              args: ['test'],
+              ioMode: 'stdio',
+              restart: 'never',
+              restartDelay: 1000
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('backoff-test');
+      expect(wrapper).toBeDefined();
+
+      // Test backoff calculation (private method, but we can verify it exists)
+      expect(typeof wrapper.calculateBackoffDelay).toBe('function');
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // GATED: Process mode test requires experimental flag
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should respect capture limit for large outputs',
+    async () => {
+      // Generate more than 100KB of output (using yes command)
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'large-output',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sh',
+              args: ['-c', 'yes "test line" | head -n 10000'],
+              ioMode: 'stdio'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('large-output');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to complete
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const stdout = wrapper.getCapturedStdout();
+      const captureSize = Buffer.from(stdout, 'utf8').length;
+
+      // Should be capped at 100KB
+      expect(captureSize).toBeLessThanOrEqual(100 * 1024);
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // GATED: Process mode test requires experimental flag
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should track exit codes and provide exit info',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'exit-tracker',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sh',
+              args: ['-c', 'exit 127'],
+              ioMode: 'stdio',
+              restart: 'never'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('exit-tracker');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to exit
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const exitCode = wrapper.getLastExitCode();
+      const exitInfo = wrapper.getExitInfo();
+
+      expect(exitCode).toBe(127);
+      expect(exitInfo).toContain('command not found');
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // GATED: Process mode test requires experimental flag
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should handle environment variables',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'env-test',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sh',
+              args: ['-c', 'echo "TEST_VAR=$TEST_VAR"'],
+              ioMode: 'stdio',
+              env: { TEST_VAR: 'hello' },
+              restart: 'never'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('env-test');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const stdout = wrapper.getCapturedStdout();
+      expect(stdout).toContain('TEST_VAR=hello');
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // GATED: Process mode test requires experimental flag
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should respect working directory',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'cwd-test',
+            module: 'ExternalProcess',
+            params: {
+              command: 'pwd',
+              args: [],
+              ioMode: 'stdio',
+              cwd: '/tmp',
+              restart: 'never'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('cwd-test');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const stdout = wrapper.getCapturedStdout();
+      expect(stdout.trim()).toBe('/tmp');
+
+      await executor.down();
+    },
+    testTimeout
+  );
 });

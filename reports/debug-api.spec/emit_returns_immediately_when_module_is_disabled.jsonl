@@ -1,3 +1,3 @@
-{"ts":1760616829136,"lvl":"info","case":"emit returns immediately when module is disabled","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760616829137,"lvl":"info","case":"emit returns immediately when module is disabled","phase":"execution","evt":"test.run"}
-{"ts":1760616829138,"lvl":"info","case":"emit returns immediately when module is disabled","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760619186379,"lvl":"info","case":"emit returns immediately when module is disabled","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760619186380,"lvl":"info","case":"emit returns immediately when module is disabled","phase":"execution","evt":"test.run"}
+{"ts":1760619186381,"lvl":"info","case":"emit returns immediately when module is disabled","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}

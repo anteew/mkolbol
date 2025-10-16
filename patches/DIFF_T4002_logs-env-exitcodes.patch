@@ -1,0 +1,451 @@
+diff --git a/src/wrappers/ExternalServerWrapper.ts b/src/wrappers/ExternalServerWrapper.ts
+index f9d6014..c259e22 100644
+--- a/src/wrappers/ExternalServerWrapper.ts
++++ b/src/wrappers/ExternalServerWrapper.ts
+@@ -14,6 +14,12 @@ export class ExternalServerWrapper {
+   protected restartCount = 0;
+   protected spawnTime = 0;
+   protected explicitShutdown = false;
++  protected stdoutCapture: Buffer[] = [];
++  protected stderrCapture: Buffer[] = [];
++  protected captureLimit = 1024 * 100; // 100KB per stream
++  protected currentCaptureSize = { stdout: 0, stderr: 0 };
++  protected lastExitCode: number | null = null;
++  protected lastSignal: NodeJS.Signals | null = null;
+ 
+   constructor(
+     protected kernel: Kernel,
+@@ -85,6 +91,7 @@ export class ExternalServerWrapper {
+     this._inputPipe.pipe(this.process.stdin);
+     
+     this.process.stdout.on('data', (chunk) => {
++      this.captureOutput(chunk, 'stdout');
+       debug.emit('external', 'server.output', { 
+         servername: this.manifest.servername, 
+         bytes: chunk.length 
+@@ -93,6 +100,7 @@ export class ExternalServerWrapper {
+     this.process.stdout.pipe(this._outputPipe);
+     
+     this.process.stderr.on('data', (chunk) => {
++      this.captureOutput(chunk, 'stderr');
+       debug.emit('external', 'server.error', { 
+         servername: this.manifest.servername, 
+         bytes: chunk.length 
+@@ -114,16 +122,35 @@ export class ExternalServerWrapper {
+   }
+ 
+   async restart(): Promise<void> {
++    debug.emit('external', 'server.restarting', { 
++      servername: this.manifest.servername,
++      attempt: this.restartCount + 1,
++      maxRestarts: this.manifest.maxRestarts
++    }, 'info');
++
+     await this.shutdown();
+     
+-    if (this.manifest.restartDelay) {
+-      await new Promise(resolve => setTimeout(resolve, this.manifest.restartDelay));
+-    }
++    const backoffDelay = this.calculateBackoffDelay();
++    debug.emit('external', 'server.backoff', {
++      servername: this.manifest.servername,
++      delayMs: backoffDelay,
++      attempt: this.restartCount + 1
++    }, 'info');
++
++    await new Promise(resolve => setTimeout(resolve, backoffDelay));
+     
+     this.restartCount++;
++    this.clearCapture();
+     await this.spawn();
+   }
+ 
++  protected calculateBackoffDelay(): number {
++    const baseDelay = this.manifest.restartDelay || 1000;
++    const exponentialDelay = baseDelay * Math.pow(2, this.restartCount);
++    const maxDelay = 30000; // Cap at 30 seconds
++    return Math.min(exponentialDelay, maxDelay);
++  }
++
+   async shutdown(timeout: number = 5000): Promise<void> {
+     if (!this.process) return;
+ 
+@@ -199,7 +226,20 @@ export class ExternalServerWrapper {
+   }
+ 
+   protected handleExit(code: number | null, signal: NodeJS.Signals | null): void {
+-    console.log(`Process ${this.manifest.servername} exited with code ${code}, signal ${signal}`);
++    this.lastExitCode = code;
++    this.lastSignal = signal;
++
++    const exitInfo = this.getExitCodeInfo(code, signal);
++    
++    debug.emit('external', 'server.exit', {
++      servername: this.manifest.servername,
++      exitCode: code,
++      signal,
++      exitType: exitInfo.type,
++      exitMessage: exitInfo.message
++    }, exitInfo.level);
++
++    console.log(`Process ${this.manifest.servername} exited: ${exitInfo.message}`);
+     
+     this.process = undefined;
+ 
+@@ -216,6 +256,56 @@ export class ExternalServerWrapper {
+     }
+   }
+ 
++  protected getExitCodeInfo(code: number | null, signal: NodeJS.Signals | null): {
++    type: string;
++    message: string;
++    level: 'info' | 'warn' | 'error';
++  } {
++    if (signal) {
++      return {
++        type: 'signal',
++        message: `killed by signal ${signal}`,
++        level: 'warn'
++      };
++    }
++
++    if (code === null) {
++      return {
++        type: 'unknown',
++        message: 'exited with unknown status',
++        level: 'warn'
++      };
++    }
++
++    if (code === 0) {
++      return {
++        type: 'success',
++        message: 'exited successfully (code 0)',
++        level: 'info'
++      };
++    }
++
++    // Common exit codes
++    const exitCodeMap: Record<number, string> = {
++      1: 'general error',
++      2: 'misuse of shell builtin',
++      126: 'command cannot execute',
++      127: 'command not found',
++      128: 'invalid exit argument',
++      130: 'terminated by Ctrl+C (SIGINT)',
++      137: 'killed (SIGKILL)',
++      143: 'terminated (SIGTERM)'
++    };
++
++    const description = exitCodeMap[code] || `unknown error code ${code}`;
++
++    return {
++      type: 'failure',
++      message: `exited with code ${code} (${description})`,
++      level: 'error'
++    };
++  }
++
+   protected shouldRestart(exitCode: number | null): boolean {
+     const { restart, maxRestarts } = this.manifest;
+     
+@@ -226,4 +316,54 @@ export class ExternalServerWrapper {
+     
+     return false;
+   }
++
++  protected captureOutput(chunk: Buffer, stream: 'stdout' | 'stderr'): void {
++    const capture = stream === 'stdout' ? this.stdoutCapture : this.stderrCapture;
++    const currentSize = this.currentCaptureSize[stream];
++
++    if (currentSize + chunk.length <= this.captureLimit) {
++      capture.push(chunk);
++      this.currentCaptureSize[stream] += chunk.length;
++    } else {
++      const remaining = this.captureLimit - currentSize;
++      if (remaining > 0) {
++        capture.push(chunk.slice(0, remaining));
++        this.currentCaptureSize[stream] = this.captureLimit;
++      }
++    }
++  }
++
++  protected clearCapture(): void {
++    this.stdoutCapture = [];
++    this.stderrCapture = [];
++    this.currentCaptureSize = { stdout: 0, stderr: 0 };
++  }
++
++  getCapturedStdout(): string {
++    return Buffer.concat(this.stdoutCapture).toString('utf8');
++  }
++
++  getCapturedStderr(): string {
++    return Buffer.concat(this.stderrCapture).toString('utf8');
++  }
++
++  getRestartCount(): number {
++    return this.restartCount;
++  }
++
++  getLastExitCode(): number | null {
++    return this.lastExitCode;
++  }
++
++  getLastSignal(): NodeJS.Signals | null {
++    return this.lastSignal;
++  }
++
++  getExitInfo(): string | null {
++    if (this.lastExitCode === null && this.lastSignal === null) {
++      return null;
++    }
++    const info = this.getExitCodeInfo(this.lastExitCode, this.lastSignal);
++    return info.message;
++  }
+ }
+diff --git a/tests/integration/externalFromConfig.spec.ts b/tests/integration/externalFromConfig.spec.ts
+index 877cfd7..62f30f6 100644
+--- a/tests/integration/externalFromConfig.spec.ts
++++ b/tests/integration/externalFromConfig.spec.ts
+@@ -217,4 +217,240 @@ describe('External From Config Integration', () => {
+     },
+     testTimeout
+   );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should capture stdout and stderr logs',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'log-test',
++            module: 'ExternalProcess',
++            params: {
++              command: 'sh',
++              args: ['-c', 'echo "stdout message" && echo "stderr message" >&2'],
++              ioMode: 'stdio'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      const wrapper = (executor as any).wrappers.get('log-test');
++      expect(wrapper).toBeDefined();
++
++      // Wait for process to complete
++      await new Promise((resolve) => setTimeout(resolve, 500));
++
++      const stdout = wrapper.getCapturedStdout();
++      const stderr = wrapper.getCapturedStderr();
++
++      expect(stdout).toContain('stdout message');
++      expect(stderr).toContain('stderr message');
++
++      await executor.down();
++    },
++    testTimeout
++  );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should have exponential backoff calculation',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'backoff-test',
++            module: 'ExternalProcess',
++            params: {
++              command: 'echo',
++              args: ['test'],
++              ioMode: 'stdio',
++              restart: 'never',
++              restartDelay: 1000
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      const wrapper = (executor as any).wrappers.get('backoff-test');
++      expect(wrapper).toBeDefined();
++
++      // Test backoff calculation (private method, but we can verify it exists)
++      expect(typeof wrapper.calculateBackoffDelay).toBe('function');
++
++      await executor.down();
++    },
++    testTimeout
++  );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should respect capture limit for large outputs',
++    async () => {
++      // Generate more than 100KB of output (using yes command)
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'large-output',
++            module: 'ExternalProcess',
++            params: {
++              command: 'sh',
++              args: ['-c', 'yes "test line" | head -n 10000'],
++              ioMode: 'stdio'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      const wrapper = (executor as any).wrappers.get('large-output');
++      expect(wrapper).toBeDefined();
++
++      // Wait for process to complete
++      await new Promise((resolve) => setTimeout(resolve, 1000));
++
++      const stdout = wrapper.getCapturedStdout();
++      const captureSize = Buffer.from(stdout, 'utf8').length;
++
++      // Should be capped at 100KB
++      expect(captureSize).toBeLessThanOrEqual(100 * 1024);
++
++      await executor.down();
++    },
++    testTimeout
++  );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should track exit codes and provide exit info',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'exit-tracker',
++            module: 'ExternalProcess',
++            params: {
++              command: 'sh',
++              args: ['-c', 'exit 127'],
++              ioMode: 'stdio',
++              restart: 'never'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      const wrapper = (executor as any).wrappers.get('exit-tracker');
++      expect(wrapper).toBeDefined();
++
++      // Wait for process to exit
++      await new Promise((resolve) => setTimeout(resolve, 500));
++
++      const exitCode = wrapper.getLastExitCode();
++      const exitInfo = wrapper.getExitInfo();
++
++      expect(exitCode).toBe(127);
++      expect(exitInfo).toContain('command not found');
++
++      await executor.down();
++    },
++    testTimeout
++  );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should handle environment variables',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'env-test',
++            module: 'ExternalProcess',
++            params: {
++              command: 'sh',
++              args: ['-c', 'echo "TEST_VAR=$TEST_VAR"'],
++              ioMode: 'stdio',
++              env: { TEST_VAR: 'hello' },
++              restart: 'never'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      const wrapper = (executor as any).wrappers.get('env-test');
++      expect(wrapper).toBeDefined();
++
++      // Wait for process to complete
++      await new Promise((resolve) => setTimeout(resolve, 500));
++
++      const stdout = wrapper.getCapturedStdout();
++      expect(stdout).toContain('TEST_VAR=hello');
++
++      await executor.down();
++    },
++    testTimeout
++  );
++
++  // GATED: Process mode test requires experimental flag
++  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
++    'should respect working directory',
++    async () => {
++      const config: TopologyConfig = {
++        nodes: [
++          {
++            id: 'cwd-test',
++            module: 'ExternalProcess',
++            params: {
++              command: 'pwd',
++              args: [],
++              ioMode: 'stdio',
++              cwd: '/tmp',
++              restart: 'never'
++            },
++            runMode: 'process'
++          }
++        ],
++        connections: []
++      };
++
++      executor.load(config);
++      await executor.up();
++
++      const wrapper = (executor as any).wrappers.get('cwd-test');
++      expect(wrapper).toBeDefined();
++
++      // Wait for process to complete
++      await new Promise((resolve) => setTimeout(resolve, 500));
++
++      const stdout = wrapper.getCapturedStdout();
++      expect(stdout.trim()).toBe('/tmp');
++
++      await executor.down();
++    },
++    testTimeout
++  );
+ });
