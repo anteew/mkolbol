@@ -1,0 +1,24 @@
+{
+  "nodes": [
+    {
+      "id": "timer1",
+      "module": "TimerSource",
+      "params": {
+        "periodMs": 2000
+      }
+    },
+    {
+      "id": "console1",
+      "module": "ConsoleSink",
+      "params": {
+        "prefix": "[json-config]"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "timer1.output",
+      "to": "console1.input"
+    }
+  ]
+}

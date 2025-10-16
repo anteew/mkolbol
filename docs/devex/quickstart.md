@@ -2,14 +2,47 @@
 
 This guide shows you how to run a simple demonstration of mkolbol's PTY (pseudo-terminal) capabilities with the XtermTTYRenderer module. The demo spawns a bash shell in a PTY, pipes its output through the renderer to your terminal, sends a simple echo command, and then exits cleanly.
 
-## Prerequisites
+## Quick Start with mkctl (Recommended)
+
+The easiest way to run a topology from a config file is using `mkctl run`:
+
+```bash
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol
+npm install
+npm run build
+
+# Run the PTY demo via config
+node dist/scripts/mkctl.js run --file examples/configs/external-pty.yaml
+```
+
+This loads the topology from `examples/configs/external-pty.yaml` and runs it for 5 seconds (default). To customize the duration:
+
+```bash
+# Run for 10 seconds
+node dist/scripts/mkctl.js run --file examples/configs/external-pty.yaml --duration 10
+```
+
+**Why use mkctl run?**
+- No need to write TypeScript/JavaScript code
+- Config is shareable and version-controllable
+- Same approach scales from local development to distributed deployments
+- See **[Wiring and Testing Guide](./wiring-and-tests.md)** for how to build your own config files
+
+---
+
+## Manual Demo (Direct Code Execution)
+
+For deeper control or if you're building a custom topology, you can run the TypeScript demo directly.
+
+### Prerequisites
 
 - **Node.js 20 or higher** (tested on Node 20.x and 24.x)
 - **npm** (comes with Node.js)
 - **macOS or Linux** (Windows support coming soon)
 - **PTY support** on your system (available by default on macOS/Linux)
 
-## Installation and Build
+### Installation and Build
 
 Clone the repository (if you haven't already) and install dependencies:
 
@@ -27,7 +60,7 @@ npm run build
 
 This compiles TypeScript source files to JavaScript in the `dist/` directory.
 
-## Running the Demo
+### Running the Demo
 
 Execute the PTY renderer demo:
 
@@ -64,7 +97,7 @@ The output includes:
 
 The demo automatically exits after approximately 1.2 seconds.
 
-## How to Exit
+### How to Exit
 
 The demo exits automatically. If you modify the demo code and it hangs:
 
@@ -79,7 +112,7 @@ reset
 
 This will restore your terminal to a clean state.
 
-## Understanding the Demo
+### Understanding the Demo
 
 The demo demonstrates a complete PTY pipeline:
 
@@ -95,9 +128,9 @@ PTYServerWrapper (bash) → XtermTTYRenderer → Terminal Output
 
 **Source code:** [src/examples/tty-renderer-demo.ts](../../src/examples/tty-renderer-demo.ts)
 
-## Troubleshooting
+### Troubleshooting
 
-### Error: "Cannot find module"
+#### Error: "Cannot find module"
 
 **Problem:** The demo file doesn't exist in `dist/src/examples/`.
 
@@ -107,7 +140,7 @@ PTYServerWrapper (bash) → XtermTTYRenderer → Terminal Output
 npm run build
 ```
 
-### Error: "spawn EACCES" or PTY permission denied
+#### Error: "spawn EACCES" or PTY permission denied
 
 **Problem:** Insufficient permissions to create a PTY.
 
@@ -126,7 +159,7 @@ npm run build
   ```
 - Log out and log back in for changes to take effect
 
-### Error: "node-pty" module not found
+#### Error: "node-pty" module not found
 
 **Problem:** The `node-pty` native dependency is not installed.
 
@@ -143,7 +176,7 @@ npm run build
    npm install
    ```
 
-### Node version mismatch
+#### Node version mismatch
 
 **Problem:** Using an unsupported Node.js version.
 
@@ -161,7 +194,7 @@ nvm install 20
 nvm use 20
 ```
 
-### Terminal corrupted after demo
+#### Terminal corrupted after demo
 
 **Problem:** ANSI escape sequences or alternate buffer state persist after exit.
 
@@ -194,16 +227,19 @@ For non-interactive data pipelines using `stdio` mode, see the **[StdIO Path](./
 
 ## Next Steps
 
-After running this demo, explore:
+Congratulations on running your first topology! Here's what to explore next:
 
-- **[Early Adopter Guide](./early-adopter-guide.md)** - Understanding mkolbol concepts
-- **[Interactive Topology](./interactive-topology.md)** - Keyboard → PTY → TTY pipelines
-- **[Wiring and Testing](./wiring-and-tests.md)** - Configuration and testing (including external processes)
-- **[StdIO Path](./stdio-path.md)** - Non-interactive filters and data pipelines
-- **[Stream Kernel RFC](../rfcs/stream-kernel/00-index.md)** - Architecture and design philosophy
-- **[PTY Use Cases](../rfcs/stream-kernel/04-pty-use-cases.md)** - Real-world terminal hijacking examples
+### Continue Your Journey
+- **[Early Adopter Guide - Quick Start](./early-adopter-guide.md#quick-start-choose-your-path)** - Choose your next path (build, deploy, or dive deeper)
+- **[Interactive Topology](./interactive-topology.md)** - Build keyboard → PTY → TTY pipelines
+- **[StdIO Path](./stdio-path.md)** - Explore non-interactive data processing
+
+### Learn More
+- **[Wiring and Testing](./wiring-and-tests.md)** - Configuration and testing with external processes
+- **[First Server Tutorial](./first-server-tutorial.md)** - Build your first custom module
+- **[Stream Kernel RFC](../rfcs/stream-kernel/00-index.md)** - Architecture deep dive
+- **[Testing with Laminar](../laminar-workflow.md)** - Test observability and debugging
 - **[Examples Directory](../../src/examples/)** - More demos (split, merge, executor, multi-modal)
-- **[Testing with Laminar](../laminar-workflow.md)** - Test observability and structured logging
 
 ## Feedback
 

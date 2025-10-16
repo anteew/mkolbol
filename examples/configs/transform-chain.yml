@@ -1,0 +1,26 @@
+nodes:
+  - id: timer1
+    module: TimerSource
+    params:
+      periodMs: 1500
+  
+  - id: upper1
+    module: UppercaseTransform
+  
+  - id: upper2
+    module: UppercaseTransform
+  
+  - id: console1
+    module: ConsoleSink
+    params:
+      prefix: "[chain-output]"
+
+connections:
+  - from: timer1.output
+    to: upper1.input
+  
+  - from: upper1.output
+    to: upper2.input
+  
+  - from: upper2.output
+    to: console1.input

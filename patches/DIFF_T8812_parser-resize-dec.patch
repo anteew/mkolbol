@@ -1,0 +1,112 @@
+diff --git a/src/transforms/AnsiParser.ts b/src/transforms/AnsiParser.ts
+index f3c760e..9d3bdef 100644
+--- a/src/transforms/AnsiParser.ts
++++ b/src/transforms/AnsiParser.ts
+@@ -3,8 +3,8 @@ export interface AnsiParserState {
+   cursorY: number;
+   bold: boolean;
+   underline: boolean;
+-  foregroundColor: number | null;
+-  backgroundColor: number | null;
++  foregroundColor: number | string | null;
++  backgroundColor: number | string | null;
+   inverse: boolean;
+ }
+ 
+@@ -25,10 +25,20 @@ interface EraseEvent {
+ 
+ interface StyleEvent {
+   type: 'style';
+-  data: { cursorX: number; cursorY: number; bold: boolean; underline: boolean; foregroundColor: number | null; backgroundColor: number | null; inverse: boolean };
++  data: { cursorX: number; cursorY: number; bold: boolean; underline: boolean; foregroundColor: number | string | null; backgroundColor: number | string | null; inverse: boolean };
+ }
+ 
+-export type AnsiParserEvent = PrintEvent | CursorEvent | EraseEvent | StyleEvent;
++interface ResizeEvent {
++  type: 'resize';
++  data: { cols: number; rows: number };
++}
++
++interface ModeEvent {
++  type: 'mode';
++  data: { mode: number; enabled: boolean; isDEC: boolean };
++}
++
++export type AnsiParserEvent = PrintEvent | CursorEvent | EraseEvent | StyleEvent | ResizeEvent | ModeEvent;
+ 
+ export interface AnsiParserOptions {
+   scrollbackLimit?: number;
+@@ -57,6 +67,8 @@ export class AnsiParser {
+   private scrollbackLimit: number;
+   private currentLine: string = '';
+   private currentLineStyle: AnsiParserState;
++  private cols: number = 80;
++  private rows: number = 24;
+ 
+   constructor(options: AnsiParserOptions = {}) {
+     this.scrollbackLimit = options.scrollbackLimit ?? 1000;
+@@ -214,6 +226,7 @@ export class AnsiParser {
+ 
+   private executeCSI(paramStr: string, command: string): void {
+     const params = this.parseParams(paramStr);
++    const isDEC = paramStr.startsWith('?');
+ 
+     switch (command) {
+       case 'm':
+@@ -241,18 +254,29 @@ export class AnsiParser {
+       case 'K':
+         this.handleEL(params[0] || 0);
+         break;
++      case 'h':
++        this.handleSetMode(params, isDEC, true);
++        break;
++      case 'l':
++        this.handleSetMode(params, isDEC, false);
++        break;
+     }
+   }
+ 
+   private parseParams(paramStr: string): number[] {
+     if (paramStr.length === 0) return [];
+     
++    let str = paramStr;
++    if (str.startsWith('?')) {
++      str = str.slice(1);
++    }
++    
+     const params: number[] = [];
+     let current = 0;
+     let hasDigits = false;
+ 
+-    for (let i = 0; i < paramStr.length; i++) {
+-      const charCode = paramStr.charCodeAt(i);
++    for (let i = 0; i < str.length; i++) {
++      const charCode = str.charCodeAt(i);
+       if (charCode >= 48 && charCode <= 57) {
+         current = current * 10 + (charCode - 48);
+         hasDigits = true;
+@@ -428,6 +452,24 @@ export class AnsiParser {
+     });
+   }
+ 
++  private handleSetMode(params: number[], isDEC: boolean, enabled: boolean): void {
++    for (const mode of params) {
++      this.events.push({
++        type: 'mode',
++        data: { mode, enabled, isDEC },
++      });
++    }
++  }
++
++  resize(cols: number, rows: number): ResizeEvent {
++    this.cols = cols;
++    this.rows = rows;
++    return {
++      type: 'resize',
++      data: { cols, rows },
++    };
++  }
++
+   getState(): AnsiParserState {
+     return { 
+       cursorX: this.state.cursorX,

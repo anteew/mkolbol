@@ -85,12 +85,25 @@ connections:
 ```
 
 ```bash
+# Using mkctl run (recommended)
+node dist/scripts/mkctl.js run --file examples/configs/basic.yml
+
+# Or via legacy config-runner
 node dist/examples/config-runner.js --file examples/configs/basic.yml
 ```
 
+**Using mkctl run:**
+- `mkctl run --file <path>` - Load and execute a topology (runs for 5 seconds by default)
+- `mkctl run --file <path> --duration 10` - Customize duration in seconds
+- Automatically registers modules with Hostess and tracks endpoints
+
 **Learn more about configuration:**
+- **[Quickstart with mkctl](docs/devex/quickstart.md#quick-start-with-mkctl-recommended)** - Get running in 2 minutes
 - **[Wiring and Testing Guide](docs/devex/wiring-and-tests.md)** - Complete config schema, external processes (stdio/pty modes), and test lanes
-- **[Config Examples](examples/configs/)** - Real working topologies you can run immediately
+- **[Config Examples](examples/configs/)** - Real working topologies with stdio and pty modes
+  - `examples/configs/basic.yml` - Basic timer + transform + console
+  - `examples/configs/external-stdio.yaml` - External process with stdio mode
+  - `examples/configs/external-pty.yaml` - External process with PTY mode
 
 ## ANSI Parser
 

@@ -3,9 +3,11 @@ export interface AnsiParserState {
     cursorY: number;
     bold: boolean;
     underline: boolean;
-    foregroundColor: number | null;
-    backgroundColor: number | null;
+    foregroundColor: number | string | null;
+    backgroundColor: number | string | null;
     inverse: boolean;
+    autoWrap: boolean;
+    screenInverse: boolean;
 }
 interface PrintEvent {
     type: 'print';
@@ -34,19 +36,28 @@ interface EraseEvent {
 }
 interface StyleEvent {
     type: 'style';
+    data: AnsiParserState;
+}
+interface ResizeEvent {
+    type: 'resize';
     data: {
-        cursorX: number;
-        cursorY: number;
-        bold: boolean;
-        underline: boolean;
-        foregroundColor: number | null;
-        backgroundColor: number | null;
-        inverse: boolean;
+        cols: number;
+        rows: number;
     };
 }
-export type AnsiParserEvent = PrintEvent | CursorEvent | EraseEvent | StyleEvent;
+interface ModeEvent {
+    type: 'mode';
+    data: {
+        mode: number;
+        enabled: boolean;
+        isDEC: boolean;
+    };
+}
+export type AnsiParserEvent = PrintEvent | CursorEvent | EraseEvent | StyleEvent | ResizeEvent | ModeEvent;
 export interface AnsiParserOptions {
     scrollbackLimit?: number;
+    cols?: number;
+    rows?: number;
 }
 export interface ScrollbackLine {
     content: string;
@@ -69,6 +80,8 @@ export declare class AnsiParser {
     private scrollbackLimit;
     private currentLine;
     private currentLineStyle;
+    private cols;
+    private rows;
     constructor(options?: AnsiParserOptions);
     private createInitialState;
     parse(input: string): AnsiParserEvent[];
@@ -86,6 +99,10 @@ export declare class AnsiParser {
     private handleCUB;
     private handleED;
     private handleEL;
+    private handleSetMode;
+    private handleWindowCommand;
+    private applyResize;
+    resize(cols: number, rows: number): ResizeEvent;
     private handleLineFeed;
     private pushLineToScrollback;
     private handleCarriageReturn;
@@ -93,6 +110,10 @@ export declare class AnsiParser {
     private handleBackspace;
     getState(): AnsiParserState;
     getScrollback(): ScrollbackLine[];
+    getDimensions(): {
+        cols: number;
+        rows: number;
+    };
     snapshot(): TerminalSnapshot;
     exportJSON(): string;
     exportPlainText(): string;
