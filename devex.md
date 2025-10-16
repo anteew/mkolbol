@@ -83,40 +83,40 @@
 }
 ```
 
-# DevEx — Phase D Docs (init/build/package/ci‑plan)
+# DevEx — RC Sweep Docs (Hello in 10 Minutes + Release Notes)
 
 ```json
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "DEVX-P4-A", "parallel": true,  "tasks": ["D10001","D10002"] },
-    { "id": "DEVX-P4-B", "parallel": true,  "depends_on": ["DEVX-P4-A"], "tasks": ["D10003","D10004","D10005"] }
+    { "id": "DEVX-RC-A", "parallel": true,  "tasks": ["D10101","D10102"] },
+    { "id": "DEVX-RC-B", "parallel": true,  "depends_on": ["DEVX-RC-A"], "tasks": ["D10103","D10104","D10105"] }
   ],
   "tasks": [
-    {"id":"D10001","agent":"devex","title":"Docs: mk init/build/package/ci‑plan — command guides + First‑Five‑Minutes updates",
-      "allowedFiles":["docs/devex/first-five-minutes.md","docs/devex/quickstart.md","docs/devex/packaging.md","docs/devex/releases.md","docs/devex/ci-acceptance-smoke.md"],
+    {"id":"D10101","agent":"devex","title":"Hello in 10 Minutes: chain init→run→doctor→format→run --yaml→build→package→ci plan",
+      "allowedFiles":["docs/devex/first-five-minutes.md","docs/devex/quickstart.md","README.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D10001_docs-init-build-package-ci.patch"]},
+      "deliverables":["patches/DIFF_D10101_docs-hello-10m.patch"]},
 
-    {"id":"D10002","agent":"devex","title":"Examples: mk init template(s) — hello-calculator init path",
-      "allowedFiles":["examples/mk/init-templates/**","examples/mk/hello-calculator/**"],
+    {"id":"D10102","agent":"devex","title":"Examples: finalize hello-calculator init path; acceptance notes",
+      "allowedFiles":["examples/mk/init-templates/**","examples/mk/hello-calculator/**","tests/devex/acceptance/local-node-v1.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D10002_examples-init-hello.patch"]},
+      "deliverables":["patches/DIFF_D10102_examples-init-hello-final.patch"]},
 
-    {"id":"D10003","agent":"devex","title":"CI plan doc: copy‑paste Actions snippet + cache keys; Laminar hooks",
+    {"id":"D10103","agent":"devex","title":"CI plan doc: copy‑paste Actions snippet + cache keys; Laminar hooks",
       "allowedFiles":["docs/devex/ci-acceptance-smoke.md","README.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D10003_docs-ci-plan.patch"]},
+      "deliverables":["patches/DIFF_D10103_docs-ci-plan-rc.patch"]},
 
-    {"id":"D10004","agent":"devex","title":"Help snapshots: add mk init/build/package/ci help; enforce style",
+    {"id":"D10104","agent":"devex","title":"Help snapshots: include mk init/build/package/ci; enforce style",
       "allowedFiles":["tests/cli/mkdxHelp.spec.ts","docs/devex/mk-dx-style.md"],
       "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_D10004_cli-help-snapshots-phase-d.patch"]},
+      "deliverables":["patches/DIFF_D10104_cli-help-snapshots-rc.patch"]},
 
-    {"id":"D10005","agent":"devex","title":"DX checklist updates for Phase D; add ‘did‑you‑mean’ verification section",
-      "allowedFiles":["docs/devex/mk-dx-checklist.md"],
+    {"id":"D10105","agent":"devex","title":"Release Notes (RC): features, install paths, limitations; link Distribution Matrix",
+      "allowedFiles":["docs/devex/releases.md","README.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D10005_dx-checklist-phase-d.patch"]}
+      "deliverables":["patches/DIFF_D10105_docs-release-notes-rc.patch"]}
   ]
 }
 ```
@@ -133,6 +133,6 @@ npm run test:ci
 ```
 
 Success Criteria
-- First‑Five‑Minutes and Quickstart mirror mk init/build/package/ci‑plan.
+- First‑Five‑Minutes shows a single “Hello in 10 Minutes” path end‑to‑end.
 - CI plan doc provides a working Actions snippet with Laminar hooks.
-- Help snapshots include new commands; style guide adhered to.
+- Release Notes (RC) published; style/links consistent; help snapshots pass.
