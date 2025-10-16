@@ -438,7 +438,7 @@ npm install
 ```json
 {
   "dependencies": {
-    "mkolbol": "github:anteew/Laminar#v0.2.0"
+    "mkolbol": "github:anteew/mkolbol#v0.2.0"
   }
 }
 ```
@@ -448,7 +448,7 @@ npm install
 ```json
 {
   "dependencies": {
-    "mkolbol": "github:anteew/Laminar#d138516fcadc152c61b16bc362bbbdbde84edfc6"
+    "mkolbol": "github:anteew/mkolbol#d138516fcadc152c61b16bc362bbbdbde84edfc6"
   }
 }
 ```

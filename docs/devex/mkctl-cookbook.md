@@ -11,13 +11,15 @@ Quick reference guide for the most common `mkctl` commands and patterns. Use thi
 
 ```bash
 # Option 1: From Tarball (Recommended - offline-capable, reproducible)
-curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz \
-  -o mkolbol-0.2.0.tar.gz
-npm install ./mkolbol-0.2.0.tar.gz
+# Local tarball from this repo (Release tarball also works when available)
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol && npm ci && npm run build && npm pack
+cd -
+npm install ./mkolbol/mkolbol-*.tgz
 npx mkctl
 
 # Option 2: From Git Tag (Version-controlled, requires git)
-npm install github:anteew/Laminar#v0.2.0
+npm install github:anteew/mkolbol#v0.2.0
 npx mkctl
 
 # Option 3: From Vendor/Local Path (Full control, monorepo)
@@ -25,8 +27,8 @@ npm install file:../packages/mkolbol
 npx mkctl
 
 # Option 4: Development (local clone)
-git clone https://github.com/anteew/Laminar.git
-cd Laminar
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol
 npm install
 npm run build
 npx mkctl
@@ -42,15 +44,11 @@ npx mkctl
 
 Best for reproducibility, offline use, and CI/CD.
 
-**Step 1: Download the tarball**
+**Step 1–2: Build and install a local tarball**
 ```bash
-curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz \
-  -o mkolbol-0.2.0.tar.gz
-```
-
-**Step 2: Install in your project**
-```bash
-npm install ./mkolbol-0.2.0.tar.gz
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol && npm ci && npm run build && npm pack
+cd /your/app && npm install ../mkolbol/mkolbol-*.tgz
 ```
 
 **Step 3: Use mkctl**
@@ -77,7 +75,7 @@ Best for version tracking in your git history.
 ```json
 {
   "dependencies": {
-    "mkolbol": "github:anteew/Laminar#v0.2.0"
+    "mkolbol": "github:anteew/mkolbol#v0.2.0"
   }
 }
 ```
@@ -97,7 +95,7 @@ npx mkctl run --file config.yml
 # Edit package.json with new tag
 {
   "dependencies": {
-    "mkolbol": "github:anteew/Laminar#v0.3.0"
+    "mkolbol": "github:anteew/mkolbol#v0.3.0"
   }
 }
 
@@ -123,7 +121,7 @@ Best for full control, offline use, and active development.
 **Step 1: Copy mkolbol source into your repo**
 ```bash
 mkdir -p packages
-git clone https://github.com/anteew/Laminar.git packages/mkolbol
+git clone https://github.com/anteew/mkolbol.git packages/mkolbol
 ```
 
 **Step 2: Create root workspace (package.json)**

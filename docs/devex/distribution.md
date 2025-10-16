@@ -20,7 +20,7 @@ This guide helps you choose the right way to install and distribute mkolbol for 
 
 ### What is a Tarball?
 
-A tarball is a compressed archive (`.tar.gz`) containing the complete mkolbol source code and dependencies. It's similar to a npm package but **doesn't require npm registry access**.
+A tarball is a compressed archive (typically `.tgz` from `npm pack`) containing the mkolbol package. It's similar to an npm package but **doesn't require registry access**.
 
 ### Advantages
 
@@ -37,20 +37,20 @@ A tarball is a compressed archive (`.tar.gz`) containing the complete mkolbol so
 
 ```bash
 # Download from GitHub releases page
-# https://github.com/anteew/Laminar/releases
-curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz \
-  -o mkolbol-0.2.0.tar.gz
+# https://github.com/anteew/mkolbol/releases
+curl -L https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-0.2.0.tgz \
+  -o mkolbol-0.2.0.tgz
 
 # Or using wget
-wget https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz
+wget https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-0.2.0.tgz
 ```
 
 #### Option B: GitHub Archive (Always Available)
 
 ```bash
 # Download source directly from GitHub tag
-curl -L https://codeload.github.com/anteew/Laminar/tar.gz/v0.2.0 \
-  -o mkolbol-0.2.0.tar.gz
+curl -L https://codeload.github.com/anteew/mkolbol/tar.gz/v0.2.0 \
+  -o mkolbol-0.2.0.tar.gz  # Source archive (requires build)
 ```
 
 #### Option C: Local Creation (For Custom Builds)
@@ -68,14 +68,14 @@ npm pack                   # Create tarball
 #### Step 1: Extract the Tarball
 
 ```bash
-tar -xzf mkolbol-0.2.0.tar.gz
+tar -xzf mkolbol-0.2.0.tgz
 cd package  # GitHub creates a 'package' directory
 ```
 
 Or directly with npm:
 
 ```bash
-npm install ./mkolbol-0.2.0.tar.gz
+npm install ./mkolbol-0.2.0.tgz
 ```
 
 #### Step 2: Reference in Your Project
@@ -84,7 +84,7 @@ npm install ./mkolbol-0.2.0.tar.gz
 ```json
 {
   "dependencies": {
-    "mkolbol": "file:../path/to/mkolbol-0.2.0.tar.gz"
+    "mkolbol": "file:../path/to/mkolbol-0.2.0.tgz"
   }
 }
 ```
@@ -153,7 +153,7 @@ Instead of using npm registry or tarballs, you pin a specific git tag directly.
 # In package.json
 {
   "dependencies": {
-    "mkolbol": "github:anteew/Laminar#v0.2.0"
+    "mkolbol": "github:anteew/mkolbol#v0.2.0"
   }
 }
 ```
@@ -184,7 +184,7 @@ npm install
 # Use exact commit hash for maximum precision
 {
   "dependencies": {
-    "mkolbol": "github:anteew/Laminar#d138516fcadc152c61b16bc362bbbdbde84edfc6"
+    "mkolbol": "github:anteew/mkolbol#d138516fcadc152c61b16bc362bbbdbde84edfc6"
   }
 }
 ```
@@ -193,7 +193,7 @@ npm install
 
 ```bash
 # List remote tags
-git ls-remote --tags https://github.com/anteew/Laminar.git
+git ls-remote --tags https://github.com/anteew/mkolbol.git
 
 # Output example:
 # d138516fcadc152c61b16bc362bbbdbde84edfc6 refs/tags/v0.2.0

@@ -2,17 +2,19 @@
 
 This guide shows you how to integrate mkolbol into your project for stream processing, data pipelines, and observability.
 
+> Distribution note: mkolbol is not published on npm. Use Tarball, Git Tag, or Vendor installs. See the [Distribution Matrix](./distribution.md).
+
 ## Installation Methods
 
-mkolbol can be installed in multiple ways depending on your needs:
+Choose one based on your workflow:
 
 | Method | Use Case | Command |
 |--------|----------|---------|
-| **Tarball** (Recommended) | Production, CI/CD, reproducible builds | `npm install ./mkolbol-0.2.0.tar.gz` |
-| **Git Tag** | Version tracking, team workflows | `npm install github:anteew/Laminar#v0.2.0` |
+| **Tarball (Recommended)** | Reproducible builds, CI | `npm install ./mkolbol-<version>.tgz` |
+| **Git Tag (Pinned)** | Team workflows, no registry | `npm install github:anteew/mkolbol#v0.2.0` |
 | **Vendor/Local** | Monorepo, full control | `npm install file:../packages/mkolbol` |
 
-For a detailed comparison of installation methods, see [Distribution Matrix](./distribution.md).
+For a detailed comparison, see [Distribution Matrix](./distribution.md).
 
 ## Quick Start: 5-Minute Setup
 
@@ -20,13 +22,18 @@ For a detailed comparison of installation methods, see [Distribution Matrix](./d
 
 **Recommended (Tarball):**
 ```bash
-curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz -o mkolbol-0.2.0.tar.gz
-npm install ./mkolbol-0.2.0.tar.gz
+# Option A — local tarball from this repo
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol && npm ci && npm run build && npm pack
+cd /your/app && npm install ../mkolbol/mkolbol-*.tgz
+
+# Option B — when GitHub Releases are available
+# npm install https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-0.2.0.tgz
 ```
 
 **Alternative (Git Tag):**
 ```bash
-npm install github:anteew/Laminar#v0.2.0
+npm install github:anteew/mkolbol#v0.2.0
 ```
 
 **Or use local development:**
@@ -424,4 +431,3 @@ services:
 - 👨‍💻 Build a custom module: [Authoring a Module](./authoring-a-module.md)
 - 🔧 Explore [mkctl Cookbook](./mkctl-cookbook.md) for daily commands
 - 🆘 Use [Doctor Guide](./doctor.md) for troubleshooting
-

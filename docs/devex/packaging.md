@@ -79,12 +79,12 @@ For production and CI/CD, we recommend manual tarball installation or git tag pi
 
 ```bash
 # ✅ Preferred: Manual tarball download
-curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz \
-  -o mkolbol-0.2.0.tar.gz
-npm install ./mkolbol-0.2.0.tar.gz
+curl -L https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-0.2.0.tgz \
+  -o mkolbol-0.2.0.tgz
+npm install ./mkolbol-0.2.0.tgz
 
 # ✅ Alternative: Git tag pinning
-npm install github:anteew/Laminar#v0.2.0
+npm install github:anteew/mkolbol#v0.2.0
 ```
 
 See [Distribution Matrix](./distribution.md) for more installation options.

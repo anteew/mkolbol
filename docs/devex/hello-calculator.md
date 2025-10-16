@@ -32,22 +32,18 @@ npm init -y
 
 **Tarball (Reproducible, Recommended):**
 ```bash
-# Download tarball from GitHub releases
-curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz -o mkolbol.tar.gz
-
-# Install from tarball
-npm install ./mkolbol.tar.gz
+# Local tarball from this repo
+git clone https://github.com/anteew/mkolbol.git
+cd mkolbol && npm ci && npm run build && npm pack
+cd - && npm install ./mkolbol/mkolbol-*.tgz
 ```
 
 **Or from Git tag:**
 ```bash
-npm install github:anteew/Laminar#v0.2.0
+npm install github:anteew/mkolbol#v0.2.0
 ```
 
-**Or local development:**
-```bash
-npm install mkolbol
-```
+> Distribution note: mkolbol is not on npm. Use tarball or Git tag (above).
 
 ### Create folders
 
@@ -431,4 +427,3 @@ npm run run
 ```
 
 Welcome to mkolbol! 🚀
-

@@ -150,7 +150,7 @@ Edit `package.json` to pin a git tag:
 ```json
 {
   "dependencies": {
-    "mkolbol": "github:anteew/Laminar#v0.2.0"
+    "mkolbol": "github:anteew/mkolbol#v0.2.0"
   }
 }
 ```
