@@ -94,9 +94,9 @@ npx vitest run \
 
 ### MK_PROCESS_EXPERIMENTAL
 
-**Status:** ✅ **ENABLED in CI** (optional experimental lane)
+**Status:** ✅ **REQUIRED for CI** (enforced in forks lane)
 
-**Purpose:** Gate Unix process adapter tests (pipes, PTY control, teardown).
+**Purpose:** Enable Unix process adapter tests (pipes, PTY control, teardown).
 
 **Gated tests:**
 - `tests/integration/processUnix.spec.ts`
@@ -111,8 +111,8 @@ npx vitest run \
 
 **Usage:**
 ```bash
-# Enable gate and run forks lane
-MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
+# Run forks lane with process-mode (REQUIRED)
+npm run test:pty
 
 # Direct vitest (processUnix only)
 MK_PROCESS_EXPERIMENTAL=1 npx vitest run \
@@ -130,9 +130,9 @@ describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('UnixPipeAdapter', () => {
 ```
 
 **CI behavior:**
-- Main forks lane runs WITHOUT this gate (skips processUnix tests)
-- Optional experimental step runs WITH this gate (continue-on-error)
-- See `.github/workflows/tests.yml` step "Process-mode experimental"
+- Forks lane **REQUIRES** `MK_PROCESS_EXPERIMENTAL=1` (no longer optional)
+- Process-mode tests run in main forks lane (not experimental step)
+- Ensures adapter parity and PTY control coverage
 
 ### MK_WORKER_EXPERIMENTAL
 
@@ -228,8 +228,16 @@ Location: `.github/workflows/tests.yml`
 
 6. **Upload artifacts** (if: always)
    - Name: `laminar-reports-{node-version}`
-   - Path: `reports`
+   - Path: `reports/`
    - Retention: Default (typically 90 days)
+   - **Contents:**
+     - `summary.jsonl` - Structured test results (Laminar)
+     - `index.json` - Test artifact manifest
+     - `<suite>/<case>.jsonl` - Per-case event streams
+     - `threads_raw.log` - Full output from threads lane
+     - `forks_raw.log` - Full output from forks lane
+     - `LAMINAR_SUMMARY.txt` - Human-readable summary
+     - `LAMINAR_TRENDS.txt` - Top recurring signals
 
 ### Viewing CI Results
 
@@ -324,9 +332,9 @@ npm run test:pty
 
 **Symptom:** Tests in `processUnix.spec.ts` show as skipped.
 
-**Solution:** Enable `MK_PROCESS_EXPERIMENTAL` gate:
+**Solution:** Process-mode is now **required**. Use `npm run test:pty` (sets `MK_PROCESS_EXPERIMENTAL=1` automatically):
 ```bash
-MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
+npm run test:pty
 ```
 
 **3. Tinypool concurrency errors on Node 20/24**
@@ -469,3 +477,11 @@ npm run lam -- repro --bundle --case kernel.spec/connect_moves_data_1_1
 - [GitHub Actions Workflow](../../.github/workflows/tests.yml) - CI configuration
 - [package.json](../../package.json) - npm scripts and test commands
 - [vitest.config.ts](../../vitest.config.ts) - Vitest configuration
+
+## DevEx Resources
+
+For early adopters building custom servers:
+
+- [Wiring and Testing Guide](../devex/wiring-and-tests.md) - How to wire your server using config files and write acceptance tests
+- [DevEx Acceptance Tests](../../tests/devex/README.md) - Copy-pasteable test patterns for external projects
+- [First Server Tutorial](../devex/first-server-tutorial.md) - Build your first custom module
