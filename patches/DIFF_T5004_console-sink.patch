@@ -1,0 +1,146 @@
+diff --git a/docs/devex/mkctl-cookbook.md b/docs/devex/mkctl-cookbook.md
+index bb6eb55..5ed7d1e 100644
+--- a/docs/devex/mkctl-cookbook.md
++++ b/docs/devex/mkctl-cookbook.md
+@@ -184,6 +184,60 @@ For deeper help see the **Troubleshooting** section in [README.md](../../README.
+ 
+ ---
+ 
++## Buffer Handling in ConsoleSink
++
++ConsoleSink automatically formats Buffer objects for human-readable console output:
++
++### UTF-8 Text Buffers (≤100 bytes)
++```yaml
++# Small text buffers are shown as strings
++nodes:
++  - id: sink
++    module: ConsoleSink
++```
++
++**Output:**
++```
++[sink] Buffer(5) "hello"
++[sink] Buffer(13) "hello world!\n"
++```
++
++### Binary Buffers (≤64 bytes)
++```yaml
++# Small binary buffers are shown as hex dump
++nodes:
++  - id: sink
++    module: ConsoleSink
++```
++
++**Output:**
++```
++[sink] Buffer(4) [ff 00 ab cd]
++[sink] Buffer(8) [de ad be ef ca fe ba be]
++```
++
++### Large Buffers (>64 bytes)
++```yaml
++# Large buffers show first 64 bytes + total size
++nodes:
++  - id: sink
++    module: ConsoleSink
++```
++
++**Output:**
++```
++[sink] Buffer(200) [41 41 41 41 ... +136 bytes]
++```
++
++### Empty Buffers
++```
++[sink] Buffer(0) []
++```
++
++**Pro Tip**: ConsoleSink detects printable ASCII/UTF-8 text (including tabs, newlines) and formats accordingly. Binary data triggers hex dump mode.
++
++---
++
+ ## Error Matrix & Test Fixtures
+ 
+ To help you learn from common mistakes, we provide a set of bad-config fixtures that demonstrate each error. You can test these yourself to understand the error messages and how to fix them.
+diff --git a/src/modules/consoleSink.ts b/src/modules/consoleSink.ts
+index 7761b5e..445a454 100644
+--- a/src/modules/consoleSink.ts
++++ b/src/modules/consoleSink.ts
+@@ -10,6 +10,8 @@ export class ConsoleSink {
+       write(chunk, _enc, cb) {
+         if (typeof chunk === 'string') {
+           console.log(`${prefix} ${chunk}`);
++        } else if (Buffer.isBuffer(chunk)) {
++          console.log(`${prefix} ${formatBuffer(chunk)}`);
+         } else {
+           console.log(`${prefix} ${JSON.stringify(chunk)}`);
+         }
+@@ -19,3 +21,31 @@ export class ConsoleSink {
+     this.inputPipe = sink as unknown as Pipe;
+   }
+ }
++
++function formatBuffer(buf: Buffer): string {
++  const maxUtf8Length = 100;
++  const maxHexBytes = 64;
++
++  if (buf.length === 0) {
++    return 'Buffer(0) []';
++  }
++
++  const isLikelyText = buf.every(byte => 
++    (byte >= 0x20 && byte <= 0x7E) || 
++    byte === 0x09 || byte === 0x0A || byte === 0x0D
++  );
++
++  if (isLikelyText && buf.length <= maxUtf8Length) {
++    const str = buf.toString('utf8');
++    return `Buffer(${buf.length}) "${str}"`;
++  }
++
++  if (buf.length <= maxHexBytes) {
++    const hex = buf.toString('hex').match(/.{1,2}/g)?.join(' ') || '';
++    return `Buffer(${buf.length}) [${hex}]`;
++  }
++
++  const preview = buf.subarray(0, maxHexBytes);
++  const hex = preview.toString('hex').match(/.{1,2}/g)?.join(' ') || '';
++  return `Buffer(${buf.length}) [${hex} ... +${buf.length - maxHexBytes} bytes]`;
++}
+diff --git a/tests/integration/multiModalOutput.spec.ts b/tests/integration/multiModalOutput.spec.ts
+index 3f9df28..cff81e7 100644
+--- a/tests/integration/multiModalOutput.spec.ts
++++ b/tests/integration/multiModalOutput.spec.ts
+@@ -88,4 +88,31 @@ describe('Multi-Modal Output Integration', () => {
+     const logContent = fs.readFileSync(testLogPath, 'utf8');
+     expect(logContent).toContain('multi-modal test');
+   });
++
++  it('should format Buffer objects as human-readable output', async () => {
++    const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
++    const sink = new ConsoleSink('[buffer-test]');
++    const outputs: string[] = [];
++    
++    const originalLog = console.log;
++    console.log = (...args: any[]) => {
++      outputs.push(args.join(' '));
++    };
++
++    sink.inputPipe.write(Buffer.from('hello'));
++    sink.inputPipe.write(Buffer.from([0x48, 0x65, 0x6C, 0x6C, 0x6F]));
++    sink.inputPipe.write(Buffer.from([0xFF, 0x00, 0xAB, 0xCD]));
++    sink.inputPipe.write(Buffer.alloc(0));
++    sink.inputPipe.write(Buffer.alloc(200).fill(0x41));
++
++    await new Promise(resolve => setTimeout(resolve, 100));
++
++    console.log = originalLog;
++
++    expect(outputs[0]).toContain('Buffer(5) "hello"');
++    expect(outputs[1]).toContain('Buffer(5) "Hello"');
++    expect(outputs[2]).toContain('Buffer(4) [ff 00 ab cd]');
++    expect(outputs[3]).toContain('Buffer(0) []');
++    expect(outputs[4]).toMatch(/Buffer\(200\) \[.*\.\.\. \+\d+ bytes\]/);
++  });
+ });

@@ -1,0 +1,22 @@
+nodes:
+  - id: web
+    module: ExternalProcess
+    params:
+      command: node
+      args:
+        - -e
+        - "require('http').createServer((req,res)=>{console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);res.end('ok')}).listen(3000,()=>console.log('Server listening on http://localhost:3000'))"
+      ioMode: stdio
+      restart: never
+
+  - id: file
+    module: FilesystemSink
+    params:
+      path: reports/http-logs.jsonl
+      mode: append
+      fsync: auto
+
+connections:
+  - from: web.output
+    to: file.input
+

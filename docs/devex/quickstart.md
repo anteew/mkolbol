@@ -142,9 +142,19 @@ Coordinates: node:sink
 - Output → ConsoleSink (terminal console)
 - Users who want persistent logs can tee output: `… | tee reports/http-demo.log`
 
-**Soon (FilesystemSink):**
+**FilesystemSink (file output):**
 - Output → FilesystemSink (writes to `reports/http-logs.jsonl`)
-- Just update the config: change `module: ConsoleSink` to `module: FilesystemSink`
+- Use the ready-made config: `examples/configs/http-logs-local-file.yml`
+
+Run it:
+```bash
+export MK_LOCAL_NODE=1
+node dist/scripts/mkctl.js run --file examples/configs/http-logs-local-file.yml --duration 5
+# In another shell, hit the server to generate logs
+curl -s http://localhost:3000 >/dev/null
+curl -s http://localhost:3000/test >/dev/null
+ls -l reports/http-logs.jsonl
+```
 - Node IDs stay the same (web, sink), so the documentation diff is minimal
 
 ### Configuration

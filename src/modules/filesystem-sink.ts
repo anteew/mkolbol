@@ -1,5 +1,5 @@
 import { Writable } from 'stream';
-import { createWriteStream, WriteStream } from 'fs';
+import { createWriteStream, WriteStream, fsync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { dirname } from 'path';
 import { Kernel } from '../kernel/Kernel.js';
@@ -69,6 +69,20 @@ export class FilesystemSink {
         totalWrites: this.writeCount,
         totalBytes: this.byteCount
       }, 'trace');
+
+      if (this.options.fsync === 'always' && this.fileStream) {
+        const fd = (this.fileStream as any).fd;
+        if (typeof fd === 'number') {
+          fsync(fd, (err) => {
+            if (err) {
+              debug.emit('filesystem-sink', 'fsync-error', {
+                path: this.options.path,
+                error: err.message
+              }, 'error');
+            }
+          });
+        }
+      }
     });
 
     this._inputPipe.on('end', () => {

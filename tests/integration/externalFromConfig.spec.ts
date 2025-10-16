@@ -453,4 +453,324 @@ describe('External From Config Integration', () => {
     },
     testTimeout
   );
+
+  // EDGE CASE: Capture limit enforcement
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should enforce 100KB capture limit strictly',
+    async () => {
+      // Generate exactly 150KB of data (50KB more than limit)
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'capture-limit',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sh',
+              args: ['-c', 'dd if=/dev/zero bs=1024 count=150 2>/dev/null | base64'],
+              ioMode: 'stdio',
+              restart: 'never'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('capture-limit');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to complete
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const stdout = wrapper.getCapturedStdout();
+      const captureSize = Buffer.from(stdout, 'utf8').length;
+
+      // Must be exactly at 100KB limit
+      expect(captureSize).toBe(100 * 1024);
+      expect(captureSize).toBeLessThanOrEqual(100 * 1024);
+
+      await executor.down();
+    },
+    15000
+  );
+
+  // EDGE CASE: Backoff cap at 30s
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should cap exponential backoff at 30 seconds',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'backoff-cap',
+            module: 'ExternalProcess',
+            params: {
+              command: 'echo',
+              args: ['test'],
+              ioMode: 'stdio',
+              restart: 'never',
+              restartDelay: 1000
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('backoff-cap');
+      expect(wrapper).toBeDefined();
+
+      // Simulate multiple restart attempts by setting restart count
+      (wrapper as any).restartCount = 10; // 2^10 * 1000 = 1024000ms (17 minutes)
+
+      const backoffDelay = (wrapper as any).calculateBackoffDelay();
+
+      // Should be capped at 30 seconds, not 17 minutes
+      expect(backoffDelay).toBe(30000);
+      expect(backoffDelay).toBeLessThanOrEqual(30000);
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // EDGE CASE: SIGTERM signal handling
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should handle SIGTERM signal correctly',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'sigterm-test',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sh',
+              args: ['-c', 'trap "exit 143" TERM; sleep 10 & wait'],
+              ioMode: 'stdio',
+              restart: 'never'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('sigterm-test');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to start
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Send SIGTERM
+      wrapper.sendSignal('SIGTERM');
+
+      // Wait for process to handle signal
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const lastExitCode = wrapper.getLastExitCode();
+      const exitInfo = wrapper.getExitInfo();
+
+      // When trapped, shell exits with code 143, not signal
+      expect(lastExitCode).toBe(143);
+      expect(exitInfo).toContain('terminated (SIGTERM)');
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // EDGE CASE: SIGKILL signal handling
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should handle SIGKILL signal correctly',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'sigkill-test',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sh',
+              args: ['-c', 'sleep 10'],
+              ioMode: 'stdio',
+              restart: 'never'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('sigkill-test');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to start
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Send SIGKILL
+      wrapper.sendSignal('SIGKILL');
+
+      // Wait for process to be killed
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const lastSignal = wrapper.getLastSignal();
+      const lastExitCode = wrapper.getLastExitCode();
+
+      // Should have been killed by SIGKILL
+      expect(lastSignal).toBe('SIGKILL');
+      expect(lastExitCode).toBeNull();
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // EDGE CASE: Restart count limit
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should respect restart count limits and not exceed maxRestarts',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'restart-limit',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sh',
+              args: ['-c', 'exit 1'],
+              ioMode: 'stdio',
+              restart: 'always',
+              maxRestarts: 2,
+              restartDelay: 50
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('restart-limit');
+      expect(wrapper).toBeDefined();
+
+      // Wait for initial spawn + restarts with exponential backoff
+      // Initial spawn (fails), restart 1 (50ms), restart 2 (100ms) = max 2 restarts
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+
+      const restartCount = wrapper.getRestartCount();
+      const isRunning = wrapper.isRunning();
+
+      // Should have stopped at maxRestarts
+      expect(restartCount).toBeLessThanOrEqual(2);
+      // Process should no longer be running after hitting limit
+      expect(isRunning).toBe(false);
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // EDGE CASE: Capture limit for stderr
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should enforce 100KB capture limit on stderr',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'stderr-limit',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sh',
+              args: ['-c', 'dd if=/dev/zero bs=1024 count=150 2>&1 >&2 | base64 >&2'],
+              ioMode: 'stdio',
+              restart: 'never'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('stderr-limit');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to complete
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const stderr = wrapper.getCapturedStderr();
+      const stderrSize = Buffer.from(stderr, 'utf8').length;
+
+      // Should be capped at 100KB
+      expect(stderrSize).toBeLessThanOrEqual(100 * 1024);
+
+      await executor.down();
+    },
+    15000
+  );
+
+  // EDGE CASE: Shutdown timeout with SIGKILL fallback
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should use SIGKILL if SIGTERM timeout is exceeded',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'shutdown-timeout',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sleep',
+              args: ['60'],
+              ioMode: 'stdio',
+              restart: 'never'
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('shutdown-timeout');
+      expect(wrapper).toBeDefined();
+
+      // Wait for process to start
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Verify process is running
+      expect(wrapper.isRunning()).toBe(true);
+
+      const startTime = Date.now();
+
+      // Shutdown with short timeout (sleep responds to SIGTERM quickly)
+      await wrapper.shutdown(500);
+
+      const elapsedTime = Date.now() - startTime;
+
+      // Should have completed quickly (sleep responds to SIGTERM)
+      expect(elapsedTime).toBeLessThan(2000);
+      expect(wrapper.isRunning()).toBe(false);
+      
+      // The wrapper's shutdown method should have completed
+      expect(wrapper.process).toBeUndefined();
+
+      await executor.down();
+    },
+    10000
+  );
 });

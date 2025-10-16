@@ -1,0 +1,92 @@
+diff --git a/src/modules/filesystem-sink.ts b/src/modules/filesystem-sink.ts
+index 94646cb..0d6f80f 100644
+--- a/src/modules/filesystem-sink.ts
++++ b/src/modules/filesystem-sink.ts
+@@ -1,5 +1,5 @@
+ import { Writable } from 'stream';
+-import { createWriteStream, WriteStream } from 'fs';
++import { createWriteStream, WriteStream, fsync } from 'fs';
+ import { mkdir } from 'fs/promises';
+ import { dirname } from 'path';
+ import { Kernel } from '../kernel/Kernel.js';
+@@ -69,6 +69,20 @@ export class FilesystemSink {
+         totalWrites: this.writeCount,
+         totalBytes: this.byteCount
+       }, 'trace');
++
++      if (this.options.fsync === 'always' && this.fileStream) {
++        const fd = (this.fileStream as any).fd;
++        if (typeof fd === 'number') {
++          fsync(fd, (err) => {
++            if (err) {
++              debug.emit('filesystem-sink', 'fsync-error', {
++                path: this.options.path,
++                error: err.message
++              }, 'error');
++            }
++          });
++        }
++      }
+     });
+ 
+     this._inputPipe.on('end', () => {
+diff --git a/tests/renderers/filesystemSink.spec.ts b/tests/renderers/filesystemSink.spec.ts
+index f8b4675..8516fd9 100644
+--- a/tests/renderers/filesystemSink.spec.ts
++++ b/tests/renderers/filesystemSink.spec.ts
+@@ -142,4 +142,55 @@ describe('FilesystemSink', () => {
+     expect(lines[0]).toBe('line 0');
+     expect(lines[49]).toBe('line 49');
+   });
++
++  it('should write data with fsync=always', async () => {
++    const filePath = join(testDir, 'fsync-always.log');
++    const sink = new FilesystemSink(kernel, { path: filePath, fsync: 'always' });
++
++    await sink.start();
++    sink.inputPipe.write('data1\n');
++    sink.inputPipe.write('data2\n');
++    sink.inputPipe.write('data3\n');
++    await sink.stop();
++
++    const content = await readFile(filePath, 'utf8');
++    expect(content).toBe('data1\ndata2\ndata3\n');
++  });
++
++  it('should handle fsync=always with large writes', async () => {
++    const filePath = join(testDir, 'fsync-large.log');
++    const sink = new FilesystemSink(kernel, { path: filePath, fsync: 'always' });
++
++    await sink.start();
++    const largeData = Buffer.alloc(32 * 1024, 'x');
++    sink.inputPipe.write(largeData);
++    sink.inputPipe.write(Buffer.from('\n'));
++    await sink.stop();
++
++    const content = await readFile(filePath);
++    expect(content.length).toBe(largeData.length + 1);
++  });
++
++  it('should maintain backpressure with fsync=always', async () => {
++    const filePath = join(testDir, 'backpressure.log');
++    const sink = new FilesystemSink(kernel, { 
++      path: filePath, 
++      fsync: 'always',
++      highWaterMark: 1024
++    });
++
++    await sink.start();
++    
++    for (let i = 0; i < 100; i++) {
++      const canContinue = sink.inputPipe.write(Buffer.alloc(256, i));
++      if (!canContinue) {
++        await new Promise(resolve => sink.inputPipe.once('drain', resolve));
++      }
++    }
++    
++    await sink.stop();
++
++    const content = await readFile(filePath);
++    expect(content.length).toBe(100 * 256);
++  });
+ });
