@@ -34,10 +34,10 @@
 }
 ```
 
-# Ampcode Template — Subagent Dispatch Plan (Core: Router P2)
+# Ampcode Template — Subagent Dispatch Plan (Core: Router P2 — Local Node v1.0)
 
-Goal: Add TTL/heartbeat to routing and live `mkctl endpoints --watch`.
+Goal: Add TTL/heartbeat to routing and live `mkctl endpoints --watch` for Local Node v1.0 (in‑proc Router only).
 
 Constraints
 - Kernel unchanged; Router/Executor/CLI only.
-
+- Respect gate: `MK_LOCAL_NODE=1` (no network adapters/transports). Update loader/CLI to warn/reject network references when set.

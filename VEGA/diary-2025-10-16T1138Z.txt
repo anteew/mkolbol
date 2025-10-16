@@ -1,0 +1,13 @@
+Diary — 2025-10-16T11:38Z
+
+Decision
+- Focus on “Local Node v1.0” (single host; inproc/worker/process). Multi‑node later.
+- Gate with MK_LOCAL_NODE=1 (loader/CLI reject network adapters; Router in‑proc only).
+
+Plan touches
+- Updated VEGA/my-state-of-mind-today.txt, near-term-and-future-plan.md, whats-next-after-context-compaction.txt, compaction_payload.json.
+- Added VEGA/local-node-v1.0.md capturing scope/gate/acceptance.
+- Noted constraints in Router P2 sprint spec (sprints/core/susan-sprint02-router-p2.md).
+
+Next
+- Implement gate checks (loader + mkctl) and stage FilesystemSink P1 sprint.

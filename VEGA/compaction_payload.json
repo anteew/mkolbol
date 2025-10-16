@@ -15,9 +15,11 @@
   },
   "rehydrate": {
     "sanity": [
+      "export MK_LOCAL_NODE=1",
       "npm ci && npm run build",
       "npm run test:ci",
-      "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty"
+      "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty",
+      "node dist/scripts/mkctl.js run --file examples/configs/external-stdio.yaml --duration 1"
     ],
     "laminar": [
       "npm run lam -- summary",
@@ -25,7 +27,10 @@
     ]
   },
   "next_candidates": [
-    "Process‑mode enforcement to required",
-    "Packaging/Quickstart + docs polish"
+    "Local Node v1.0 acceptance",
+    "Router P2 (TTL/--watch) — local",
+    "ExternalProcess Hardening P1",
+    "Process Cutover P2",
+    "FilesystemSink P1"
   ]
 }
