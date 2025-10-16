@@ -1,3 +1,25 @@
+## Sprint — DEVEX-P5 (Vex)
+
+Theme
+- “First Five Minutes” landing + quickstart pointers + troubleshooting, aligned with mkctl ergonomics work.
+
+Tasks (deliverables are patch files in patches/)
+- D9501 — First Five Minutes landing
+  - Deliverable: patches/DIFF_D9501_first-five-minutes.md.patch
+  - Files: create docs/devex/first-five-minutes.md; link from README and docs/devex/quickstart.md.
+  - DoD: One-page landing routes clearly to (a) mkctl run, (b) StdIO path, (c) Interactive path.
+- D9502 — Troubleshooting guide
+  - Deliverable: patches/DIFF_D9502_troubleshooting.patch
+  - Files: create docs/devex/troubleshooting.md; update README.md Troubleshooting section.
+  - DoD: Maps common errors to friendly fixes (file not found, invalid YAML/JSON, runtime wiring errors, Node version, PTY perms). Cross-link to mkctl messages.
+- D9503 — Early adopter packaging walkthrough
+  - Deliverable: patches/DIFF_D9503_packaging-walkthrough.patch
+  - Files: docs/devex/early-adopter-guide.md, examples/early-adopter/* (only docs/scripts changes; no kernel edits).
+  - DoD: Shows how to run examples/early-adopter build-bundle.mjs and execute the produced runner; includes laminar artifacts note.
+
+Reporting
+- Append a concise summary to ampcode.log; place diffs under patches/ with IDs above.
+
 ```json
 {
   "ampcode": "v1",

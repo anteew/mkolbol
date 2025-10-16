@@ -311,6 +311,97 @@ GitHub Actions uploads two artifact bundles per Node version:
 | **Topology** | Configuration of nodes and connections (YAML/JSON) |
 | **Laminar** | Test observability framework with structured logging (JSONL) |
 
+## Packaging Walkthrough: Bundle Your First Module
+
+After you build your first module, you'll want to distribute it as a single executable. Here's a quick walkthrough using the bundling example:
+
+### Step 1: Navigate to Examples Directory
+
+```bash
+cd examples/early-adopter
+```
+
+### Step 2: Review the Bundle Script
+
+The `scripts/build-bundle.mjs` file shows how to use **esbuild** to bundle your topology:
+
+```bash
+cat scripts/build-bundle.mjs
+```
+
+This script:
+- Takes your TypeScript source (src/*.ts)
+- Resolves all dependencies (mkolbol kernel, node_modules)
+- Bundles into a single JavaScript file
+- Produces `dist/runner.js` - your distributable executable
+
+### Step 3: Build the Bundle
+
+```bash
+# Install dependencies (if not already done)
+npm install
+
+# Run the bundle script
+node scripts/build-bundle.mjs
+```
+
+Expected output:
+```
+✓ Bundled successfully
+✓ Output: dist/runner.js
+```
+
+### Step 4: Execute Your Bundled Topology
+
+```bash
+# Run your bundled runner
+node dist/runner.js --duration 5
+
+# Or specify custom config location
+node dist/runner.js --file ./my-config.yml --duration 10
+```
+
+Your bundled application runs identically to the source:
+- Same module wiring
+- Same configuration loading
+- Same Laminar observability (if enabled)
+
+### Step 5: Observe with Laminar
+
+If your runner includes Laminar instrumentation, artifacts appear in `reports/`:
+
+```bash
+# View test results
+npx lam summary
+
+# Analyze failures
+npx lam digest
+
+# Show detailed logs
+npx lam show --case mytest.spec/test_name --around assert.fail --window 10
+```
+
+See **[Laminar Workflow Guide](./laminar-workflow.md)** for complete observability setup.
+
+### Bundling Tips
+
+**Size optimization:**
+- Use esbuild's `--minify` flag to reduce bundle size
+- Tree-shake unused dependencies with `--platform=node`
+- Consider splitting bundles if they exceed 50MB
+
+**Runtime configuration:**
+- Store configs in `/etc/myapp/` or `$XDG_CONFIG_HOME`
+- Pass config path as CLI argument (see `dist/runner.js --help`)
+- Embed default config in the bundle as fallback
+
+**Reproducible builds:**
+- Pin all versions in `package-lock.json`
+- Store the bundle script in version control
+- Document any environment variables required at runtime
+
+See **[Packaging Guide](./packaging.md)** for detailed information on bundling strategies (esbuild vs. pkg vs. ncc) and production considerations.
+
 ## Next Step: Quickstart
 
 Ready to try it yourself? Jump to the **[Quickstart](../../README.md#quickstart)** section in the main README to:

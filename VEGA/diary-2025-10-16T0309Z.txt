@@ -1,0 +1,15 @@
+Diary — 2025-10-16T03:09Z
+
+Branch & SHA
+- Branch: mkolbol-devex-p5
+- HEAD: 3ed9de7
+
+What I did now
+- Pulled main (PR #64 is merged) and created branch mkolbol-devex-p5.
+- Rotated ampcode.md for Susan: SB-MK-DEVEX-P5 (mkctl ergonomics + ANSI Parser P3 polish).
+- Added DEVEX-P5 (Vex) tasks to devex.md: First Five Minutes landing, troubleshooting, packaging walkthrough.
+
+Next
+- Commit and push branch.
+- Hand off to Susan (ampcode.md) and Vex (devex.md).
+- Keep kernel inert; focus on CLI/docs/tests.

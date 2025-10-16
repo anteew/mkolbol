@@ -383,3 +383,42 @@ No rollback needed — all tasks passed.
 - Verification:
   - Reviewed rendered markdown locally — OK
 - Notes: Documented new resize API, DEC mode flags, and hex color outputs for architecture consumers.
+## Sprint SB-MK-DEVEX-P5 — 2025-10-16 03:30Z
+
+### TASK T9501 — mkctl: SIGINT/Ctrl+C handling [✅ PASS]
+- Deliverable: DIFF_T9501_mkctl-sigint.patch
+- Files Modified: scripts/mkctl.ts; tests/cli/mkctlRun.spec.ts
+- Verification:
+  - npm run build — OK
+  - npx vitest run --reporter=default tests/cli/mkctlRun.spec.ts — OK (new SIGINT test)
+- Notes: Consolidated signal handling via waitForDurationOrSignal() and exercised clean shutdown when Ctrl+C is sent.
+
+### TASK T9502 — mkctl: exit codes mapping [✅ PASS]
+- Deliverable: DIFF_T9502_mkctl-exit-codes.patch
+- Files Modified: scripts/mkctl.ts; tests/cli/mkctlRun.spec.ts
+- Verification:
+  - npx vitest run --reporter=default tests/cli/mkctlRun.spec.ts — OK (usage/config/runtime exit paths)
+- Notes: Added EXIT_CODES table, MkctlError, and hint-rich error output to surface precise return codes.
+
+### TASK T9503 — mkctl: friendly error messages [✅ PASS]
+- Deliverable: DIFF_T9503_mkctl-errors.patch
+- Files Modified: scripts/mkctl.ts; tests/cli/mkctlRun.spec.ts; README.md
+- Verification:
+  - npm run build — OK
+  - npx vitest run --reporter=default tests/cli/mkctlRun.spec.ts — OK (hint assertions)
+- Notes: Prefixed CLI errors with [mkctl], added troubleshooting table to README, and ensured hints accompany common failure modes.
+
+### TASK T9504 — ANSI Parser P3 polish: docs/examples/perf [✅ PASS]
+- Deliverable: DIFF_T9504_parser-p3-polish.patch
+- Files Modified: docs/rfcs/stream-kernel/ansi-parser.md; README.md; examples/ansi-parser-p3.ts
+- Verification:
+  - npx tsx examples/ansi-parser-p3.ts — OK
+  - npx vitest run --reporter=default tests/transforms/ansiParser.*.spec.ts — OK (perf guard steady)
+- Notes: Documented new demo script, linked performance guard command, and exposed the P3 tour example in README.
+
+### TASK T9505 — Cleanup: remove stray backups [✅ PASS]
+- Deliverable: DIFF_T9505_cleanup-backups.patch
+- Files Modified: (deleted) src/transforms/AnsiParser.ts.backup
+- Verification:
+  - npm run build — OK
+- Notes: Purged the stale backup file to keep the tree clean.

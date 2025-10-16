@@ -282,6 +282,7 @@ Palette indices resolve to precomputed `#RRGGBB` hex strings so renderers receiv
 parser.parse(Buffer.from('\x1b[38;5;196mBright Red Text'));  // Color 196 = #ff0000
 parser.parse(Buffer.from('\x1b[48;5;21mDeep Blue BG'));      // Color 21 = #0000ff
 ```
+Run `npx tsx examples/ansi-parser-p3.ts` to see the resolved hex colors printed alongside the emitted style events.
 
 ### Truecolor (24-bit RGB) Support
 
@@ -336,6 +337,7 @@ parser.parse(Buffer.from('\x1b[?7h'));  // Re-enable wrapping
 parser.parse(Buffer.from('\x1b[?5h'));  // Enable screen inverse
 parser.parse(Buffer.from('\x1b[?5l'));  // Disable screen inverse
 ```
+The same sample script (`examples/ansi-parser-p3.ts`) toggles DECAWM and DECSCNM so you can observe the `autoWrap` and `screenInverse` flags changing in real time.
 
 ### Resize Support
 
@@ -365,6 +367,7 @@ parser.parse(Buffer.from('More content across a wider terminal'));
 parser.resize(40, 10);
 parser.parse(Buffer.from('Tighter layout with automatic wrapping when enabled'));
 ```
+`examples/ansi-parser-p3.ts` emits the `resize` event and logs the new `getDimensions()` result so you can watch the clamping and state updates.
 
 ### Performance Considerations
 
@@ -385,6 +388,8 @@ parser.parse(Buffer.from('Tighter layout with automatic wrapping when enabled'))
 - Benchmarks track regression
 - Large palette/truecolor sequence tests assert throughput stays within budget
 - Edge case tests prevent performance cliffs
+
+Execute `npx vitest run --reporter=default tests/transforms/ansiParser.performance.spec.ts` to run the lightweight guard that enforces the palette/truecolor budget on CI hardware.
 
 ## Roadmap
 

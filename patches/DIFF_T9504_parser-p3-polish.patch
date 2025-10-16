@@ -1,0 +1,99 @@
+diff --git a/README.md b/README.md
+index 54a2b80..40efad4 100644
+--- a/README.md
++++ b/README.md
+@@ -12,7 +12,9 @@
+ 
+ ## New to mkolbol?
+ 
+-Start here: **[Early Adopter Guide](docs/devex/early-adopter-guide.md)** - Understand mkolbol in 5 minutes
++**⏱️ First 5 minutes:** **[First Five Minutes](docs/devex/first-five-minutes.md)** - Pick your path (mkctl run, StdIO, or Interactive)
++
++**Learn the concepts:** **[Early Adopter Guide](docs/devex/early-adopter-guide.md)** - Understand mkolbol's architecture and mental model
+ 
+ ## Quickstart
+ 
+@@ -105,6 +107,18 @@ node dist/examples/config-runner.js --file examples/configs/basic.yml
+   - `examples/configs/external-stdio.yaml` - External process with stdio mode
+   - `examples/configs/external-pty.yaml` - External process with PTY mode
+ 
++### mkctl Troubleshooting
++
++| Exit Code | Meaning | Friendly Hint |
++|-----------|---------|---------------|
++| `64` | Usage error (missing flags, bad duration) | Run `mkctl run --file <path> [--duration <seconds>]` and double-check your arguments. |
++| `65` | Config parse/validation failure | Ensure the file is valid YAML/JSON and that `nodes[]` / `connections[]` are present with unique IDs. |
++| `66` | Config file not found | Verify the path or reuse one of the samples in `examples/configs/`. |
++| `70` | Topology runtime error | Confirm module names exist (or external commands can spawn) before launching the topology. |
++| `130` | Interrupted via Ctrl+C | mkctl caught the signal and shut the topology down cleanly. |
++
++mkctl error messages now include matching hints; the CLI prefixes every message with `[mkctl]` so they’re easy to spot in logs.
++
+ ## ANSI Parser
+ 
+ Parse ANSI escape sequences from terminal output into structured events:
+@@ -126,6 +140,7 @@ parser.inputPipe.write('\x1b[1;32mGreen Bold\x1b[0m\n');
+ Run the example:
+ ```bash
+ npx tsx examples/ansi-parser-simple.ts
++npx tsx examples/ansi-parser-p3.ts   # Demonstrates truecolor, resize, DEC modes
+ ```
+ 
+ ## Overview
+@@ -821,6 +836,19 @@ Key documents:
+ 
+ > **Note:** There is also a [single-file version](STREAM_KERNEL_RFC.md) of the Stream Kernel RFC, but the modular version is recommended for easier navigation and maintenance.
+ 
++## Troubleshooting
++
++Running into issues? Check the comprehensive **[Troubleshooting Guide](docs/devex/troubleshooting.md)** for:
++- Installation errors (build tools, native dependencies)
++- Running topologies (mkctl run, config paths, YAML errors)
++- PTY & terminal issues (permissions, TTY corruption)
++- Node version mismatches
++- External process configuration problems
++- Testing failures and timeouts
++- Performance & resource issues
++
++For quick command fixes, see the [Installation Troubleshooting](#troubleshooting) section above.
++
+ ## Publishing
+ 
+ ### GitHub Actions Secrets
+diff --git a/docs/rfcs/stream-kernel/ansi-parser.md b/docs/rfcs/stream-kernel/ansi-parser.md
+index 130a977..767782b 100644
+--- a/docs/rfcs/stream-kernel/ansi-parser.md
++++ b/docs/rfcs/stream-kernel/ansi-parser.md
+@@ -282,6 +282,7 @@ Palette indices resolve to precomputed `#RRGGBB` hex strings so renderers receiv
+ parser.parse(Buffer.from('\x1b[38;5;196mBright Red Text'));  // Color 196 = #ff0000
+ parser.parse(Buffer.from('\x1b[48;5;21mDeep Blue BG'));      // Color 21 = #0000ff
+ ```
++Run `npx tsx examples/ansi-parser-p3.ts` to see the resolved hex colors printed alongside the emitted style events.
+ 
+ ### Truecolor (24-bit RGB) Support
+ 
+@@ -336,6 +337,7 @@ parser.parse(Buffer.from('\x1b[?7h'));  // Re-enable wrapping
+ parser.parse(Buffer.from('\x1b[?5h'));  // Enable screen inverse
+ parser.parse(Buffer.from('\x1b[?5l'));  // Disable screen inverse
+ ```
++The same sample script (`examples/ansi-parser-p3.ts`) toggles DECAWM and DECSCNM so you can observe the `autoWrap` and `screenInverse` flags changing in real time.
+ 
+ ### Resize Support
+ 
+@@ -365,6 +367,7 @@ parser.parse(Buffer.from('More content across a wider terminal'));
+ parser.resize(40, 10);
+ parser.parse(Buffer.from('Tighter layout with automatic wrapping when enabled'));
+ ```
++`examples/ansi-parser-p3.ts` emits the `resize` event and logs the new `getDimensions()` result so you can watch the clamping and state updates.
+ 
+ ### Performance Considerations
+ 
+@@ -386,6 +389,8 @@ parser.parse(Buffer.from('Tighter layout with automatic wrapping when enabled'))
+ - Large palette/truecolor sequence tests assert throughput stays within budget
+ - Edge case tests prevent performance cliffs
+ 
++Execute `npx vitest run --reporter=default tests/transforms/ansiParser.performance.spec.ts` to run the lightweight guard that enforces the palette/truecolor budget on CI hardware.
++
+ ## Roadmap
+ 
+ ### Phase 1 (P1) - ✅ Complete
