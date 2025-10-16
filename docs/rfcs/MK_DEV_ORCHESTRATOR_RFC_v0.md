@@ -268,7 +268,8 @@ Joy gates (quantitative):
 
 - CLI skeleton: `mk init/run/test/doctor/graph/format/prompt/build/package/ci plan` (stubs allowed where noted below).
 - Project options: introduce `.mk/options.json`; load/merge precedence logic.
-- Format adapters: yaml‑in/yaml‑out, `--yaml`, `--yaml-in`, `--yaml-out`, `--format`.
+- Format adapters: ✅ **COMPLETED** — `src/mk/format.ts` with `yamlToJson()`, `jsonToYaml()`, `detectFormat()`.
+- CLI flags: ✅ **COMPLETED** — `scripts/mk.ts` with `--yaml`, `--yaml-in`, `--yaml-out`, `--format json|yaml|auto`.
 - Canonical JSON AST + stable serialization (deterministic key order).
 - Prompt integration: print/off/print‑shell, state tracked under `.mk/state/`.
 - Reuse kernel loader: normalize/validate topology; align error mapping.
@@ -354,5 +355,48 @@ mk graph --yaml             # print graph in YAML
 # Prompt
 eval "$(mk prompt print)"
 mk prompt off
+```
+
+## Appendix C — Format Adapter Implementation
+
+### Module: src/mk/format.ts
+
+Provides three core functions for JSON↔YAML conversion:
+
+```typescript
+yamlToJson(yaml: string): object
+  - Parses YAML string to JSON object (canonical in-memory format)
+  - Throws on parse errors or invalid structure
+  - Uses yaml@2.3.4 package
+
+jsonToYaml(json: object): string
+  - Serializes JSON object to YAML string
+  - Configures: 2-space indent, 100-char line width, plain keys/strings
+  - Throws on serialization errors
+
+detectFormat(content: string): 'json' | 'yaml'
+  - Heuristically detects format from content
+  - Checks for leading { or [ → attempts JSON parse
+  - Fallback: assumes YAML
+```
+
+### CLI: scripts/mk.ts
+
+Flag precedence (highest → lowest):
+1. `--format json|yaml|auto` (supersedes all)
+2. `--yaml` (alias for `--yaml-in --yaml-out`)
+3. `--yaml-in` or `--yaml-out` (directional)
+4. File extension (`.yaml`, `.yml` → yaml-in default)
+5. Default: JSON
+
+Commands implemented:
+- `mk format --to json|yaml [--in-place] [--dry-run] [--file <path>]`
+- `mk help`
+
+Example usage:
+```bash
+mk format --to yaml --in-place           # mk.json → mk.yaml
+mk format --to json --dry-run            # Preview conversion
+mk format --yaml-in --file mk.yaml       # Read YAML, output JSON
 ```
 

@@ -1,0 +1,422 @@
+diff --git a/scripts/mk.ts b/scripts/mk.ts
+new file mode 100644
+index 0000000..bd4f18e
+--- /dev/null
++++ b/scripts/mk.ts
+@@ -0,0 +1,146 @@
++#!/usr/bin/env node
++
++import { generatePromptSnippet, disablePrompt, enablePrompt, isPromptDisabled } from '../src/mk/prompt.js';
++
++const EXIT_SUCCESS = 0;
++const EXIT_ERROR = 1;
++const EXIT_USAGE = 64;
++
++type Command = {
++  name: string;
++  description: string;
++  usage: string;
++  handler: (args: string[]) => Promise<number>;
++};
++
++const commands: Command[] = [
++  {
++    name: 'init',
++    description: 'Initialize a new mkolbol project',
++    usage: 'mk init [project-name]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'run',
++    description: 'Run a mkolbol topology or script',
++    usage: 'mk run <topology-file> [options]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'doctor',
++    description: 'Diagnose system and dependency issues',
++    usage: 'mk doctor [--verbose]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'graph',
++    description: 'Visualize topology graph',
++    usage: 'mk graph <config> [--json]',
++    handler: async (args: string[]) => {
++      if (args.length === 0) {
++        console.error('Error: Missing topology config file');
++        console.error('Usage: mk graph <config> [--json]');
++        return EXIT_USAGE;
++      }
++
++      const configPath = args[0];
++      const jsonOutput = args.includes('--json');
++
++      try {
++        const { loadConfig } = await import('../src/config/loader.js');
++        const { generateAsciiGraph, generateJsonGraph } = await import('../src/mk/graph.js');
++        
++        const topology = loadConfig(configPath);
++        
++        if (jsonOutput) {
++          const graph = generateJsonGraph(topology);
++          console.log(JSON.stringify(graph, null, 2));
++        } else {
++          const ascii = generateAsciiGraph(topology);
++          console.log(ascii);
++        }
++        
++        return EXIT_SUCCESS;
++      } catch (error) {
++        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++        return EXIT_ERROR;
++      }
++    },
++  },
++  {
++    name: 'format',
++    description: 'Convert between JSON and YAML formats',
++    usage: 'mk format --to json|yaml [--file <path>] [--in-place] [--dry-run] [--yaml] [--yaml-in] [--yaml-out] [--format json|yaml|auto]',
++    handler: async (args: string[]) => {
++      const { formatHandler } = await import('../src/mk/formatHandler.js');
++      return formatHandler(args);
++    },
++  },
++  {
++    name: 'prompt',
++    description: 'Generate LLM-friendly project state snippet',
++    usage: 'mk prompt [--off | --on]',
++    handler: async (args: string[]) => {
++      const flag = args[0];
++      
++      if (flag === '--off') {
++        await disablePrompt();
++        console.log('[mk] Prompt auto-print disabled');
++        console.log('State saved to: .mk/state/prompt-disabled');
++        return EXIT_SUCCESS;
++      }
++      
++      if (flag === '--on') {
++        await enablePrompt();
++        console.log('[mk] Prompt auto-print enabled');
++        return EXIT_SUCCESS;
++      }
++      
++      const disabled = await isPromptDisabled();
++      if (disabled) {
++        console.error('[mk] Prompt auto-print is disabled. Use `mk prompt --on` to enable.');
++        return EXIT_ERROR;
++      }
++      
++      const snippet = await generatePromptSnippet();
++      console.log(snippet);
++      return EXIT_SUCCESS;
++    },
++  },
++];
++
++function printMainHelp() {
++  console.log(`mk — mkolbol CLI toolkit\n`);
++  console.log(`Usage: mk <command> [options]\n`);
++  console.log(`Commands:`);
++  for (const cmd of commands) {
++    console.log(`  ${cmd.name.padEnd(12)} ${cmd.description}`);
++  }
++  console.log(`\nUse 'mk <command> --help' for more information about a command.`);
++}
++
++function printCommandHelp(cmd: Command) {
++  console.log(`${cmd.description}\n`);
++  console.log(`Usage: ${cmd.usage}`);
++}
++
++async function mkMain() {
++  const args = process.argv.slice(2);
++
++  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
++    printMainHelp();
++    process.exit(EXIT_SUCCESS);
++  }
++
++  const commandName = args[0];
++  const command = commands.find((cmd) => cmd.name === commandName);
++
++  if (!command) {
++    console.error(`Error: Unknown command '${commandName}'`);
++    console.error(`Run 'mk --help' for usage.`);
++    process.exit(EXIT_USAGE);
++  }
++
++  const commandArgs = args.slice(1);
++
++  if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
++    printCommandHelp(command);
++    process.exit(EXIT_SUCCESS);
++  }
++
++  try {
++    const exitCode = await command.handler(commandArgs);
++    process.exit(exitCode);
++  } catch (error) {
++    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++    process.exit(EXIT_ERROR);
++  }
++}
++
++mkMain().catch((error) => {
++  console.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
++  process.exit(EXIT_ERROR);
++});
+diff --git a/src/mk/graph.ts b/src/mk/graph.ts
+new file mode 100644
+index 0000000..a675edf
+--- /dev/null
++++ b/src/mk/graph.ts
+@@ -0,0 +1,106 @@
++import type { TopologyConfig, NodeConfig, ConnectionConfig } from '../config/schema.js';
++
++export interface GraphNode {
++  id: string;
++  module: string;
++  params?: Record<string, any>;
++  runMode?: string;
++}
++
++export interface GraphEdge {
++  from: string;
++  to: string;
++  type?: string;
++}
++
++export interface JsonGraph {
++  nodes: GraphNode[];
++  edges: GraphEdge[];
++  metadata: {
++    nodeCount: number;
++    edgeCount: number;
++    generatedAt: string;
++  };
++}
++
++export function generateJsonGraph(topology: TopologyConfig): JsonGraph {
++  const nodes: GraphNode[] = topology.nodes.map(node => ({
++    id: node.id,
++    module: node.module,
++    params: node.params,
++    runMode: node.runMode || 'inproc',
++  }));
++
++  const edges: GraphEdge[] = topology.connections.map(conn => ({
++    from: conn.from,
++    to: conn.to,
++    type: conn.type || 'direct',
++  }));
++
++  return {
++    nodes,
++    edges,
++    metadata: {
++      nodeCount: nodes.length,
++      edgeCount: edges.length,
++      generatedAt: new Date().toISOString(),
++    },
++  };
++}
++
++export function generateAsciiGraph(topology: TopologyConfig): string {
++  const lines: string[] = [];
++  const nodeMap = new Map<string, NodeConfig>();
++  
++  topology.nodes.forEach(node => nodeMap.set(node.id, node));
++  
++  lines.push('┌─────────────────────────────────────────┐');
++  lines.push('│         Topology Graph                  │');
++  lines.push('└─────────────────────────────────────────┘');
++  lines.push('');
++  
++  lines.push('Nodes:');
++  topology.nodes.forEach(node => {
++    const runMode = node.runMode || 'inproc';
++    const icon = runMode === 'worker' ? '⚙' : runMode === 'process' ? '⚡' : '○';
++    lines.push(`  ${icon} ${node.id} [${node.module}]`);
++    if (node.params && Object.keys(node.params).length > 0) {
++      const params = JSON.stringify(node.params, null, 2)
++        .split('\n')
++        .map(line => '      ' + line)
++        .join('\n');
++      lines.push(params);
++    }
++  });
++  
++  lines.push('');
++  lines.push('Connections:');
++  
++  const connectionsByNode = new Map<string, ConnectionConfig[]>();
++  topology.connections.forEach(conn => {
++    const fromNode = conn.from.split('.')[0];
++    if (!connectionsByNode.has(fromNode)) {
++      connectionsByNode.set(fromNode, []);
++    }
++    connectionsByNode.get(fromNode)!.push(conn);
++  });
++  
++  topology.nodes.forEach(node => {
++    const connections = connectionsByNode.get(node.id);
++    if (connections && connections.length > 0) {
++      connections.forEach(conn => {
++        const arrow = conn.type === 'split' ? '═╤═>' : conn.type === 'merge' ? '═╧═>' : '───>';
++        lines.push(`  ${conn.from} ${arrow} ${conn.to}`);
++      });
++    }
++  });
++  
++  if (topology.connections.length === 0) {
++    lines.push('  (no connections)');
++  }
++  
++  lines.push('');
++  lines.push(`Summary: ${topology.nodes.length} nodes, ${topology.connections.length} connections`);
++  
++  return lines.join('\n');
++}
+diff --git a/tests/cli/mkGraph.spec.ts b/tests/cli/mkGraph.spec.ts
+new file mode 100644
+index 0000000..5e30d78
+--- /dev/null
++++ b/tests/cli/mkGraph.spec.ts
+@@ -0,0 +1,126 @@
++import { describe, it, expect, beforeAll, afterAll } from 'vitest';
++import { spawnSync } from 'node:child_process';
++import { join } from 'node:path';
++import { writeFileSync, unlinkSync, mkdirSync, existsSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++
++describe('mk graph command', () => {
++  const mkPath = join(process.cwd(), 'dist', 'scripts', 'mk.js');
++  const testDir = join(tmpdir(), 'mk-graph-test');
++  const testConfigPath = join(testDir, 'test-topology.json');
++
++  beforeAll(() => {
++    if (!existsSync(testDir)) {
++      mkdirSync(testDir, { recursive: true });
++    }
++    
++    const testConfig = {
++      nodes: [
++        { id: 'source1', module: 'TimerSource', params: { periodMs: 1000 } },
++        { id: 'transform1', module: 'TeeTransform', params: { outputCount: 2 }, runMode: 'worker' },
++        { id: 'sink1', module: 'ConsoleSink', runMode: 'process' }
++      ],
++      connections: [
++        { from: 'source1.output', to: 'transform1.input', type: 'direct' },
++        { from: 'transform1.output', to: 'sink1.input', type: 'split' }
++      ]
++    };
++    
++    writeFileSync(testConfigPath, JSON.stringify(testConfig, null, 2));
++  });
++
++  afterAll(() => {
++    try {
++      unlinkSync(testConfigPath);
++    } catch (e) {
++      // ignore
++    }
++  });
++
++  it('prints ASCII graph by default', () => {
++    const r = spawnSync('node', [mkPath, 'graph', testConfigPath], { encoding: 'utf8' });
++    
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('Topology Graph');
++    expect(r.stdout).toContain('Nodes:');
++    expect(r.stdout).toContain('Connections:');
++    expect(r.stdout).toContain('source1');
++    expect(r.stdout).toContain('transform1');
++    expect(r.stdout).toContain('sink1');
++    expect(r.stdout).toContain('TimerSource');
++    expect(r.stdout).toContain('TeeTransform');
++    expect(r.stdout).toContain('ConsoleSink');
++    expect(r.stdout).toMatch(/3 nodes, 2 connections/);
++  });
++
++  it('prints JSON graph with --json flag', () => {
++    const r = spawnSync('node', [mkPath, 'graph', testConfigPath, '--json'], { encoding: 'utf8' });
++    
++    expect(r.status).toBe(0);
++    
++    const graph = JSON.parse(r.stdout);
++    
++    expect(graph.nodes).toHaveLength(3);
++    expect(graph.edges).toHaveLength(2);
++    expect(graph.metadata.nodeCount).toBe(3);
++    expect(graph.metadata.edgeCount).toBe(2);
++    expect(graph.metadata.generatedAt).toBeTruthy();
++    
++    expect(graph.nodes[0].id).toBe('source1');
++    expect(graph.nodes[0].module).toBe('TimerSource');
++    expect(graph.nodes[0].runMode).toBe('inproc');
++    
++    expect(graph.nodes[1].id).toBe('transform1');
++    expect(graph.nodes[1].runMode).toBe('worker');
++    
++    expect(graph.edges[0].from).toBe('source1.output');
++    expect(graph.edges[0].to).toBe('transform1.input');
++    expect(graph.edges[0].type).toBe('direct');
++  });
++
++  it('displays ASCII graph with connection types', () => {
++    const r = spawnSync('node', [mkPath, 'graph', testConfigPath], { encoding: 'utf8' });
++    
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('source1.output');
++    expect(r.stdout).toContain('transform1.input');
++    expect(r.stdout).toMatch(/───>|═╤═>|═╧═>/);
++  });
++
++  it('shows error when no config file provided', () => {
++    const r = spawnSync('node', [mkPath, 'graph'], { encoding: 'utf8' });
++    
++    expect(r.status).toBe(64);
++    expect(r.stderr).toContain('Missing topology config file');
++  });
++
++  it('shows error for non-existent config file', () => {
++    const r = spawnSync('node', [mkPath, 'graph', '/non/existent/file.json'], { encoding: 'utf8' });
++    
++    expect(r.status).toBe(1);
++    expect(r.stderr).toContain('Error');
++  });
++
++  it('shows help when --help flag is used', () => {
++    const r = spawnSync('node', [mkPath, 'graph', '--help'], { encoding: 'utf8' });
++    
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('Visualize topology graph');
++    expect(r.stdout).toContain('Usage: mk graph');
++  });
++
++  it('displays node params in ASCII output', () => {
++    const r = spawnSync('node', [mkPath, 'graph', testConfigPath], { encoding: 'utf8' });
++    
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('periodMs');
++    expect(r.stdout).toContain('outputCount');
++  });
++
++  it('includes runMode indicators in ASCII output', () => {
++    const r = spawnSync('node', [mkPath, 'graph', testConfigPath], { encoding: 'utf8' });
++    
++    expect(r.status).toBe(0);
++    expect(r.stdout).toMatch(/[○⚙⚡]/);
++  });
++});

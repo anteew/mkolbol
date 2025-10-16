@@ -1,0 +1,326 @@
+diff --git a/src/mk/options.ts b/src/mk/options.ts
+new file mode 100644
+index 0000000..996b35e
+--- /dev/null
++++ b/src/mk/options.ts
+@@ -0,0 +1,146 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import { execSync } from 'node:child_process';
++
++export interface MkOptions {
++  profile?: string;
++  [key: string]: any;
++}
++
++export interface MkOptionsFile {
++  default?: Record<string, any>;
++  [profile: string]: Record<string, any> | undefined;
++}
++
++export interface LoadOptionsConfig {
++  cwd?: string;
++  profile?: string;
++  cliArgs?: string[];
++}
++
++function findGitRoot(startDir: string): string | null {
++  try {
++    const root = execSync('git rev-parse --show-toplevel', {
++      cwd: startDir,
++      encoding: 'utf-8',
++      stdio: ['pipe', 'pipe', 'ignore']
++    }).trim();
++    return root;
++  } catch {
++    return null;
++  }
++}
++
++function findOptionsFiles(startDir: string): string[] {
++  const paths: string[] = [];
++  const gitRoot = findGitRoot(startDir);
++  
++  let current = path.resolve(startDir);
++  const root = gitRoot ? path.resolve(gitRoot) : path.parse(current).root;
++
++  while (true) {
++    const optionsPath = path.join(current, '.mk', 'options.json');
++    if (fs.existsSync(optionsPath)) {
++      paths.push(optionsPath);
++    }
++
++    if (current === root) {
++      break;
++    }
++
++    const parent = path.dirname(current);
++    if (parent === current) {
++      break;
++    }
++    current = parent;
++  }
++
++  return paths;
++}
++
++function loadOptionsFile(filePath: string, profile: string): Record<string, any> {
++  try {
++    const content = fs.readFileSync(filePath, 'utf-8');
++    const data: MkOptionsFile = JSON.parse(content);
++    
++    const profileData = data[profile];
++    if (profileData && typeof profileData === 'object') {
++      return profileData;
++    }
++
++    const defaultData = data.default;
++    if (defaultData && typeof defaultData === 'object') {
++      return defaultData;
++    }
++
++    return {};
++  } catch (err) {
++    return {};
++  }
++}
++
++function parseCLIArgs(args: string[]): Record<string, any> {
++  const parsed: Record<string, any> = {};
++  
++  for (let i = 0; i < args.length; i++) {
++    const arg = args[i];
++    
++    if (arg.startsWith('--')) {
++      const key = arg.slice(2);
++      const nextArg = args[i + 1];
++      
++      if (nextArg && !nextArg.startsWith('--')) {
++        const numValue = Number(nextArg);
++        if (!Number.isNaN(numValue) && nextArg === String(numValue)) {
++          parsed[key] = numValue;
++        } else if (nextArg === 'true') {
++          parsed[key] = true;
++        } else if (nextArg === 'false') {
++          parsed[key] = false;
++        } else {
++          parsed[key] = nextArg;
++        }
++        i++;
++      } else {
++        parsed[key] = true;
++      }
++    }
++  }
++  
++  return parsed;
++}
++
++export function loadOptions(config: LoadOptionsConfig = {}): MkOptions {
++  const cwd = config.cwd ?? process.cwd();
++  const cliArgs = config.cliArgs ?? process.argv.slice(2);
++  
++  const cliOptions = parseCLIArgs(cliArgs);
++  const profile = config.profile ?? cliOptions.profile ?? 'default';
++  
++  const optionsFiles = findOptionsFiles(cwd);
++  
++  const mergedOptions: Record<string, any> = {};
++  
++  for (let i = optionsFiles.length - 1; i >= 0; i--) {
++    const filePath = optionsFiles[i];
++    const fileOptions = loadOptionsFile(filePath, profile);
++    Object.assign(mergedOptions, fileOptions);
++  }
++  
++  Object.assign(mergedOptions, cliOptions);
++  
++  return mergedOptions;
++}
++
++export function getOptionsPrecedence(config: LoadOptionsConfig = {}): string[] {
++  const cwd = config.cwd ?? process.cwd();
++  const optionsFiles = findOptionsFiles(cwd);
++  
++  const precedence = [
++    'CLI flags (--option value)',
++    ...optionsFiles.map(f => `.mk/options.json (${f})`),
++    'Defaults'
++  ];
++  
++  return precedence;
++}
+diff --git a/schemas/mk-options.v0.json b/schemas/mk-options.v0.json
+new file mode 100644
+index 0000000..44b96fd
+--- /dev/null
++++ b/schemas/mk-options.v0.json
+@@ -0,0 +1,40 @@
++{
++  "$schema": "http://json-schema.org/draft-07/schema#",
++  "$id": "https://github.com/anteew/mkolbol/schemas/mk-options.v0.json",
++  "title": "MK Options Configuration",
++  "description": "Configuration file for .mk/options.json with profile support",
++  "type": "object",
++  "properties": {
++    "default": {
++      "type": "object",
++      "description": "Default options profile",
++      "additionalProperties": true
++    }
++  },
++  "additionalProperties": {
++    "type": "object",
++    "description": "Named profile (e.g., production, development, staging)",
++    "additionalProperties": true
++  },
++  "examples": [
++    {
++      "default": {
++        "timeout": 5000,
++        "retries": 3,
++        "verbose": false
++      },
++      "production": {
++        "timeout": 10000,
++        "retries": 5,
++        "verbose": false,
++        "logLevel": "error"
++      },
++      "development": {
++        "timeout": 1000,
++        "retries": 1,
++        "verbose": true,
++        "logLevel": "debug"
++      }
++    }
++  ]
++}
+diff --git a/scripts/mk.ts b/scripts/mk.ts
+new file mode 100644
+index 0000000..5a8bdff
+--- /dev/null
++++ b/scripts/mk.ts
+@@ -0,0 +1,122 @@
++#!/usr/bin/env node
++
++const EXIT_SUCCESS = 0;
++const EXIT_ERROR = 1;
++const EXIT_USAGE = 64;
++
++type Command = {
++  name: string;
++  description: string;
++  usage: string;
++  handler: (args: string[]) => Promise<number>;
++};
++
++const commands: Command[] = [
++  {
++    name: 'init',
++    description: 'Initialize a new mkolbol project',
++    usage: 'mk init [project-name]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'run',
++    description: 'Run a mkolbol topology or script',
++    usage: 'mk run <topology-file> [options]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'doctor',
++    description: 'Diagnose system and dependency issues',
++    usage: 'mk doctor [--verbose]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'graph',
++    description: 'Visualize topology graph',
++    usage: 'mk graph <topology-file> [--output <file>]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'format',
++    description: 'Format topology configuration files',
++    usage: 'mk format <file> [--check]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'prompt',
++    description: 'Interactive prompt engineering and testing tool',
++    usage: 'mk prompt [--template <file>]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++];
++
++function printMainHelp() {
++  console.log(`mk — mkolbol CLI toolkit\n`);
++  console.log(`Usage: mk <command> [options]\n`);
++  console.log(`Commands:`);
++  for (const cmd of commands) {
++    console.log(`  ${cmd.name.padEnd(12)} ${cmd.description}`);
++  }
++  console.log(`\nUse 'mk <command> --help' for more information about a command.`);
++}
++
++function printCommandHelp(cmd: Command) {
++  console.log(`${cmd.description}\n`);
++  console.log(`Usage: ${cmd.usage}`);
++}
++
++async function mkMain() {
++  const args = process.argv.slice(2);
++
++  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
++    printMainHelp();
++    process.exit(EXIT_SUCCESS);
++  }
++
++  const commandName = args[0];
++  const command = commands.find((cmd) => cmd.name === commandName);
++
++  if (!command) {
++    console.error(`Error: Unknown command '${commandName}'`);
++    console.error(`Run 'mk --help' for usage.`);
++    process.exit(EXIT_USAGE);
++  }
++
++  const commandArgs = args.slice(1);
++
++  if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
++    printCommandHelp(command);
++    process.exit(EXIT_SUCCESS);
++  }
++
++  try {
++    const exitCode = await command.handler(commandArgs);
++    process.exit(exitCode);
++  } catch (error) {
++    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++    process.exit(EXIT_ERROR);
++  }
++}
++
++mkMain().catch((error) => {
++  console.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
++  process.exit(EXIT_ERROR);
++});

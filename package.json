@@ -36,7 +36,8 @@
     "docs/"
   ],
   "bin": {
-    "lam": "dist/scripts/lam.js"
+    "lam": "dist/scripts/lam.js",
+    "mk": "dist/scripts/mk.js"
   },
   "scripts": {
     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",

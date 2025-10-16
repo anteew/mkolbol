@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/anteew/mkolbol/schemas/mk-options.v0.json",
+  "title": "MK Options Configuration",
+  "description": "Configuration file for .mk/options.json with profile support",
+  "type": "object",
+  "properties": {
+    "default": {
+      "type": "object",
+      "description": "Default options profile",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": {
+    "type": "object",
+    "description": "Named profile (e.g., production, development, staging)",
+    "additionalProperties": true
+  },
+  "examples": [
+    {
+      "default": {
+        "timeout": 5000,
+        "retries": 3,
+        "verbose": false
+      },
+      "production": {
+        "timeout": 10000,
+        "retries": 5,
+        "verbose": false,
+        "logLevel": "error"
+      },
+      "development": {
+        "timeout": 1000,
+        "retries": 1,
+        "verbose": true,
+        "logLevel": "debug"
+      }
+    }
+  ]
+}

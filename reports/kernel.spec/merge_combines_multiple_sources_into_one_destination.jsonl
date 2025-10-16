@@ -1,3 +1,3 @@
-{"ts":1760630378107,"lvl":"info","case":"merge combines multiple sources into one destination","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760630378108,"lvl":"info","case":"merge combines multiple sources into one destination","phase":"execution","evt":"test.run"}
-{"ts":1760630378109,"lvl":"info","case":"merge combines multiple sources into one destination","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760636127847,"lvl":"info","case":"merge combines multiple sources into one destination","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760636127848,"lvl":"info","case":"merge combines multiple sources into one destination","phase":"execution","evt":"test.run"}
+{"ts":1760636127849,"lvl":"info","case":"merge combines multiple sources into one destination","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}

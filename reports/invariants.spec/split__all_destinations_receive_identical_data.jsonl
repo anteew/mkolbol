@@ -1,3 +1,3 @@
-{"ts":1760628010173,"lvl":"info","case":"split: all destinations receive identical data","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760628010174,"lvl":"info","case":"split: all destinations receive identical data","phase":"execution","evt":"test.run"}
-{"ts":1760628010175,"lvl":"info","case":"split: all destinations receive identical data","phase":"teardown","evt":"case.end","payload":{"duration":631,"status":"passed"}}
+{"ts":1760635857287,"lvl":"info","case":"split: all destinations receive identical data","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760635857288,"lvl":"info","case":"split: all destinations receive identical data","phase":"execution","evt":"test.run"}
+{"ts":1760635857289,"lvl":"info","case":"split: all destinations receive identical data","phase":"teardown","evt":"case.end","payload":{"duration":971,"status":"passed"}}

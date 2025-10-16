@@ -1,0 +1,142 @@
+diff --git a/package.json b/package.json
+index 5cf8a14..03a96bd 100644
+--- a/package.json
++++ b/package.json
+@@ -36,7 +36,8 @@
+     "docs/"
+   ],
+   "bin": {
+-    "lam": "dist/scripts/lam.js"
++    "lam": "dist/scripts/lam.js",
++    "mk": "dist/scripts/mk.js"
+   },
+   "scripts": {
+     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
+diff --git a/scripts/mk.ts b/scripts/mk.ts
+new file mode 100644
+index 0000000..7b9094d
+--- /dev/null
++++ b/scripts/mk.ts
+@@ -0,0 +1,122 @@
++#!/usr/bin/env node
++
++const EXIT_SUCCESS = 0;
++const EXIT_ERROR = 1;
++const EXIT_USAGE = 64;
++
++type Command = {
++  name: string;
++  description: string;
++  usage: string;
++  handler: (args: string[]) => Promise<number>;
++};
++
++const commands: Command[] = [
++  {
++    name: 'init',
++    description: 'Initialize a new mkolbol project',
++    usage: 'mk init [project-name]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'run',
++    description: 'Run a mkolbol topology or script',
++    usage: 'mk run <topology-file> [options]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'doctor',
++    description: 'Diagnose system and dependency issues',
++    usage: 'mk doctor [--verbose]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'graph',
++    description: 'Visualize topology graph',
++    usage: 'mk graph <topology-file> [--output <file>]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'format',
++    description: 'Format topology configuration files',
++    usage: 'mk format <file> [--check]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++  {
++    name: 'prompt',
++    description: 'Interactive prompt engineering and testing tool',
++    usage: 'mk prompt [--template <file>]',
++    handler: async (args: string[]) => {
++      console.log('Not implemented yet');
++      return EXIT_SUCCESS;
++    },
++  },
++];
++
++function printMainHelp() {
++  console.log(`mk — mkolbol CLI toolkit\n`);
++  console.log(`Usage: mk <command> [options]\n`);
++  console.log(`Commands:`);
++  for (const cmd of commands) {
++    console.log(`  ${cmd.name.padEnd(12)} ${cmd.description}`);
++  }
++  console.log(`\nUse 'mk <command> --help' for more information about a command.`);
++}
++
++function printCommandHelp(cmd: Command) {
++  console.log(`${cmd.description}\n`);
++  console.log(`Usage: ${cmd.usage}`);
++}
++
++async function mkMain() {
++  const args = process.argv.slice(2);
++
++  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
++    printMainHelp();
++    process.exit(EXIT_SUCCESS);
++  }
++
++  const commandName = args[0];
++  const command = commands.find((cmd) => cmd.name === commandName);
++
++  if (!command) {
++    console.error(`Error: Unknown command '${commandName}'`);
++    console.error(`Run 'mk --help' for usage.`);
++    process.exit(EXIT_USAGE);
++  }
++
++  const commandArgs = args.slice(1);
++
++  if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
++    printCommandHelp(command);
++    process.exit(EXIT_SUCCESS);
++  }
++
++  try {
++    const exitCode = await command.handler(commandArgs);
++    process.exit(exitCode);
++  } catch (error) {
++    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++    process.exit(EXIT_ERROR);
++  }
++}
++
++mkMain().catch((error) => {
++  console.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
++  process.exit(EXIT_ERROR);
++});

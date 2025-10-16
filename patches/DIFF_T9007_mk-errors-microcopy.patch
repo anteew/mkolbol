@@ -1,0 +1,538 @@
+diff --git src/mk/options.ts src/mk/options.ts
+new file mode 100644
+index 0000000..996b35e
+--- /dev/null
++++ src/mk/options.ts
+@@ -0,0 +1,146 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import { execSync } from 'node:child_process';
++
++export interface MkOptions {
++  profile?: string;
++  [key: string]: any;
++}
++
++export interface MkOptionsFile {
++  default?: Record<string, any>;
++  [profile: string]: Record<string, any> | undefined;
++}
++
++export interface LoadOptionsConfig {
++  cwd?: string;
++  profile?: string;
++  cliArgs?: string[];
++}
++
++function findGitRoot(startDir: string): string | null {
++  try {
++    const root = execSync('git rev-parse --show-toplevel', {
++      cwd: startDir,
++      encoding: 'utf-8',
++      stdio: ['pipe', 'pipe', 'ignore']
++    }).trim();
++    return root;
++  } catch {
++    return null;
++  }
++}
++
++function findOptionsFiles(startDir: string): string[] {
++  const paths: string[] = [];
++  const gitRoot = findGitRoot(startDir);
++  
++  let current = path.resolve(startDir);
++  const root = gitRoot ? path.resolve(gitRoot) : path.parse(current).root;
++
++  while (true) {
++    const optionsPath = path.join(current, '.mk', 'options.json');
++    if (fs.existsSync(optionsPath)) {
++      paths.push(optionsPath);
++    }
++
++    if (current === root) {
++      break;
++    }
++
++    const parent = path.dirname(current);
++    if (parent === current) {
++      break;
++    }
++    current = parent;
++  }
++
++  return paths;
++}
++
++function loadOptionsFile(filePath: string, profile: string): Record<string, any> {
++  try {
++    const content = fs.readFileSync(filePath, 'utf-8');
++    const data: MkOptionsFile = JSON.parse(content);
++    
++    const profileData = data[profile];
++    if (profileData && typeof profileData === 'object') {
++      return profileData;
++    }
++
++    const defaultData = data.default;
++    if (defaultData && typeof defaultData === 'object') {
++      return defaultData;
++    }
++
++    return {};
++  } catch (err) {
++    return {};
++  }
++}
++
++function parseCLIArgs(args: string[]): Record<string, any> {
++  const parsed: Record<string, any> = {};
++  
++  for (let i = 0; i < args.length; i++) {
++    const arg = args[i];
++    
++    if (arg.startsWith('--')) {
++      const key = arg.slice(2);
++      const nextArg = args[i + 1];
++      
++      if (nextArg && !nextArg.startsWith('--')) {
++        const numValue = Number(nextArg);
++        if (!Number.isNaN(numValue) && nextArg === String(numValue)) {
++          parsed[key] = numValue;
++        } else if (nextArg === 'true') {
++          parsed[key] = true;
++        } else if (nextArg === 'false') {
++          parsed[key] = false;
++        } else {
++          parsed[key] = nextArg;
++        }
++        i++;
++      } else {
++        parsed[key] = true;
++      }
++    }
++  }
++  
++  return parsed;
++}
++
++export function loadOptions(config: LoadOptionsConfig = {}): MkOptions {
++  const cwd = config.cwd ?? process.cwd();
++  const cliArgs = config.cliArgs ?? process.argv.slice(2);
++  
++  const cliOptions = parseCLIArgs(cliArgs);
++  const profile = config.profile ?? cliOptions.profile ?? 'default';
++  
++  const optionsFiles = findOptionsFiles(cwd);
++  
++  const mergedOptions: Record<string, any> = {};
++  
++  for (let i = optionsFiles.length - 1; i >= 0; i--) {
++    const filePath = optionsFiles[i];
++    const fileOptions = loadOptionsFile(filePath, profile);
++    Object.assign(mergedOptions, fileOptions);
++  }
++  
++  Object.assign(mergedOptions, cliOptions);
++  
++  return mergedOptions;
++}
++
++export function getOptionsPrecedence(config: LoadOptionsConfig = {}): string[] {
++  const cwd = config.cwd ?? process.cwd();
++  const optionsFiles = findOptionsFiles(cwd);
++  
++  const precedence = [
++    'CLI flags (--option value)',
++    ...optionsFiles.map(f => `.mk/options.json (${f})`),
++    'Defaults'
++  ];
++  
++  return precedence;
++}
+diff --git src/mk/prompt.ts src/mk/prompt.ts
+new file mode 100644
+index 0000000..a5b0132
+--- /dev/null
++++ src/mk/prompt.ts
+@@ -0,0 +1,194 @@
++import fs from 'node:fs/promises';
++import path from 'node:path';
++
++interface TopologySummary {
++  nodes: number;
++  connections: number;
++  pipes: number;
++}
++
++interface ErrorEntry {
++  timestamp: string;
++  message: string;
++  context?: string;
++}
++
++interface ModuleInfo {
++  name: string;
++  type: string;
++  path: string;
++}
++
++export async function generatePromptSnippet(): Promise<string> {
++  const sections: string[] = [];
++  
++  sections.push('# MKolbol Project State');
++  sections.push('');
++  sections.push('**Generated for LLM context**');
++  sections.push('');
++  
++  const topologySummary = await loadTopologySummary();
++  sections.push('## Topology Summary');
++  sections.push('');
++  sections.push('```json');
++  sections.push(JSON.stringify(topologySummary, null, 2));
++  sections.push('```');
++  sections.push('');
++  
++  const recentErrors = await loadRecentErrors();
++  if (recentErrors.length > 0) {
++    sections.push('## Recent Errors');
++    sections.push('');
++    sections.push('```json');
++    sections.push(JSON.stringify(recentErrors, null, 2));
++    sections.push('```');
++    sections.push('');
++  }
++  
++  const modules = await loadModuleList();
++  sections.push('## Available Modules');
++  sections.push('');
++  sections.push('```json');
++  sections.push(JSON.stringify(modules, null, 2));
++  sections.push('```');
++  sections.push('');
++  
++  const buildStatus = await checkBuildStatus();
++  sections.push('## Build Status');
++  sections.push('');
++  sections.push('```json');
++  sections.push(JSON.stringify(buildStatus, null, 2));
++  sections.push('```');
++  sections.push('');
++  
++  return sections.join('\n');
++}
++
++async function loadTopologySummary(): Promise<TopologySummary> {
++  const snapshotPath = path.resolve(process.cwd(), 'reports', 'router-endpoints.json');
++  
++  try {
++    const data = await fs.readFile(snapshotPath, 'utf-8');
++    const endpoints = JSON.parse(data);
++    
++    const uniqueNodes = new Set<string>();
++    let connectionCount = 0;
++    
++    if (Array.isArray(endpoints)) {
++      for (const ep of endpoints) {
++        if (ep.id) {
++          const nodeId = ep.id.split('.')[0];
++          uniqueNodes.add(nodeId);
++        }
++      }
++      connectionCount = endpoints.length;
++    }
++    
++    return {
++      nodes: uniqueNodes.size,
++      connections: connectionCount,
++      pipes: endpoints.length,
++    };
++  } catch {
++    return {
++      nodes: 0,
++      connections: 0,
++      pipes: 0,
++    };
++  }
++}
++
++async function loadRecentErrors(): Promise<ErrorEntry[]> {
++  const errorLogPath = path.resolve(process.cwd(), '.mk', 'state', 'errors.json');
++  
++  try {
++    const data = await fs.readFile(errorLogPath, 'utf-8');
++    const errors = JSON.parse(data);
++    
++    if (Array.isArray(errors)) {
++      return errors.slice(-5);
++    }
++  } catch {
++    // No errors file
++  }
++  
++  return [];
++}
++
++async function loadModuleList(): Promise<ModuleInfo[]> {
++  const modulesDir = path.resolve(process.cwd(), 'src', 'modules');
++  
++  try {
++    const entries = await fs.readdir(modulesDir);
++    const modules: ModuleInfo[] = [];
++    
++    for (const entry of entries) {
++      if (entry.endsWith('.ts') && !entry.endsWith('.d.ts')) {
++        const moduleName = entry.replace('.ts', '');
++        let moduleType = 'transform';
++        
++        if (moduleName.includes('sink') || moduleName.includes('output')) {
++          moduleType = 'output';
++        } else if (moduleName.includes('source') || moduleName.includes('input') || moduleName.includes('timer') || moduleName.includes('keyboard')) {
++          moduleType = 'input';
++        }
++        
++        modules.push({
++          name: moduleName,
++          type: moduleType,
++          path: `src/modules/${entry}`,
++        });
++      }
++    }
++    
++    modules.sort((a, b) => a.name.localeCompare(b.name));
++    return modules;
++  } catch {
++    return [];
++  }
++}
++
++async function checkBuildStatus(): Promise<{ status: string; lastBuild?: string }> {
++  const distPath = path.resolve(process.cwd(), 'dist');
++  
++  try {
++    const stats = await fs.stat(distPath);
++    return {
++      status: 'built',
++      lastBuild: stats.mtime.toISOString(),
++    };
++  } catch {
++    return {
++      status: 'not-built',
++    };
++  }
++}
++
++export async function isPromptDisabled(): Promise<boolean> {
++  const flagPath = path.resolve(process.cwd(), '.mk', 'state', 'prompt-disabled');
++  
++  try {
++    await fs.access(flagPath);
++    return true;
++  } catch {
++    return false;
++  }
++}
++
++export async function disablePrompt(): Promise<void> {
++  const flagPath = path.resolve(process.cwd(), '.mk', 'state', 'prompt-disabled');
++  const stateDir = path.dirname(flagPath);
++  
++  await fs.mkdir(stateDir, { recursive: true });
++  await fs.writeFile(flagPath, new Date().toISOString(), 'utf-8');
++}
++
++export async function enablePrompt(): Promise<void> {
++  const flagPath = path.resolve(process.cwd(), '.mk', 'state', 'prompt-disabled');
++  
++  try {
++    await fs.unlink(flagPath);
++  } catch {
++    // Already enabled or doesn't exist
++  }
++}
+diff --git tests/cli/mkdxErrors.spec.ts tests/cli/mkdxErrors.spec.ts
+index c6db805..22acc7e 100644
+--- tests/cli/mkdxErrors.spec.ts
++++ tests/cli/mkdxErrors.spec.ts
+@@ -1,21 +1,169 @@
+ import { describe, it, expect } from 'vitest';
+ import { spawnSync } from 'node:child_process';
+ import { join } from 'node:path';
+-import { readFileSync } from 'node:fs';
++import { createError, formatError, MkError, ERROR_CATALOG } from '../../src/mk/errors.js';
+ 
+-// Scaffold for canonical error microcopy tests.
+-// Skipped until `scripts/mk.ts` is implemented.
++describe('MkError class', () => {
++  it('creates error with code, message, and remediation', () => {
++    const error = createError('CONFIG_NOT_FOUND');
++    
++    expect(error).toBeInstanceOf(MkError);
++    expect(error.code).toBe('CONFIG_NOT_FOUND');
++    expect(error.message).toBe('Configuration file not found');
++    expect(error.remediation).toBe('Run: mk init --preset tty');
++    expect(error.docs).toBe('https://mkolbol.dev/docs/config#locations');
++  });
+ 
+-const fixtures = JSON.parse(readFileSync(join(process.cwd(), 'tests', 'fixtures', 'mkdx', 'error-cases.json'), 'utf8'));
++  it('creates error with context', () => {
++    const error = createError('CONFIG_PARSE', { 
++      file: 'bad.yaml', 
++      line: 12, 
++      column: 7 
++    });
++    
++    expect(error.context).toEqual({ file: 'bad.yaml', line: 12, column: 7 });
++  });
++
++  it('converts to JSON', () => {
++    const error = createError('MODULE_NOT_FOUND', { details: { module: 'test-module' } });
++    const json = error.toJSON();
++    
++    expect(json).toEqual({
++      code: 'MODULE_NOT_FOUND',
++      message: expect.stringContaining('Required module not found'),
++      remediation: 'Run: npm install',
++      context: { details: { module: 'test-module' } },
++      docs: 'https://mkolbol.dev/docs/modules',
++    });
++  });
++});
++
++describe('formatError - text format', () => {
++  it('formats basic error in text', () => {
++    const error = createError('HEALTH_CHECK_FAILED');
++    const formatted = formatError(error, 'text');
++    
++    expect(formatted).toContain('[ERR] HEALTH_CHECK_FAILED');
++    expect(formatted).toContain('Health check failed');
++    expect(formatted).toContain('Fix: Run: mk doctor --verbose');
++  });
+ 
+-describe.skip('mk CLI error microcopy (snapshot scaffold)', () => {
+-  for (const c of fixtures.cases) {
+-    it(`prints canonical error: ${c.name}`, () => {
+-      const mkPath = process.env.MK_BIN || join(process.cwd(), 'dist', 'scripts', 'mk.js');
+-      const r = spawnSync('node', [mkPath, ...c.args], { encoding: 'utf8' });
+-      expect(r.status).not.toBe(0);
+-      expect(r.stdout + r.stderr).toContain(c.human.split(' ')[1]); // contains error code token
++  it('formats error with file location', () => {
++    const error = createError('CONFIG_PARSE', { 
++      file: 'bad.yaml', 
++      line: 12, 
++      column: 7 
+     });
+-  }
++    const formatted = formatError(error, 'text');
++    
++    expect(formatted).toContain('[ERR] CONFIG_PARSE');
++    expect(formatted).toContain('at bad.yaml:12:7');
++    expect(formatted).toContain('Failed to parse configuration file');
++  });
++
++  it('formats error with expected values', () => {
++    const error = createError('SCHEMA_INVALID', { 
++      path: '$.topology.nodes[0].runMode',
++      expected: ['inproc', 'worker', 'process'] 
++    });
++    const formatted = formatError(error, 'text');
++    
++    expect(formatted).toContain('[ERR] SCHEMA_INVALID');
++    expect(formatted).toContain('at $.topology.nodes[0].runMode');
++    expect(formatted).toContain('Expected: inproc, worker, process');
++  });
++
++  it('formats standard Error in text', () => {
++    const error = new Error('Something went wrong');
++    const formatted = formatError(error, 'text');
++    
++    expect(formatted).toBe('Error: Something went wrong');
++  });
++});
++
++describe('formatError - JSON format', () => {
++  it('formats error in JSON', () => {
++    const error = createError('CONFIG_NOT_FOUND', { file: 'mk.yaml' });
++    const formatted = formatError(error, 'json');
++    const parsed = JSON.parse(formatted);
++    
++    expect(parsed.code).toBe('CONFIG_NOT_FOUND');
++    expect(parsed.message).toBe('Configuration file not found');
++    expect(parsed.remediation).toBe('Run: mk init --preset tty');
++    expect(parsed.context).toEqual({ file: 'mk.yaml' });
++    expect(parsed.docs).toBe('https://mkolbol.dev/docs/config#locations');
++  });
++
++  it('formats standard Error in JSON', () => {
++    const error = new Error('Something went wrong');
++    const formatted = formatError(error, 'json');
++    const parsed = JSON.parse(formatted);
++    
++    expect(parsed.code).toBe('UNKNOWN_ERROR');
++    expect(parsed.message).toBe('Something went wrong');
++    expect(parsed.remediation).toBe('Check logs for more details');
++  });
++});
++
++describe('Error catalog', () => {
++  it('contains all expected error codes', () => {
++    const expectedCodes = [
++      'CONFIG_NOT_FOUND',
++      'CONFIG_INVALID',
++      'CONFIG_PARSE',
++      'MODULE_NOT_FOUND',
++      'HEALTH_CHECK_FAILED',
++      'SCHEMA_INVALID',
++      'TOPOLOGY_INVALID',
++      'RUNTIME_ERROR',
++      'FILE_NOT_FOUND',
++      'INVALID_ARGUMENT',
++      'UNKNOWN_COMMAND',
++      'PERMISSION_DENIED',
++      'DEPENDENCY_ERROR',
++      'NETWORK_ERROR',
++      'TIMEOUT',
++    ];
++    
++    for (const code of expectedCodes) {
++      expect(ERROR_CATALOG).toHaveProperty(code);
++      expect(ERROR_CATALOG[code as keyof typeof ERROR_CATALOG]).toHaveProperty('code');
++      expect(ERROR_CATALOG[code as keyof typeof ERROR_CATALOG]).toHaveProperty('message');
++      expect(ERROR_CATALOG[code as keyof typeof ERROR_CATALOG]).toHaveProperty('remediation');
++    }
++  });
++
++  it('all errors have non-empty messages and remediations', () => {
++    for (const [code, definition] of Object.entries(ERROR_CATALOG)) {
++      expect(definition.message).toBeTruthy();
++      expect(definition.message.length).toBeGreaterThan(0);
++      expect(definition.remediation).toBeTruthy();
++      expect(definition.remediation.length).toBeGreaterThan(0);
++    }
++  });
++});
++
++describe('mk CLI error output', () => {
++  it('outputs UNKNOWN_COMMAND error in text format', () => {
++    const mkPath = join(process.cwd(), 'dist', 'scripts', 'mk.js');
++    const r = spawnSync('node', [mkPath, 'nonexistent'], { encoding: 'utf8' });
++    
++    expect(r.status).not.toBe(0);
++    expect(r.stderr).toContain('[ERR] UNKNOWN_COMMAND');
++    expect(r.stderr).toContain('Unknown command');
++    expect(r.stderr).toContain('Fix: Run: mk --help');
++  });
++
++  it('outputs UNKNOWN_COMMAND error in JSON format', () => {
++    const mkPath = join(process.cwd(), 'dist', 'scripts', 'mk.js');
++    const r = spawnSync('node', [mkPath, 'nonexistent', '--json'], { encoding: 'utf8' });
++    
++    expect(r.status).not.toBe(0);
++    
++    const parsed = JSON.parse(r.stderr);
++    expect(parsed.code).toBe('UNKNOWN_COMMAND');
++    expect(parsed.message).toContain('Unknown command');
++    expect(parsed.remediation).toBe('Run: mk --help');
++  });
+ });
+ 
