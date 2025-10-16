@@ -92,3 +92,5 @@
     "vitest": "^1.6.0"
   }
 }
+    "mk": "node dist/scripts/mk.js",
+    "mkctl": "node dist/scripts/mkctl.js",

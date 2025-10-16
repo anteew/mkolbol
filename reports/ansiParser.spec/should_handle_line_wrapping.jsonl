@@ -1,3 +1,3 @@
-{"ts":1760646783003,"lvl":"info","case":"should handle line wrapping","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760646783004,"lvl":"info","case":"should handle line wrapping","phase":"execution","evt":"test.run"}
-{"ts":1760646783005,"lvl":"info","case":"should handle line wrapping","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760648565277,"lvl":"info","case":"should handle line wrapping","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760648565278,"lvl":"info","case":"should handle line wrapping","phase":"execution","evt":"test.run"}
+{"ts":1760648565279,"lvl":"info","case":"should handle line wrapping","phase":"teardown","evt":"case.end","payload":{"duration":0,"status":"passed"}}
