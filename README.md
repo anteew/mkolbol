@@ -198,11 +198,13 @@ The RFC is organized into focused documents:
 
 ## Installation
 
+📋 **[Distribution Matrix](docs/devex/distribution.md)** — Choose the right installation path for your use case (Tarball, Git Tag, or Vendor)
+
 ### Local Installation (Recommended)
 
 ```bash
-# Install in your project
-npm install mkolbol
+# Install in your project (tarball method recommended)
+npm install ./mkolbol-0.2.0.tar.gz
 
 # Use with npx (no global install needed)
 npx lam init

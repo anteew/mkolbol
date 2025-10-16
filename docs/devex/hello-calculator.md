@@ -26,6 +26,26 @@ Number Generator → Calculator → Display Results
 mkdir hello-calculator
 cd hello-calculator
 npm init -y
+```
+
+### Install mkolbol (Recommended: Tarball)
+
+**Tarball (Reproducible, Recommended):**
+```bash
+# Download tarball from GitHub releases
+curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz -o mkolbol.tar.gz
+
+# Install from tarball
+npm install ./mkolbol.tar.gz
+```
+
+**Or from Git tag:**
+```bash
+npm install github:anteew/Laminar#v0.2.0
+```
+
+**Or local development:**
+```bash
 npm install mkolbol
 ```
 

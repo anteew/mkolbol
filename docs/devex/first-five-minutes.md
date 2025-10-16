@@ -191,6 +191,9 @@ You'll see both endpoints (web and sink) with their metadata, timestamps, and co
 
 **You just ran your first topology!** Here's where to go from here:
 
+> **💾 Installing mkolbol?**
+> This guide clones the repo directly. For production or different installation methods (tarball, git tag, vendor), see the [Distribution Matrix](./distribution.md) guide.
+
 ### Immediate next steps
 
 | If you want to... | Go here... |

@@ -2,13 +2,35 @@
 
 This guide shows you how to integrate mkolbol into your project for stream processing, data pipelines, and observability.
 
+## Installation Methods
+
+mkolbol can be installed in multiple ways depending on your needs:
+
+| Method | Use Case | Command |
+|--------|----------|---------|
+| **Tarball** (Recommended) | Production, CI/CD, reproducible builds | `npm install ./mkolbol-0.2.0.tar.gz` |
+| **Git Tag** | Version tracking, team workflows | `npm install github:anteew/Laminar#v0.2.0` |
+| **Vendor/Local** | Monorepo, full control | `npm install file:../packages/mkolbol` |
+
+For a detailed comparison of installation methods, see [Distribution Matrix](./distribution.md).
+
 ## Quick Start: 5-Minute Setup
 
 ### 1. Install mkolbol
 
+**Recommended (Tarball):**
 ```bash
-npm install mkolbol
-# or use local development
+curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz -o mkolbol-0.2.0.tar.gz
+npm install ./mkolbol-0.2.0.tar.gz
+```
+
+**Alternative (Git Tag):**
+```bash
+npm install github:anteew/Laminar#v0.2.0
+```
+
+**Or use local development:**
+```bash
 npm link ../mkolbol
 ```
 
