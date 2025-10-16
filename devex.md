@@ -21,7 +21,7 @@
 }
 ```
 
-# Sprint — SB-DEVEX-EARLY-ADOPTER-P1
+# Sprint — SB-DEVEX-CONFIG-PROCESS-P1 (Docs sync for external-from-config)
 
 **Architect**: VEGA  
 **Role**: Developer Experience (external early adopter focus)  
@@ -70,7 +70,68 @@ waves:
 
 ---
 
-## Tasks
+## Tasks (new)
+
+### TASK D8501 — Wiring & Tests doc: external-from-config
+**Goal**: Align docs/devex/wiring-and-tests.md with the new ExternalProcess config support (stdio/pty), including YAML/JSON examples and lane guidance.
+
+**Allowed Files**
+```yaml
+modify:
+  - docs/devex/wiring-and-tests.md
+  - docs/devex/quickstart.md
+  - docs/devex/first-server-tutorial.md
+  - README.md
+```
+
+**Requirements**
+1. Add YAML/JSON blocks that match the new schema (runMode: 'process' optional; module: 'ExternalProcess'; params: { command, args, ioMode }).
+2. Clarify when to run forks vs threads; point to acceptance suite templates.
+3. Link to example configs under examples/configs/ if present.
+
+**Deliverable**: `patches/DIFF_D8501_docs-external-config.patch`
+
+---
+
+### TASK D8502 — mkctl endpoints doc update
+**Goal**: Document that mkctl endpoints show ioMode for external endpoints and how to interpret it.
+
+**Allowed Files**
+```yaml
+modify:
+  - README.md
+  - docs/devex/stdio-path.md
+```
+
+**Deliverable**: `patches/DIFF_D8502_docs-mkctl-endpoints.patch`
+
+---
+
+### TASK D8503 — Acceptance suite note (executor gating)
+**Goal**: Note the MK_DEVEX_EXECUTOR flag to enable the “Executor topology” acceptance test and provide brief instructions.
+
+**Allowed Files**
+```yaml
+modify:
+  - tests/devex/README.md
+  - docs/devex/wiring-and-tests.md
+```
+
+**Deliverable**: `patches/DIFF_D8503_docs-acceptance-gating.patch`
+
+---
+
+### TASK D8504 — Early adopter guide cross-links
+**Goal**: Ensure quickstart → stdio path → interactive topology → wiring pages link smoothly with a short “choose your path” callout.
+
+**Allowed Files**
+```yaml
+modify:
+  - docs/devex/early-adopter-guide.md
+  - docs/devex/quickstart.md
+```
+
+**Deliverable**: `patches/DIFF_D8504_docs-crosslinks.patch`
 
 ### TASK T8001 — Early Adopter Guide (First 5 Minutes)
 **Goal**: Produce a concise “what it is / how it flows” doc tailored to new developers.
@@ -322,4 +383,3 @@ Follow the template in `agent_template/AMPCODE_TEMPLATE.md` and aggregate result
 - You own authoring the docs/examples/tests listed above. Do not modify kernel code.
 - If you propose minor stubs to make examples clearer (e.g., a readme in examples/early-adopter), keep them trivial and isolated.
 - If anything is ambiguous, document assumptions and continue; we’ll iterate.
-

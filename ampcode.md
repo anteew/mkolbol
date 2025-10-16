@@ -1,32 +1,41 @@
-Sprint SB-MK-PROCESS-MODE-ENFORCE-P1 (Make process-mode required in CI)
+```json
+{
+  "ampcode": "v1",
+  "waves": [
+    { "id": "A", "parallel": false, "tasks": ["T8401", "T8402"] },
+    { "id": "B", "parallel": true, "depends_on": ["A"], "tasks": ["T8403", "T8404"] }
+  ],
+  "tasks": [
+    { "id": "T8401", "agent": "susan", "title": "Config schema: add process/external params", "deliverables": ["patches/DIFF_T8401_schema-process.patch"] },
+    { "id": "T8402", "agent": "susan", "title": "Loader + Executor mapping for ExternalProcess", "deliverables": ["patches/DIFF_T8402_loader-executor-external.patch"] },
+    { "id": "T8403", "agent": "susan", "title": "Examples+tests: external from config (stdio/pty)", "deliverables": ["patches/DIFF_T8403_examples-tests-external-config.patch"] },
+    { "id": "T8404", "agent": "susan", "title": "Docs touch-up: wiring guide & README links", "deliverables": ["patches/DIFF_T8404_docs-wiring-readme.patch"] }
+  ]
+}
+```
+
+# Sprint — SB-MK-CONFIG-PROCESS-P1 (Config loader: process/external servers)
 
 Goal
-- Promote process-mode from monitored to required in CI by hardening health checks/timeouts and stabilizing the forks lane.
+- Allow early adopters to declare external servers in config (YAML/JSON) and run them via Executor, supporting ioMode: 'stdio' and 'pty'.
 
 Constraints
-- No kernel changes. Scope to Executor process-mode, Unix adapters, tests, and CI workflow.
+- Keep kernel untouched; scope to config schema/loader, Executor mapping, examples/tests, mkctl (if needed).
 
-T7101 — Tests: stabilize process-mode spec
-- Outcome: `tests/integration/processUnix.spec.ts` uses explicit withTimeout/heartbeat tolerances and reliable teardown; eliminate flake under load.
-
-T7102 — Executor: heartbeat/cutover tuning
-- Outcome: `src/executor/Executor.ts` adjusts heartbeat grace (missed-N policy) and cutover drain timeout; emits precise diagnostics on timeout.
-
-T7103 — Unix adapters: backpressure + error propagation
-- Outcome: `src/transport/unix/UnixPipeAdapter.ts` and `UnixControlAdapter.ts` confirm Duplex `_read/_write` backpressure and forward `error`/`close` consistently.
-
-T7104 — CI: make forks lane strict
-- Outcome: `.github/workflows/tests.yml` forks lane becomes required (remove `continue-on-error`); keep process-mode enforcement as a named, required job.
-
-T7105 — Docs & artifacts
-- Outcome: README/CI notes updated to reflect enforcement; Laminar artifacts + raw logs remain uploaded for ROI analysis.
+Tasks
+- T8401 Schema update
+  - Files: src/config/schema.ts — extend runMode to include 'process'; add node.params for external: { command, args, ioMode }.
+- T8402 Loader + Executor mapping
+  - Files: src/config/loader.ts; src/executor/Executor.ts — if module === 'ExternalProcess' then instantiate ExternalServerWrapper with params; honor ioMode.
+- T8403 Examples + tests
+  - Files: examples/configs/external-stdio.yaml, external-pty.yaml; tests/integration/externalFromConfig.spec.ts (forks lane).
+- T8404 Docs touch-ups
+  - Files: docs/devex/wiring-and-tests.md (note ExternalProcess via config); README link to example configs.
 
 Verification
-- Threads: `npm run test:ci` (green; digest suite included)
-- Forks: `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty` green locally; CI forks lane required and green in ≥3 consecutive runs
+- npm run build
+- npm run test:ci (threads) — green
+- MK_PROCESS_EXPERIMENTAL=1 npm run test:pty (forks) — green; new externalFromConfig spec included
 
 Acceptance
-- CI on PRs/main requires forks lane (process-mode) and passes without retries.
-
-Reporting
-- Update `ampcode.log` with PASS/FAIL per task. VEGA will handle PR once green window is observed.
+- External server declared in YAML runs under Executor; roundtrip and endpoints verified in forks lane.
