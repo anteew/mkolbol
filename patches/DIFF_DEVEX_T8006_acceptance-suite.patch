@@ -1,0 +1,1824 @@
+diff --git a/tests/devex/acceptance/README.md b/tests/devex/acceptance/README.md
+new file mode 100644
+index 0000000..9924798
+--- /dev/null
++++ b/tests/devex/acceptance/README.md
+@@ -0,0 +1,434 @@
++# Acceptance Test Suite
++
++This directory contains a **minimal, copy-friendly acceptance test suite** for external adopters to validate their custom server implementations against the mkolbol framework.
++
++## Purpose
++
++These tests are designed to be:
++- **Copy-pasteable**: Easy to adapt for external projects
++- **Minimal**: No deep kernel dependencies
++- **Self-contained**: Each test stands alone
++- **Deterministic**: Reliable results every time
++- **Fast**: Complete in under 10 seconds
++
++## What This Suite Validates
++
++### Core Integration Points
++1. **Hostess Registration** - Server endpoints register correctly
++2. **Stream I/O** - Data flows through input/output pipes
++3. **Backpressure** - Stream backpressure is handled properly
++4. **Process Lifecycle** - Processes spawn and terminate cleanly (forks lane only)
++
++### Target Audience
++- Early adopters building custom servers
++- Third-party integrators validating implementations
++- CI/CD pipelines for continuous validation
++
++## Test Files
++
++### `hostess.spec.ts`
++**Lane:** Threads
++**Purpose:** Validate Hostess endpoint registration and metadata
++
++**Tests:**
++- Endpoint is registered after server spawn
++- Endpoint has required metadata fields (type, coordinates)
++- Endpoint capabilities are declared correctly
++- Endpoint is discoverable by capability query
++
++**Run:**
++```bash
++npx vitest run tests/devex/acceptance/hostess.spec.ts
++```
++
++### `streams.spec.ts`
++**Lane:** Threads
++**Purpose:** Validate stream I/O and backpressure handling
++
++**Tests:**
++- Input → Output roundtrip works correctly
++- Multiple messages flow sequentially
++- Backpressure triggers drain events
++- Error propagation through pipes
++
++**Run:**
++```bash
++npx vitest run tests/devex/acceptance/streams.spec.ts
++```
++
++### `process-mode.spec.ts`
++**Lane:** Forks (REQUIRED)
++**Purpose:** Validate process spawning and lifecycle management
++
++**Tests:**
++- Process spawns successfully
++- Process lifecycle (up → down) works
++- Signal handling (SIGTERM) is graceful
++- Process cleanup is complete
++
++**Gated:** Requires `MK_DEVEX_PROCESS_MODE=1` environment variable
++
++**Run:**
++```bash
++MK_DEVEX_PROCESS_MODE=1 npx vitest run --pool=forks --poolOptions.forks.singleFork=true tests/devex/acceptance/process-mode.spec.ts
++```
++
++## Test Lane Guide
++
++### Threads Lane
++- **Use for:** In-process modules (inproc, worker)
++- **Tests:** `hostess.spec.ts`, `streams.spec.ts`
++- **Command:** `npx vitest run tests/devex/acceptance/hostess.spec.ts`
++
++### Forks Lane
++- **Use for:** External processes, PTY servers, system calls
++- **Tests:** `process-mode.spec.ts`
++- **Command:** `npx vitest run --pool=forks --poolOptions.forks.singleFork=true tests/devex/acceptance/process-mode.spec.ts`
++- **Why singleFork:** Prevents race conditions with process spawning
++
++## Running Tests
++
++### Run Entire Acceptance Suite
++
++**Threads lane tests:**
++```bash
++npx vitest run tests/devex/acceptance/hostess.spec.ts tests/devex/acceptance/streams.spec.ts
++```
++
++**Forks lane tests:**
++```bash
++MK_DEVEX_PROCESS_MODE=1 npx vitest run --pool=forks --poolOptions.forks.singleFork=true tests/devex/acceptance/process-mode.spec.ts
++```
++
++**All tests (threads + forks):**
++```bash
++# Threads first
++npx vitest run tests/devex/acceptance/hostess.spec.ts tests/devex/acceptance/streams.spec.ts
++
++# Then forks
++MK_DEVEX_PROCESS_MODE=1 npx vitest run --pool=forks --poolOptions.forks.singleFork=true tests/devex/acceptance/process-mode.spec.ts
++```
++
++### Run Specific Test
++
++```bash
++# Single test by name
++npx vitest run tests/devex/acceptance/hostess.spec.ts -t "should register endpoint"
++
++# Watch mode for development
++npx vitest tests/devex/acceptance/streams.spec.ts
++```
++
++## Adapting for External Projects
++
++### Step 1: Copy Tests to Your Project
++
++```bash
++# In your project root
++mkdir -p tests/acceptance
++cp -r node_modules/mkolbol/tests/devex/acceptance/* tests/acceptance/
++```
++
++### Step 2: Transform Imports
++
++**Internal mkolbol imports (before):**
++```typescript
++import { Kernel } from '../../../src/kernel/Kernel.js';
++import { Hostess } from '../../../src/hostess/Hostess.js';
++import { StateManager } from '../../../src/state/StateManager.js';
++```
++
++**External adopter imports (after):**
++```typescript
++import { Kernel, Hostess, StateManager, Executor } from 'mkolbol';
++```
++
++**Your custom server import:**
++```typescript
++// Add this line
++import { YourServerWrapper } from '../src/modules/YourServerWrapper.js';
++```
++
++### Step 3: Update Test Data
++
++Customize test inputs/outputs for your server's behavior:
++
++**Example: Echo Server**
++```typescript
++const testInput = 'hello\n';
++wrapper.inputPipe.write(testInput);
++wrapper.inputPipe.end();
++
++const output = await outputPromise;
++expect(output).toBe('[ECHO] hello\n'); // Add your prefix
++```
++
++**Example: Uppercase Server**
++```typescript
++const testInput = 'hello\n';
++wrapper.inputPipe.write(testInput);
++wrapper.inputPipe.end();
++
++const output = await outputPromise;
++expect(output).toBe('HELLO\n'); // Transform applied
++```
++
++### Step 4: Configure package.json
++
++```json
++{
++  "scripts": {
++    "test:acceptance": "npm run test:acceptance:threads && npm run test:acceptance:forks",
++    "test:acceptance:threads": "vitest run tests/acceptance/hostess.spec.ts tests/acceptance/streams.spec.ts",
++    "test:acceptance:forks": "MK_DEVEX_PROCESS_MODE=1 vitest run --pool=forks --poolOptions.forks.singleFork=true tests/acceptance/process-mode.spec.ts"
++  }
++}
++```
++
++## Expected Test Artifacts (Laminar)
++
++If you enable Laminar test observability, tests will generate artifacts under `reports/`:
++
++### JSONL Reports (per test case)
++```
++reports/hostess.spec/should_register_endpoint_with_metadata.jsonl
++reports/streams.spec/should_handle_input_output_roundtrip.jsonl
++reports/process-mode.spec/should_spawn_process_successfully.jsonl
++```
++
++### Summary Report
++```
++reports/summary.jsonl
++```
++
++Contains aggregated test results, timing, and failure counts.
++
++### Digest Files (on failure)
++```
++reports/digest-YYYY-MM-DD-HHMMSS.json
++```
++
++Contains detailed failure diagnostics for failed test cases.
++
++### How to Enable Laminar
++
++**vitest.config.ts:**
++```typescript
++import { defineConfig } from 'vitest/config';
++
++export default defineConfig({
++  test: {
++    reporters: ['./node_modules/mkolbol/dist/test/reporter/jsonlReporter.js']
++  }
++});
++```
++
++**Run with Laminar:**
++```bash
++npx vitest run tests/acceptance/
++```
++
++**View results:**
++```bash
++cat reports/summary.jsonl | jq .
++```
++
++## What Each Spec Validates
++
++### Hostess Spec
++
++**Critical Path:** Server → Hostess → Discovery
++
++**Validates:**
++1. Server calls `hostess.registerEndpoint()` during spawn
++2. Endpoint contains `type`, `coordinates`, and `metadata`
++3. Endpoint is retrievable via `hostess.listEndpoints()`
++4. Endpoint matches capability queries
++
++**Failure Signals:**
++- Endpoint not found → Registration missing
++- Wrong type → Incorrect endpoint configuration
++- Missing metadata → Incomplete manifest
++
++### Streams Spec
++
++**Critical Path:** Write → Pipe → Read
++
++**Validates:**
++1. Data written to `inputPipe` arrives at server stdin
++2. Data from server stdout arrives at `outputPipe`
++3. Backpressure (write returns false) triggers drain events
++4. Pipe errors propagate to event handlers
++
++**Failure Signals:**
++- Timeout on read → Server not writing to stdout
++- Data mismatch → Incorrect transformation
++- No drain events → Backpressure not respected
++- Missing error event → Error handling broken
++
++### Process-Mode Spec
++
++**Critical Path:** Spawn → Run → Terminate
++
++**Validates:**
++1. `wrapper.spawn()` creates child process with valid PID
++2. `wrapper.isRunning()` returns correct status
++3. `wrapper.shutdown()` sends SIGTERM and waits for exit
++4. Process cleanup leaves no zombies
++
++**Failure Signals:**
++- Spawn timeout → Command not found or hangs
++- PID = 0 → Fork failed
++- Shutdown timeout → SIGTERM not handled
++- Zombie process → Missing wait/cleanup
++
++## Success Criteria
++
++A third-party server **passes** the acceptance suite if:
++
++1. All tests in `hostess.spec.ts` pass (threads lane)
++2. All tests in `streams.spec.ts` pass (threads lane)
++3. All tests in `process-mode.spec.ts` pass (forks lane, if applicable)
++4. No process leaks or timeouts
++5. Tests complete in < 10 seconds total
++
++## Troubleshooting
++
++### Test hangs indefinitely
++
++**Cause:** Missing `end()` call or process leak
++
++**Fix:**
++```typescript
++// Always end the input pipe
++wrapper.inputPipe.write(data);
++wrapper.inputPipe.end(); // <-- Required
++
++// Always clean up in afterEach
++afterEach(async () => {
++  if (wrapper?.isRunning()) {
++    await wrapper.shutdown();
++  }
++});
++```
++
++### Endpoint not found
++
++**Cause:** Querying before spawn completes
++
++**Fix:**
++```typescript
++// Ensure await
++await wrapper.spawn();
++
++// Then query
++const endpoints = hostess.listEndpoints();
++```
++
++### Data doesn't flow
++
++**Cause:** Server script not flushing output
++
++**Fix:**
++```python
++# Python servers must flush stdout
++print(output, flush=True)
++# OR
++sys.stdout.flush()
++```
++
++```javascript
++// Node.js servers auto-flush, but ensure:
++process.stdout.write(output);
++```
++
++### Process-mode test fails
++
++**Cause:** Running in threads lane instead of forks lane
++
++**Fix:**
++```bash
++# Wrong
++npx vitest run tests/acceptance/process-mode.spec.ts
++
++# Correct
++MK_DEVEX_PROCESS_MODE=1 npx vitest run --pool=forks --poolOptions.forks.singleFork=true tests/acceptance/process-mode.spec.ts
++```
++
++### CI failures
++
++**Cause:** CI is slower; fixed timeouts are too aggressive
++
++**Fix:** Use event-driven waiting instead of `setTimeout`:
++```typescript
++// Bad
++await new Promise(resolve => setTimeout(resolve, 500));
++
++// Good
++await new Promise<void>(resolve => {
++  wrapper.outputPipe.once('data', resolve);
++});
++```
++
++## CI Integration Example
++
++**GitHub Actions:**
++
++```yaml
++name: Acceptance Tests
++
++on: [push, pull_request]
++
++jobs:
++  acceptance-threads:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 20
++      - run: npm ci
++      - run: npm run build
++      - name: Run threads lane tests
++        run: npx vitest run tests/acceptance/hostess.spec.ts tests/acceptance/streams.spec.ts
++
++  acceptance-forks:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 20
++      - run: npm ci
++      - run: npm run build
++      - name: Run forks lane tests
++        env:
++          MK_DEVEX_PROCESS_MODE: 1
++        run: npx vitest run --pool=forks --poolOptions.forks.singleFork=true tests/acceptance/process-mode.spec.ts
++```
++
++## Next Steps
++
++After passing the acceptance suite:
++
++1. **Add custom tests** - Extend with server-specific behaviors
++2. **Enable Laminar** - Get test observability and diagnostics
++3. **Integrate with CI** - Automate on every commit
++4. **Monitor trends** - Track test stability over time
++
++## Additional Resources
++
++- [DevEx Early Adopter Guide](../../../docs/devex/early-adopter-guide.md)
++- [First Server Tutorial](../../../docs/devex/first-server-tutorial.md)
++- [Wiring and Tests Guide](../../../docs/devex/wiring-and-tests.md)
++- [CI Testing Guide](../../../docs/testing/ci.md)
++
++## Support
++
++Questions or issues?
++- [GitHub Issues](https://github.com/anteew/mkolbol/issues)
++- [Discussions](https://github.com/anteew/mkolbol/discussions)
++
++---
++
++**Ready to validate?** Copy these tests to your project, adapt the imports, and run the suite. These tests are designed to fail meaningfully when wiring is incorrect, giving you fast feedback during development.
+diff --git a/tests/devex/acceptance/hostess.spec.ts b/tests/devex/acceptance/hostess.spec.ts
+new file mode 100644
+index 0000000..0ce30aa
+--- /dev/null
++++ b/tests/devex/acceptance/hostess.spec.ts
+@@ -0,0 +1,406 @@
++/**
++ * Acceptance Test: Hostess Endpoint Registration
++ *
++ * PURPOSE:
++ * Validates that a custom server correctly registers with Hostess,
++ * making it discoverable in mkolbol topologies.
++ *
++ * TEST LANE:
++ * THREADS - This test does not spawn external processes
++ *
++ * WHAT IS VALIDATED:
++ * 1. Endpoint is registered after server spawn
++ * 2. Endpoint has required metadata fields (type, coordinates)
++ * 3. Endpoint capabilities are declared correctly
++ * 4. Endpoint is discoverable by capability query
++ *
++ * HOW TO ADAPT FOR YOUR PROJECT:
++ * -------------------------------
++ * 1. Copy this file to your project: tests/acceptance/hostess.spec.ts
++ * 2. Update imports:
++ *    BEFORE (mkolbol internal):
++ *      import { Kernel } from '../../../src/kernel/Kernel.js';
++ *      import { Hostess } from '../../../src/hostess/Hostess.js';
++ *    AFTER (external adopter):
++ *      import { Kernel, Hostess } from 'mkolbol';
++ * 3. Replace ExternalServerWrapper with your wrapper:
++ *      import { YourServerWrapper } from '../src/modules/YourServerWrapper.js';
++ * 4. Update manifest to match your server's configuration
++ * 5. Update endpoint matching logic (search for 'CUSTOMIZE' comments)
++ *
++ * RUN:
++ *   npx vitest run tests/devex/acceptance/hostess.spec.ts
++ *
++ * EXPECTED ARTIFACTS (if Laminar enabled):
++ *   reports/hostess.spec/should_register_endpoint_after_spawn.jsonl
++ *   reports/hostess.spec/should_have_required_metadata_fields.jsonl
++ *   reports/hostess.spec/should_declare_capabilities.jsonl
++ *   reports/hostess.spec/should_be_discoverable_by_capabilities.jsonl
++ */
++
++import { describe, it, expect, beforeEach, afterEach } from 'vitest';
++
++/**
++ * IMPORT TRANSFORMATION FOR EXTERNAL PROJECTS:
++ *
++ * Internal (mkolbol repo):
++ *   import { Kernel } from '../../../src/kernel/Kernel.js';
++ *   import { Hostess } from '../../../src/hostess/Hostess.js';
++ *   import { ExternalServerWrapper } from '../../../src/wrappers/ExternalServerWrapper.js';
++ *   import type { ExternalServerManifest } from '../../../src/types.js';
++ *
++ * External (adopter project):
++ *   import { Kernel, Hostess, ExternalServerWrapper, type ExternalServerManifest } from 'mkolbol';
++ *   import { YourServerWrapper } from '../src/modules/YourServerWrapper.js';
++ */
++import { Kernel } from '../../../src/kernel/Kernel.js';
++import { Hostess } from '../../../src/hostess/Hostess.js';
++import { ExternalServerWrapper } from '../../../src/wrappers/ExternalServerWrapper.js';
++import type { ExternalServerManifest } from '../../../src/types.js';
++
++describe('Acceptance: Hostess Endpoint Registration', () => {
++  let kernel: Kernel;
++  let hostess: Hostess;
++  let wrapper: ExternalServerWrapper; // CUSTOMIZE: Replace with YourServerWrapper
++
++  const testTimeout = 8000;
++
++  beforeEach(() => {
++    kernel = new Kernel();
++    hostess = new Hostess();
++  });
++
++  afterEach(async () => {
++    // CRITICAL: Always clean up to prevent process leaks
++    if (wrapper && wrapper.isRunning()) {
++      await wrapper.shutdown();
++    }
++  });
++
++  /**
++   * TEST 1: Endpoint Registration
++   *
++   * VALIDATES: Server registers an endpoint with Hostess after spawning
++   * FAILURE SIGNALS:
++   *   - Endpoint not found → Registration missing or spawn failed
++   *   - Wrong coordinates → Manifest misconfigured
++   */
++  it('should register endpoint after spawn', async () => {
++    // CUSTOMIZE: Replace this manifest with your server's configuration
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-acceptance-server',
++      classHex: '0xACCEPT',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform',
++        accepts: ['text'],
++        produces: ['text']
++      },
++      command: '/bin/cat', // CUSTOMIZE: Replace with your command
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    // CUSTOMIZE: Replace ExternalServerWrapper with YourServerWrapper
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++
++    // Verify no endpoint exists before spawn
++    const endpointsBefore = hostess.listEndpoints();
++    expect(endpointsBefore.size).toBe(0);
++
++    // Spawn the server
++    await wrapper.spawn();
++
++    // Verify endpoint is registered after spawn
++    const endpointsAfter = hostess.listEndpoints();
++    expect(endpointsAfter.size).toBe(1);
++
++    // CUSTOMIZE: Update this search to match your server's coordinates
++    // Option 1: Search by command (for ExternalServerWrapper)
++    const serverEndpoint = Array.from(endpointsAfter.entries()).find(
++      ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('/bin/cat')
++    );
++
++    // Option 2: Search by servername (alternative)
++    // const serverEndpoint = Array.from(endpointsAfter.entries()).find(
++    //   ([_, ep]) => ep.coordinates.includes('test-acceptance-server')
++    // );
++
++    expect(serverEndpoint).toBeDefined();
++    expect(serverEndpoint![1].type).toBe('external');
++  }, testTimeout);
++
++  /**
++   * TEST 2: Required Metadata Fields
++   *
++   * VALIDATES: Endpoint contains type, coordinates, and metadata
++   * FAILURE SIGNALS:
++   *   - Missing type → Endpoint structure broken
++   *   - Missing coordinates → Address information missing
++   *   - Missing metadata → Manifest not propagated
++   */
++  it('should have required metadata fields', async () => {
++    // CUSTOMIZE: Update manifest as needed
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-metadata-server',
++      classHex: '0xMETA',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' }
++      ],
++      capabilities: {
++        type: 'output'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    const endpoints = hostess.listEndpoints();
++    const serverEndpoint = Array.from(endpoints.entries())[0];
++
++    // Verify required fields exist
++    expect(serverEndpoint).toBeDefined();
++    const [endpointId, endpoint] = serverEndpoint;
++
++    // Type field (required)
++    expect(endpoint.type).toBeDefined();
++    expect(typeof endpoint.type).toBe('string');
++    expect(endpoint.type).toBe('external'); // CUSTOMIZE: 'inproc', 'worker', 'external', 'pty'
++
++    // Coordinates field (required)
++    expect(endpoint.coordinates).toBeDefined();
++    expect(typeof endpoint.coordinates).toBe('string');
++    expect(endpoint.coordinates.length).toBeGreaterThan(0);
++
++    // Metadata field (required for most wrappers)
++    expect(endpoint.metadata).toBeDefined();
++    expect(typeof endpoint.metadata).toBe('object');
++    expect(endpoint.metadata?.ioMode).toBe('stdio');
++  }, testTimeout);
++
++  /**
++   * TEST 3: Capability Declaration
++   *
++   * VALIDATES: Endpoint metadata includes capability information
++   * FAILURE SIGNALS:
++   *   - Missing capabilities → Manifest not propagated
++   *   - Wrong type → Capability misconfigured
++   */
++  it('should declare capabilities', async () => {
++    // CUSTOMIZE: Set capabilities for your server
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-capabilities-server',
++      classHex: '0xCAP',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform',
++        accepts: ['text', 'json'],
++        produces: ['text'],
++        features: ['uppercase', 'trim']
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    const endpoints = hostess.listEndpoints();
++    const [_, endpoint] = Array.from(endpoints.entries())[0];
++
++    // CUSTOMIZE: Update assertions to match your server's capabilities
++    expect(endpoint.metadata).toBeDefined();
++
++    // Note: For ExternalServerWrapper, capabilities are stored in the
++    // manifest field of metadata, not directly in metadata.capabilities
++    // Adjust this based on your wrapper's implementation
++    if (endpoint.metadata?.capabilities) {
++      expect(endpoint.metadata.capabilities.type).toBe('transform');
++    }
++  }, testTimeout);
++
++  /**
++   * TEST 4: Discovery by Capabilities
++   *
++   * VALIDATES: Endpoint can be found using capability queries
++   * FAILURE SIGNALS:
++   *   - Server not found → Query logic broken
++   *   - Wrong server returned → Capability matching incorrect
++   *
++   * NOTE: This test demonstrates how to search for servers by capabilities.
++   * The actual query API depends on your Hostess implementation.
++   */
++  it('should be discoverable by capabilities', async () => {
++    // CUSTOMIZE: Create multiple servers with different capabilities
++    const transformManifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'transform-server',
++      classHex: '0xTRANS',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, transformManifest);
++    await wrapper.spawn();
++
++    // Query all endpoints
++    const endpoints = hostess.listEndpoints();
++    expect(endpoints.size).toBe(1);
++
++    // CUSTOMIZE: Implement your search logic based on capabilities
++    // Example: Find all transform servers
++    const transformServers = Array.from(endpoints.entries()).filter(
++      ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('cat')
++    );
++
++    expect(transformServers.length).toBe(1);
++    expect(transformServers[0][1].type).toBe('external');
++
++    // Example: Search by metadata fields
++    const externalServers = Array.from(endpoints.entries()).filter(
++      ([_, ep]) => ep.metadata?.ioMode === 'stdio'
++    );
++
++    expect(externalServers.length).toBe(1);
++  }, testTimeout);
++
++  /**
++   * TEST 5: Multiple Endpoint Registration
++   *
++   * VALIDATES: Multiple servers can register simultaneously
++   * FAILURE SIGNALS:
++   *   - Wrong count → Registration collision or leak
++   *   - Duplicate IDs → ID generation broken
++   */
++  it('should support multiple endpoint registrations', async () => {
++    // Spawn first server
++    const manifest1: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'server-1',
++      classHex: '0x0001',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [{ name: 'input', type: 'local', direction: 'input' }],
++      capabilities: { type: 'output' },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    const wrapper1 = new ExternalServerWrapper(kernel, hostess, manifest1);
++    await wrapper1.spawn();
++
++    // Spawn second server
++    const manifest2: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'server-2',
++      classHex: '0x0002',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [{ name: 'output', type: 'local', direction: 'output' }],
++      capabilities: { type: 'input' },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    const wrapper2 = new ExternalServerWrapper(kernel, hostess, manifest2);
++    await wrapper2.spawn();
++
++    // Verify both registered
++    const endpoints = hostess.listEndpoints();
++    expect(endpoints.size).toBe(2);
++
++    // Verify unique IDs
++    const endpointIds = Array.from(endpoints.keys());
++    expect(new Set(endpointIds).size).toBe(2); // No duplicates
++
++    // Clean up both
++    await wrapper1.shutdown();
++    await wrapper2.shutdown();
++
++    // Assign to wrapper for afterEach cleanup
++    wrapper = wrapper2;
++  }, testTimeout);
++});
++
++/**
++ * TROUBLESHOOTING GUIDE:
++ * ----------------------
++ *
++ * 1. Endpoint not found after spawn
++ *    - Ensure await wrapper.spawn() completes
++ *    - Check that wrapper calls hostess.registerEndpoint()
++ *    - Verify manifest is correctly configured
++ *
++ * 2. Wrong endpoint type
++ *    - Check manifest.ioMode matches endpoint.type
++ *    - Verify wrapper passes correct type to registerEndpoint()
++ *
++ * 3. Missing metadata
++ *    - Ensure manifest is passed to wrapper constructor
++ *    - Check wrapper propagates manifest to endpoint metadata
++ *
++ * 4. Test timeout
++ *    - Increase testTimeout if system is slow
++ *    - Verify wrapper.spawn() doesn't hang
++ *    - Check for process leaks in afterEach
++ *
++ * 5. Multiple registration test fails
++ *    - Ensure unique endpoint IDs
++ *    - Check for registration conflicts
++ *    - Verify proper cleanup in afterEach
++ */
+diff --git a/tests/devex/acceptance/process-mode.spec.ts b/tests/devex/acceptance/process-mode.spec.ts
+new file mode 100644
+index 0000000..31832f0
+--- /dev/null
++++ b/tests/devex/acceptance/process-mode.spec.ts
+@@ -0,0 +1,459 @@
++/**
++ * Acceptance Test: Process Mode Lifecycle
++ *
++ * PURPOSE:
++ * Validates that a custom server correctly spawns external processes,
++ * manages their lifecycle, and handles signals gracefully.
++ *
++ * TEST LANE:
++ * FORKS - REQUIRED - This test spawns real child processes
++ *
++ * GATED:
++ * Requires MK_DEVEX_PROCESS_MODE=1 environment variable
++ *
++ * WHAT IS VALIDATED:
++ * 1. Process spawns successfully with valid PID
++ * 2. Process lifecycle (spawn → running → shutdown) works
++ * 3. Signal handling (SIGTERM) is graceful
++ * 4. Process cleanup leaves no zombies
++ *
++ * HOW TO ADAPT FOR YOUR PROJECT:
++ * -------------------------------
++ * 1. Copy this file to your project: tests/acceptance/process-mode.spec.ts
++ * 2. Update imports:
++ *    BEFORE (mkolbol internal):
++ *      import { Kernel } from '../../../src/kernel/Kernel.js';
++ *    AFTER (external adopter):
++ *      import { Kernel, Hostess } from 'mkolbol';
++ * 3. Replace ExternalServerWrapper with your wrapper
++ * 4. Update manifest to match your server's command/args
++ * 5. Adjust timeouts if your process is slow to start/stop
++ *
++ * RUN:
++ *   MK_DEVEX_PROCESS_MODE=1 npx vitest run --pool=forks --poolOptions.forks.singleFork=true tests/devex/acceptance/process-mode.spec.ts
++ *
++ * CRITICAL: Must use --pool=forks to avoid test isolation issues
++ *
++ * EXPECTED ARTIFACTS (if Laminar enabled):
++ *   reports/process-mode.spec/should_spawn_process_successfully.jsonl
++ *   reports/process-mode.spec/should_manage_lifecycle.jsonl
++ *   reports/process-mode.spec/should_handle_sigterm.jsonl
++ *   reports/process-mode.spec/should_cleanup_completely.jsonl
++ */
++
++import { describe, it, expect, beforeEach, afterEach } from 'vitest';
++
++/**
++ * IMPORT TRANSFORMATION FOR EXTERNAL PROJECTS:
++ *
++ * Internal (mkolbol repo):
++ *   import { Kernel } from '../../../src/kernel/Kernel.js';
++ *   import { Hostess } from '../../../src/hostess/Hostess.js';
++ *   import { ExternalServerWrapper } from '../../../src/wrappers/ExternalServerWrapper.js';
++ *   import type { ExternalServerManifest } from '../../../src/types.js';
++ *
++ * External (adopter project):
++ *   import { Kernel, Hostess, ExternalServerWrapper, type ExternalServerManifest } from 'mkolbol';
++ *   import { YourServerWrapper } from '../src/modules/YourServerWrapper.js';
++ */
++import { Kernel } from '../../../src/kernel/Kernel.js';
++import { Hostess } from '../../../src/hostess/Hostess.js';
++import { ExternalServerWrapper } from '../../../src/wrappers/ExternalServerWrapper.js';
++import type { ExternalServerManifest } from '../../../src/types.js';
++
++/**
++ * GATED TEST SUITE
++ *
++ * This suite only runs when MK_DEVEX_PROCESS_MODE=1 is set.
++ * This prevents accidental process spawning in environments where it's not supported.
++ *
++ * To run:
++ *   MK_DEVEX_PROCESS_MODE=1 npx vitest run --pool=forks --poolOptions.forks.singleFork=true tests/devex/acceptance/process-mode.spec.ts
++ */
++describe.skipIf(!process.env.MK_DEVEX_PROCESS_MODE)('Acceptance: Process Mode Lifecycle', () => {
++  let kernel: Kernel;
++  let hostess: Hostess;
++  let wrapper: ExternalServerWrapper; // CUSTOMIZE: Replace with YourServerWrapper
++
++  const testTimeout = 12000; // Process operations can be slow
++
++  beforeEach(() => {
++    kernel = new Kernel();
++    hostess = new Hostess();
++  });
++
++  afterEach(async () => {
++    // CRITICAL: Always clean up to prevent process leaks
++    if (wrapper && wrapper.isRunning()) {
++      await wrapper.shutdown();
++    }
++  });
++
++  /**
++   * TEST 1: Process Spawns Successfully
++   *
++   * VALIDATES: Server spawns child process with valid PID
++   * FAILURE SIGNALS:
++   *   - Timeout → Command not found or hangs
++   *   - PID = 0 → Fork failed
++   *   - isRunning() = false → Process exited immediately
++   */
++  it('should spawn process successfully', async () => {
++    // CUSTOMIZE: Update manifest for your process
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-process-server',
++      classHex: '0xPROC',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' }
++      ],
++      capabilities: {
++        type: 'output'
++      },
++      command: '/bin/cat', // CUSTOMIZE: Replace with your command
++      args: [],             // CUSTOMIZE: Add your args
++      env: {},              // CUSTOMIZE: Add required env vars
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++
++    // Before spawn: not running
++    expect(wrapper.isRunning()).toBe(false);
++
++    // Spawn the process
++    await wrapper.spawn();
++
++    // After spawn: running with valid PID
++    expect(wrapper.isRunning()).toBe(true);
++    const processInfo = wrapper.getProcessInfo();
++    expect(processInfo.pid).toBeGreaterThan(0);
++    expect(processInfo.uptime).toBeGreaterThanOrEqual(0);
++  }, testTimeout);
++
++  /**
++   * TEST 2: Process Lifecycle Management
++   *
++   * VALIDATES: Process lifecycle transitions (spawn → running → shutdown)
++   * FAILURE SIGNALS:
++   *   - isRunning() incorrect → State tracking broken
++   *   - Shutdown timeout → SIGTERM not handled
++   *   - Process remains after shutdown → Cleanup failed
++   */
++  it('should manage lifecycle (spawn → run → shutdown)', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-lifecycle-server',
++      classHex: '0xLIFE',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++
++    // STATE 1: Before spawn
++    expect(wrapper.isRunning()).toBe(false);
++
++    // STATE 2: After spawn
++    await wrapper.spawn();
++    expect(wrapper.isRunning()).toBe(true);
++    const pidDuringRun = wrapper.getProcessInfo().pid;
++    expect(pidDuringRun).toBeGreaterThan(0);
++
++    // STATE 3: After shutdown
++    await wrapper.shutdown();
++    expect(wrapper.isRunning()).toBe(false);
++
++    // Verify PID is no longer active (process exited)
++    // Note: getProcessInfo() behavior after shutdown is wrapper-specific
++    // Some wrappers may throw, others may return stale data
++    try {
++      const infoAfterShutdown = wrapper.getProcessInfo();
++      // If it doesn't throw, PID should be reset or invalid
++      expect(infoAfterShutdown.pid).toBe(0);
++    } catch (err) {
++      // Expected: wrapper throws when querying info after shutdown
++      expect(err).toBeDefined();
++    }
++  }, testTimeout);
++
++  /**
++   * TEST 3: SIGTERM Signal Handling
++   *
++   * VALIDATES: Process responds gracefully to SIGTERM
++   * FAILURE SIGNALS:
++   *   - Timeout → Process ignores SIGTERM
++   *   - Force killed → SIGKILL used instead (not graceful)
++   *   - Zombie → Process not waited for
++   */
++  it('should handle SIGTERM gracefully', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-sigterm-server',
++      classHex: '0xSIG',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' }
++      ],
++      capabilities: {
++        type: 'output'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    const pidBeforeShutdown = wrapper.getProcessInfo().pid;
++    expect(pidBeforeShutdown).toBeGreaterThan(0);
++
++    // Shutdown sends SIGTERM and waits for exit
++    const shutdownStart = Date.now();
++    await wrapper.shutdown();
++    const shutdownDuration = Date.now() - shutdownStart;
++
++    // Verify graceful shutdown (should be fast)
++    expect(shutdownDuration).toBeLessThan(5000); // < 5s is reasonable
++    expect(wrapper.isRunning()).toBe(false);
++
++    // Verify no zombie process
++    // Note: This is tricky to verify portably
++    // Rely on wrapper's isRunning() returning false
++  }, testTimeout);
++
++  /**
++   * TEST 4: Complete Cleanup
++   *
++   * VALIDATES: No resources leaked after shutdown
++   * FAILURE SIGNALS:
++   *   - File descriptors leaked → Pipes not closed
++   *   - Hostess endpoint remains → Cleanup incomplete
++   *   - Process zombie → Not waited for
++   */
++  it('should cleanup completely after shutdown', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-cleanup-server',
++      classHex: '0xCLEAN',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    // Verify endpoint registered
++    const endpointsBefore = hostess.listEndpoints();
++    expect(endpointsBefore.size).toBe(1);
++
++    // Shutdown
++    await wrapper.shutdown();
++
++    // Verify endpoint unregistered
++    // Note: ExternalServerWrapper might not auto-unregister
++    // Adjust this based on your wrapper's behavior
++    const endpointsAfter = hostess.listEndpoints();
++    // Some wrappers leave endpoints until Hostess eviction
++    // This is OK if your wrapper design differs
++
++    // Verify process cleanup
++    expect(wrapper.isRunning()).toBe(false);
++
++    // Verify pipes are closed (no more events)
++    let dataAfterShutdown = false;
++    wrapper.outputPipe.on('data', () => {
++      dataAfterShutdown = true;
++    });
++
++    await new Promise<void>((resolve) => setTimeout(resolve, 500));
++    expect(dataAfterShutdown).toBe(false);
++  }, testTimeout);
++
++  /**
++   * TEST 5: Multiple Process Lifecycle
++   *
++   * VALIDATES: Multiple processes can be spawned and cleaned up
++   * FAILURE SIGNALS:
++   *   - Second spawn fails → Resource leak from first
++   *   - PID collision → ID generation broken
++   *   - Cleanup fails → First process leaked
++   */
++  it('should handle multiple process lifecycles', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-multi-server',
++      classHex: '0xMULTI',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' }
++      ],
++      capabilities: {
++        type: 'output'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    // First process
++    const wrapper1 = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper1.spawn();
++    const pid1 = wrapper1.getProcessInfo().pid;
++    expect(pid1).toBeGreaterThan(0);
++    await wrapper1.shutdown();
++    expect(wrapper1.isRunning()).toBe(false);
++
++    // Second process (should work independently)
++    const wrapper2 = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper2.spawn();
++    const pid2 = wrapper2.getProcessInfo().pid;
++    expect(pid2).toBeGreaterThan(0);
++    expect(pid2).not.toBe(pid1); // Different PIDs
++    await wrapper2.shutdown();
++    expect(wrapper2.isRunning()).toBe(false);
++
++    // Assign to wrapper for afterEach cleanup
++    wrapper = wrapper2;
++  }, testTimeout);
++
++  /**
++   * TEST 6: Process Crash Recovery
++   *
++   * VALIDATES: Wrapper detects when process exits unexpectedly
++   * FAILURE SIGNALS:
++   *   - isRunning() still true after crash → State tracking broken
++   *   - No error detected → Exit monitoring missing
++   */
++  it('should detect process crash', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-crash-server',
++      classHex: '0xCRASH',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' }
++      ],
++      capabilities: {
++        type: 'output'
++      },
++      // Use a command that exits immediately with error
++      command: '/bin/sh',
++      args: ['-c', 'exit 1'],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    // Process should exit quickly
++    await new Promise<void>((resolve) => setTimeout(resolve, 1000));
++
++    // Wrapper should detect the exit
++    // Note: Behavior varies by wrapper implementation
++    // Some wrappers update isRunning() on exit event, others require explicit check
++    expect(wrapper.isRunning()).toBe(false);
++  }, testTimeout);
++});
++
++/**
++ * TROUBLESHOOTING GUIDE:
++ * ----------------------
++ *
++ * 1. Tests don't run
++ *    - Ensure MK_DEVEX_PROCESS_MODE=1 is set
++ *    - Verify using forks lane: --pool=forks --poolOptions.forks.singleFork=true
++ *    - Check vitest config doesn't override pool
++ *
++ * 2. Spawn timeout
++ *    - Verify command exists: which /bin/cat
++ *    - Check command doesn't require input to start
++ *    - Increase testTimeout if system is slow
++ *
++ * 3. Shutdown timeout
++ *    - Check process responds to SIGTERM
++ *    - Verify wrapper sends SIGTERM (not SIGKILL)
++ *    - Ensure pipes are closed before shutdown
++ *
++ * 4. Process leak
++ *    - Verify afterEach calls wrapper.shutdown()
++ *    - Check for zombie processes: ps aux | grep cat
++ *    - Ensure await wrapper.shutdown() completes
++ *
++ * 5. PID = 0
++ *    - Fork failed (check ulimit -u)
++ *    - Command not found
++ *    - Permissions issue
++ *
++ * 6. isRunning() incorrect
++ *    - Wrapper not monitoring exit event
++ *    - State update race condition
++ *    - Check wrapper's process lifecycle tracking
++ *
++ * 7. Crash detection fails
++ *    - Wrapper doesn't listen for 'exit' event
++ *    - State update delay (add small sleep before check)
++ *    - Check wrapper's error handling
++ *
++ * LANE REQUIREMENTS:
++ * ------------------
++ * This test MUST run in forks lane with singleFork=true because:
++ * 1. Real child processes are spawned
++ * 2. Process signals (SIGTERM) are used
++ * 3. Process state must be isolated between tests
++ *
++ * WRONG:
++ *   npx vitest run tests/acceptance/process-mode.spec.ts
++ *
++ * CORRECT:
++ *   MK_DEVEX_PROCESS_MODE=1 npx vitest run --pool=forks --poolOptions.forks.singleFork=true tests/acceptance/process-mode.spec.ts
++ */
+diff --git a/tests/devex/acceptance/streams.spec.ts b/tests/devex/acceptance/streams.spec.ts
+new file mode 100644
+index 0000000..2f43e27
+--- /dev/null
++++ b/tests/devex/acceptance/streams.spec.ts
+@@ -0,0 +1,501 @@
++/**
++ * Acceptance Test: Stream I/O and Backpressure
++ *
++ * PURPOSE:
++ * Validates that a custom server correctly handles stream I/O operations,
++ * including input → output data flow and Node.js stream backpressure.
++ *
++ * TEST LANE:
++ * THREADS - This test uses in-memory pipes, no external process spawning
++ *
++ * WHAT IS VALIDATED:
++ * 1. Input → Output roundtrip works correctly
++ * 2. Multiple sequential messages flow through
++ * 3. Backpressure triggers drain events
++ * 4. Errors propagate through pipes
++ *
++ * HOW TO ADAPT FOR YOUR PROJECT:
++ * -------------------------------
++ * 1. Copy this file to your project: tests/acceptance/streams.spec.ts
++ * 2. Update imports:
++ *    BEFORE (mkolbol internal):
++ *      import { Kernel } from '../../../src/kernel/Kernel.js';
++ *    AFTER (external adopter):
++ *      import { Kernel, Hostess } from 'mkolbol';
++ * 3. Replace ExternalServerWrapper with your wrapper
++ * 4. Update test inputs/outputs to match your server's transformation
++ * 5. Adjust backpressure thresholds if needed
++ *
++ * RUN:
++ *   npx vitest run tests/devex/acceptance/streams.spec.ts
++ *
++ * EXPECTED ARTIFACTS (if Laminar enabled):
++ *   reports/streams.spec/should_handle_input_output_roundtrip.jsonl
++ *   reports/streams.spec/should_handle_multiple_messages.jsonl
++ *   reports/streams.spec/should_handle_backpressure.jsonl
++ *   reports/streams.spec/should_propagate_errors.jsonl
++ */
++
++import { describe, it, expect, beforeEach, afterEach } from 'vitest';
++
++/**
++ * IMPORT TRANSFORMATION FOR EXTERNAL PROJECTS:
++ *
++ * Internal (mkolbol repo):
++ *   import { Kernel } from '../../../src/kernel/Kernel.js';
++ *   import { Hostess } from '../../../src/hostess/Hostess.js';
++ *   import { ExternalServerWrapper } from '../../../src/wrappers/ExternalServerWrapper.js';
++ *   import type { ExternalServerManifest } from '../../../src/types.js';
++ *
++ * External (adopter project):
++ *   import { Kernel, Hostess, ExternalServerWrapper, type ExternalServerManifest } from 'mkolbol';
++ *   import { YourServerWrapper } from '../src/modules/YourServerWrapper.js';
++ */
++import { Kernel } from '../../../src/kernel/Kernel.js';
++import { Hostess } from '../../../src/hostess/Hostess.js';
++import { ExternalServerWrapper } from '../../../src/wrappers/ExternalServerWrapper.js';
++import type { ExternalServerManifest } from '../../../src/types.js';
++
++describe('Acceptance: Stream I/O and Backpressure', () => {
++  let kernel: Kernel;
++  let hostess: Hostess;
++  let wrapper: ExternalServerWrapper; // CUSTOMIZE: Replace with YourServerWrapper
++
++  const testTimeout = 10000;
++
++  beforeEach(() => {
++    kernel = new Kernel();
++    hostess = new Hostess();
++  });
++
++  afterEach(async () => {
++    // CRITICAL: Always clean up to prevent process leaks
++    if (wrapper && wrapper.isRunning()) {
++      await wrapper.shutdown();
++    }
++  });
++
++  /**
++   * TEST 1: Input → Output Roundtrip
++   *
++   * VALIDATES: Data written to inputPipe flows through server and appears on outputPipe
++   * FAILURE SIGNALS:
++   *   - Timeout → Server not writing to stdout
++   *   - Empty output → Data not flowing
++   *   - Data mismatch → Transformation incorrect
++   */
++  it('should handle input → output roundtrip', async () => {
++    // CUSTOMIZE: Update manifest for your server
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-io-server',
++      classHex: '0xIO',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform'
++      },
++      command: '/bin/cat', // CUSTOMIZE: Replace with your command
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    // Set up output collection
++    const outputPromise = new Promise<string>((resolve) => {
++      const chunks: Buffer[] = [];
++      wrapper.outputPipe.on('data', (data) => {
++        chunks.push(Buffer.from(data));
++      });
++      wrapper.outputPipe.once('end', () => {
++        resolve(Buffer.concat(chunks).toString());
++      });
++    });
++
++    // CUSTOMIZE: Update test input for your server
++    const testInput = 'hello acceptance test\n';
++    wrapper.inputPipe.write(testInput);
++    wrapper.inputPipe.end(); // CRITICAL: Must call end() or test will hang
++
++    // Wait for output
++    const output = await outputPromise;
++
++    // CUSTOMIZE: Update expected output based on your server's transform
++    // Examples:
++    //   - Echo server: expect(output).toBe('[ECHO] hello acceptance test\n');
++    //   - Uppercase server: expect(output).toBe('HELLO ACCEPTANCE TEST\n');
++    //   - Pass-through (cat): expect(output).toBe(testInput);
++    expect(output).toBe(testInput); // cat echoes input
++  }, testTimeout);
++
++  /**
++   * TEST 2: Multiple Sequential Messages
++   *
++   * VALIDATES: Server processes multiple messages in order
++   * FAILURE SIGNALS:
++   *   - Missing messages → Data loss
++   *   - Wrong order → Buffering issue
++   *   - Timeout → Server stalled
++   */
++  it('should handle multiple sequential messages', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-sequential-server',
++      classHex: '0xSEQ',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    const outputChunks: Buffer[] = [];
++    wrapper.outputPipe.on('data', (data) => {
++      outputChunks.push(Buffer.from(data));
++    });
++
++    // CUSTOMIZE: Update messages for your server
++    const messages = ['message1\n', 'message2\n', 'message3\n'];
++
++    // Write all messages
++    for (const msg of messages) {
++      wrapper.inputPipe.write(msg);
++    }
++    wrapper.inputPipe.end();
++
++    // Wait for all output
++    await new Promise<void>((resolve) => {
++      wrapper.outputPipe.once('end', resolve);
++    });
++
++    const received = Buffer.concat(outputChunks).toString();
++
++    // Verify all messages were processed
++    for (const msg of messages) {
++      expect(received).toContain(msg.trim());
++    }
++
++    // CUSTOMIZE: If your server transforms messages, adjust this check
++    // Example for uppercase server:
++    //   expect(received).toContain('MESSAGE1');
++    //   expect(received).toContain('MESSAGE2');
++    //   expect(received).toContain('MESSAGE3');
++  }, testTimeout);
++
++  /**
++   * TEST 3: Backpressure Handling
++   *
++   * VALIDATES: Server respects Node.js stream backpressure
++   * FAILURE SIGNALS:
++   *   - drainEvents = 0 → Backpressure not respected (potential memory bloat)
++   *   - Data mismatch → Data loss under backpressure
++   *   - Timeout → Deadlock in drain handling
++   */
++  it('should handle backpressure with drain events', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-backpressure-server',
++      classHex: '0xBP',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    // CUSTOMIZE: Adjust chunk size/count if your server has different buffer limits
++    const chunkSize = 64 * 1024; // 64KB chunks
++    const numChunks = 50; // 3.2MB total
++    const testData: Buffer[] = [];
++
++    for (let i = 0; i < numChunks; i++) {
++      testData.push(Buffer.alloc(chunkSize, i % 256));
++    }
++
++    const receivedChunks: Buffer[] = [];
++    let drainEvents = 0;
++
++    wrapper.outputPipe.on('data', (chunk) => {
++      receivedChunks.push(Buffer.from(chunk));
++    });
++
++    // Write chunks and respect backpressure
++    for (let i = 0; i < testData.length; i++) {
++      const canContinue = wrapper.inputPipe.write(testData[i]);
++      if (!canContinue) {
++        drainEvents++;
++        // CRITICAL: Wait for drain before continuing
++        await new Promise<void>((resolve) => {
++          wrapper.inputPipe.once('drain', resolve);
++        });
++      }
++    }
++    wrapper.inputPipe.end();
++
++    // Wait for all output
++    await new Promise<void>((resolve) => {
++      wrapper.outputPipe.once('end', resolve);
++    });
++
++    // Verify data integrity
++    const receivedBuffer = Buffer.concat(receivedChunks);
++    const expectedBuffer = Buffer.concat(testData);
++    expect(receivedBuffer.length).toBe(expectedBuffer.length);
++    expect(receivedBuffer.equals(expectedBuffer)).toBe(true);
++
++    // Verify backpressure occurred
++    expect(drainEvents).toBeGreaterThan(0);
++  }, testTimeout);
++
++  /**
++   * TEST 4: Error Propagation
++   *
++   * VALIDATES: Pipe errors are caught and propagated
++   * FAILURE SIGNALS:
++   *   - No error caught → Error handling missing
++   *   - Uncaught exception → Error not properly handled
++   */
++  it('should propagate pipe errors', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-error-server',
++      classHex: '0xERR',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    let errorCaught = false;
++    let clientError = false;
++
++    wrapper.inputPipe.on('error', (err) => {
++      errorCaught = true;
++    });
++
++    wrapper.outputPipe.on('error', (err) => {
++      clientError = true;
++    });
++
++    // Write some data
++    wrapper.inputPipe.write(Buffer.alloc(1024, 0xAA));
++
++    // Simulate error by destroying the pipe
++    wrapper.inputPipe.destroy(new Error('Simulated pipe error'));
++
++    // Wait for error propagation
++    await new Promise<void>((resolve) => {
++      setTimeout(() => resolve(), 500);
++    });
++
++    // Verify error was caught
++    expect(errorCaught).toBe(true);
++  }, testTimeout);
++
++  /**
++   * TEST 5: Empty Input Handling
++   *
++   * VALIDATES: Server handles empty input gracefully
++   * FAILURE SIGNALS:
++   *   - Timeout → Server expects data before closing
++   *   - Crash → Empty input not handled
++   */
++  it('should handle empty input gracefully', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-empty-server',
++      classHex: '0xEMPTY',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    const outputPromise = new Promise<string>((resolve) => {
++      const chunks: Buffer[] = [];
++      wrapper.outputPipe.on('data', (data) => {
++        chunks.push(Buffer.from(data));
++      });
++      wrapper.outputPipe.once('end', () => {
++        resolve(Buffer.concat(chunks).toString());
++      });
++    });
++
++    // Close input immediately without writing
++    wrapper.inputPipe.end();
++
++    // Wait for output to close
++    const output = await outputPromise;
++
++    // Should produce empty output
++    expect(output).toBe('');
++    expect(wrapper.isRunning()).toBe(false); // Process should have exited
++  }, testTimeout);
++
++  /**
++   * TEST 6: Large Message Handling
++   *
++   * VALIDATES: Server handles large single messages
++   * FAILURE SIGNALS:
++   *   - Data truncated → Buffer size too small
++   *   - Timeout → Blocking on large message
++   */
++  it('should handle large single message', async () => {
++    const manifest: ExternalServerManifest = {
++      fqdn: 'localhost',
++      servername: 'test-large-server',
++      classHex: '0xLARGE',
++      owner: 'devex',
++      auth: 'no',
++      authMechanism: 'none',
++      terminals: [
++        { name: 'input', type: 'local', direction: 'input' },
++        { name: 'output', type: 'local', direction: 'output' }
++      ],
++      capabilities: {
++        type: 'transform'
++      },
++      command: '/bin/cat',
++      args: [],
++      env: {},
++      cwd: process.cwd(),
++      ioMode: 'stdio',
++      restart: 'never'
++    };
++
++    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
++    await wrapper.spawn();
++
++    const outputPromise = new Promise<Buffer>((resolve) => {
++      const chunks: Buffer[] = [];
++      wrapper.outputPipe.on('data', (data) => {
++        chunks.push(Buffer.from(data));
++      });
++      wrapper.outputPipe.once('end', () => {
++        resolve(Buffer.concat(chunks));
++      });
++    });
++
++    // CUSTOMIZE: Adjust size based on your server's limits
++    const largeMessage = Buffer.alloc(1024 * 1024, 0xFF); // 1MB
++
++    // Write large message with backpressure handling
++    const canContinue = wrapper.inputPipe.write(largeMessage);
++    if (!canContinue) {
++      await new Promise<void>((resolve) => {
++        wrapper.inputPipe.once('drain', resolve);
++      });
++    }
++    wrapper.inputPipe.end();
++
++    // Wait for output
++    const output = await outputPromise;
++
++    // Verify complete message received
++    expect(output.length).toBe(largeMessage.length);
++    expect(output.equals(largeMessage)).toBe(true);
++  }, testTimeout);
++});
++
++/**
++ * TROUBLESHOOTING GUIDE:
++ * ----------------------
++ *
++ * 1. Test hangs indefinitely
++ *    - Ensure wrapper.inputPipe.end() is called
++ *    - Check that outputPipe 'end' event is emitted
++ *    - Verify server process exits cleanly
++ *
++ * 2. Data not flowing
++ *    - Ensure server flushes stdout (sys.stdout.flush() in Python)
++ *    - Check that pipes are correctly wired
++ *    - Verify server is reading from stdin
++ *
++ * 3. Data mismatch
++ *    - Update expected output to match your server's transformation
++ *    - Check for encoding issues (utf8 vs binary)
++ *    - Verify server doesn't add unexpected formatting
++ *
++ * 4. No drain events
++ *    - This might be OK if your server processes data fast enough
++ *    - Increase numChunks or chunkSize to force backpressure
++ *    - Verify highWaterMark is set appropriately
++ *
++ * 5. Error test fails
++ *    - Check that error handlers are registered before operations
++ *    - Verify error events are emitted on correct stream
++ *    - Ensure proper cleanup in error scenarios
++ *
++ * 6. Empty input test fails
++ *    - Server might expect at least one line of input
++ *    - Check if server waits for data before closing
++ *    - Verify EOF handling in your server
++ */

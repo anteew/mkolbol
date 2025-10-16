@@ -1,0 +1,10 @@
+nodes:
+  - id: echo-pty
+    module: ExternalProcess
+    params:
+      command: cat
+      args: []
+      ioMode: pty
+    runMode: process
+
+connections: []

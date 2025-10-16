@@ -1,8 +1,8 @@
 Primer — what to do next (after context compaction)
 
-- Recenter: read VEGA/WHO_AM_I.md and my-state-of-mind-today.txt.
+- Recenter: read VEGA/my-state-of-mind-today.txt and VEGA/near-term-and-future-plan.md.
 - Skim docs/rfcs/stream-kernel/00-index.md and src/kernel/Kernel.ts.
-- Open VEGA/near-term-and-future-plan.md for current priorities.
+- Skim the latest VEGA/diary-*.txt for what changed.
 - Open ampcode.md on the active branch and pick the top task.
 
 Taste cues
@@ -15,12 +15,13 @@ If stalled
 - Write a one-sentence WHY at hot edges or in the PR.
 - Prefer small PR-sized diffs; wire tests before changing semantics.
 
-Laminar-focused rehydration (post‑Trends + Repro/Diff + Ingest P2)
-- Sanity: `npm run lam -- summary`.
-- Spot checks:
-  - `npm run lam -- trends --top 10`
-  - `npm run lam -- diff reports/<suite>/<case>.digest.json reports/<suite>/<case>.digest.json`
-  - `npm run lam -- repro --bundle --case <suite/case>` (bundle in `reports/bundles/...`)
-  - `npm run lam -- ingest --pytest --from-file tests/fixtures/pytest/sample-report.json`
-  - `npm run lam -- ingest --junit --from-file tests/fixtures/junit/with-failures.xml`
-- Continue with the staged sprint in ampcode.md (Packaging/Quickstart → Docs Final → Stabilization).
+Sanity on main
+- Threads: `npm ci && npm run build && npm run test:ci` (digest suite included).
+- Forks: `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty` (process‑mode enforcement job).
+
+Laminar quick checks
+- `npm run lam -- summary`
+- `npm run lam -- trends --top 10`
+- Review CI artifacts: reports/LAMINAR_*.txt, *_raw.log
+
+Continue with the staged sprint in ampcode.md (see current branch).

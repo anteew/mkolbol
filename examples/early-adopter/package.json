@@ -1,0 +1,36 @@
+{
+  "name": "mkolbol-early-adopter-example",
+  "version": "1.0.0",
+  "description": "Example mkolbol application with bundling support",
+  "type": "module",
+  "author": "Your Name",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "build:bundle": "node scripts/build-bundle.mjs",
+    "start": "node dist/index.js",
+    "start:bundle": "node dist/runner.js",
+    "dev": "tsc && node dist/index.js",
+    "clean": "rm -rf dist build",
+    "test": "echo \"Add tests here\" && exit 0"
+  },
+  "dependencies": {
+    "mkolbol": "file:../..",
+    "node-pty": "^1.0.0",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "esbuild": "^0.19.0",
+    "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "mkolbol",
+    "microkernel",
+    "stream-kernel",
+    "example"
+  ]
+}

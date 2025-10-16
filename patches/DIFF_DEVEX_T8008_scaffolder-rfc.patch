@@ -1,0 +1,763 @@
+diff --git a/docs/devex/rfcs/0001-mkolbol-init.md b/docs/devex/rfcs/0001-mkolbol-init.md
+new file mode 100644
+index 0000000..a69ce80
+--- /dev/null
++++ b/docs/devex/rfcs/0001-mkolbol-init.md
+@@ -0,0 +1,757 @@
++# RFC 0001: `mkolbol init` - Project Scaffolder
++
++**Status:** Draft
++**Author:** DevEx Team
++**Created:** 2025-10-16
++**Target:** DevEx Sprint P1
++
++---
++
++## Problem Statement
++
++Early adopters face friction when starting with mkolbol. The current workflow requires:
++
++1. Manual `npm install mkolbol` in a new directory
++2. Creating directory structure (`src/`, `tests/`, `config/`)
++3. Writing boilerplate `package.json` with correct scripts
++4. Setting up TypeScript configuration
++5. Creating module skeleton with proper Kernel/Hostess wiring
++6. Writing initial tests with vitest
++7. Configuring CI for testing
++
++This takes 30-60 minutes and is error-prone. New users must:
++- Study existing examples to understand project structure
++- Copy-paste boilerplate from documentation
++- Manually configure build tooling
++- Set up test infrastructure from scratch
++
++**The barrier to "hello world" is too high.** We need a scaffolder that generates a working skeleton in under 5 minutes.
++
++---
++
++## Proposed Solution
++
++A CLI scaffolder that generates a complete, working mkolbol module project. Users run one command and get a buildable, testable skeleton with examples.
++
++**Goal:** Reduce time-to-first-module from 30-60 minutes to under 5 minutes.
++
++---
++
++## Scope & Goals
++
++### In Scope (P1)
++
++- CLI tool that generates project skeleton
++- Interactive prompts for project name and server type
++- Two module templates: Transform (in-process) and External (subprocess)
++- Minimal working tests (smoke test suite)
++- Basic CI workflow stub (GitHub Actions)
++- Getting started guide in generated README.md
++
++### Out of Scope (Future)
++
++- Full-featured application generators
++- Multi-language templates (Python, Go, Rust) - P2
++- Plugin/routing templates - P2
++- Commercial deployment scaffolds - P3
++- Interactive configuration wizards - P3
++- Template version upgrades/migrations - P3
++
++**This is a skeleton generator, not an application builder.** The output is a starting point that users customize.
++
++---
++
++## CLI UX
++
++### Option Analysis
++
++| Approach | Command | Pros | Cons |
++|----------|---------|------|------|
++| **A: npm create** | `npm create mkolbol@latest my-project` | Standard npm convention, familiar to users, auto-installs latest | Requires separate package `create-mkolbol` |
++| **B: npx** | `npx mkolbol-create my-project` | Simpler to publish, one package | Less discoverable, manual version management |
++| **C: Integrated** | `npx mkolbol init` | Ships with main package, no extra install | Bloats main package, version coupling |
++
++### Recommendation: Option A (`npm create mkolbol`)
++
++**Rationale:**
++- Industry standard pattern (Vite, Next.js, React all use `npm create`)
++- Auto-fetches latest version without user intervention
++- Clear separation: `mkolbol` = runtime, `create-mkolbol` = scaffolder
++- Better discoverability via npm registry search
++
++**Implementation:**
++- Publish separate package: `create-mkolbol`
++- Entry point: `index.js` with shebang
++- Users invoke: `npm create mkolbol@latest`
++
++### Interactive Flow
++
++```bash
++$ npm create mkolbol@latest
++
++┌──────────────────────────────────────────┐
++│  Welcome to mkolbol!                     │
++│  Let's set up your first module.         │
++└──────────────────────────────────────────┘
++
++? Project name: › my-awesome-module
++
++? Server type:
++  ○ Transform (in-process)
++    Fast, TypeScript-only, runs in kernel process
++    Use for: data transforms, parsers, filters
++
++  ● External (subprocess)
++    Any language, isolated process, stdio communication
++    Use for: language interop, CLI wrappers, isolation
++
++? Author name (optional): › Jane Developer
++
++? License (optional): › MIT
++
++✓ Created project at ./my-awesome-module
++✓ Installed dependencies
++✓ Generated example module and tests
++
++Next steps:
++  cd my-awesome-module
++  npm run build
++  npm test
++  npm run dev
++
++Documentation: https://github.com/anteew/mkolbol/tree/main/docs/devex
++```
++
++### Input Validation
++
++- **Project name:** Must be valid npm package name (alphanumeric, dashes, underscores)
++- **Server type:** Required, radio selection (Transform or External)
++- **Author/License:** Optional, free-text
++
++---
++
++## Generated Files
++
++The scaffolder creates a complete project structure:
++
++```
++my-awesome-module/
++├── package.json              # Dependencies, scripts, metadata
++├── tsconfig.json             # TypeScript configuration
++├── vitest.config.ts          # Test configuration
++├── .gitignore                # Standard Node.js ignores
++├── .npmignore                # Publish exclusions
++├── README.md                 # Getting started guide
++├── src/
++│   ├── index.ts              # Main entry point, exports module
++│   └── modules/
++│       └── [ModuleName].ts   # Generated module skeleton
++├── tests/
++│   └── [moduleName].spec.ts # Smoke tests
++└── .github/
++    └── workflows/
++        └── ci.yml            # Basic CI stub
++```
++
++### File Templates
++
++#### 1. `package.json`
++
++**Transform variant:**
++```json
++{
++  "name": "my-awesome-module",
++  "version": "0.1.0",
++  "description": "A mkolbol transform module",
++  "type": "module",
++  "main": "./dist/index.js",
++  "types": "./dist/index.d.ts",
++  "scripts": {
++    "build": "tsc",
++    "test": "vitest run",
++    "test:watch": "vitest",
++    "dev": "node --enable-source-maps dist/index.js"
++  },
++  "dependencies": {
++    "mkolbol": "0.2.0"
++  },
++  "devDependencies": {
++    "@types/node": "20.12.12",
++    "typescript": "5.6.2",
++    "vitest": "1.6.0"
++  }
++}
++```
++
++**External variant:** Adds command-specific dependencies (e.g., Python path, binary wrapper helpers)
++
++#### 2. `src/modules/[ModuleName].ts` (Transform)
++
++```typescript
++import { Kernel } from 'mkolbol';
++import { Transform } from 'stream';
++import type { Pipe } from 'mkolbol/types/stream';
++
++/**
++ * MyAwesomeModule - [Description]
++ *
++ * Type: Transform
++ * Accepts: [input types]
++ * Produces: [output types]
++ */
++export class MyAwesomeModule {
++  public readonly inputPipe: Pipe;
++  public readonly outputPipe: Pipe;
++
++  constructor(private kernel: Kernel) {
++    this.inputPipe = kernel.createPipe({ objectMode: true });
++    this.outputPipe = kernel.createPipe({ objectMode: true });
++
++    const transformer = new Transform({
++      objectMode: true,
++      transform(chunk, _encoding, callback) {
++        // TODO: Implement your transformation logic here
++        const output = chunk; // Replace with actual transformation
++        callback(null, output);
++      }
++    });
++
++    this.inputPipe.pipe(transformer).pipe(this.outputPipe);
++  }
++}
++```
++
++**External variant:** Generates wrapper class extending `ExternalServerWrapper` with manifest template
++
++#### 3. `tests/[moduleName].spec.ts`
++
++```typescript
++import { describe, it, expect } from 'vitest';
++import { Kernel } from 'mkolbol';
++import { MyAwesomeModule } from '../src/modules/MyAwesomeModule.js';
++
++describe('MyAwesomeModule', () => {
++  it('should instantiate without errors', () => {
++    const kernel = new Kernel();
++    const module = new MyAwesomeModule(kernel);
++
++    expect(module).toBeDefined();
++    expect(module.inputPipe).toBeDefined();
++    expect(module.outputPipe).toBeDefined();
++  });
++
++  it('should pass data through', async () => {
++    const kernel = new Kernel();
++    const module = new MyAwesomeModule(kernel);
++
++    const received: any[] = [];
++    module.outputPipe.on('data', (data) => received.push(data));
++
++    module.inputPipe.write('test');
++
++    await new Promise(resolve => setTimeout(resolve, 100));
++
++    expect(received.length).toBeGreaterThan(0);
++  });
++});
++```
++
++#### 4. `.github/workflows/ci.yml`
++
++```yaml
++name: CI
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++    branches: [main]
++
++jobs:
++  test:
++    runs-on: ubuntu-latest
++    strategy:
++      matrix:
++        node-version: [20, 22]
++
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: ${{ matrix.node-version }}
++
++      - run: npm ci
++      - run: npm run build
++      - run: npm test
++```
++
++#### 5. `README.md`
++
++```markdown
++# my-awesome-module
++
++A mkolbol transform module generated with `npm create mkolbol`.
++
++## Getting Started
++
++### Install Dependencies
++\`\`\`bash
++npm install
++\`\`\`
++
++### Build
++\`\`\`bash
++npm run build
++\`\`\`
++
++### Test
++\`\`\`bash
++npm test
++npm run test:watch  # Watch mode
++\`\`\`
++
++### Run Example
++\`\`\`bash
++npm run dev
++\`\`\`
++
++## Project Structure
++
++- `src/modules/` - Module implementation
++- `tests/` - Test suite
++- `dist/` - Compiled output (generated)
++
++## Next Steps
++
++1. Implement your transformation logic in `src/modules/MyAwesomeModule.ts`
++2. Add tests in `tests/`
++3. Update this README with usage examples
++
++## Documentation
++
++- [First Server Tutorial](https://github.com/anteew/mkolbol/blob/main/docs/devex/first-server-tutorial.md)
++- [mkolbol Documentation](https://github.com/anteew/mkolbol/tree/main/docs)
++
++## License
++
++MIT
++```
++
++---
++
++## Guardrails
++
++### 1. Version Pinning
++
++**Requirement:** All dependencies use exact versions (no `^` or `~`).
++
++**Rationale:**
++- Deterministic builds across environments
++- Avoid breakage from transitive dependency updates
++- Users can manually upgrade after reviewing changes
++
++**Implementation:**
++```json
++{
++  "dependencies": {
++    "mkolbol": "0.2.0"  // NOT "^0.2.0"
++  },
++  "devDependencies": {
++    "typescript": "5.6.2",  // Exact version
++    "vitest": "1.6.0"       // Exact version
++  }
++}
++```
++
++### 2. Deterministic Templates
++
++**Requirement:** Same inputs produce identical output every time.
++
++**No:**
++- Randomized IDs or timestamps in generated code
++- Non-deterministic ordering of imports/exports
++- Environment-dependent paths
++
++**Yes:**
++- Fixed file structure
++- Alphabetical import ordering
++- Absolute paths resolved at runtime, not generation time
++
++**Testing:** Run scaffolder twice with same inputs, `diff` the outputs - must be identical.
++
++### 3. No Kernel Modifications
++
++**Requirement:** Generated projects cannot modify mkolbol kernel internals.
++
++**Enforcement:**
++- Templates import from `mkolbol` as a library
++- No direct kernel source file modifications
++- Documentation emphasizes "build on top, not inside"
++
++**Violation example (prohibited):**
++```typescript
++// BAD: Modifying kernel internals
++import { Kernel } from 'mkolbol';
++Kernel.prototype.myCustomMethod = function() { ... };
++```
++
++**Correct approach:**
++```typescript
++// GOOD: Building on kernel APIs
++import { Kernel } from 'mkolbol';
++export class MyModule {
++  constructor(kernel: Kernel) {
++    this.pipe = kernel.createPipe();  // Use public APIs
++  }
++}
++```
++
++### 4. Convention Adherence
++
++**Naming:**
++- PascalCase for class names: `MyAwesomeModule`
++- camelCase for file names: `myAwesomeModule.spec.ts`
++- Descriptive pipe names: `inputPipe`, `outputPipe`, `errorPipe`
++
++**Directory Structure:**
++- `src/` for source code
++- `tests/` for test files (NOT `__tests__` or `spec/`)
++- `dist/` for compiled output
++- `.github/workflows/` for CI
++
++**TypeScript:**
++- Strict mode enabled
++- ES modules (`"type": "module"`)
++- Source maps for debugging
++
++---
++
++## Implementation Notes
++
++### Technology Choice
++
++**CLI Framework:** [Commander.js](https://github.com/tj/commander.js)
++- Industry standard (used by Vite, Angular CLI, Create React App)
++- Lightweight, minimal dependencies
++- Well-documented
++
++**Prompts:** [prompts](https://github.com/terkelg/prompts)
++- Lightweight, aesthetic, cancellable
++- Better UX than inquirer (smaller, faster)
++
++**Template Engine:** String interpolation + file system operations
++- No complex templating (Mustache, Handlebars) needed
++- Simple variable substitution in template files
++- Easier to maintain, debug
++
++**File Operations:** Node.js `fs` module
++- Native, zero dependencies for this part
++- Sufficient for copying files, replacing placeholders
++
++### Package Structure
++
++```
++create-mkolbol/
++├── package.json
++├── README.md
++├── index.js              # CLI entry point
++├── src/
++│   ├── cli.ts            # Commander setup, prompts
++│   ├── generator.ts      # File generation logic
++│   └── templates/        # Template files
++│       ├── transform/    # Transform module template
++│       │   ├── package.json.template
++│       │   ├── src/
++│       │   ├── tests/
++│       │   └── ...
++│       └── external/     # External module template
++│           ├── package.json.template
++│           ├── src/
++│           ├── scripts/  # External script examples
++│           └── ...
++└── tests/
++    └── generator.spec.ts
++```
++
++### Versioning Strategy
++
++**Problem:** How to keep scaffolder templates in sync with mkolbol kernel updates?
++
++**Solution:**
++
++1. **Separate versioning:** `create-mkolbol` has its own version
++2. **Template metadata:** Each template specifies compatible mkolbol versions
++3. **CI check:** On mkolbol release, test that scaffolder produces working projects
++4. **Documentation:** Scaffolder README lists kernel compatibility matrix
++
++**Example:**
++```json
++// create-mkolbol/package.json
++{
++  "name": "create-mkolbol",
++  "version": "1.0.0",
++  "peerDependencies": {
++    "mkolbol": ">=0.2.0 <1.0.0"
++  }
++}
++```
++
++**Process:**
++1. mkolbol kernel releases v0.3.0
++2. CI runs: `npm create mkolbol@latest test-project && cd test-project && npm test`
++3. If tests fail, open issue: "Scaffolder templates incompatible with v0.3.0"
++4. Update templates in `create-mkolbol`
++5. Release `create-mkolbol@1.1.0`
++
++---
++
++## Success Metrics
++
++### Quantitative
++
++- **Time to first working module:** Target < 5 minutes (from `npm create` to passing tests)
++- **Success rate:** >95% of scaffolded projects build without errors on first try
++- **Adoption:** 50% of new users use scaffolder within first week (tracked via npm downloads)
++
++### Qualitative
++
++- **Developer satisfaction:** Positive feedback in GitHub issues/discussions
++- **Documentation clarity:** <5 support questions per month about scaffolder usage
++- **Template quality:** Generated code passes linting, tests, and CI without modification
++
++**How to measure:**
++- Telemetry: Optional anonymous ping on successful generation (opt-in)
++- Surveys: Periodic feedback forms in README
++- GitHub metrics: Issues tagged `scaffolder`, discussion activity
++
++---
++
++## Risks & Mitigation
++
++### Risk 1: Template Drift from Kernel
++
++**Risk:** Templates become outdated as kernel evolves, generating broken projects.
++
++**Impact:** High - users get bad first impression, churn increases.
++
++**Mitigation:**
++- CI pipeline runs scaffolder against latest kernel on every commit
++- Automated tests: scaffold project → build → run tests → verify
++- Version compatibility matrix in documentation
++- Quarterly template audits (manual review)
++
++**Owner:** DevEx team monitors CI, updates templates proactively
++
++---
++
++### Risk 2: CLI Complexity Creep
++
++**Risk:** Scaffolder grows features (multi-language, plugins, upgrades), becomes hard to maintain.
++
++**Impact:** Medium - maintenance burden, bugs, slow iteration.
++
++**Mitigation:**
++- Strict scope: P1 = 2 templates only (Transform, External)
++- Feature requests go to backlog (P2/P3)
++- YAGNI principle: only implement when users ask repeatedly
++- Keep CLI under 500 lines of code
++
++**Decision gate:** Any feature >100 LoC requires RFC review
++
++---
++
++### Risk 3: Breaking Changes in Dependencies
++
++**Risk:** TypeScript, vitest, or Node.js releases breaking changes, pinned versions fail.
++
++**Impact:** Medium - scaffolder generates broken projects until updated.
++
++**Mitigation:**
++- Quarterly dependency review (check changelogs)
++- Test matrix: Node 20, 22, 24 (current LTS + next)
++- Document upgrade path in scaffolder README
++- Pin to LTS versions by default
++
++**Process:**
++- Dependabot alerts → review → test → bump version → release
++
++---
++
++## Future Enhancements (Post P1)
++
++### P2: Multi-Language Templates
++
++**Goal:** Support Python, Go, Rust external modules.
++
++**Template additions:**
++- `external-python/` - Uses `ExternalServerWrapper` + Python script
++- `external-go/` - Compiles Go binary, wraps in TypeScript
++- `external-rust/` - Similar pattern
++
++**UX:**
++```bash
++? Server type:
++  ○ Transform (TypeScript, in-process)
++  ○ External - Python
++  ○ External - Go
++  ○ External - Rust
++  ○ External - Custom
++```
++
++**Complexity:** Medium - need language-specific examples, build tools
++
++---
++
++### P3: Plugin Templates
++
++**Goal:** Generate routing modules, middleware, protocol adapters.
++
++**Templates:**
++- `routing-server/` - Service mesh routing example
++- `mcp-adapter/` - MCP protocol wrapper
++- `middleware/` - Auth, logging, metrics
++
++**UX:**
++```bash
++? Module category:
++  ○ Basic (Transform/External)
++  ○ Routing & Discovery
++  ○ Protocol Adapter
++  ○ Middleware
++```
++
++**Complexity:** High - requires advanced examples, documentation
++
++---
++
++### P4: Commercial Deployment Scaffolds
++
++**Goal:** Production-ready templates with Docker, K8s, monitoring.
++
++**Includes:**
++- Dockerfile + docker-compose.yml
++- Kubernetes manifests
++- Prometheus metrics exporter
++- Health check endpoints
++- Graceful shutdown logic
++
++**Complexity:** Very high - deployment patterns vary widely
++
++---
++
++## Decision
++
++**Recommendation: APPROVE for implementation**
++
++**Rationale:**
++
++1. **Solves real pain:** 30-60 min → 5 min time-to-first-module
++2. **Low risk:** Templates are static files, easy to test and update
++3. **Industry standard:** `npm create` pattern proven by Vite, Next.js, React
++4. **Bounded scope:** 2 templates, basic CI, minimal dependencies
++5. **Clear success metrics:** Time-to-working-module, build success rate
++6. **Mitigations in place:** CI checks, version pinning, quarterly audits
++
++**Implementation Effort:** 1 developer, 3-5 days
++- Day 1: CLI setup (Commander, prompts)
++- Day 2: Transform template + tests
++- Day 3: External template + tests
++- Day 4: CI stub, README generation
++- Day 5: Integration tests, polish, publish
++
++**Approval Criteria:**
++- [ ] CLI generates valid project (npm install, build, test all pass)
++- [ ] Both templates (Transform, External) tested
++- [ ] CI workflow runs successfully on GitHub Actions
++- [ ] Documentation complete (README, prompts, error messages)
++- [ ] Determinism test passes (diff of two runs is empty)
++
++---
++
++## Appendix: Example Session
++
++**Full walkthrough of user experience:**
++
++```bash
++$ npm create mkolbol@latest
++Need to install the following packages:
++  create-mkolbol@1.0.0
++Ok to proceed? (y) y
++
++┌──────────────────────────────────────────┐
++│  Welcome to mkolbol!                     │
++│  Let's set up your first module.         │
++└──────────────────────────────────────────┘
++
++? Project name: › uppercase-transform
++
++? Server type: (Use arrow keys)
++❯ Transform (in-process)
++  Fast, TypeScript-only, runs in kernel process
++  Use for: data transforms, parsers, filters
++
++  External (subprocess)
++  Any language, isolated process, stdio communication
++  Use for: language interop, CLI wrappers, isolation
++
++? Author name (optional): › Alice Johnson
++
++? License (optional): › MIT
++
++Creating project at ./uppercase-transform...
++✓ Copied template files
++✓ Updated package.json
++✓ Installed dependencies (npm install)
++✓ Generated UppercaseTransform.ts
++✓ Generated tests
++
++Success! Created uppercase-transform at /home/user/uppercase-transform
++
++Next steps:
++  cd uppercase-transform
++  npm run build      # Compile TypeScript
++  npm test           # Run test suite
++  npm run dev        # Run example
++
++Documentation:
++  - Getting started: ./uppercase-transform/README.md
++  - Tutorial: https://github.com/anteew/mkolbol/blob/main/docs/devex/first-server-tutorial.md
++  - Examples: https://github.com/anteew/mkolbol/tree/main/src/examples
++
++Happy hacking! 🚀
++
++$ cd uppercase-transform
++$ npm run build
++> uppercase-transform@0.1.0 build
++> tsc
++
++$ npm test
++> uppercase-transform@0.1.0 test
++> vitest run
++
++✓ tests/uppercaseTransform.spec.ts (2 tests) 45ms
++  ✓ UppercaseTransform > should instantiate without errors
++  ✓ UppercaseTransform > should pass data through
++
++Test Files  1 passed (1)
++     Tests  2 passed (2)
++  Start at  14:23:01
++  Duration  1.23s
++
++$ npm run dev
++> uppercase-transform@0.1.0 dev
++> node --enable-source-maps dist/index.js
++
++[UppercaseTransform] Module loaded
++[Example] Input: hello world
++[Example] Output: HELLO WORLD
++```
++
++**User now has:**
++- Working module skeleton
++- Passing tests
++- Runnable example
++- CI configured
++- Documentation to continue
++
++**Total time:** 4 minutes 30 seconds

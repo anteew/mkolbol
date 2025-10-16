@@ -1,0 +1,360 @@
+diff --git a/README.md b/README.md
+index a00edad..3d23f59 100644
+--- a/README.md
++++ b/README.md
+@@ -8,10 +8,16 @@
+  - **AI AGENT SELF files** - In this repo in the subdirectory VEGA
+  - **AI AGENT reads self files on startup** - YES
+  - **Relation to human user** - Vega is the technical brains, helping to keep the human on track with what he or she is needing built.
+- 
+- 
++
++
++## New to mkolbol?
++
++Start here: **[Early Adopter Guide](docs/devex/early-adopter-guide.md)** - Understand mkolbol in 5 minutes
++
+ ## Quickstart
+ 
++**Try the Live Demo:** See PTY and terminal rendering in action in under 2 minutes - [PTY to XtermTTYRenderer Demo](docs/devex/quickstart.md)
++
+ Get started with Laminar testing in 5 minutes:
+ 
+ ```bash
+diff --git a/docs/devex/early-adopter-guide.md b/docs/devex/early-adopter-guide.md
+new file mode 100644
+index 0000000..0d00e0c
+--- /dev/null
++++ b/docs/devex/early-adopter-guide.md
+@@ -0,0 +1,331 @@
++# Early Adopter Guide
++
++Welcome to mkolbol! This guide will get you up to speed in 5 minutes.
++
++## What is mkolbol?
++
++mkolbol is a stream-based microkernel for building flexible AI agent systems and terminal I/O applications. Think of it as "plumbing for data" - a tiny (~100 line) kernel that provides pipes and connections, while all the interesting functionality lives in composable modules. You can run modules in-process for speed, in separate threads for isolation, or as external processes for maximum flexibility.
++
++## Core Mental Model
++
++mkolbol follows a simple three-layer architecture:
++
++```
++┌─────────────────────────────────────────────────────────┐
++│                        MODULES                          │
++│  (Input, Source, Transform, Output, Routing)            │
++│                                                          │
++│  KeyboardInput → PTY → AnsiParser → ScreenRenderer      │
++│                                   ↘ CanvasRenderer       │
++│                                   ↘ AIFormatter          │
++└───────────────────────┬─────────────────────────────────┘
++                        │
++                        │  uses
++                        ▼
++┌─────────────────────────────────────────────────────────┐
++│                    KERNEL (~100 lines)                  │
++│                                                          │
++│  • createPipe()  - Create data channels                 │
++│  • connect()     - Wire pipes together (1→1)            │
++│  • split()       - Fan-out (1→many)                     │
++│  • merge()       - Fan-in (many→1)                      │
++│  • register()    - Service discovery                    │
++│  • lookup()      - Find services by capabilities        │
++│                                                          │
++└───────────────────────┬─────────────────────────────────┘
++                        │
++                        │  built on
++                        ▼
++┌─────────────────────────────────────────────────────────┐
++│              NODE.JS STREAMS (Physical Layer)           │
++│   Duplex streams with automatic backpressure            │
++└─────────────────────────────────────────────────────────┘
++```
++
++**Key Insight**: The kernel is pure plumbing. It doesn't know about JSON, MCP, terminal protocols, or any data formats. It just moves data through pipes. All semantics live in modules.
++
++### Minimal Example
++
++```typescript
++import { Kernel } from 'mkolbol';
++
++// 1. Create kernel
++const kernel = new Kernel();
++
++// 2. Create modules (they create their own pipes via kernel)
++const timer = new TimerSource(kernel);    // Emits data periodically
++const upper = new UppercaseTransform(kernel);  // Transforms data
++const console = new ConsoleSink(kernel);  // Displays data
++
++// 3. Wire them up
++kernel.connect(timer.outputPipe, upper.inputPipe);
++kernel.connect(upper.outputPipe, console.inputPipe);
++
++// Data flows: timer → upper → console
++// Output: "TICK" every second
++```
++
++## Module Types
++
++Every module falls into one of five categories:
++
++| Type | Purpose | Pipes | Examples |
++|------|---------|-------|----------|
++| **Input** | User input sources | Output only | KeyboardInput, VoiceInput, MCPInput |
++| **Source** | Bidirectional processes | Input + Output | PTY, DockerContainer, RemoteShell |
++| **Transform** | Process data in-flight | Input + Output | AnsiParser, Compressor, Encryptor |
++| **Output** | Display/record results | Input only | ScreenRenderer, MP4Recorder, Logger |
++| **Routing** | Manage multiple pipes | Many pipes | RoutingServer, LoadBalancer |
++
++**Example Flow**:
++```
++KeyboardInput (input)
++      ↓
++   PTY (source)
++      ↓
++AnsiParser (transform)
++      ↓
++ ┌────┴────┐
++ ↓         ↓
++Screen   Canvas  (both output)
++```
++
++## Run Modes Explained
++
++mkolbol supports four run modes, giving you flexibility for development, testing, and production:
++
++### 1. inproc (In-Process)
++**What**: Module runs in the main Node.js process
++**When**: Development, lightweight transforms, minimal overhead
++**Tradeoff**: Fast but no isolation
++
++```typescript
++const module = new UppercaseTransform(kernel);  // Runs in same process
++```
++
++### 2. worker (Worker Thread)
++**What**: Module runs in a separate V8 worker thread
++**When**: CPU-intensive work, need memory isolation, parallel processing
++**Tradeoff**: Some overhead, but isolated from main thread
++
++```yaml
++nodes:
++  - { id: parser, module: HeavyParser, runMode: worker }
++```
++
++### 3. external (Process via stdio)
++**What**: Module runs as separate process, communicates over stdin/stdout
++**When**: Any executable, language-agnostic, maximum isolation
++**Tradeoff**: Process startup cost, but can use Python, Go, Rust, etc.
++
++```yaml
++nodes:
++  - id: python-analyzer
++    module: external
++    command: python3
++    args: [scripts/analyze.py]
++```
++
++### 4. pty (Pseudo-Terminal)
++**What**: Module runs as PTY process with terminal emulation
++**When**: Interactive shells, terminal applications, hijacking terminal I/O
++**Tradeoff**: Full terminal semantics, ANSI escape sequences
++
++```yaml
++nodes:
++  - id: shell
++    module: pty
++    command: bash
++    params: { cols: 80, rows: 24 }
++```
++
++**Development Flow**: Start with `inproc` for fast iteration, switch to `worker` or `external` when you need isolation or production deployment.
++
++## Simple ASCII Flow Diagram
++
++Here's a one-screen view of a typical mkolbol topology:
++
++```
++                         ┌──────────────────────────────────┐
++                         │         Main Process             │
++                         │                                  │
++    User Input           │  ┌──────────────────────────┐   │
++        │                │  │    Kernel (inproc)       │   │
++        ▼                │  │  - createPipe()          │   │
++  ┌──────────┐           │  │  - connect()             │   │
++  │ Keyboard │───────────┼──│  - split()               │   │
++  │ (inproc) │           │  │  - merge()               │   │
++  └──────────┘           │  └──────┬───────────────────┘   │
++                         │         │                        │
++        │                │         │ pipes                  │
++        ▼                │         │                        │
++  ┌──────────┐           │  ┌──────▼───────────────────┐   │
++  │   PTY    │◄──────────┼──│  Executor + StateManager │   │
++  │ (process)│───────────┼──│  Topology & Lifecycle    │   │
++  └──────────┘           │  └──────────────────────────┘   │
++   │       ▲             │                                  │
++   │       │ Unix Socket │         │                        │
++   │       │             │         │ data flow              │
++   ▼       │             │         ▼                        │
++  bash -i  │             │  ┌─────────────────┐            │
++  output   │             │  │  AnsiParser     │            │
++   │       input         │  │  (transform)    │            │
++   │       │             │  └────┬────────────┘            │
++   │       │             │       │ parsed events            │
++   │       │             │       │                          │
++   │       │             │  ┌────▼──────┬──────────────┐   │
++   │       │             │  │           │              │   │
++   │       │             │  ▼           ▼              ▼   │
++   │       │             │ Screen    Canvas         Logger │
++   │       │             │ (output)  (output)      (output)│
++   │       │             │                                  │
++   └───────┴─────────────┴──────────────────────────────────┘
++
++Legend:
++  ─────►  Data flow (pipes)
++  ◄────►  Bidirectional
++  (inproc)   Run mode
++  (process)  Run mode (separate OS process)
++```
++
++## Key Components: Executor, StateManager, Hostess
++
++These three components work together to manage your system:
++
++### Executor
++Orchestrates module lifecycle: load config → instantiate modules → wire connections → start/stop
++
++```typescript
++const executor = new Executor(kernel, hostess, stateManager);
++executor.load(topologyConfig);  // Load YAML/JSON config
++await executor.up();             // Start all modules
++// ... system runs ...
++await executor.down();           // Graceful shutdown
++```
++
++### StateManager
++Tracks topology (nodes, connections) and emits events for HMI/monitoring
++
++```typescript
++stateManager.on('node.added', ({ nodeId }) => {
++  console.log(`Node ${nodeId} registered`);
++});
++stateManager.on('connected', ({ from, to }) => {
++  console.log(`Connected: ${from} → ${to}`);
++});
++```
++
++### Hostess
++Service registry with heartbeat monitoring and capability-based discovery
++
++```typescript
++// Modules auto-register on spawn
++hostess.register(nodeId, capabilities, pipes);
++
++// Query by capabilities
++const parsers = hostess.query({ type: 'transform', produces: ['terminal-state'] });
++```
++
++## Where Logs and Artifacts Live
++
++mkolbol integrates with **Laminar** for structured test observability. After running tests or your system, check these locations:
++
++### Test Reports Directory: `reports/`
++
++```
++reports/
++├── index.json                    # Manifest of all test artifacts
++├── summary.jsonl                 # One-line summaries (pass/fail/duration)
++├── <suite>/<case>.jsonl         # Per-case event streams (JSONL)
++└── <suite>/<case>.digest.json   # Failure analysis digests
++```
++
++### Viewing Results
++
++```bash
++# List all test results
++npx lam summary
++
++# Analyze failures
++npx lam digest
++
++# Show specific test details with context
++npx lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --window 10
++
++# Query test logs
++npm run logq -- evt=case.begin reports/kernel.spec/connect_moves_data_1_1.jsonl
++
++# Track failure trends
++npx lam trends --top 10
++```
++
++### What Gets Logged
++
++- **Test Events**: `case.begin`, `test.run`, `assert.fail`, `case.end`
++- **Debug Events**: When `LAMINAR_DEBUG=1` or `DEBUG=1` is set
++- **Module Events**: State transitions, connections, data flow
++- **Performance**: Duration, memory usage, throughput
++
++### Artifacts in CI
++
++GitHub Actions uploads two artifact bundles per Node version:
++- `laminar-reports-node-XX` - Contains `summary.jsonl`, case logs, digests
++- Download from the [Actions tab](https://github.com/anteew/mkolbol/actions)
++
++## Glossary
++
++| Term | Definition |
++|------|------------|
++| **Kernel** | ~100 line core providing pipes, connections, and registry |
++| **Pipe** | Bidirectional data channel (Node.js Duplex stream) |
++| **Module** | Functional unit with input/output pipes (all semantics live here) |
++| **Executor** | Lifecycle manager: loads config, instantiates modules, manages start/stop |
++| **StateManager** | Topology tracker and event emitter for monitoring |
++| **Hostess** | Service registry with heartbeat and capability-based discovery |
++| **Run Mode** | Execution environment: inproc, worker, external, or pty |
++| **Endpoint** | Addressable module instance with type, coordinates, and metadata |
++| **Topology** | Configuration of nodes and connections (YAML/JSON) |
++| **Laminar** | Test observability framework with structured logging (JSONL) |
++
++## Next Step: Quickstart
++
++Ready to try it yourself? Jump to the **[Quickstart](../../README.md#quickstart)** section in the main README to:
++
++1. Install mkolbol locally: `npm install mkolbol`
++2. Initialize Laminar config: `npx lam init`
++3. Run example tests: `npx lam run --lane auto`
++4. Explore results: `npx lam summary` and `npx lam digest`
++
++Or run a simple topology:
++
++```bash
++# Build the project
++npm run build
++
++# Run the basic example
++npm run dev
++
++# Run other examples
++npm run dev:split   # Fan-out example
++npm run dev:merge   # Fan-in example
++```
++
++## Further Reading
++
++After the quickstart, explore these docs to go deeper:
++
++- **[Stream Kernel RFC](../rfcs/stream-kernel/00-index.md)** - Complete architecture documentation
++- **[Philosophy & Design Principles](../rfcs/stream-kernel/01-philosophy.md)** - Microkernel vision
++- **[Core Architecture](../rfcs/stream-kernel/02-core-architecture.md)** - The ~100 line kernel API
++- **[Module Types](../rfcs/stream-kernel/03-module-types.md)** - Building your own modules
++- **[PTY Use Cases](../rfcs/stream-kernel/04-pty-use-cases.md)** - Real-world terminal hijacking
++- **[Laminar Integration](../testing/laminar-integration.md)** - Deep dive on test observability
++
++## Questions?
++
++- **Architecture questions?** See the RFC documents linked above
++- **Testing questions?** Check `docs/testing/laminar-integration.md`
++- **Build issues?** See `docs/testing/ci.md` for CI enforcement and Node version requirements
++- **Want to contribute?** The kernel is stable; focus on building new modules!
++
++Welcome aboard! mkolbol is designed to be a stable foundation you can build on. The kernel never changes - all the innovation happens in modules.

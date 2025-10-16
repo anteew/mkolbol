@@ -1,0 +1,10 @@
+nodes:
+  - id: echo-stdio
+    module: ExternalProcess
+    params:
+      command: cat
+      args: []
+      ioMode: stdio
+    runMode: process
+
+connections: []

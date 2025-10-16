@@ -1,0 +1,62 @@
+diff --git a/README.md b/README.md
+index a00edad..515d6fb 100644
+--- a/README.md
++++ b/README.md
+@@ -8,10 +8,18 @@
+  - **AI AGENT SELF files** - In this repo in the subdirectory VEGA
+  - **AI AGENT reads self files on startup** - YES
+  - **Relation to human user** - Vega is the technical brains, helping to keep the human on track with what he or she is needing built.
+- 
+- 
++
++
++## New to mkolbol?
++
++Start here: **[Early Adopter Guide](docs/devex/early-adopter-guide.md)** - Understand mkolbol in 5 minutes
++
+ ## Quickstart
+ 
++**Try the Live Demos:**
++- [PTY to XtermTTYRenderer Demo](docs/devex/quickstart.md) - See PTY and terminal rendering in action in under 2 minutes
++- [StdIO Echo Demo](docs/devex/stdio-path.md) - Learn the lightweight StdIO path without PTY overhead
++
+ Get started with Laminar testing in 5 minutes:
+ 
+ ```bash
+@@ -659,6 +667,22 @@ node dist/scripts/mkctl.js
+ 
+ The `mkctl` tool provides control and introspection for the microkernel. The `endpoints` command lists all endpoints registered with Hostess, showing their type (e.g., "pty", "executor"), coordinates (e.g., "localhost:3000"), and optional metadata.
+ 
++**Example output:**
++```
++Registered Endpoints:
++
++ID:          localhost:mcp-server:0xFFFF:test:no:none:abc123
++Type:        external
++Coordinates: node server.js
++IO Mode:     stdio
++Metadata:    {"cwd":"/srv/mcp","ioMode":"stdio"}
++
++ID:          localhost:bash-multi:0xFFFF:test:no:none:def456
++Type:        pty
++Coordinates: pid:1234567
++Metadata:    {"cols":80,"rows":24,"terminalType":"xterm-256color"}
++```
++
+ #### logq - Query JSONL test logs
+ 
+ ```bash
+diff --git a/scripts/mkctl.ts b/scripts/mkctl.ts
+index 6995b60..63b7ebb 100644
+--- a/scripts/mkctl.ts
++++ b/scripts/mkctl.ts
+@@ -47,6 +47,9 @@ async function main() {
+         console.log(`ID:          ${endpoint.id}`);
+         console.log(`Type:        ${endpoint.type}`);
+         console.log(`Coordinates: ${endpoint.coordinates}`);
++        if (endpoint.metadata?.ioMode) {
++          console.log(`IO Mode:     ${endpoint.metadata.ioMode}`);
++        }
+         if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
+           console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
+         }

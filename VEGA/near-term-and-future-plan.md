@@ -5,28 +5,20 @@ Owner: VEGA
 
 ## Near Term (next 1–2 sessions)
 
-Laminar Packaging/Quickstart (SB‑LAM‑PKG‑QUICKSTART‑P1)
-- npx entry (`npx laminar`), local bin script, and `lam init` to scaffold laminar.config.json with defaults (rule packs + redaction presets)
-- GitHub Actions sample workflow (threads lane + optional PTY lane) publishing `reports/` artifacts and a brief `lam summary` to job summary
-- README front‑page Quickstart with copy‑paste commands
+mkolbol — Process‑mode enforcement
+- Promote the Unix adapters spec from monitored to required after a green window; finalize timeouts and health checks.
 
-Laminar Docs Final (SB‑LAM‑DOCS‑FINAL‑P1)
-- MCP cookbook (tool calls + JSON contracts + examples)
-- Cross‑language ingest how‑tos (Go/Pytest/JUnit) with minimal fixtures
-- Rule pack presets + redaction guidance; budgets and overlays (focus rules) patterns
+Laminar Packaging/Quickstart
+- npx entry (`npx laminar`), `lam init` scaffolder, and a GH Actions sample; README Quickstart.
 
-Laminar Stabilization (mini)
-- Address “matching test count between index and summary” parity nit
-- Expand redaction tests for corner cases; document safe test fixture patterns
+Laminar Docs Final
+- MCP cookbook; ingest how‑tos; rule packs & redaction guidance; budgets/overlays patterns.
 
 ## Next (following sessions)
 
-mkolbol — Hostess Control Endpoints
-- Include control endpoint metadata (type + coordinates) in Hostess registration for each server
-
-Process‑mode (Phase 2)
-- Unix/TCP adapters for control + pipes; Executor runMode 'process' with blue/green cutover
-- Optional: NATS adapter later for ControlBus
+mkolbol — Optional follow‑ups
+- TCP adapters experiment for remote child once Unix path is enforced
+- NATS adapter later for ControlBus (stretch)
 
 ## Future / Parking Lot
 

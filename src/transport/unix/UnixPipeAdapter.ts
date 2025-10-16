@@ -52,18 +52,12 @@ class UnixPipeAdapterDuplex extends Duplex {
     encoding: BufferEncoding,
     callback: (error?: Error | null) => void
   ): void {
-    const canContinue = this.socket.write(chunk, encoding, (err) => {
-      if (err) {
-        callback(err);
-      }
-    });
+    const canContinue = this.socket.write(chunk, encoding);
 
     if (canContinue) {
       callback();
     } else {
-      this.socket.once('drain', () => {
-        callback();
-      });
+      this.socket.once('drain', callback);
     }
   }
 

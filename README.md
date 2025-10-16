@@ -8,9 +8,18 @@
  - **AI AGENT SELF files** - In this repo in the subdirectory VEGA
  - **AI AGENT reads self files on startup** - YES
  - **Relation to human user** - Vega is the technical brains, helping to keep the human on track with what he or she is needing built.
- 
- 
+
+
+## New to mkolbol?
+
+Start here: **[Early Adopter Guide](docs/devex/early-adopter-guide.md)** - Understand mkolbol in 5 minutes
+
 ## Quickstart
+
+**Try the Live Demos:**
+- [PTY to XtermTTYRenderer Demo](docs/devex/quickstart.md) - See PTY and terminal rendering in action in under 2 minutes
+- [StdIO Echo Demo](docs/devex/stdio-path.md) - Learn the lightweight StdIO path without PTY overhead
+- [Interactive Topology: Keyboard → PTY → TTY](docs/devex/interactive-topology.md) - Build interactive terminal applications with bidirectional I/O
 
 Get started with Laminar testing in 5 minutes:
 
@@ -48,7 +57,9 @@ npx lam repro
 - `npx lam digest` — Generate failure analysis digests
 - `npx lam show` — Inspect test artifacts and events
 
-📖 **Full Documentation:** [docs/testing/laminar.md](docs/testing/laminar.md)
+📖 **Documentation:**
+- **[Laminar Workflow Guide](docs/devex/laminar-workflow.md)** - Install from GitHub, run tests, analyze failures, CI integration
+- **[Full Laminar Reference](docs/testing/laminar.md)** - Complete API and advanced features
 
 ## CI & Testing
 
@@ -76,6 +87,10 @@ connections:
 ```bash
 node dist/examples/config-runner.js --file examples/configs/basic.yml
 ```
+
+**Learn more about configuration:**
+- **[Wiring and Testing Guide](docs/devex/wiring-and-tests.md)** - Complete config schema, external processes (stdio/pty modes), and test lanes
+- **[Config Examples](examples/configs/)** - Real working topologies you can run immediately
 
 ## ANSI Parser
 
@@ -657,7 +672,32 @@ node dist/scripts/mkctl.js endpoints
 node dist/scripts/mkctl.js
 ```
 
-The `mkctl` tool provides control and introspection for the microkernel. The `endpoints` command lists all endpoints registered with Hostess, showing their type (e.g., "pty", "executor"), coordinates (e.g., "localhost:3000"), and optional metadata.
+The `mkctl` tool provides control and introspection for the microkernel. The `endpoints` command lists all endpoints registered with Hostess, showing their type (e.g., "pty", "executor"), coordinates (e.g., "localhost:3000"), and optional metadata including `ioMode`.
+
+**Understanding ioMode:**
+- **stdio** - Standard input/output (lightweight, non-interactive)
+- **pty** - Pseudo-terminal (interactive, ANSI escape sequences supported)
+
+**Example output:**
+```
+Registered Endpoints:
+
+ID:          localhost:mcp-server:0xFFFF:test:no:none:abc123
+Type:        external
+Coordinates: node server.js
+IO Mode:     stdio
+Metadata:    {"cwd":"/srv/mcp","ioMode":"stdio"}
+
+ID:          localhost:bash-multi:0xFFFF:test:no:none:def456
+Type:        pty
+Coordinates: pid:1234567
+IO Mode:     pty
+Metadata:    {"cols":80,"rows":24,"terminalType":"xterm-256color","ioMode":"pty"}
+```
+
+**See Also:**
+- **[Wiring and Testing Guide](docs/devex/wiring-and-tests.md#external-process-configuration)** - Complete explanation of stdio vs pty modes
+- **[StdIO Path Guide](docs/devex/stdio-path.md)** - Deep dive on stdio mode for data pipelines
 
 #### logq - Query JSONL test logs
 

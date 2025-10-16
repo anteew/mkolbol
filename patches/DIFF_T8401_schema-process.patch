@@ -1,0 +1,20 @@
+diff --git a/src/config/schema.ts b/src/config/schema.ts
+index a7fa31e..4afd9d3 100644
+--- a/src/config/schema.ts
++++ b/src/config/schema.ts
+@@ -1,8 +1,14 @@
++export interface ProcessParams {
++  command: string;
++  args: string[];
++  ioMode: 'stdio' | 'pty';
++}
++
+ export interface NodeConfig {
+   id: string;
+   module: string;
+   params?: Record<string, any>;
+-  runMode?: 'inproc' | 'worker';
++  runMode?: 'inproc' | 'worker' | 'process';
+ }
+ 
+ export interface ConnectionConfig {

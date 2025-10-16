@@ -4,7 +4,7 @@ import { StateManager } from '../state/StateManager.js';
 import { ModuleRegistry } from './moduleRegistry.js';
 import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
 import type { TopologyConfig, NodeConfig } from '../config/schema.js';
-import type { ServerManifest, ExternalServerManifest } from '../types.js';
+import type { ServerManifest, ExternalServerManifest, IOMode } from '../types.js';
 import { Worker, MessageChannel } from 'node:worker_threads';
 import type { ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -254,6 +254,11 @@ export class Executor {
   }
 
   private async instantiateNode(nodeConfig: NodeConfig): Promise<void> {
+    if (nodeConfig.module === 'ExternalProcess') {
+      await this.instantiateExternalProcessNode(nodeConfig);
+      return;
+    }
+
     const runMode = (nodeConfig.runMode ?? 'inproc') as string;
 
     if (runMode === 'worker') {
@@ -263,6 +268,78 @@ export class Executor {
     } else {
       await this.instantiateInProcNode(nodeConfig);
     }
+  }
+
+  private async instantiateExternalProcessNode(nodeConfig: NodeConfig): Promise<void> {
+    const params = nodeConfig.params || {};
+    const command = params.command || 'cat';
+    const args = params.args || [];
+    const ioMode = params.ioMode || 'stdio';
+
+    const manifest: ExternalServerManifest = {
+      fqdn: 'localhost',
+      servername: nodeConfig.id,
+      classHex: '0x0000',
+      owner: 'system',
+      auth: 'no',
+      authMechanism: 'none',
+      terminals: [
+        { name: 'input', type: 'local', direction: 'input' },
+        { name: 'output', type: 'local', direction: 'output' },
+        { name: 'error', type: 'local', direction: 'output' }
+      ],
+      capabilities: {
+        type: 'transform',
+        accepts: [],
+        produces: []
+      },
+      command,
+      args,
+      env: params.env || {},
+      cwd: params.cwd || process.cwd(),
+      ioMode: ioMode as IOMode
+    };
+
+    const wrapper = new ExternalServerWrapper(this.kernel, this.hostess, manifest);
+    await wrapper.spawn();
+
+    this.modules.set(nodeConfig.id, {
+      id: nodeConfig.id,
+      module: wrapper,
+      config: nodeConfig
+    });
+
+    // Store wrapper reference for test access
+    if (!(this as any).wrappers) {
+      (this as any).wrappers = new Map();
+    }
+    (this as any).wrappers.set(nodeConfig.id, wrapper);
+
+    // Register with Hostess properly
+    const identity = this.hostess.register(manifest);
+    this.hostess.registerEndpoint(identity, {
+      type: 'process',
+      coordinates: `node:${nodeConfig.id}`,
+      metadata: {
+        module: nodeConfig.module,
+        runMode: 'process',
+        command,
+        args,
+        ioMode
+      }
+    });
+
+    this.stateManager.addNode({
+      id: nodeConfig.id,
+      name: nodeConfig.module,
+      terminals: [
+        { name: 'input', direction: 'input' as const },
+        { name: 'output', direction: 'output' as const },
+        { name: 'error', direction: 'output' as const }
+      ],
+      capabilities: [],
+      location: 'process'
+    });
   }
 
   private async instantiateProcessNode(nodeConfig: NodeConfig): Promise<void> {

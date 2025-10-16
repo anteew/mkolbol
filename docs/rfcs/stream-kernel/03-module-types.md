@@ -504,9 +504,19 @@ describe('ANSIParser', () => {
 
 **No need to instantiate the entire system!**
 
+## Building Your First Module
+
+Ready to create your own module? Check out the **[First Server Tutorial](../../devex/first-server-tutorial.md)** for step-by-step instructions on building:
+
+- **Transform modules** (in-process, TypeScript)
+- **External process modules** (any language, subprocess)
+
+The tutorial includes complete code examples, Hostess registration, debugging tips, and a smoke test checklist.
+
 ## Next Steps
 
 See:
+- **[First Server Tutorial](../../devex/first-server-tutorial.md)** - Build your own module (start here!)
 - **[PTY Use Cases](04-pty-use-cases.md)** - Real-world module compositions
 - **[Distributed Service Mesh](06-distributed-service-mesh.md)** - Routing module details
-- **[Service Registry](07-service-registry.md)** - Using capabilities for discovery
+- **[Service Registry](08-registry-server.md)** - Using capabilities for discovery
