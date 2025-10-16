@@ -2,72 +2,54 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "MKD-P1-A",  "parallel": true,  "tasks": ["T9001","T9002","T9003","T9004"] },
-    { "id": "MKD-P1-B",  "parallel": true,  "depends_on": ["MKD-P1-A"], "tasks": ["T9005","T9006","T9007"] },
-    { "id": "MKD-P1-C",  "parallel": false, "depends_on": ["MKD-P1-B"], "tasks": ["T9008","T9009"] }
+    { "id": "MKD-P2-A",  "parallel": true,  "tasks": ["T9101","T9102","T9104"] },
+    { "id": "MKD-P2-B",  "parallel": true,  "depends_on": ["MKD-P2-A"], "tasks": ["T9103","T9105"] }
   ],
   "tasks": [
-    {"id": "T9001", "agent": "susan", "title": "mk CLI skeleton (init/run/doctor/graph/format/prompt)",
-      "allowedFiles": ["scripts/mk.ts","package.json","vitest.config.ts"],
+    {"id": "T9101", "agent": "susan", "title": "Release pack (npm pack) + minimal files set",
+      "allowedFiles": ["package.json", ".npmignore", ".github/workflows/release.yml"],
+      "verify": ["npm run build", "npm pack"],
+      "deliverables": ["patches/DIFF_T9101_release-pack.patch"]},
+
+    {"id": "T9102", "agent": "susan", "title": "Release CI: tag→build→pack→attach .tgz to GitHub Release",
+      "allowedFiles": [".github/workflows/release.yml"],
+      "verify": ["true"],
+      "deliverables": ["patches/DIFF_T9102_release-ci.patch"]},
+
+    {"id": "T9104", "agent": "susan", "title": "Packaging knobs: bin entries + postinstall/prepare guards",
+      "allowedFiles": ["package.json"],
+      "verify": ["npm pack"],
+      "deliverables": ["patches/DIFF_T9104_packaging-knobs.patch"]},
+
+    {"id": "T9103", "agent": "susan", "title": "Consumer acceptance: fixture app installs from local .tgz",
+      "allowedFiles": ["tests/consumer/fixture-app/**", ".github/workflows/tests.yml", "scripts/test-consumer.ts"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_T9001_mk-cli-skeleton.patch"]},
+      "deliverables": ["patches/DIFF_T9103_consumer-acceptance.patch"]},
 
-    {"id": "T9002", "agent": "susan", "title": "Format adapters + flags (--yaml, --yaml-in/out, --format)",
-      "allowedFiles": ["scripts/mk.ts","src/mk/format.ts","package.json","docs/rfcs/MK_DEV_ORCHESTRATOR_RFC_v0.md"],
+    {"id": "T9105", "agent": "susan", "title": "mk fetch (experimental): download and install release tarball by tag",
+      "allowedFiles": ["scripts/mk.ts", "src/mk/fetch.ts", "docs/devex/packaging.md"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_T9002_mk-format-adapters.patch"]},
-
-    {"id": "T9003", "agent": "susan", "title": ".mk/options.json loader (profiles + precedence)",
-      "allowedFiles": ["src/mk/options.ts","scripts/mk.ts","schemas/mk-options.v0.json"],
-      "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_T9003_mk-options-loader.patch"]},
-
-    {"id": "T9004", "agent": "susan", "title": "Prompt snippet print/off + state under .mk/state/",
-      "allowedFiles": ["src/mk/prompt.ts","scripts/mk.ts"],
-      "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_T9004_mk-prompt.patch"]},
-
-    {"id": "T9005", "agent": "susan", "title": "mk run --dry-run → kernel loader validation + error mapping",
-      "allowedFiles": ["scripts/mk.ts","src/config/loader.ts","src/mk/errors.ts","tests/cli/mkRunDry.spec.ts"],
-      "verify": ["npm run build","npm run test:ci"],
-      "deliverables": ["patches/DIFF_T9005_mk-run-dry.patch"]},
-
-    {"id": "T9006", "agent": "susan", "title": "mk graph (ASCII + --json) from normalized topology",
-      "allowedFiles": ["src/mk/graph.ts","scripts/mk.ts","tests/cli/mkGraph.spec.ts"],
-      "verify": ["npm run build","npm run test:ci"],
-      "deliverables": ["patches/DIFF_T9006_mk-graph.patch"]},
-
-    {"id": "T9007", "agent": "susan", "title": "Canonical error microcopy + --json payload (code/message/remediation)",
-      "allowedFiles": ["src/mk/errors.ts","scripts/mk.ts","tests/cli/mkdxErrors.spec.ts"],
-      "verify": ["npm run build","npm run test:ci"],
-      "deliverables": ["patches/DIFF_T9007_mk-errors-microcopy.patch"]},
-
-    {"id": "T9008", "agent": "susan", "title": "mk doctor (stub) with environment checks + remediations",
-      "allowedFiles": ["scripts/mk.ts","src/mk/doctor.ts","docs/devex/doctor.md"],
-      "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_T9008_mk-doctor-stub.patch"]},
-
-    {"id": "T9009", "agent": "susan", "title": "Unskip mkdx help/error snapshot tests; stabilize",
-      "allowedFiles": ["tests/cli/mkdxHelp.spec.ts","tests/cli/mkdxErrors.spec.ts"],
-      "verify": ["npm run build","npm run test:ci"],
-      "deliverables": ["patches/DIFF_T9009_mkdx-tests-enable.patch"]}
+      "deliverables": ["patches/DIFF_T9105_mk-fetch.patch"]}
   ]
 }
 ```
 
-# Ampcode — MK Dev Orchestrator Phase A (Core CLI + Format + Options + Prompt)
+# Ampcode — MKD Phase B: No‑Registry Distribution (Tarball‑first)
 
 Goal
-- Deliver the developer‑joy golden path for mk: CLI skeleton, JSON⇄YAML adapters, per‑repo options, prompt snippet, `run --dry-run`, `graph`, canonical errors.
+- Enable installing mkolbol without npm registry: tarball‑first distribution, Git tag pinning, and vendor path, with CI release artifacts and a consumer acceptance test.
 
 Constraints
-- `MK_LOCAL_NODE=1` (no cross‑host features). Reuse the kernel Topology loader; no kernel changes.
-- JSON is the canonical in‑memory format; YAML is I/O only.
+- Do not publish to npm. Prefer GitHub Releases artifacts (.tgz) and documented Git/tag installs.
 
-Verification Commands
+Notes for Susan
+- Tarball must contain dist/, types, bins (mk, mkctl), README, LICENSE; no dev files, tests, or node_modules.
+- Guard prepare/postinstall so consumer installs have no side effects.
+- Consumer fixture installs from freshly built .tgz and runs a tiny topology (TTYRenderer + FilesystemSink) as the acceptance proof.
+
+Verification
 ```bash
 export MK_LOCAL_NODE=1
 npm run build
-npm run test:ci
+npm pack
 ```
-

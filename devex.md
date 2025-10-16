@@ -83,69 +83,68 @@
 }
 ```
 
-# DevEx — MK Dev Orchestrator Phase A (Docs, Examples, CI UX)
+# DevEx — Distribution Without npm Registry (Tarball‑first Developer Experience)
 
 ```json
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "DEVX-P1-A", "parallel": true,  "tasks": ["D9801","D9802"] },
-    { "id": "DEVX-P1-B", "parallel": true,  "depends_on": ["DEVX-P1-A"], "tasks": ["D9803","D9804","D9805"] },
-    { "id": "DEVX-P1-C", "parallel": false, "depends_on": ["DEVX-P1-B"], "tasks": ["D9806","D9807"] }
+    { "id": "DEVX-P2-A", "parallel": true,  "tasks": ["D9901","D9902"] },
+    { "id": "DEVX-P2-B", "parallel": true,  "depends_on": ["DEVX-P2-A"], "tasks": ["D9903","D9904","D9905"] },
+    { "id": "DEVX-P2-C", "parallel": false, "depends_on": ["DEVX-P2-B"], "tasks": ["D9906","D9907"] }
   ],
   "tasks": [
-    {"id":"D9801","agent":"devex","title":"PR template requiring DX checklist (link to mk-dx-checklist)",
+    {"id":"D9901","agent":"devex","title":"Docs: Distribution matrix (Tarball recommended, Git tag pinned, Vendor path)",
+      "allowedFiles":["docs/devex/using-mkolbol-in-your-repo.md","docs/devex/packaging.md","README.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9901_docs-distribution-matrix.patch"]},
+
+    {"id":"D9902","agent":"devex","title":"Hello Calculator: tarball install path; update Quickstart & First‑Five‑Minutes",
+      "allowedFiles":["docs/devex/hello-calculator.md","docs/devex/quickstart.md","docs/devex/first-five-minutes.md","examples/mk/hello-calculator/**"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9902_docs-hello-calculator-tarball.patch"]},
+
+    {"id":"D9903","agent":"devex","title":"Releases doc: how to create tags and consume GitHub Release tarballs",
+      "allowedFiles":["docs/devex/releases.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9903_docs-releases.patch"]},
+
+    {"id":"D9904","agent":"devex","title":"Cookbook: install from tarball, pin to GitHub tag, vendor via file:",
+      "allowedFiles":["docs/devex/mkctl-cookbook.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9904_docs-cookbook-no-registry.patch"]},
+
+    {"id":"D9905","agent":"devex","title":"Consumer acceptance doc: running the fixture app locally",
+      "allowedFiles":["tests/consumer/README.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D9905_docs-consumer-acceptance.patch"]},
+
+    {"id":"D9906","agent":"devex","title":"PR template note: prefer tarball path; keep CI comment non‑gating",
       "allowedFiles":[".github/pull_request_template.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9801_pr-template-dx-checklist.patch"]},
+      "deliverables":["patches/DIFF_D9906_pr-template-tarball-note.patch"]},
 
-    {"id":"D9802","agent":"devex","title":"Docs: Using mkolbol in your repo + Hello Calculator tutorial",
-      "allowedFiles":["docs/devex/using-mkolbol-in-your-repo.md","docs/devex/hello-calculator.md","docs/devex/first-five-minutes.md"],
+    {"id":"D9907","agent":"devex","title":"mk fetch (experimental) docs; clearly flagged as optional",
+      "allowedFiles":["docs/devex/packaging.md"],
       "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9802_docs-using-and-hello-calculator.patch"]},
-
-    {"id":"D9803","agent":"devex","title":"Examples: hello-calculator (mk.json default + YAML variant)",
-      "allowedFiles":["examples/mk/hello-calculator/**"],
-      "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9803_examples-hello-calculator.patch"]},
-
-    {"id":"D9804","agent":"devex","title":"CI: non‑gating acceptance smoke + aggregated Laminar PR comment",
-      "allowedFiles":[".github/workflows/tests.yml","scripts/post-laminar-pr-comment.js"],
-      "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9804_ci-acceptance-smoke-aggregate.patch"]},
-
-    {"id":"D9805","agent":"devex","title":"Cookbook polish: endpoints --json, health exit mapping, FileSink JSONL",
-      "allowedFiles":["docs/devex/mkctl-cookbook.md","docs/devex/quickstart.md"],
-      "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9805_cookbook-polsih.patch"]},
-
-    {"id":"D9806","agent":"devex","title":"DX style enforcements: finalize mk-dx-style/checklist; note snapshot scaffolds",
-      "allowedFiles":["docs/devex/mk-dx-style.md","docs/devex/mk-dx-checklist.md","tests/cli/mkdxHelp.spec.ts","tests/cli/mkdxErrors.spec.ts"],
-      "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9806_dx-style-and-snapshots.patch"]},
-
-    {"id":"D9807","agent":"devex","title":"Laminar flake budget section (≥2 failures in last 5 runs)",
-      "allowedFiles":["scripts/post-laminar-pr-comment.js","reports/history.jsonl"],
-      "verify":["npm run build"],
-      "deliverables":["patches/DIFF_D9807_laminar-flake-budget.patch"]}
+      "deliverables":["patches/DIFF_D9907_docs-mk-fetch-experimental.patch"]}
   ]
 }
 ```
 
-Autonomy & Direction for Vex
-- You own “Laminar and test strategy improvements.” Run mini-sprints as needed; use `agent_template/AMPCODE_TEMPLATE.md` to create `Vex/minisprints/...` and log in `Vex/devex.log`.
-- Prioritize developer onboarding clarity: “Using mkolbol in your repo” and “Hello Calculator” must be copy‑paste runnable.
-- Keep CI additions non‑gating; graceful degradation if PR comment steps fail.
+Direction & Autonomy
+- Treat “Tarball‑first distribution” as the default path in docs. Do not mention npm registry publishing. Keep tone neutral and focused on reproducibility.
+- Keep CI steps best‑effort and non‑gating for comments/artifacts.
+- Use agent_template/AMPCODE_TEMPLATE.md when you run mini‑sprints; keep logs in Vex/devex.log.
 
 Verification Commands
 ```bash
 export MK_LOCAL_NODE=1
 npm run build
-npm run test:ci
 ```
 
 Success Criteria
-- New dev completes “Hello Calculator” (init → run → bundle) in < 10 minutes.
-- PR template includes checklist and links to DX style/guide.
-- Aggregated PR comment shows Laminar summary + flake budget section.
-- Quickstart/cookbook/first‑five‑minutes remain consistent and link to each other.
+- New developer can install mkolbol via tarball and complete Hello Calculator in < 10 minutes.
+- Using‑in‑your‑repo and Quickstart are internally consistent and link to the same steps.
+- Cookbook entries include copy‑paste commands for tarball, git tag pin, vendor.
+- Consumer acceptance README provides an exact “try-it-now” flow.
