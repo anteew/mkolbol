@@ -1,0 +1,16 @@
+nodes:
+  - id: timer1
+    module: TimerSource
+    params:
+      periodMs: 500
+  
+  - id: tty1
+    module: TTYRenderer
+    params:
+      target: stdout
+      rawMode: true
+      stripAnsi: false
+
+connections:
+  - from: timer1.output
+    to: tty1.input

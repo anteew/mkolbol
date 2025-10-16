@@ -3,7 +3,8 @@
   "ampcode": "v1",
   "waves": [
     { "id": "DX-11A", "parallel": true,  "tasks": ["LAM-1101", "LAM-1102", "LAM-1103"] },
-    { "id": "DX-11B", "parallel": true,  "tasks": ["DEVEX-111", "DEVEX-112", "DEVEX-113"] }
+    { "id": "DX-11B", "parallel": true,  "tasks": ["DEVEX-111", "DEVEX-112", "DEVEX-113"] },
+    { "id": "DX-12A", "parallel": true,  "tasks": ["DEVEX-1201", "DEVEX-1202", "DEVEX-1203"] }
   ],
   "tasks": [
     {
@@ -53,15 +54,39 @@
       "allowedFiles": ["docs/devex/mkctl-cookbook.md"],
       "verify": ["npm run build"],
       "deliverables": ["patches/DIFF_DEVEX-113_mkctl-cookbook-updates.patch"]
+    },
+    {
+      "id": "DEVEX-1201",
+      "agent": "devex",
+      "title": "Doctor page: common mkctl errors, dry-run, health checks, file perms",
+      "allowedFiles": ["docs/devex/doctor.md"],
+      "verify": ["npm run build"],
+      "deliverables": ["patches/DIFF_DEVEX-1201_doctor.patch"]
+    },
+    {
+      "id": "DEVEX-1202",
+      "agent": "devex",
+      "title": "Authoring a module: constructor(kernel, options), registry, tests",
+      "allowedFiles": ["docs/devex/authoring-a-module.md"],
+      "verify": ["npm run build"],
+      "deliverables": ["patches/DIFF_DEVEX-1202_authoring-module.patch"]
+    },
+    {
+      "id": "DEVEX-1203",
+      "agent": "devex",
+      "title": "Acceptance smoke: non‑gating mkctl run + endpoints assert (aggregate PR comment)",
+      "allowedFiles": [".github/workflows/tests.yml", "scripts/post-laminar-pr-comment.js"],
+      "verify": ["npm run build"],
+      "deliverables": ["patches/DIFF_DEVEX-1203_acceptance-smoke-aggregate.patch"]
     }
   ]
 }
 ```
 
-# DevEx Sprint 11 — Laminar CI Refinement + Acceptance Docs
+# DevEx Sprint 11–12 — Laminar CI Refinement + Acceptance Docs + Doctor
 
 Goal
-- Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expand FileSink acceptance walkthroughs; keep early-adopter docs cohesive with upcoming mkctl/health features.
+- Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expand FileSink acceptance walkthroughs; add a “Doctor” page and an “Authoring a Module” guide to reduce support burden; keep docs aligned with TTY renderer and health features.
 
 Autonomy & Direction for Vex
 - You continue to own “Laminar and test strategy improvements.” You may run mini-sprints; create `Vex/minisprints/vex-sprint11-ms1.md` (use agent_template/AMPCODE_TEMPLATE.md) and log updates in `Vex/devex.log`.

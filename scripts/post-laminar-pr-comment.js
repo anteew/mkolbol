@@ -28,6 +28,7 @@ const execAsync = promisify(exec);
 const SUMMARY_PATH = path.join(process.cwd(), 'reports', 'LAMINAR_SUMMARY.txt');
 const TRENDS_PATH = path.join(process.cwd(), 'reports', 'LAMINAR_TRENDS.txt');
 const HISTORY_PATH = path.join(process.cwd(), 'reports', 'history.jsonl');
+const ACCEPTANCE_PATH = path.join(process.cwd(), 'reports', 'acceptance-smoke.jsonl');
 
 // GitHub Actions environment
 const isPR = process.env.GITHUB_EVENT_NAME === 'pull_request';
@@ -70,12 +71,15 @@ async function main() {
     // Calculate flake budget from history
     const flakeBudget = calculateFlakeBudget();
 
+    // Read acceptance smoke results
+    const acceptanceResults = readAcceptanceResults();
+
     // Truncate summary to first 30 lines for brevity
     const summaryLines = summary.split('\n').slice(0, 30);
     const summaryTruncated = summaryLines.join('\n');
 
-    // Build comment body with flake budget
-    const commentBody = buildCommentBody(summaryTruncated, trends, nodeVersion, flakeBudget);
+    // Build comment body with flake budget and acceptance results
+    const commentBody = buildCommentBody(summaryTruncated, trends, nodeVersion, flakeBudget, acceptanceResults);
 
     // Post comment using gh CLI
     await postComment(commentBody);
@@ -87,6 +91,42 @@ async function main() {
     console.error(`[Laminar] Error posting PR comment: ${err.message}`);
     // Don't fail the workflow
     process.exit(0);
+  }
+}
+
+/**
+ * Read acceptance smoke test results from JSONL file
+ * Returns formatted section or empty string if no results
+ */
+function readAcceptanceResults() {
+  if (!fs.existsSync(ACCEPTANCE_PATH)) {
+    return '';
+  }
+
+  try {
+    const lines = fs.readFileSync(ACCEPTANCE_PATH, 'utf-8').split('\n').filter(l => l.trim());
+
+    if (lines.length === 0) {
+      return '';
+    }
+
+    // Parse the acceptance result
+    const result = JSON.parse(lines[lines.length - 1]);
+
+    const checks = [];
+    if (result.topology) checks.push('✅ Topology');
+    else checks.push('❌ Topology');
+
+    if (result.filesink) checks.push('✅ FilesystemSink');
+    else checks.push('❌ FilesystemSink');
+
+    if (result.endpoints) checks.push('✅ Router Endpoints');
+    else checks.push('❌ Router Endpoints');
+
+    return `\n### 🧪 Acceptance Smoke Test\n${checks.join(' | ')}`;
+  } catch (err) {
+    console.error('[Laminar] Error reading acceptance results:', err.message);
+    return '';
   }
 }
 
@@ -134,7 +174,7 @@ function calculateFlakeBudget() {
   }
 }
 
-function buildCommentBody(summary, trends, nodeVersion, flakeBudget) {
+function buildCommentBody(summary, trends, nodeVersion, flakeBudget, acceptanceResults) {
   return `## 📊 Laminar Test Report (Aggregated)
 
 ### Test Summary
@@ -146,12 +186,13 @@ ${summary}
 \`\`\`
 ${trends}
 \`\`\`
-${flakeBudget}
+${flakeBudget}${acceptanceResults}
 
 ### 📁 Artifacts
 - **Full Summary:** See job artifacts for LAMINAR_SUMMARY.txt
 - **Repro Hints:** See job artifacts for LAMINAR_REPRO.md (if failures exist)
 - **Trends History:** Accumulated over time for pattern analysis
+- **Acceptance Logs:** See job artifacts for acceptance-smoke-logs
 - **Per-Node Reports:** Node 20 and Node 24 reports in artifacts
 
 **Note:** This is a best-effort comment. All test details available in GitHub Actions artifacts.`;

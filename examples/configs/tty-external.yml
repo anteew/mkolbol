@@ -1,0 +1,19 @@
+nodes:
+  - id: ls-command
+    module: ExternalProcess
+    params:
+      command: ls
+      args:
+        - --color=always
+        - -la
+      ioMode: stdio
+      restart: never
+
+  - id: tty-renderer
+    module: XtermTTYRenderer
+    params:
+      altBuffer: false
+
+connections:
+  - from: ls-command.output
+    to: tty-renderer.input
