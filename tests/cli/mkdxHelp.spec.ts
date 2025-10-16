@@ -3,8 +3,8 @@ import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 
-// NOTE: This is a scaffold for the future `mk` CLI.
-// It is skipped so CI remains green until `scripts/mk.ts` exists.
+// NOTE: Active snapshot-style tests for the `mk` CLI help output.
+// These enforce stable, human-friendly microcopy and surface regressions early.
 
 describe('mk CLI help microcopy (snapshot tests)', () => {
   const mkPath = process.env.MK_BIN || join(process.cwd(), 'dist', 'scripts', 'mk.js');
@@ -188,4 +188,3 @@ describe('mk CLI help microcopy (snapshot tests)', () => {
     });
   });
 });
-

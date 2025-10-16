@@ -236,9 +236,10 @@ See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acce
 `;
         let updatedContent;
         if (content.includes(sectionMarker)) {
-            // Replace existing section
-            const regex = new RegExp(`---\\n\\n${sectionMarker}[\\s\\S]*?(?=\\n---\\n|$)`, 'm');
-            updatedContent = content.replace(regex, resultsSection.trim());
+            // Replace existing section. Be tolerant of leading blank lines before the separator.
+            const escapedMarker = sectionMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(?:\\n\\n)?---\\n\\n${escapedMarker}[\\s\\S]*?(?=\\n---\\n|$)`, 'm');
+            updatedContent = content.replace(regex, `\n\n${resultsSection.trim()}`);
         }
         else {
             // Append to end

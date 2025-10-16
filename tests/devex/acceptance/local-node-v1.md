@@ -858,6 +858,20 @@ Questions about this scenario?
 
 ## mk CLI Acceptance Test Results
 
+**Last Run:** 2025-10-16T20:32:14.427Z
+
+```
+✓ mk init test-project (0ms)
+✓ mk run topology.yml --dry-run (93ms)
+✓ mk doctor (2752ms)
+✓ mk format topology.yml --to json (91ms)
+✓ mk run topology.yml --yaml (89ms)
+```
+
+**Summary:** 5/5 tests passed
+
+See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
+
 **Last Run:** 2025-10-16T20:26:03.690Z
 
 ```

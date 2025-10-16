@@ -56,7 +56,7 @@ export async function packageHandler(args) {
         // Calculate SHA256
         const sha256 = await calculateFileHash(capsulePath);
         const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
-        console.log(`✓ Packaged: ${capsuleFilename} (${sizeFormatted})`);
+        console.log(`✓ Packaged: ${capsuleFilename} (${sizeFormatted}) in ${elapsed}s`);
         console.log(`  SHA256: ${sha256}`);
         return 0;
     }
