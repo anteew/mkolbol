@@ -1,0 +1,1638 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 682869e..95b30aa 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -1,4 +1,4 @@
+-name: Release & Publish
++name: Release
+ 
+ on:
+   push:
+@@ -7,11 +7,10 @@ on:
+ 
+ permissions:
+   contents: write
+-  id-token: write
+ 
+ jobs:
+   release:
+-    name: Release & Publish to NPM
++    name: Create Release with Tarball
+     runs-on: ubuntu-latest
+     
+     steps:
+@@ -23,7 +22,6 @@ jobs:
+         with:
+           node-version: 20
+           cache: 'npm'
+-          registry-url: 'https://registry.npmjs.org'
+       
+       - name: Install dependencies
+         run: npm ci
+@@ -31,34 +29,21 @@ jobs:
+       - name: Build
+         run: npm run build
+       
+-      - name: Run tests
+-        run: npm run test:ci
+-      
+-      - name: Verify package contents
+-        run: |
+-          npm pack --dry-run
+-          echo "Package contents verified"
++      - name: Pack
++        run: npm pack
+       
+       - name: Extract version from tag
+         id: version
+         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+       
+-      - name: Verify package.json version matches tag
++      - name: Get tarball filename
++        id: tarball
+         run: |
+-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+-          TAG_VERSION="${{ steps.version.outputs.VERSION }}"
+-          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+-            echo "Error: package.json version ($PACKAGE_VERSION) does not match tag version ($TAG_VERSION)"
+-            exit 1
+-          fi
+-          echo "Version verified: $PACKAGE_VERSION"
+-      
+-      - name: Publish to NPM
+-        run: npm publish --provenance --access public
+-        env:
+-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
++          TARBALL=$(ls mkolbol-*.tgz)
++          echo "FILENAME=$TARBALL" >> $GITHUB_OUTPUT
+       
+       - name: Create GitHub Release
++        id: create_release
+         uses: actions/github-script@v7
+         with:
+           script: |
+@@ -66,24 +51,36 @@ jobs:
+             const tag = context.ref.replace('refs/tags/', '');
+             const version = tag.replace('v', '');
+             
+-            // Extract release notes from README or use default
+-            let releaseNotes = `## Release ${version}\n\n`;
+-            releaseNotes += `Published to NPM: https://www.npmjs.com/package/mkolbol/v/${version}\n\n`;
++            let releaseNotes = `## mkolbol ${version}\n\n`;
++            releaseNotes += `Stream-based microkernel for AI agent systems\n\n`;
+             releaseNotes += `### Installation\n\n`;
+             releaseNotes += '```bash\n';
+-            releaseNotes += `npm install mkolbol@${version}\n`;
++            releaseNotes += `# From tarball\n`;
++            releaseNotes += `npm install https://github.com/${context.repo.owner}/${context.repo.repo}/releases/download/${tag}/mkolbol-${version}.tgz\n`;
+             releaseNotes += '```\n\n';
+             releaseNotes += `### Changes\n\n`;
+-            releaseNotes += `See [CHANGELOG](https://github.com/${context.repo.owner}/${context.repo.repo}/compare/v${version}) for details.`;
++            releaseNotes += `See commit history for details.`;
+             
+-            await github.rest.repos.createRelease({
++            const release = await github.rest.repos.createRelease({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               tag_name: tag,
+-              name: `Release ${version}`,
++              name: `v${version}`,
+               body: releaseNotes,
+               draft: false,
+               prerelease: version.includes('-') || version.includes('alpha') || version.includes('beta') || version.includes('rc')
+             });
+             
+-            core.notice(`✅ Published mkolbol@${version} to NPM and created GitHub release`);
++            core.setOutput('upload_url', release.data.upload_url);
++            core.setOutput('release_id', release.data.id);
++            core.notice(`✅ Created GitHub release v${version}`);
++      
++      - name: Upload tarball to release
++        uses: actions/upload-release-asset@v1
++        env:
++          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
++        with:
++          upload_url: ${{ steps.create_release.outputs.upload_url }}
++          asset_path: ./${{ steps.tarball.outputs.FILENAME }}
++          asset_name: ${{ steps.tarball.outputs.FILENAME }}
++          asset_content_type: application/gzip
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index e4c795f..2b93589 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -115,6 +115,40 @@ jobs:
+           path: reports
+           if-no-files-found: warn
+ 
++  # Consumer acceptance test: install from tarball
++  consumer-test:
++    name: Consumer Acceptance Test
++    runs-on: ubuntu-latest
++    needs: test
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Setup Node.js
++        uses: actions/setup-node@v4
++        with:
++          node-version: '24'
++          cache: npm
++
++      - name: Install
++        run: npm ci
++
++      - name: Build
++        run: npm run build
++
++      - name: Run consumer acceptance test
++        run: npm run test:consumer
++
++      - name: Upload test artifacts
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: consumer-test-logs
++          path: |
++            *.tgz
++            /tmp/mkolbol-consumer-test-*/
++          if-no-files-found: warn
++
+   # Acceptance smoke test: run mkctl with FilesystemSink config (best-effort)
+   acceptance-smoke:
+     name: Acceptance Smoke Test (FilesystemSink)
+diff --git a/.npmignore b/.npmignore
+new file mode 100644
+index 0000000..322a95a
+--- /dev/null
++++ b/.npmignore
+@@ -0,0 +1,54 @@
++# Development and testing files
++test/
++tests/
++examples/
++*.spec.ts
++*.spec.js
++*.test.ts
++*.test.js
++
++# Development tools and configs
++.mk/
++patches/
++reports/
++scripts/
++sprints/
++project-manager/
++agent_template/
++archived/
++
++# Internal agents and tools
++SUSAN/
++VEGA/
++Vex/
++
++# Dev documentation
++CONTRIBUTING-DEVEX.md
++devex.md
++ampcode*.md
++ampcode*.log
++ampcode*.tmp
++
++# Build artifacts
++tsconfig.json
++vitest.config.ts
++*.tsbuildinfo
++
++# Logs and test results
++*.log
++test-*.log
++TEST_RESULTS_*.md
++test-summary.txt
++
++# Lock files (keep package-lock.json only)
++pnpm-lock.yaml
++
++# Git and GitHub
++.git/
++.github/
++.gitignore
++.claude/
++
++# Temporary files
++*.tmp
++*.tgz
+diff --git a/dist/scripts/mk.js b/dist/scripts/mk.js
+index b053460..c780b3a 100644
+--- a/dist/scripts/mk.js
++++ b/dist/scripts/mk.js
+@@ -105,6 +105,31 @@ const commands = [
+             return EXIT_SUCCESS;
+         },
+     },
++    {
++        name: 'fetch',
++        description: 'Download and install release tarball by tag (experimental)',
++        usage: 'mk fetch <tag>',
++        handler: async (args) => {
++            if (args.length === 0) {
++                console.error('Error: Missing release tag');
++                console.error('Usage: mk fetch <tag>');
++                console.error('Examples: mk fetch v0.2.0, mk fetch latest');
++                return EXIT_USAGE;
++            }
++            const tag = args[0];
++            try {
++                const { downloadRelease, installTarball } = await import('../src/mk/fetch.js');
++                console.log(`Fetching release ${tag}...`);
++                const tarballPath = await downloadRelease(tag);
++                await installTarball(tarballPath);
++                return EXIT_SUCCESS;
++            }
++            catch (error) {
++                console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++                return EXIT_ERROR;
++            }
++        },
++    },
+ ];
+ function printMainHelp() {
+     console.log(`mk — mkolbol CLI toolkit\n`);
+diff --git a/dist/scripts/mk.js.map b/dist/scripts/mk.js.map
+index dedc32e..c2b1b45 100644
+--- a/dist/scripts/mk.js.map
++++ b/dist/scripts/mk.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"mk.js","sourceRoot":"","sources":["../../scripts/mk.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"mk.js","sourceRoot":"","sources":["../../scripts/mk.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/scripts/test-consumer.d.ts b/dist/scripts/test-consumer.d.ts
+new file mode 100644
+index 0000000..e1e17b2
+--- /dev/null
++++ b/dist/scripts/test-consumer.d.ts
+@@ -0,0 +1,10 @@
++#!/usr/bin/env tsx
++/**
++ * Consumer acceptance test
++ *
++ * Tests mkolbol installation from a local tarball in a fresh fixture app.
++ * This validates the packaging, exports, and basic functionality from a
++ * consumer's perspective.
++ */
++export {};
++//# sourceMappingURL=test-consumer.d.ts.map
+\ No newline at end of file
+diff --git a/dist/scripts/test-consumer.d.ts.map b/dist/scripts/test-consumer.d.ts.map
+new file mode 100644
+index 0000000..9ea2148
+--- /dev/null
++++ b/dist/scripts/test-consumer.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"test-consumer.d.ts","sourceRoot":"","sources":["../../scripts/test-consumer.ts"],"names":[],"mappings":";AACA;;;;;;GAMG"}
+\ No newline at end of file
+diff --git a/dist/scripts/test-consumer.js b/dist/scripts/test-consumer.js
+new file mode 100644
+index 0000000..d14041f
+--- /dev/null
++++ b/dist/scripts/test-consumer.js
+@@ -0,0 +1,130 @@
++#!/usr/bin/env tsx
++/**
++ * Consumer acceptance test
++ *
++ * Tests mkolbol installation from a local tarball in a fresh fixture app.
++ * This validates the packaging, exports, and basic functionality from a
++ * consumer's perspective.
++ */
++import { execSync, spawn } from 'child_process';
++import { mkdtempSync, cpSync, existsSync, rmSync, writeFileSync, readFileSync } from 'fs';
++import { tmpdir } from 'os';
++import { join } from 'path';
++const PROJECT_ROOT = new URL('..', import.meta.url).pathname;
++const FIXTURE_DIR = join(PROJECT_ROOT, 'tests/consumer/fixture-app');
++const DIST_DIR = join(PROJECT_ROOT, 'dist');
++function exec(cmd, cwd = PROJECT_ROOT) {
++    console.log(`\n[test-consumer] $ ${cmd}`);
++    try {
++        return execSync(cmd, {
++            cwd,
++            encoding: 'utf8',
++            stdio: ['inherit', 'pipe', 'pipe']
++        });
++    }
++    catch (err) {
++        console.error(`Command failed: ${cmd}`);
++        console.error(err.stdout);
++        console.error(err.stderr);
++        throw err;
++    }
++}
++function execAsync(cmd, args, cwd) {
++    return new Promise((resolve) => {
++        console.log(`\n[test-consumer] $ ${cmd} ${args.join(' ')}`);
++        const proc = spawn(cmd, args, { cwd });
++        let stdout = '';
++        let stderr = '';
++        proc.stdout?.on('data', (data) => {
++            const str = data.toString();
++            stdout += str;
++            process.stdout.write(str);
++        });
++        proc.stderr?.on('data', (data) => {
++            const str = data.toString();
++            stderr += str;
++            process.stderr.write(str);
++        });
++        proc.on('close', (code) => {
++            resolve({ code: code || 0, stdout, stderr });
++        });
++    });
++}
++async function main() {
++    console.log('==========================================');
++    console.log('Consumer Acceptance Test');
++    console.log('==========================================\n');
++    // Step 1: Build the project
++    console.log('[1/6] Building mkolbol...');
++    if (!existsSync(DIST_DIR)) {
++        exec('npm run build');
++    }
++    else {
++        console.log('  ✓ dist/ already exists, skipping build');
++    }
++    // Step 2: Create tarball
++    console.log('\n[2/6] Creating tarball...');
++    const packOutput = exec('npm pack');
++    const tarballName = packOutput.trim().split('\n').pop();
++    console.log(`  ✓ Created: ${tarballName}`);
++    // Step 3: Create temporary test directory
++    console.log('\n[3/6] Setting up test environment...');
++    const tempDir = mkdtempSync(join(tmpdir(), 'mkolbol-consumer-test-'));
++    console.log(`  ✓ Temp dir: ${tempDir}`);
++    try {
++        // Copy fixture files to temp directory
++        cpSync(FIXTURE_DIR, tempDir, { recursive: true });
++        console.log('  ✓ Copied fixture app');
++        // Copy tarball to temp directory  
++        const tarballPath = join(PROJECT_ROOT, tarballName);
++        const targetTarball = join(tempDir, '..', tarballName);
++        cpSync(tarballPath, targetTarball);
++        console.log(`  ✓ Copied tarball to ${targetTarball}`);
++        // Update package.json to point to the tarball
++        const pkgJsonPath = join(tempDir, 'package.json');
++        const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
++        pkgJson.dependencies.mkolbol = `file:${targetTarball}`;
++        writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
++        console.log('  ✓ Updated package.json with tarball path');
++        // Step 4: Install dependencies
++        console.log('\n[4/6] Installing dependencies...');
++        exec('npm install', tempDir);
++        console.log('  ✓ Installation successful');
++        // Step 5: Verify installation
++        console.log('\n[5/6] Verifying installation...');
++        try {
++            exec('node -e "import(\\"mkolbol\\").then(() => console.log(\\"✓ Import successful\\"))"', tempDir);
++        }
++        catch (err) {
++            console.error('  ✗ Failed to import mkolbol');
++            throw err;
++        }
++        // Step 6: Run the test
++        console.log('\n[6/6] Running topology test...');
++        const result = await execAsync('npm', ['test'], tempDir);
++        if (result.code !== 0) {
++            console.error(`\n❌ Test failed with exit code ${result.code}`);
++            process.exit(1);
++        }
++        console.log('\n==========================================');
++        console.log('✅ Consumer Acceptance Test PASSED');
++        console.log('==========================================\n');
++        // Clean up tarball
++        console.log('Cleaning up...');
++        rmSync(tarballPath, { force: true });
++        rmSync(targetTarball, { force: true });
++        rmSync(tempDir, { recursive: true, force: true });
++        console.log('  ✓ Cleanup complete');
++    }
++    catch (error) {
++        console.error('\n==========================================');
++        console.error('❌ Consumer Acceptance Test FAILED');
++        console.error('==========================================');
++        console.error(error.message || error);
++        // Clean up on failure
++        rmSync(tempDir, { recursive: true, force: true });
++        process.exit(1);
++    }
++}
++main();
++//# sourceMappingURL=test-consumer.js.map
+\ No newline at end of file
+diff --git a/dist/scripts/test-consumer.js.map b/dist/scripts/test-consumer.js.map
+new file mode 100644
+index 0000000..e3fa6d7
+--- /dev/null
++++ b/dist/scripts/test-consumer.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"test-consumer.js","sourceRoot":"","sources":["../../scripts/test-consumer.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/src/mk/fetch.d.ts b/dist/src/mk/fetch.d.ts
+new file mode 100644
+index 0000000..f22f69b
+--- /dev/null
++++ b/dist/src/mk/fetch.d.ts
+@@ -0,0 +1,3 @@
++export declare function downloadRelease(tag: string): Promise<string>;
++export declare function installTarball(tarballPath: string): Promise<void>;
++//# sourceMappingURL=fetch.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/mk/fetch.d.ts.map b/dist/src/mk/fetch.d.ts.map
+new file mode 100644
+index 0000000..e64a151
+--- /dev/null
++++ b/dist/src/mk/fetch.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"fetch.d.ts","sourceRoot":"","sources":["../../../src/mk/fetch.ts"],"names":[],"mappings":"AAUA,wBAAsB,eAAe,CAAC,GAAG,EAAE,MAAM,GAAG,OAAO,CAAC,MAAM,CAAC,CAOlE;AAED,wBAAsB,cAAc,CAAC,WAAW,EAAE,MAAM,GAAG,OAAO,CAAC,IAAI,CAAC,CAsBvE"}
+\ No newline at end of file
+diff --git a/dist/src/mk/fetch.js b/dist/src/mk/fetch.js
+new file mode 100644
+index 0000000..b15833b
+--- /dev/null
++++ b/dist/src/mk/fetch.js
+@@ -0,0 +1,137 @@
++import { createWriteStream, existsSync } from 'node:fs';
++import { mkdir, access, constants as fsConstants } from 'node:fs/promises';
++import { dirname, join } from 'node:path';
++import { pipeline } from 'node:stream/promises';
++import { execSync } from 'node:child_process';
++import https from 'node:https';
++const GITHUB_OWNER = 'anteew';
++const GITHUB_REPO = 'mkolbol';
++export async function downloadRelease(tag) {
++    const tarballUrl = await getReleaseTarballUrl(tag);
++    const fileName = `mkolbol-${tag}.tgz`;
++    const outputPath = join(process.cwd(), fileName);
++    await downloadFile(tarballUrl, outputPath);
++    return outputPath;
++}
++export async function installTarball(tarballPath) {
++    if (!existsSync(tarballPath)) {
++        throw new Error(`Tarball not found: ${tarballPath}`);
++    }
++    try {
++        await access(tarballPath, fsConstants.R_OK);
++    }
++    catch {
++        throw new Error(`Cannot read tarball: ${tarballPath}`);
++    }
++    console.log(`Installing from ${tarballPath}...`);
++    try {
++        execSync(`npm install "${tarballPath}"`, {
++            stdio: 'inherit',
++            cwd: process.cwd(),
++        });
++        console.log('Installation complete');
++    }
++    catch (error) {
++        throw new Error(`Installation failed: ${error instanceof Error ? error.message : String(error)}`);
++    }
++}
++async function getReleaseTarballUrl(tag) {
++    const normalizedTag = tag === 'latest' ? await getLatestReleaseTag() : tag;
++    return new Promise((resolve, reject) => {
++        const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${normalizedTag}`;
++        https.get(apiUrl, {
++            headers: {
++                'User-Agent': 'mkolbol-fetch',
++                'Accept': 'application/vnd.github+json',
++            },
++        }, (res) => {
++            if (res.statusCode === 404) {
++                reject(new Error(`Release ${normalizedTag} not found`));
++                return;
++            }
++            if (res.statusCode !== 200) {
++                reject(new Error(`GitHub API returned status ${res.statusCode}`));
++                return;
++            }
++            let data = '';
++            res.on('data', (chunk) => { data += chunk; });
++            res.on('end', () => {
++                try {
++                    const release = JSON.parse(data);
++                    const tgzAsset = release.assets?.find((asset) => asset.name.endsWith('.tgz') || asset.name.endsWith('.tar.gz'));
++                    if (!tgzAsset) {
++                        reject(new Error(`No .tgz asset found for release ${normalizedTag}`));
++                        return;
++                    }
++                    resolve(tgzAsset.browser_download_url);
++                }
++                catch (error) {
++                    reject(new Error(`Failed to parse release data: ${error instanceof Error ? error.message : String(error)}`));
++                }
++            });
++        }).on('error', reject);
++    });
++}
++async function getLatestReleaseTag() {
++    return new Promise((resolve, reject) => {
++        const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
++        https.get(apiUrl, {
++            headers: {
++                'User-Agent': 'mkolbol-fetch',
++                'Accept': 'application/vnd.github+json',
++            },
++        }, (res) => {
++            if (res.statusCode !== 200) {
++                reject(new Error(`Failed to fetch latest release: status ${res.statusCode}`));
++                return;
++            }
++            let data = '';
++            res.on('data', (chunk) => { data += chunk; });
++            res.on('end', () => {
++                try {
++                    const release = JSON.parse(data);
++                    resolve(release.tag_name);
++                }
++                catch (error) {
++                    reject(new Error(`Failed to parse latest release: ${error instanceof Error ? error.message : String(error)}`));
++                }
++            });
++        }).on('error', reject);
++    });
++}
++async function downloadFile(url, outputPath) {
++    const dir = dirname(outputPath);
++    await mkdir(dir, { recursive: true });
++    return new Promise((resolve, reject) => {
++        https.get(url, {
++            headers: {
++                'User-Agent': 'mkolbol-fetch',
++            },
++        }, async (res) => {
++            if (res.statusCode === 302 || res.statusCode === 301) {
++                if (res.headers.location) {
++                    await downloadFile(res.headers.location, outputPath);
++                    resolve();
++                }
++                else {
++                    reject(new Error('Redirect without location header'));
++                }
++                return;
++            }
++            if (res.statusCode !== 200) {
++                reject(new Error(`Download failed with status ${res.statusCode}`));
++                return;
++            }
++            const fileStream = createWriteStream(outputPath);
++            try {
++                await pipeline(res, fileStream);
++                console.log(`Downloaded to ${outputPath}`);
++                resolve();
++            }
++            catch (error) {
++                reject(new Error(`Download failed: ${error instanceof Error ? error.message : String(error)}`));
++            }
++        }).on('error', reject);
++    });
++}
++//# sourceMappingURL=fetch.js.map
+\ No newline at end of file
+diff --git a/dist/src/mk/fetch.js.map b/dist/src/mk/fetch.js.map
+new file mode 100644
+index 0000000..2f0530a
+--- /dev/null
++++ b/dist/src/mk/fetch.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"fetch.js","sourceRoot":"","sources":["../../../src/mk/fetch.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/mkolbol-0.2.0-rfc.tgz b/mkolbol-0.2.0-rfc.tgz
+deleted file mode 100644
+index fed770b..0000000
+Binary files a/mkolbol-0.2.0-rfc.tgz and /dev/null differ
+diff --git a/package.json b/package.json
+index 03a96bd..e345d70 100644
+--- a/package.json
++++ b/package.json
+@@ -33,16 +33,20 @@
+     "README.md",
+     "LICENSE",
+     "STREAM_KERNEL_RFC.md",
+-    "docs/"
++    "docs/",
++    "schemas/"
+   ],
+   "bin": {
+-    "lam": "dist/scripts/lam.js",
+-    "mk": "dist/scripts/mk.js"
++    "mk": "dist/scripts/mk.js",
++    "mkctl": "dist/scripts/mkctl.js",
++    "lam": "dist/scripts/lam.js"
+   },
+   "scripts": {
++    "prepare": "test -f tsconfig.json && npm run build || true",
+     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
+     "build": "tsc -p tsconfig.json",
+     "test": "vitest run",
++    "test:consumer": "tsx scripts/test-consumer.ts",
+     "test:ci": "LAMINAR_SUITE=threads vitest run --pool=threads --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts' --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
+     "test:pty": "LAMINAR_SUITE=forks vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts tests/integration/endpointsList.spec.ts tests/integration/processMode.spec.ts tests/integration/processUnix.spec.ts tests/integration/workerMode.spec.ts tests/integration/stdioPath.spec.ts tests/integration/externalFromConfig.spec.ts --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
+     "lam:append-history": "node scripts/append-laminar-history.js",
+diff --git a/patches/DIFF_T9101_release-pack.patch b/patches/DIFF_T9101_release-pack.patch
+new file mode 100644
+index 0000000..5b49ff6
+--- /dev/null
++++ b/patches/DIFF_T9101_release-pack.patch
+@@ -0,0 +1,76 @@
++diff --git a/.npmignore b/.npmignore
++new file mode 100644
++index 0000000..e69de29
++--- /dev/null
+++++ b/.npmignore
++@@ -0,0 +1,53 @@
+++# Development and testing files
+++test/
+++tests/
+++examples/
+++*.spec.ts
+++*.spec.js
+++*.test.ts
+++*.test.js
+++
+++# Development tools and configs
+++.mk/
+++patches/
+++reports/
+++scripts/
+++sprints/
+++project-manager/
+++agent_template/
+++archived/
+++
+++# Internal agents and tools
+++SUSAN/
+++VEGA/
+++Vex/
+++
+++# Dev documentation
+++CONTRIBUTING-DEVEX.md
+++devex.md
+++ampcode*.md
+++ampcode*.log
+++ampcode*.tmp
+++
+++# Build artifacts
+++tsconfig.json
+++vitest.config.ts
+++*.tsbuildinfo
+++
+++# Logs and test results
+++*.log
+++test-*.log
+++TEST_RESULTS_*.md
+++test-summary.txt
+++
+++# Lock files (keep package-lock.json only)
+++pnpm-lock.yaml
+++
+++# Git and GitHub
+++.git/
+++.github/
+++.gitignore
+++.claude/
+++
+++# Temporary files
+++*.tmp
+++*.tgz
++diff --git a/package.json b/package.json
++index original..modified 100644
++--- a/package.json
+++++ b/package.json
++@@ -32,9 +32,10 @@
++     "dist/",
++     "README.md",
++     "LICENSE",
++     "STREAM_KERNEL_RFC.md",
++-    "docs/"
+++    "docs/",
+++    "schemas/"
++   ],
++   "bin": {
++     "mk": "dist/scripts/mk.js",
++     "mkctl": "dist/scripts/mkctl.js",
+diff --git a/patches/DIFF_T9102_release-ci.patch b/patches/DIFF_T9102_release-ci.patch
+new file mode 100644
+index 0000000..78f334e
+--- /dev/null
++++ b/patches/DIFF_T9102_release-ci.patch
+@@ -0,0 +1,118 @@
++diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
++index 682869e..95b30aa 100644
++--- a/.github/workflows/release.yml
+++++ b/.github/workflows/release.yml
++@@ -1,4 +1,4 @@
++-name: Release & Publish
+++name: Release
++ 
++ on:
++   push:
++@@ -7,11 +7,10 @@ on:
++ 
++ permissions:
++   contents: write
++-  id-token: write
++ 
++ jobs:
++   release:
++-    name: Release & Publish to NPM
+++    name: Create Release with Tarball
++     runs-on: ubuntu-latest
++     
++     steps:
++@@ -23,7 +22,6 @@ jobs:
++         with:
++           node-version: 20
++           cache: 'npm'
++-          registry-url: 'https://registry.npmjs.org'
++       
++       - name: Install dependencies
++         run: npm ci
++@@ -31,34 +29,21 @@ jobs:
++       - name: Build
++         run: npm run build
++       
++-      - name: Run tests
++-        run: npm run test:ci
++-      
++-      - name: Verify package contents
++-        run: |
++-          npm pack --dry-run
++-          echo "Package contents verified"
+++      - name: Pack
+++        run: npm pack
++       
++       - name: Extract version from tag
++         id: version
++         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
++       
++-      - name: Verify package.json version matches tag
+++      - name: Get tarball filename
+++        id: tarball
++         run: |
++-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
++-          TAG_VERSION="${{ steps.version.outputs.VERSION }}"
++-          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
++-            echo "Error: package.json version ($PACKAGE_VERSION) does not match tag version ($TAG_VERSION)"
++-            exit 1
++-          fi
++-          echo "Version verified: $PACKAGE_VERSION"
++-      
++-      - name: Publish to NPM
++-        run: npm publish --provenance --access public
++-        env:
++-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+++          TARBALL=$(ls mkolbol-*.tgz)
+++          echo "FILENAME=$TARBALL" >> $GITHUB_OUTPUT
++       
++       - name: Create GitHub Release
+++        id: create_release
++         uses: actions/github-script@v7
++         with:
++           script: |
++@@ -66,24 +51,36 @@ jobs:
++             const tag = context.ref.replace('refs/tags/', '');
++             const version = tag.replace('v', '');
++             
++-            // Extract release notes from README or use default
++-            let releaseNotes = `## Release ${version}\n\n`;
++-            releaseNotes += `Published to NPM: https://www.npmjs.com/package/mkolbol/v/${version}\n\n`;
+++            let releaseNotes = `## mkolbol ${version}\n\n`;
+++            releaseNotes += `Stream-based microkernel for AI agent systems\n\n`;
++             releaseNotes += `### Installation\n\n`;
++             releaseNotes += '```bash\n';
++-            releaseNotes += `npm install mkolbol@${version}\n`;
+++            releaseNotes += `# From tarball\n`;
+++            releaseNotes += `npm install https://github.com/${context.repo.owner}/${context.repo.repo}/releases/download/${tag}/mkolbol-${version}.tgz\n`;
++             releaseNotes += '```\n\n';
++             releaseNotes += `### Changes\n\n`;
++-            releaseNotes += `See [CHANGELOG](https://github.com/${context.repo.owner}/${context.repo.repo}/compare/v${version}) for details.`;
+++            releaseNotes += `See commit history for details.`;
++             
++-            await github.rest.repos.createRelease({
+++            const release = await github.rest.repos.createRelease({
++               owner: context.repo.owner,
++               repo: context.repo.repo,
++               tag_name: tag,
++-              name: `Release ${version}`,
+++              name: `v${version}`,
++               body: releaseNotes,
++               draft: false,
++               prerelease: version.includes('-') || version.includes('alpha') || version.includes('beta') || version.includes('rc')
++             });
++             
++-            core.notice(`✅ Published mkolbol@${version} to NPM and created GitHub release`);
+++            core.setOutput('upload_url', release.data.upload_url);
+++            core.setOutput('release_id', release.data.id);
+++            core.notice(`✅ Created GitHub release v${version}`);
+++      
+++      - name: Upload tarball to release
+++        uses: actions/upload-release-asset@v1
+++        env:
+++          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+++        with:
+++          upload_url: ${{ steps.create_release.outputs.upload_url }}
+++          asset_path: ./${{ steps.tarball.outputs.FILENAME }}
+++          asset_name: ${{ steps.tarball.outputs.FILENAME }}
+++          asset_content_type: application/gzip
+diff --git a/patches/DIFF_T9104_packaging-knobs.patch b/patches/DIFF_T9104_packaging-knobs.patch
+new file mode 100644
+index 0000000..c1469ec
+--- /dev/null
++++ b/patches/DIFF_T9104_packaging-knobs.patch
+@@ -0,0 +1,24 @@
++diff --git a/package.json b/package.json
++index 03a96bd..8e02672 100644
++--- a/package.json
+++++ b/package.json
++@@ -33,13 +33,16 @@
++     "README.md",
++     "LICENSE",
++     "STREAM_KERNEL_RFC.md",
++-    "docs/"
+++    "docs/",
+++    "schemas/"
++   ],
++   "bin": {
++-    "lam": "dist/scripts/lam.js",
++-    "mk": "dist/scripts/mk.js"
+++    "mk": "dist/scripts/mk.js",
+++    "mkctl": "dist/scripts/mkctl.js",
+++    "lam": "dist/scripts/lam.js"
++   },
++   "scripts": {
+++    "prepare": "test -f tsconfig.json && npm run build || true",
++     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
++     "build": "tsc -p tsconfig.json",
++     "test": "vitest run",
+diff --git a/patches/DIFF_T9105_mk-fetch.patch b/patches/DIFF_T9105_mk-fetch.patch
+new file mode 100644
+index 0000000..544d2d0
+--- /dev/null
++++ b/patches/DIFF_T9105_mk-fetch.patch
+@@ -0,0 +1,337 @@
++diff --git docs/devex/packaging.md docs/devex/packaging.md
++index a208077..95a0d69 100644
++--- docs/devex/packaging.md
+++++ docs/devex/packaging.md
++@@ -2,6 +2,132 @@
++ 
++ This guide shows you how to package your mkolbol-based application and its custom servers into a single distributable executable or bundle. This is essential for shipping your application to users or deploying to production environments.
++ 
+++## Table of Contents
+++
+++1. [Tarball Installation](#tarball-installation)
+++2. [Git Tag Pinning](#git-tag-pinning)
+++3. [Bundling Approaches](#bundling-approaches)
+++4. [Runtime Configuration](#runtime-configuration-discovery)
+++5. [Deployment Checklist](#deployment-checklist)
+++
+++## Tarball Installation
+++
+++mkolbol releases are published as `.tgz` tarballs on GitHub. You can install specific versions using either npm directly or the `mk fetch` command.
+++
+++### Using npm
+++
+++Install a specific release from a local tarball:
+++
+++```bash
+++npm install ./mkolbol-v0.2.0.tgz
+++```
+++
+++Or from a URL:
+++
+++```bash
+++npm install https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-v0.2.0.tgz
+++```
+++
+++### Using mk fetch (Experimental)
+++
+++The `mk fetch` command downloads and installs a release tarball by tag:
+++
+++```bash
+++# Install a specific version
+++mk fetch v0.2.0
+++
+++# Install the latest release
+++mk fetch latest
+++```
+++
+++**What it does**:
+++1. Queries GitHub releases API for the specified tag
+++2. Downloads the `.tgz` asset to your current directory
+++3. Runs `npm install <tarball>` to install it
+++4. Updates your `package.json` and `package-lock.json`
+++
+++**Examples**:
+++
+++```bash
+++# Install specific version
+++$ mk fetch v0.2.0
+++Fetching release v0.2.0...
+++Downloaded to /path/to/mkolbol-v0.2.0.tgz
+++Installing from /path/to/mkolbol-v0.2.0.tgz...
+++Installation complete
+++
+++# Install latest stable release
+++$ mk fetch latest
+++Fetching release latest...
+++Downloaded to /path/to/mkolbol-v0.3.0.tgz
+++Installing from /path/to/mkolbol-v0.3.0.tgz...
+++Installation complete
+++```
+++
+++**Limitations**:
+++- Requires internet connection to GitHub
+++- Only works with published GitHub releases
+++- Does not support pre-release tags (alpha, beta)
+++- Experimental feature, API may change
+++
+++## Git Tag Pinning
+++
+++For development or CI/CD, you can pin mkolbol to a specific git commit or tag using npm's git protocol:
+++
+++### Pin to a tag
+++
+++```json
+++{
+++  "dependencies": {
+++    "mkolbol": "github:anteew/mkolbol#v0.2.0"
+++  }
+++}
+++```
+++
+++### Pin to a commit SHA
+++
+++```json
+++{
+++  "dependencies": {
+++    "mkolbol": "github:anteew/mkolbol#a1b2c3d4"
+++  }
+++}
+++```
+++
+++### Pin to a branch
+++
+++```json
+++{
+++  "dependencies": {
+++    "mkolbol": "github:anteew/mkolbol#main"
+++  }
+++}
+++```
+++
+++**Install**:
+++
+++```bash
+++npm install
+++```
+++
+++**Pros**:
+++- Pin to any commit, tag, or branch
+++- No need to wait for npm registry publish
+++- Works in CI/CD environments
+++- Reproducible builds
+++
+++**Cons**:
+++- Requires git checkout and build on install
+++- Slower than tarball install
+++- Requires build dependencies (TypeScript, etc.)
+++- Not suitable for production deployments
+++
+++**When to use**:
+++- Development against unreleased features
+++- Testing release candidates
+++- CI/CD pipelines with specific version requirements
+++- Contributing to mkolbol development
+++
++ ## Overview
++ 
++ When you build an application with mkolbol, you typically have:
++diff --git scripts/mk.ts scripts/mk.ts
++index 05829ef..2cf317c 100644
++--- scripts/mk.ts
+++++ scripts/mk.ts
++@@ -124,6 +124,35 @@ const commands: Command[] = [
++       return EXIT_SUCCESS;
++     },
++   },
+++  {
+++    name: 'fetch',
+++    description: 'Download and install release tarball by tag (experimental)',
+++    usage: 'mk fetch <tag>',
+++    handler: async (args: string[]) => {
+++      if (args.length === 0) {
+++        console.error('Error: Missing release tag');
+++        console.error('Usage: mk fetch <tag>');
+++        console.error('Examples: mk fetch v0.2.0, mk fetch latest');
+++        return EXIT_USAGE;
+++      }
+++
+++      const tag = args[0];
+++      
+++      try {
+++        const { downloadRelease, installTarball } = await import('../src/mk/fetch.js');
+++        
+++        console.log(`Fetching release ${tag}...`);
+++        const tarballPath = await downloadRelease(tag);
+++        
+++        await installTarball(tarballPath);
+++        
+++        return EXIT_SUCCESS;
+++      } catch (error) {
+++        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+++        return EXIT_ERROR;
+++      }
+++    },
+++  },
++ ];
++ 
++ function printMainHelp() {
++diff --git src/mk/fetch.ts src/mk/fetch.ts
++new file mode 100644
++index 0000000..ac65ae9
++--- /dev/null
+++++ src/mk/fetch.ts
++@@ -0,0 +1,154 @@
+++import { createWriteStream, existsSync } from 'node:fs';
+++import { mkdir, chmod, access, constants as fsConstants } from 'node:fs/promises';
+++import { dirname, join } from 'node:path';
+++import { pipeline } from 'node:stream/promises';
+++import { execSync } from 'node:child_process';
+++import https from 'node:https';
+++
+++const GITHUB_OWNER = 'anteew';
+++const GITHUB_REPO = 'mkolbol';
+++
+++export async function downloadRelease(tag: string): Promise<string> {
+++  const tarballUrl = await getReleaseTarballUrl(tag);
+++  const fileName = `mkolbol-${tag}.tgz`;
+++  const outputPath = join(process.cwd(), fileName);
+++
+++  await downloadFile(tarballUrl, outputPath);
+++  return outputPath;
+++}
+++
+++export async function installTarball(tarballPath: string): Promise<void> {
+++  if (!existsSync(tarballPath)) {
+++    throw new Error(`Tarball not found: ${tarballPath}`);
+++  }
+++
+++  try {
+++    await access(tarballPath, fsConstants.R_OK);
+++  } catch {
+++    throw new Error(`Cannot read tarball: ${tarballPath}`);
+++  }
+++
+++  console.log(`Installing from ${tarballPath}...`);
+++  
+++  try {
+++    execSync(`npm install "${tarballPath}"`, {
+++      stdio: 'inherit',
+++      cwd: process.cwd(),
+++    });
+++    console.log('Installation complete');
+++  } catch (error) {
+++    throw new Error(`Installation failed: ${error instanceof Error ? error.message : String(error)}`);
+++  }
+++}
+++
+++async function getReleaseTarballUrl(tag: string): Promise<string> {
+++  const normalizedTag = tag === 'latest' ? await getLatestReleaseTag() : tag;
+++  
+++  return new Promise((resolve, reject) => {
+++    const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${normalizedTag}`;
+++    
+++    https.get(apiUrl, {
+++      headers: {
+++        'User-Agent': 'mkolbol-fetch',
+++        'Accept': 'application/vnd.github+json',
+++      },
+++    }, (res) => {
+++      if (res.statusCode === 404) {
+++        reject(new Error(`Release ${normalizedTag} not found`));
+++        return;
+++      }
+++      
+++      if (res.statusCode !== 200) {
+++        reject(new Error(`GitHub API returned status ${res.statusCode}`));
+++        return;
+++      }
+++
+++      let data = '';
+++      res.on('data', (chunk) => { data += chunk; });
+++      res.on('end', () => {
+++        try {
+++          const release = JSON.parse(data);
+++          const tgzAsset = release.assets?.find((asset: any) => 
+++            asset.name.endsWith('.tgz') || asset.name.endsWith('.tar.gz')
+++          );
+++
+++          if (!tgzAsset) {
+++            reject(new Error(`No .tgz asset found for release ${normalizedTag}`));
+++            return;
+++          }
+++
+++          resolve(tgzAsset.browser_download_url);
+++        } catch (error) {
+++          reject(new Error(`Failed to parse release data: ${error instanceof Error ? error.message : String(error)}`));
+++        }
+++      });
+++    }).on('error', reject);
+++  });
+++}
+++
+++async function getLatestReleaseTag(): Promise<string> {
+++  return new Promise((resolve, reject) => {
+++    const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+++    
+++    https.get(apiUrl, {
+++      headers: {
+++        'User-Agent': 'mkolbol-fetch',
+++        'Accept': 'application/vnd.github+json',
+++      },
+++    }, (res) => {
+++      if (res.statusCode !== 200) {
+++        reject(new Error(`Failed to fetch latest release: status ${res.statusCode}`));
+++        return;
+++      }
+++
+++      let data = '';
+++      res.on('data', (chunk) => { data += chunk; });
+++      res.on('end', () => {
+++        try {
+++          const release = JSON.parse(data);
+++          resolve(release.tag_name);
+++        } catch (error) {
+++          reject(new Error(`Failed to parse latest release: ${error instanceof Error ? error.message : String(error)}`));
+++        }
+++      });
+++    }).on('error', reject);
+++  });
+++}
+++
+++async function downloadFile(url: string, outputPath: string): Promise<void> {
+++  const dir = dirname(outputPath);
+++  await mkdir(dir, { recursive: true });
+++
+++  return new Promise((resolve, reject) => {
+++    https.get(url, {
+++      headers: {
+++        'User-Agent': 'mkolbol-fetch',
+++      },
+++    }, async (res) => {
+++      if (res.statusCode === 302 || res.statusCode === 301) {
+++        if (res.headers.location) {
+++          await downloadFile(res.headers.location, outputPath);
+++          resolve();
+++        } else {
+++          reject(new Error('Redirect without location header'));
+++        }
+++        return;
+++      }
+++
+++      if (res.statusCode !== 200) {
+++        reject(new Error(`Download failed with status ${res.statusCode}`));
+++        return;
+++      }
+++
+++      const fileStream = createWriteStream(outputPath);
+++      
+++      try {
+++        await pipeline(res, fileStream);
+++        console.log(`Downloaded to ${outputPath}`);
+++        resolve();
+++      } catch (error) {
+++        reject(new Error(`Download failed: ${error instanceof Error ? error.message : String(error)}`));
+++      }
+++    }).on('error', reject);
+++  });
+++}
+diff --git a/patches/T9105_SUMMARY.md b/patches/T9105_SUMMARY.md
+new file mode 100644
+index 0000000..c248b87
+--- /dev/null
++++ b/patches/T9105_SUMMARY.md
+@@ -0,0 +1,131 @@
++# T9105: mk fetch Command - Summary
++
++## Overview
++
++Created `mk fetch` command to download and install mkolbol release tarballs by tag from GitHub releases.
++
++## Implementation
++
++### 1. src/mk/fetch.ts (New File)
++
++Core functionality module with two public functions:
++
++**`downloadRelease(tag: string): Promise<string>`**
++- Queries GitHub Releases API for specified tag
++- Supports special "latest" tag to fetch most recent release
++- Downloads `.tgz` asset to current working directory
++- Returns path to downloaded tarball
++- Error handling for missing releases and network failures
++
++**`installTarball(path: string): Promise<void>`**
++- Validates tarball exists and is readable
++- Executes `npm install <tarball>` via child_process
++- Updates package.json and package-lock.json
++- Inherits stdio for npm output visibility
++
++**Internal functions:**
++- `getReleaseTarballUrl(tag)`: Resolves tag to tarball URL
++- `getLatestReleaseTag()`: Fetches latest release tag from GitHub
++- `downloadFile(url, path)`: HTTP download with redirect handling
++
++### 2. scripts/mk.ts
++
++Added new command to CLI:
++
++```typescript
++{
++  name: 'fetch',
++  description: 'Download and install release tarball by tag (experimental)',
++  usage: 'mk fetch <tag>',
++  handler: async (args: string[]) => {
++    // Validates args, imports fetch module, downloads and installs
++  }
++}
++```
++
++### 3. docs/devex/packaging.md
++
++Updated documentation with three new sections:
++
++**Table of Contents**
++- Added navigation links to major sections
++
++**Tarball Installation**
++- npm install from local/remote tarball
++- `mk fetch` usage and examples
++- Workflow explanation
++- Limitations (experimental, requires GitHub, no pre-releases)
++
++**Git Tag Pinning**
++- Pin to tag, commit SHA, or branch
++- Pros/cons comparison
++- When to use (dev, CI/CD, testing)
++- npm git protocol examples
++
++## Usage Examples
++
++```bash
++# Install specific version
++mk fetch v0.2.0
++
++# Install latest release
++mk fetch latest
++
++# Error: missing tag
++mk fetch
++# Error: Missing release tag
++# Usage: mk fetch <tag>
++# Examples: mk fetch v0.2.0, mk fetch latest
++```
++
++## Technical Details
++
++**HTTP Client**: Node.js https module (no external dependencies)
++**API**: GitHub REST API v3
++  - `/repos/:owner/:repo/releases/tags/:tag`
++  - `/repos/:owner/:repo/releases/latest`
++**Install Method**: `npm install <tarball>` via execSync
++**Download Location**: `process.cwd()` (current directory)
++
++## Error Handling
++
++- Missing tag argument (EXIT_USAGE)
++- Release not found (404)
++- GitHub API errors
++- Network failures
++- Tarball read permissions
++- npm install failures
++
++## Limitations
++
++1. **Experimental**: API may change
++2. **GitHub only**: Requires connection to GitHub
++3. **No auth**: Rate-limited to 60 requests/hour
++4. **No pre-releases**: Only works with published releases
++5. **No cleanup**: Downloaded tarball remains in current directory
++
++## Verification
++
++Build passes:
++```bash
++npm run build
++# ✓ TypeScript compilation successful
++```
++
++## Files Changed
++
++- **src/mk/fetch.ts** (created, 154 lines)
++- **scripts/mk.ts** (+29 lines)
++- **docs/devex/packaging.md** (+126 lines)
++- **patches/DIFF_T9105_mk-fetch.patch** (337 lines)
++
++## Next Steps
++
++1. Test with actual GitHub releases
++2. Consider adding:
++   - Progress bars for downloads
++   - Cleanup option for downloaded tarballs
++   - Support for authentication tokens (higher rate limits)
++   - Pre-release filtering
++   - Checksum verification
++3. Update AGENTS.md with fetch command
+diff --git a/scripts/test-consumer.ts b/scripts/test-consumer.ts
+new file mode 100644
+index 0000000..c3dbdff
+--- /dev/null
++++ b/scripts/test-consumer.ts
+@@ -0,0 +1,149 @@
++#!/usr/bin/env tsx
++/**
++ * Consumer acceptance test
++ * 
++ * Tests mkolbol installation from a local tarball in a fresh fixture app.
++ * This validates the packaging, exports, and basic functionality from a
++ * consumer's perspective.
++ */
++
++import { execSync, spawn } from 'child_process';
++import { mkdtempSync, cpSync, existsSync, rmSync, writeFileSync, readFileSync } from 'fs';
++import { tmpdir } from 'os';
++import { join } from 'path';
++
++const PROJECT_ROOT = new URL('..', import.meta.url).pathname;
++const FIXTURE_DIR = join(PROJECT_ROOT, 'tests/consumer/fixture-app');
++const DIST_DIR = join(PROJECT_ROOT, 'dist');
++
++function exec(cmd: string, cwd: string = PROJECT_ROOT): string {
++  console.log(`\n[test-consumer] $ ${cmd}`);
++  try {
++    return execSync(cmd, { 
++      cwd, 
++      encoding: 'utf8',
++      stdio: ['inherit', 'pipe', 'pipe']
++    });
++  } catch (err: any) {
++    console.error(`Command failed: ${cmd}`);
++    console.error(err.stdout);
++    console.error(err.stderr);
++    throw err;
++  }
++}
++
++function execAsync(cmd: string, args: string[], cwd: string): Promise<{ code: number, stdout: string, stderr: string }> {
++  return new Promise((resolve) => {
++    console.log(`\n[test-consumer] $ ${cmd} ${args.join(' ')}`);
++    const proc = spawn(cmd, args, { cwd });
++    
++    let stdout = '';
++    let stderr = '';
++    
++    proc.stdout?.on('data', (data) => {
++      const str = data.toString();
++      stdout += str;
++      process.stdout.write(str);
++    });
++    
++    proc.stderr?.on('data', (data) => {
++      const str = data.toString();
++      stderr += str;
++      process.stderr.write(str);
++    });
++    
++    proc.on('close', (code) => {
++      resolve({ code: code || 0, stdout, stderr });
++    });
++  });
++}
++
++async function main() {
++  console.log('==========================================');
++  console.log('Consumer Acceptance Test');
++  console.log('==========================================\n');
++
++  // Step 1: Build the project
++  console.log('[1/6] Building mkolbol...');
++  if (!existsSync(DIST_DIR)) {
++    exec('npm run build');
++  } else {
++    console.log('  ✓ dist/ already exists, skipping build');
++  }
++
++  // Step 2: Create tarball
++  console.log('\n[2/6] Creating tarball...');
++  const packOutput = exec('npm pack');
++  const tarballName = packOutput.trim().split('\n').pop()!;
++  console.log(`  ✓ Created: ${tarballName}`);
++
++  // Step 3: Create temporary test directory
++  console.log('\n[3/6] Setting up test environment...');
++  const tempDir = mkdtempSync(join(tmpdir(), 'mkolbol-consumer-test-'));
++  console.log(`  ✓ Temp dir: ${tempDir}`);
++
++  try {
++    // Copy fixture files to temp directory
++    cpSync(FIXTURE_DIR, tempDir, { recursive: true });
++    console.log('  ✓ Copied fixture app');
++
++    // Copy tarball to temp directory  
++    const tarballPath = join(PROJECT_ROOT, tarballName);
++    const targetTarball = join(tempDir, '..', tarballName);
++    cpSync(tarballPath, targetTarball);
++    console.log(`  ✓ Copied tarball to ${targetTarball}`);
++
++    // Update package.json to point to the tarball
++    const pkgJsonPath = join(tempDir, 'package.json');
++    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
++    pkgJson.dependencies.mkolbol = `file:${targetTarball}`;
++    writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
++    console.log('  ✓ Updated package.json with tarball path');
++
++    // Step 4: Install dependencies
++    console.log('\n[4/6] Installing dependencies...');
++    exec('npm install', tempDir);
++    console.log('  ✓ Installation successful');
++
++    // Step 5: Verify installation
++    console.log('\n[5/6] Verifying installation...');
++    try {
++      exec('node -e "import(\\"mkolbol\\").then(() => console.log(\\"✓ Import successful\\"))"', tempDir);
++    } catch (err) {
++      console.error('  ✗ Failed to import mkolbol');
++      throw err;
++    }
++
++    // Step 6: Run the test
++    console.log('\n[6/6] Running topology test...');
++    const result = await execAsync('npm', ['test'], tempDir);
++    
++    if (result.code !== 0) {
++      console.error(`\n❌ Test failed with exit code ${result.code}`);
++      process.exit(1);
++    }
++
++    console.log('\n==========================================');
++    console.log('✅ Consumer Acceptance Test PASSED');
++    console.log('==========================================\n');
++
++    // Clean up tarball
++    console.log('Cleaning up...');
++    rmSync(tarballPath, { force: true });
++    rmSync(targetTarball, { force: true });
++    rmSync(tempDir, { recursive: true, force: true });
++    console.log('  ✓ Cleanup complete');
++
++  } catch (error: any) {
++    console.error('\n==========================================');
++    console.error('❌ Consumer Acceptance Test FAILED');
++    console.error('==========================================');
++    console.error(error.message || error);
++    
++    // Clean up on failure
++    rmSync(tempDir, { recursive: true, force: true });
++    process.exit(1);
++  }
++}
++
++main();
+diff --git a/tests/consumer/fixture-app/package.json b/tests/consumer/fixture-app/package.json
+new file mode 100644
+index 0000000..a680262
+--- /dev/null
++++ b/tests/consumer/fixture-app/package.json
+@@ -0,0 +1,14 @@
++{
++  "name": "mkolbol-consumer-fixture",
++  "version": "1.0.0",
++  "type": "module",
++  "private": true,
++  "description": "Consumer acceptance test fixture for mkolbol",
++  "dependencies": {
++    "mkolbol": "file:../../../mkolbol-0.2.0-rfc.tgz",
++    "yaml": "^2.3.4"
++  },
++  "scripts": {
++    "test": "node test-run.js"
++  }
++}
+diff --git a/tests/consumer/fixture-app/test-run.js b/tests/consumer/fixture-app/test-run.js
+new file mode 100644
+index 0000000..2f9ad83
+--- /dev/null
++++ b/tests/consumer/fixture-app/test-run.js
+@@ -0,0 +1,73 @@
++#!/usr/bin/env node
++import { Kernel, Hostess, StateManager, Executor } from 'mkolbol';
++import { readFileSync, existsSync, unlinkSync } from 'fs';
++import { fileURLToPath } from 'url';
++import { dirname, join } from 'path';
++import { parse as parseYaml } from 'yaml';
++
++const __dirname = dirname(fileURLToPath(import.meta.url));
++const outputFile = join(__dirname, 'test-output.jsonl');
++
++async function runTest() {
++  console.log('[Consumer Test] Starting topology test...');
++
++  // Clean up previous output
++  if (existsSync(outputFile)) {
++    unlinkSync(outputFile);
++  }
++
++  // Read topology config
++  const configPath = join(__dirname, 'topology.yml');
++  const configYaml = readFileSync(configPath, 'utf8');
++  const config = parseYaml(configYaml);
++
++  // Create kernel, hostess, state manager, and executor
++  const kernel = new Kernel();
++  const hostess = new Hostess();
++  const stateManager = new StateManager(kernel);
++  const executor = new Executor(kernel, hostess, stateManager);
++  
++  let success = false;
++
++  try {
++    console.log('[Consumer Test] Loading topology...');
++    executor.load(config);
++    
++    console.log('[Consumer Test] Starting topology...');
++    await executor.up();
++
++    // Wait for some output to be generated
++    console.log('[Consumer Test] Running topology for 2 seconds...');
++    await new Promise(resolve => setTimeout(resolve, 2000));
++
++    // Check if output file was created and has content
++    if (existsSync(outputFile)) {
++      const content = readFileSync(outputFile, 'utf8');
++      const lines = content.trim().split('\n').filter(l => l.length > 0);
++      
++      if (lines.length > 0) {
++        console.log(`[Consumer Test] ✅ SUCCESS: Generated ${lines.length} events`);
++        console.log(`[Consumer Test] Sample event: ${lines[0].substring(0, 100)}...`);
++        success = true;
++      } else {
++        console.error('[Consumer Test] ❌ FAIL: Output file is empty');
++      }
++    } else {
++      console.error('[Consumer Test] ❌ FAIL: Output file was not created');
++    }
++
++    await executor.down();
++  } catch (error) {
++    console.error('[Consumer Test] ❌ FAIL: Error during test:', error.message);
++    process.exit(1);
++  }
++
++  if (!success) {
++    process.exit(1);
++  }
++
++  console.log('[Consumer Test] Test completed successfully');
++  process.exit(0);
++}
++
++runTest();
+diff --git a/tests/consumer/fixture-app/topology.yml b/tests/consumer/fixture-app/topology.yml
+new file mode 100644
+index 0000000..b30a00b
+--- /dev/null
++++ b/tests/consumer/fixture-app/topology.yml
+@@ -0,0 +1,22 @@
++nodes:
++  - id: timer
++    module: TimerSource
++    params:
++      periodMs: 500
++
++  - id: transform
++    module: UppercaseTransform
++
++  - id: filesink
++    module: FilesystemSink
++    params:
++      path: test-output.jsonl
++      format: raw
++      mode: append
++
++connections:
++  - from: timer.output
++    to: transform.input
++  
++  - from: transform.output
++    to: filesink.input

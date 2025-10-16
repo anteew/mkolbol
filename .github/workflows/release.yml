@@ -1,4 +1,4 @@
-name: Release & Publish
+name: Release
 
 on:
   push:
@@ -7,11 +7,10 @@ on:
 
 permissions:
   contents: write
-  id-token: write
 
 jobs:
   release:
-    name: Release & Publish to NPM
+    name: Create Release with Tarball
     runs-on: ubuntu-latest
     
     steps:
@@ -23,7 +22,6 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
       
       - name: Install dependencies
         run: npm ci
@@ -31,34 +29,21 @@ jobs:
       - name: Build
         run: npm run build
       
-      - name: Run tests
-        run: npm run test:ci
-      
-      - name: Verify package contents
-        run: |
-          npm pack --dry-run
-          echo "Package contents verified"
+      - name: Pack
+        run: npm pack
       
       - name: Extract version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
-      - name: Verify package.json version matches tag
+      - name: Get tarball filename
+        id: tarball
         run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          TAG_VERSION="${{ steps.version.outputs.VERSION }}"
-          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: package.json version ($PACKAGE_VERSION) does not match tag version ($TAG_VERSION)"
-            exit 1
-          fi
-          echo "Version verified: $PACKAGE_VERSION"
-      
-      - name: Publish to NPM
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TARBALL=$(ls mkolbol-*.tgz)
+          echo "FILENAME=$TARBALL" >> $GITHUB_OUTPUT
       
       - name: Create GitHub Release
+        id: create_release
         uses: actions/github-script@v7
         with:
           script: |
@@ -66,24 +51,36 @@ jobs:
             const tag = context.ref.replace('refs/tags/', '');
             const version = tag.replace('v', '');
             
-            // Extract release notes from README or use default
-            let releaseNotes = `## Release ${version}\n\n`;
-            releaseNotes += `Published to NPM: https://www.npmjs.com/package/mkolbol/v/${version}\n\n`;
+            let releaseNotes = `## mkolbol ${version}\n\n`;
+            releaseNotes += `Stream-based microkernel for AI agent systems\n\n`;
             releaseNotes += `### Installation\n\n`;
             releaseNotes += '```bash\n';
-            releaseNotes += `npm install mkolbol@${version}\n`;
+            releaseNotes += `# From tarball\n`;
+            releaseNotes += `npm install https://github.com/${context.repo.owner}/${context.repo.repo}/releases/download/${tag}/mkolbol-${version}.tgz\n`;
             releaseNotes += '```\n\n';
             releaseNotes += `### Changes\n\n`;
-            releaseNotes += `See [CHANGELOG](https://github.com/${context.repo.owner}/${context.repo.repo}/compare/v${version}) for details.`;
+            releaseNotes += `See commit history for details.`;
             
-            await github.rest.repos.createRelease({
+            const release = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: tag,
-              name: `Release ${version}`,
+              name: `v${version}`,
               body: releaseNotes,
               draft: false,
               prerelease: version.includes('-') || version.includes('alpha') || version.includes('beta') || version.includes('rc')
             });
             
-            core.notice(`✅ Published mkolbol@${version} to NPM and created GitHub release`);
+            core.setOutput('upload_url', release.data.upload_url);
+            core.setOutput('release_id', release.data.id);
+            core.notice(`✅ Created GitHub release v${version}`);
+      
+      - name: Upload tarball to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.tarball.outputs.FILENAME }}
+          asset_name: ${{ steps.tarball.outputs.FILENAME }}
+          asset_content_type: application/gzip

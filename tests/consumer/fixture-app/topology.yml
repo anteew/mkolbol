@@ -1,0 +1,22 @@
+nodes:
+  - id: timer
+    module: TimerSource
+    params:
+      periodMs: 500
+
+  - id: transform
+    module: UppercaseTransform
+
+  - id: filesink
+    module: FilesystemSink
+    params:
+      path: test-output.jsonl
+      format: raw
+      mode: append
+
+connections:
+  - from: timer.output
+    to: transform.input
+  
+  - from: transform.output
+    to: filesink.input

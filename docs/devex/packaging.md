@@ -28,9 +28,11 @@ Or from a URL:
 npm install https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-v0.2.0.tgz
 ```
 
-### Using mk fetch (Experimental)
+### Using mk fetch (Experimental - Optional)
 
-The `mk fetch` command downloads and installs a release tarball by tag:
+> ⚠️ **EXPERIMENTAL FEATURE**: `mk fetch` is an optional convenience tool and is not required for installation. For production use, prefer manual tarball installation or git tag pinning.
+
+The `mk fetch` command is an experimental convenience tool that downloads and installs a release tarball by tag:
 
 ```bash
 # Install a specific version
@@ -69,6 +71,23 @@ Installation complete
 - Only works with published GitHub releases
 - Does not support pre-release tags (alpha, beta)
 - Experimental feature, API may change
+- Not required for any production workflow
+
+**Recommended Alternative**:
+
+For production and CI/CD, we recommend manual tarball installation or git tag pinning, which are more stable and provide better control:
+
+```bash
+# ✅ Preferred: Manual tarball download
+curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz \
+  -o mkolbol-0.2.0.tar.gz
+npm install ./mkolbol-0.2.0.tar.gz
+
+# ✅ Alternative: Git tag pinning
+npm install github:anteew/Laminar#v0.2.0
+```
+
+See [Distribution Matrix](./distribution.md) for more installation options.
 
 ## Git Tag Pinning
 

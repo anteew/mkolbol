@@ -2,6 +2,16 @@
 
 <!-- Describe the changes in 1-2 sentences -->
 
+## Installation & Distribution Note
+
+If your PR involves changes to installation, packaging, or distribution:
+- **Prefer tarball path** (see [Distribution Matrix](docs/devex/distribution.md))
+- Test installation via: `npm install ./mkolbol-X.Y.Z.tar.gz`
+- Document in [Releases Guide](docs/devex/releases.md) if creating a release
+- Ensure CI comment is non-gating (informational only, doesn't block merge)
+
+---
+
 ## Type of Change
 
 - [ ] Bug fix (non-breaking change)

@@ -1,0 +1,76 @@
+diff --git a/.npmignore b/.npmignore
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/.npmignore
+@@ -0,0 +1,53 @@
++# Development and testing files
++test/
++tests/
++examples/
++*.spec.ts
++*.spec.js
++*.test.ts
++*.test.js
++
++# Development tools and configs
++.mk/
++patches/
++reports/
++scripts/
++sprints/
++project-manager/
++agent_template/
++archived/
++
++# Internal agents and tools
++SUSAN/
++VEGA/
++Vex/
++
++# Dev documentation
++CONTRIBUTING-DEVEX.md
++devex.md
++ampcode*.md
++ampcode*.log
++ampcode*.tmp
++
++# Build artifacts
++tsconfig.json
++vitest.config.ts
++*.tsbuildinfo
++
++# Logs and test results
++*.log
++test-*.log
++TEST_RESULTS_*.md
++test-summary.txt
++
++# Lock files (keep package-lock.json only)
++pnpm-lock.yaml
++
++# Git and GitHub
++.git/
++.github/
++.gitignore
++.claude/
++
++# Temporary files
++*.tmp
++*.tgz
+diff --git a/package.json b/package.json
+index original..modified 100644
+--- a/package.json
++++ b/package.json
+@@ -32,9 +32,10 @@
+     "dist/",
+     "README.md",
+     "LICENSE",
+     "STREAM_KERNEL_RFC.md",
+-    "docs/"
++    "docs/",
++    "schemas/"
+   ],
+   "bin": {
+     "mk": "dist/scripts/mk.js",
+     "mkctl": "dist/scripts/mkctl.js",

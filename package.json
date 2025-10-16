@@ -33,16 +33,20 @@
     "README.md",
     "LICENSE",
     "STREAM_KERNEL_RFC.md",
-    "docs/"
+    "docs/",
+    "schemas/"
   ],
   "bin": {
-    "lam": "dist/scripts/lam.js",
-    "mk": "dist/scripts/mk.js"
+    "mk": "dist/scripts/mk.js",
+    "mkctl": "dist/scripts/mkctl.js",
+    "lam": "dist/scripts/lam.js"
   },
   "scripts": {
+    "prepare": "test -f tsconfig.json && npm run build || true",
     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
+    "test:consumer": "tsx scripts/test-consumer.ts",
     "test:ci": "LAMINAR_SUITE=threads vitest run --pool=threads --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts' --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
     "test:pty": "LAMINAR_SUITE=forks vitest run --pool=forks --poolOptions.forks.singleFork=true tests/wrappers/ptyServerWrapper.spec.ts tests/integration/multiModalOutput.spec.ts tests/integration/endpointsList.spec.ts tests/integration/processMode.spec.ts tests/integration/processUnix.spec.ts tests/integration/workerMode.spec.ts tests/integration/stdioPath.spec.ts tests/integration/externalFromConfig.spec.ts --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js",
     "lam:append-history": "node scripts/append-laminar-history.js",
