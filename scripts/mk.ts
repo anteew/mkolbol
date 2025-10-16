@@ -124,6 +124,35 @@ const commands: Command[] = [
       return EXIT_SUCCESS;
     },
   },
+  {
+    name: 'fetch',
+    description: 'Download and install release tarball by tag (experimental)',
+    usage: 'mk fetch <tag>',
+    handler: async (args: string[]) => {
+      if (args.length === 0) {
+        console.error('Error: Missing release tag');
+        console.error('Usage: mk fetch <tag>');
+        console.error('Examples: mk fetch v0.2.0, mk fetch latest');
+        return EXIT_USAGE;
+      }
+
+      const tag = args[0];
+      
+      try {
+        const { downloadRelease, installTarball } = await import('../src/mk/fetch.js');
+        
+        console.log(`Fetching release ${tag}...`);
+        const tarballPath = await downloadRelease(tag);
+        
+        await installTarball(tarballPath);
+        
+        return EXIT_SUCCESS;
+      } catch (error) {
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        return EXIT_ERROR;
+      }
+    },
+  },
 ];
 
 function printMainHelp() {

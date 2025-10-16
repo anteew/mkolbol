@@ -7,12 +7,172 @@ Quick reference guide for the most common `mkctl` commands and patterns. Use thi
 **What is mkctl?**
 `mkctl` is the Microkernel Control CLI—a lightweight tool to run topologies and discover running modules without writing code.
 
-**Installation:**
+**Installation Methods:**
+
 ```bash
-npm install -g mkolbol
-# or use npx
+# Option 1: From Tarball (Recommended - offline-capable, reproducible)
+curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz \
+  -o mkolbol-0.2.0.tar.gz
+npm install ./mkolbol-0.2.0.tar.gz
+npx mkctl
+
+# Option 2: From Git Tag (Version-controlled, requires git)
+npm install github:anteew/Laminar#v0.2.0
+npx mkctl
+
+# Option 3: From Vendor/Local Path (Full control, monorepo)
+npm install file:../packages/mkolbol
+npx mkctl
+
+# Option 4: Development (local clone)
+git clone https://github.com/anteew/Laminar.git
+cd Laminar
+npm install
+npm run build
 npx mkctl
 ```
+
+**See [Distribution Matrix](./distribution.md) for detailed comparison and migration paths.**
+
+---
+
+## Installing from Different Sources
+
+### Recipe 1: Install from Tarball (Recommended)
+
+Best for reproducibility, offline use, and CI/CD.
+
+**Step 1: Download the tarball**
+```bash
+curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz \
+  -o mkolbol-0.2.0.tar.gz
+```
+
+**Step 2: Install in your project**
+```bash
+npm install ./mkolbol-0.2.0.tar.gz
+```
+
+**Step 3: Use mkctl**
+```bash
+npx mkctl run --file config.yml
+```
+
+**Why tarball?**
+- ✅ Reproducible (same file always, byte-for-byte)
+- ✅ Offline after download (no network needed)
+- ✅ Verifiable (you can inspect contents)
+- ✅ CI/CD friendly (store in artifact repos)
+- ✅ Version-clear (filename includes version)
+
+**See also:** [Distribution Matrix](./distribution.md#1-tarball-recommended), [Releases Guide](./releases.md)
+
+---
+
+### Recipe 2: Pin to Git Tag
+
+Best for version tracking in your git history.
+
+**Step 1: Add to package.json**
+```json
+{
+  "dependencies": {
+    "mkolbol": "github:anteew/Laminar#v0.2.0"
+  }
+}
+```
+
+**Step 2: Install**
+```bash
+npm install
+```
+
+**Step 3: Use mkctl**
+```bash
+npx mkctl run --file config.yml
+```
+
+**Update to a new version:**
+```bash
+# Edit package.json with new tag
+{
+  "dependencies": {
+    "mkolbol": "github:anteew/Laminar#v0.3.0"
+  }
+}
+
+npm install
+```
+
+**Why git tag?**
+- ✅ Git-native (integrates with your workflow)
+- ✅ Version visible in package.json
+- ✅ Easy to update and rollback
+- ✅ Use exact commit hashes for maximum precision
+
+**Note:** Requires network (clones from GitHub) and may have npm cache issues.
+
+**See also:** [Distribution Matrix](./distribution.md#2-git-tag-pinned), [Releases Guide](./releases.md)
+
+---
+
+### Recipe 3: Vendor with File Path (Monorepo)
+
+Best for full control, offline use, and active development.
+
+**Step 1: Copy mkolbol source into your repo**
+```bash
+mkdir -p packages
+git clone https://github.com/anteew/Laminar.git packages/mkolbol
+```
+
+**Step 2: Create root workspace (package.json)**
+```json
+{
+  "name": "my-workspace",
+  "workspaces": [
+    "packages/mkolbol",
+    "packages/my-app"
+  ]
+}
+```
+
+**Step 3: Reference in your app**
+```json
+{
+  "name": "my-app",
+  "dependencies": {
+    "mkolbol": "workspace:*"
+  }
+}
+```
+
+**Step 4: Install everything**
+```bash
+npm install
+```
+
+**Step 5: Use mkctl**
+```bash
+cd packages/my-app
+npx mkctl run --file config.yml
+```
+
+**Why vendor?**
+- ✅ No network (works completely offline)
+- ✅ Full control (modify source directly)
+- ✅ Fast development (changes take effect immediately)
+- ✅ Monorepo-native (everything in one repo)
+
+**Updating mkolbol in vendor:**
+```bash
+cd packages/mkolbol
+git fetch origin
+git checkout v0.3.0
+npm run build  # rebuild if needed
+```
+
+**See also:** [Distribution Matrix](./distribution.md#3-vendorlocal-monorepo), [Using mkolbol in Your Repo](./using-mkolbol-in-your-repo.md)
 
 ---
 

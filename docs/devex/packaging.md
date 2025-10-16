@@ -2,6 +2,132 @@
 
 This guide shows you how to package your mkolbol-based application and its custom servers into a single distributable executable or bundle. This is essential for shipping your application to users or deploying to production environments.
 
+## Table of Contents
+
+1. [Tarball Installation](#tarball-installation)
+2. [Git Tag Pinning](#git-tag-pinning)
+3. [Bundling Approaches](#bundling-approaches)
+4. [Runtime Configuration](#runtime-configuration-discovery)
+5. [Deployment Checklist](#deployment-checklist)
+
+## Tarball Installation
+
+mkolbol releases are published as `.tgz` tarballs on GitHub. You can install specific versions using either npm directly or the `mk fetch` command.
+
+### Using npm
+
+Install a specific release from a local tarball:
+
+```bash
+npm install ./mkolbol-v0.2.0.tgz
+```
+
+Or from a URL:
+
+```bash
+npm install https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-v0.2.0.tgz
+```
+
+### Using mk fetch (Experimental)
+
+The `mk fetch` command downloads and installs a release tarball by tag:
+
+```bash
+# Install a specific version
+mk fetch v0.2.0
+
+# Install the latest release
+mk fetch latest
+```
+
+**What it does**:
+1. Queries GitHub releases API for the specified tag
+2. Downloads the `.tgz` asset to your current directory
+3. Runs `npm install <tarball>` to install it
+4. Updates your `package.json` and `package-lock.json`
+
+**Examples**:
+
+```bash
+# Install specific version
+$ mk fetch v0.2.0
+Fetching release v0.2.0...
+Downloaded to /path/to/mkolbol-v0.2.0.tgz
+Installing from /path/to/mkolbol-v0.2.0.tgz...
+Installation complete
+
+# Install latest stable release
+$ mk fetch latest
+Fetching release latest...
+Downloaded to /path/to/mkolbol-v0.3.0.tgz
+Installing from /path/to/mkolbol-v0.3.0.tgz...
+Installation complete
+```
+
+**Limitations**:
+- Requires internet connection to GitHub
+- Only works with published GitHub releases
+- Does not support pre-release tags (alpha, beta)
+- Experimental feature, API may change
+
+## Git Tag Pinning
+
+For development or CI/CD, you can pin mkolbol to a specific git commit or tag using npm's git protocol:
+
+### Pin to a tag
+
+```json
+{
+  "dependencies": {
+    "mkolbol": "github:anteew/mkolbol#v0.2.0"
+  }
+}
+```
+
+### Pin to a commit SHA
+
+```json
+{
+  "dependencies": {
+    "mkolbol": "github:anteew/mkolbol#a1b2c3d4"
+  }
+}
+```
+
+### Pin to a branch
+
+```json
+{
+  "dependencies": {
+    "mkolbol": "github:anteew/mkolbol#main"
+  }
+}
+```
+
+**Install**:
+
+```bash
+npm install
+```
+
+**Pros**:
+- Pin to any commit, tag, or branch
+- No need to wait for npm registry publish
+- Works in CI/CD environments
+- Reproducible builds
+
+**Cons**:
+- Requires git checkout and build on install
+- Slower than tarball install
+- Requires build dependencies (TypeScript, etc.)
+- Not suitable for production deployments
+
+**When to use**:
+- Development against unreleased features
+- Testing release candidates
+- CI/CD pipelines with specific version requirements
+- Contributing to mkolbol development
+
 ## Overview
 
 When you build an application with mkolbol, you typically have:
