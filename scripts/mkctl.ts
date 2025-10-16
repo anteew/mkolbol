@@ -475,6 +475,16 @@ async function handleRunCommand(args: string[]): Promise<number> {
     await executor.up();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    
+    // Check if this is a health check failure
+    if (message.includes('Health check failed')) {
+      throw new MkctlError(
+        `Health check failed: ${message}\nHint: verify external process is responsive and health check configuration is correct.`,
+        EXIT_CODES.RUNTIME,
+        { cause: err }
+      );
+    }
+    
     throw new MkctlError(
       `Failed to start topology: ${message}\nHint: verify module names and external commands referenced by the config.`,
       EXIT_CODES.RUNTIME,

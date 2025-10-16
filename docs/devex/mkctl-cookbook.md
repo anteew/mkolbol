@@ -210,12 +210,83 @@ connections:
 
 ---
 
+## Health Checks for External Processes
+
+External processes can be configured with health checks to ensure they're ready before the topology starts.
+
+### Command-based Health Check
+
+```yaml
+nodes:
+  - id: my-service
+    module: ExternalProcess
+    params:
+      command: /usr/bin/my-service
+      args: ['--port', '8080']
+      ioMode: stdio
+      healthCheck:
+        type: command
+        command: 'curl -f http://localhost:8080/health'
+        timeout: 5000
+        retries: 3
+    runMode: process
+```
+
+**How it works:**
+- Runs the specified shell command after spawning the process
+- Expects exit code 0 for success
+- Retries with exponential backoff on failure (1s, 2s, 4s, ...)
+- Throws error if all retries fail
+
+### HTTP-based Health Check
+
+```yaml
+nodes:
+  - id: web-server
+    module: ExternalProcess
+    params:
+      command: node
+      args: ['server.js']
+      ioMode: stdio
+      healthCheck:
+        type: http
+        url: 'http://localhost:3000/health'
+        timeout: 5000
+        retries: 5
+    runMode: process
+```
+
+**How it works:**
+- Sends GET request to the specified URL
+- Expects 2xx HTTP status code
+- Retries with exponential backoff on failure
+- Supports connection timeout and retry logic
+
+### Health Check Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `type` | `'command' \| 'http'` | required | Type of health check |
+| `command` | `string` | - | Shell command to run (for `type: command`) |
+| `url` | `string` | - | HTTP endpoint URL (for `type: http`) |
+| `timeout` | `number` | 5000 | Timeout in milliseconds per attempt |
+| `retries` | `number` | 3 | Number of retry attempts |
+
+**Backoff behavior:**
+- Retry 1: wait 1 second
+- Retry 2: wait 2 seconds  
+- Retry 3: wait 4 seconds
+- Maximum backoff: capped at 10 seconds
+
+---
+
 ## Troubleshooting Cheatsheet
 
 | Symptom | Fix |
 |---------|-----|
 | `Config file not found` | Verify the path, or run `mkctl run --file $(pwd)/examples/configs/basic.yml`. |
 | `Failed to read config` | Validate YAML/JSON syntax (`python -m yaml …`), ensure `nodes` and `connections` arrays exist. |
+| `Health check failed` | Verify external process starts correctly and responds to health checks. Check `healthCheck.command` or `healthCheck.url` configuration. Increase `timeout` or `retries` if needed. |
 | `Topology runtime error` | Confirm module names exist (registered in `ModuleRegistry`) and external commands reside on `$PATH`. |
 | `No endpoints registered` | Run `mkctl run` first—the router snapshot is generated at shutdown. |
 | `mkctl: command not found` | Use `npx mkctl …` or `node dist/scripts/mkctl.js …`. |
@@ -365,6 +436,10 @@ node dist/scripts/mkctl.js run --file examples/configs/bad-missing-connections.y
 # Test non-existent module
 node dist/scripts/mkctl.js run --file examples/configs/bad-invalid-module.yml
 # Expected: Configuration validation failed: Unknown module 'NonexistentModule'
+
+# Test health check failure
+node dist/scripts/mkctl.js run --file examples/configs/bad-health-check.yml
+# Expected: Health check failed for <node> after N attempts
 ```
 
 ### Error Message Reference
@@ -378,6 +453,7 @@ node dist/scripts/mkctl.js run --file examples/configs/bad-invalid-module.yml
 | `Connection from '...' to non-existent node` | 70 | Target node doesn't exist | Check node IDs in connections match nodes list |
 | `Command ... not found` | 70 | External process path invalid | Use absolute paths: `/bin/bash` not `bash` |
 | `Unknown module` | 65 | Module not registered | Check ModuleRegistry for valid names |
+| `Health check failed` | 70 | External process not responsive or health check misconfigured | Verify process starts correctly, check health check command/URL, increase timeout/retries |
 
 ### Fixture Overview
 
@@ -390,7 +466,8 @@ examples/configs/
 ├── bad-invalid-command.yml        # External process path doesn't exist
 ├── bad-wrong-iomode.yml           # Interactive shell with stdio (not pty)
 ├── bad-missing-connections.yml    # Nodes defined but no connections
-└── bad-invalid-module.yml         # Module name not in registry
+├── bad-invalid-module.yml         # Module name not in registry
+└── bad-health-check.yml           # Health check that always fails
 ```
 
 **Pro Tip**: Compare each bad config to the working examples (basic.yml, external-stdio.yaml, external-pty.yaml) to see what's different. This is a great way to internalize the correct config format!

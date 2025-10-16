@@ -329,7 +329,11 @@ export class Executor {
       args,
       env: params.env || {},
       cwd: params.cwd || process.cwd(),
-      ioMode: ioMode as IOMode
+      ioMode: ioMode as IOMode,
+      restart: params.restart,
+      restartDelay: params.restartDelay,
+      maxRestarts: params.maxRestarts,
+      healthCheck: params.healthCheck
     };
 
     const wrapper = new ExternalServerWrapper(this.kernel, this.hostess, manifest);

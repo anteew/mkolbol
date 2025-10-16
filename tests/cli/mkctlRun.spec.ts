@@ -270,6 +270,34 @@ connections: []
       expect(result.stderr).toContain('Failed to start topology');
       expect(result.stderr).toContain('Hint:');
     });
+
+    it('should exit with RUNTIME code when health check fails', async () => {
+      const healthCheckFailConfig = `
+nodes:
+  - id: external1
+    module: ExternalProcess
+    params:
+      command: /bin/sleep
+      args: ["10"]
+      ioMode: stdio
+      healthCheck:
+        type: command
+        command: "exit 1"
+        timeout: 1000
+        retries: 2
+
+connections: []
+`;
+      const configPath = join(testConfigDir, 'health-check-fail.yml');
+      writeFileSync(configPath, healthCheckFailConfig);
+      tempFiles.push(configPath);
+
+      const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 5000);
+
+      expect(result.code).toBe(EXIT_CODES.RUNTIME);
+      expect(result.stderr).toContain('Health check failed');
+      expect(result.stderr).toContain('Hint:');
+    });
   });
 
   describe('example configs', () => {

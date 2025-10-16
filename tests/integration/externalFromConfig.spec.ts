@@ -860,7 +860,7 @@ describe('External From Config Integration', () => {
             module: 'ExternalProcess',
             params: {
               command: 'node',
-              args: ['-e', 'require("http").createServer((req,res)=>res.end("OK")).listen(18765)'],
+              args: ['-e', 'const http=require("http");const s=http.createServer((req,res)=>res.end("OK"));s.listen(18765);process.on("SIGTERM",()=>s.close())'],
               ioMode: 'stdio',
               restart: 'never',
               healthCheck: {
@@ -935,7 +935,7 @@ describe('External From Config Integration', () => {
             module: 'ExternalProcess',
             params: {
               command: 'node',
-              args: ['-e', 'require("http").createServer((req,res)=>{res.statusCode=404;res.end()}).listen(18766)'],
+              args: ['-e', 'const http=require("http");const s=http.createServer((req,res)=>{res.statusCode=404;res.end()});s.listen(18766);process.on("SIGTERM",()=>s.close())'],
               ioMode: 'stdio',
               restart: 'never',
               healthCheck: {
