@@ -184,6 +184,102 @@ For deeper help see the **Troubleshooting** section in [README.md](../../README.
 
 ---
 
+## Exit Codes Reference
+
+mkctl uses standard exit codes to indicate success or failure:
+
+| Exit Code | Name | Meaning | Example |
+|-----------|------|---------|---------|
+| `0` | SUCCESS | Command completed successfully | `mkctl run` finished without errors |
+| `64` | USAGE | Invalid command-line arguments | Missing required `--file` option |
+| `65` | CONFIG_PARSE | Configuration file has errors | Invalid YAML syntax or missing required fields |
+| `66` | CONFIG_NOT_FOUND | Configuration file doesn't exist | Path to config file is wrong |
+| `70` | RUNTIME | Error during topology execution | Failed to spawn external process or connection error |
+| `130` | INTERRUPTED | Command was interrupted by user | User pressed Ctrl+C during topology run |
+
+### Using Exit Codes in Scripts
+
+Exit codes enable automation and CI/CD integration:
+
+```bash
+# Check if mkctl run succeeded
+mkctl run --file my-config.yml
+if [ $? -eq 0 ]; then
+  echo "Topology completed successfully"
+else
+  echo "Topology failed with exit code $?"
+fi
+```
+
+**Common patterns:**
+
+```bash
+# Retry on runtime error (exit code 70)
+mkctl run --file config.yml || if [ $? -eq 70 ]; then echo "Retrying..."; fi
+
+# Fail fast on config errors (exit code 65 or 66)
+mkctl run --file config.yml || if [ $? -le 66 ]; then exit 1; fi
+
+# Ignore user interruptions (exit code 130)
+mkctl run --file config.yml || if [ $? -ne 130 ]; then exit 1; fi
+```
+
+---
+
+## Buffer Handling in ConsoleSink
+
+ConsoleSink automatically formats Buffer objects for human-readable console output:
+
+### UTF-8 Text Buffers (≤100 bytes)
+```yaml
+# Small text buffers are shown as strings
+nodes:
+  - id: sink
+    module: ConsoleSink
+```
+
+**Output:**
+```
+[sink] Buffer(5) "hello"
+[sink] Buffer(13) "hello world!\n"
+```
+
+### Binary Buffers (≤64 bytes)
+```yaml
+# Small binary buffers are shown as hex dump
+nodes:
+  - id: sink
+    module: ConsoleSink
+```
+
+**Output:**
+```
+[sink] Buffer(4) [ff 00 ab cd]
+[sink] Buffer(8) [de ad be ef ca fe ba be]
+```
+
+### Large Buffers (>64 bytes)
+```yaml
+# Large buffers show first 64 bytes + total size
+nodes:
+  - id: sink
+    module: ConsoleSink
+```
+
+**Output:**
+```
+[sink] Buffer(200) [41 41 41 41 ... +136 bytes]
+```
+
+### Empty Buffers
+```
+[sink] Buffer(0) []
+```
+
+**Pro Tip**: ConsoleSink detects printable ASCII/UTF-8 text (including tabs, newlines) and formats accordingly. Binary data triggers hex dump mode.
+
+---
+
 ## Error Matrix & Test Fixtures
 
 To help you learn from common mistakes, we provide a set of bad-config fixtures that demonstrate each error. You can test these yourself to understand the error messages and how to fix them.

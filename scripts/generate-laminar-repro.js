@@ -1,0 +1,207 @@
+#!/usr/bin/env node
+/**
+ * Generate Laminar Reproduction Hints for Failed Tests
+ *
+ * Creates LAMINAR_REPRO.md with:
+ * 1. Failed test summary
+ * 2. Reproduction commands for each failure
+ * 3. Environment details from last run
+ * 4. Links to detailed logs and artifacts
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const SUMMARY_PATH = path.join(process.cwd(), 'reports', 'summary.jsonl');
+const REPRO_OUTPUT_PATH = path.join(process.cwd(), 'reports', 'LAMINAR_REPRO.md');
+
+try {
+  // Check if summary.jsonl exists
+  if (!fs.existsSync(SUMMARY_PATH)) {
+    console.log('[Laminar] No summary.jsonl found, cannot generate repro hints');
+    process.exit(0);
+  }
+
+  // Read summary.jsonl
+  const summaryContent = fs.readFileSync(SUMMARY_PATH, 'utf-8');
+  const lines = summaryContent.trim().split('\n').filter(line => line.length > 0);
+
+  // Parse entries
+  let environment = null;
+  const failures = [];
+  let totalTests = 0;
+
+  for (const line of lines) {
+    try {
+      const obj = JSON.parse(line);
+
+      // Capture environment from first environment entry
+      if (obj.type === 'environment' && !environment) {
+        environment = obj;
+      }
+
+      // Collect failures
+      if (obj.status === 'fail') {
+        failures.push(obj);
+        totalTests++;
+      } else if (obj.status === 'pass' || obj.status === 'skip') {
+        totalTests++;
+      }
+    } catch {
+      // Skip unparseable lines
+    }
+  }
+
+  // If no failures, don't generate repro file
+  if (failures.length === 0) {
+    console.log(`[Laminar] All ${totalTests} tests passed. No repro hints needed.`);
+    process.exit(0);
+  }
+
+  // Generate repro markdown
+  const markdown = generateReproMarkdown(failures, environment, totalTests);
+
+  // Write to file
+  fs.writeFileSync(REPRO_OUTPUT_PATH, markdown, 'utf-8');
+
+  console.log(`[Laminar] Generated repro hints for ${failures.length} failed test(s) → ${REPRO_OUTPUT_PATH}`);
+  process.exit(0);
+
+} catch (err) {
+  console.error(`[Laminar] Error generating repro hints: ${err.message}`);
+  process.exit(1);
+}
+
+function generateReproMarkdown(failures, environment, totalTests) {
+  const timestamp = new Date().toISOString();
+  const nodeVersion = environment?.nodeVersion || process.version;
+  const platform = environment?.platform || process.platform;
+  const suite = environment?.envVars?.LAMINAR_SUITE || 'unknown';
+  const failureRate = ((failures.length / totalTests) * 100).toFixed(1);
+
+  let md = `# Laminar Reproduction Hints
+
+**Generated:** ${timestamp}
+
+---
+
+## Summary
+
+- **Total Tests:** ${totalTests}
+- **Failures:** ${failures.length}
+- **Failure Rate:** ${failureRate}%
+- **Suite:** ${suite}
+- **Node Version:** ${nodeVersion}
+- **Platform:** ${platform}
+
+---
+
+## Failed Tests
+
+`;
+
+  // Add each failure with reproduction info
+  failures.forEach((failure, idx) => {
+    const testName = failure.testName || 'unknown';
+    const location = failure.location || 'unknown';
+    const duration = failure.duration || 0;
+    const error = failure.error || 'No error message';
+    const artifactURI = failure.artifactURI || 'unknown';
+
+    md += `### #${idx + 1}: ${testName}
+
+**Location:** \`${location}\`
+
+**Duration:** ${duration}ms
+
+**Error Message:**
+\`\`\`
+${error}
+\`\`\`
+
+**Reproduction Steps:**
+
+1. **Run only this test locally:**
+   \`\`\`bash
+   npx vitest run ${extractTestFile(location)} -t "${escapeTestName(testName)}"
+   \`\`\`
+
+2. **View detailed logs:**
+   \`\`\`bash
+   cat ${artifactURI}
+   \`\`\`
+
+3. **Check with same seed (for determinism):**
+   \`\`\`bash
+   TEST_SEED=42 npx vitest run ${extractTestFile(location)} -t "${escapeTestName(testName)}"
+   \`\`\`
+
+**Artifact:** [\`${path.basename(artifactURI)}\`](${artifactURI})
+
+---
+
+`;
+  });
+
+  // Add environment details
+  md += `## Environment Details
+
+\`\`\`json
+${JSON.stringify(environment || {}, null, 2)}
+\`\`\`
+
+---
+
+## Quick Links
+
+- **Summary:** [\`reports/LAMINAR_SUMMARY.txt\`](LAMINAR_SUMMARY.txt)
+- **Trends:** [\`reports/LAMINAR_TRENDS.txt\`](LAMINAR_TRENDS.txt)
+- **All Test Reports:** [\`reports/\`](./)
+
+---
+
+## Tips for Debugging
+
+1. **Run all tests in the same suite:**
+   \`\`\`bash
+   LAMINAR_SUITE=${suite} npm run test:${suite === 'threads' ? 'ci' : 'pty'}
+   \`\`\`
+
+2. **Enable Laminar debug mode:**
+   \`\`\`bash
+   LAMINAR_DEBUG=1 npm run test:ci
+   \`\`\`
+
+3. **Check if failure is deterministic:**
+   - Run the test multiple times: \`npm run test -- --reporter=verbose\`
+   - Compare outputs between runs
+   - If non-deterministic, it may be a race condition or flaky timeout
+
+4. **Use Laminar digest for deep analysis:**
+   \`\`\`bash
+   npm run lam -- digest --cases "${failures.map(f => f.testName.replace(/[^a-zA-Z0-9-_]/g, '_')).join(',')}"
+   \`\`\`
+
+---
+
+**Generated by Laminar Test Observability**
+
+For more information, see [Laminar Documentation](https://github.com/anteew/Laminar)
+`;
+
+  return md;
+}
+
+function extractTestFile(location) {
+  // Extract just the file path from "path/to/file.spec.ts:0"
+  const parts = location.split(':');
+  return parts[0] || 'tests/**/*.spec.ts';
+}
+
+function escapeTestName(name) {
+  // Escape special characters for vitest -t filter
+  return name.replace(/"/g, '\\"').replace(/\$/g, '\\$');
+}

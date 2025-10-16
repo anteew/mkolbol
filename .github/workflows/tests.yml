@@ -24,6 +24,14 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
 
+      - name: Restore Laminar trends history
+        uses: actions/cache@v4
+        with:
+          path: reports/history.jsonl
+          key: laminar-history-trends
+          restore-keys: |
+            laminar-history-trends
+
       - name: Install
         run: npm ci
 
@@ -31,6 +39,8 @@ jobs:
         run: npm run build
 
       - name: Threads lane (dual reporters)
+        env:
+          LAMINAR_SUITE: threads
         run: |
           mkdir -p reports
           npx vitest run \
@@ -41,6 +51,8 @@ jobs:
             > reports/threads_raw.log 2>&1
 
       - name: Forks lane (process-mode gated)
+        env:
+          LAMINAR_SUITE: forks
         run: |
           mkdir -p reports
           npx vitest run \
@@ -56,6 +68,8 @@ jobs:
 
       # Enforced process-mode adapters run (required)
       - name: Process-mode (Unix adapters)
+        env:
+          LAMINAR_SUITE: process-unix
         run: |
           mkdir -p reports
           MK_PROCESS_EXPERIMENTAL=1 npx vitest run \
@@ -66,6 +80,11 @@ jobs:
             --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
             > reports/process_raw.log 2>&1
 
+      - name: Append to Laminar trends history
+        if: ${{ always() }}
+        continue-on-error: true
+        run: npm run lam:append-history || true
+
       - name: Laminar summary/trends (best‑effort)
         if: ${{ always() }}
         continue-on-error: true
@@ -73,6 +92,20 @@ jobs:
           mkdir -p reports
           npm run lam -- summary > reports/LAMINAR_SUMMARY.txt || true
           npm run lam -- trends --top 10 > reports/LAMINAR_TRENDS.txt || true
+
+      - name: Generate Laminar repro hints
+        if: ${{ always() }}
+        continue-on-error: true
+        run: npm run lam:repro || true
+
+      - name: Post Laminar summary to PR (best-effort)
+        if: ${{ always() }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          NODE_VERSION: ${{ matrix.node }}
+        run: node scripts/post-laminar-pr-comment.js || true
 
       - name: Upload artifacts (reports)
         if: ${{ always() }}
