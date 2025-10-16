@@ -1,3 +1,3 @@
-{"ts":1760643126370,"lvl":"info","case":"should provide process info","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760643126371,"lvl":"info","case":"should provide process info","phase":"execution","evt":"test.run"}
-{"ts":1760643126372,"lvl":"info","case":"should provide process info","phase":"teardown","evt":"case.end","payload":{"duration":50,"status":"passed"}}
+{"ts":1760646343197,"lvl":"info","case":"should provide process info","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760646343198,"lvl":"info","case":"should provide process info","phase":"execution","evt":"test.run"}
+{"ts":1760646343199,"lvl":"info","case":"should provide process info","phase":"teardown","evt":"case.end","payload":{"duration":74,"status":"passed"}}

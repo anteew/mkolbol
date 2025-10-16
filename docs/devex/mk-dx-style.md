@@ -28,9 +28,41 @@ Code: CONFIG_PARSE  Rerun: mk run --file mk.yaml --dry-run
 [OK ] Validated topology (7 nodes, 8 connections). Next: mk run
 ```
 
-## “Did You Mean”
-- Levenshtein distance 1 for commands/flags.
-- Suggest at most 2 candidates. Never auto‑correct without confirmation.
+## "Did You Mean" Pattern
+- **Algorithm**: Levenshtein distance ≤ 2 for commands/flags
+- **Limit**: Suggest at most 2 candidates
+- **Format**: `Unknown command "losg". Did you mean: logs, trace?`
+- **No Auto-Correct**: Never auto-run without user confirmation
+- **Scope**: Apply to both commands (`mk rnu`) and flags (`--flie`)
+
+### Implementation Rules
+1. Calculate edit distance for all known commands/flags
+2. Filter candidates with distance ≤ 2
+3. Sort by distance (ascending), then alphabetically
+4. Show first 2 matches
+5. If no matches found, show generic "Unknown command" error
+
+### Examples
+```
+$ mk rnu
+[ERR] UNKNOWN_COMMAND — Unknown command "rnu"
+Did you mean: run?
+Fix: Run: mk --help
+```
+
+```
+$ mk run --flie mk.json
+[ERR] INVALID_ARGUMENT — Unknown flag "--flie"
+Did you mean: --file?
+Fix: Run: mk run --help
+```
+
+```
+$ mk losg
+[ERR] UNKNOWN_COMMAND — Unknown command "losg"
+Did you mean: logs?
+Fix: Run: mk --help
+```
 
 ## Error Taxonomy (Human)
 - CONFIG_NOT_FOUND — show searched paths; suggest `mk init`.
@@ -51,6 +83,94 @@ Code: CONFIG_PARSE  Rerun: mk run --file mk.yaml --dry-run
 }
 ```
 
+## Help Text Conventions
+
+### Structure
+All help text follows consistent sections:
+1. **Header**: Command name + one-line description
+2. **Usage**: Command syntax with brackets for optional args
+3. **Description**: 1-2 sentences explaining what the command does
+4. **Options**: Flag reference with defaults and types
+5. **Examples**: Copy-paste runnable scenarios (4-6 examples)
+6. **Environment**: Relevant env vars (if applicable)
+7. **Output**: Sample output format (if applicable)
+8. **Learn More**: Links to full docs and RFCs
+
+### Formatting Rules
+- Use UPPERCASE for section headers
+- Indent options with 2 spaces
+- Keep primary lines ≤ 80 columns
+- Use — (em dash) for separation, not - or --
+- Show defaults explicitly: `Default: mk.json`
+- Group related flags together
+
+### Example Pattern
+```
+mk <command> — Short description
+
+USAGE
+  mk <command> [--flag <value>] [--optional]
+
+DESCRIPTION
+  One or two sentences explaining the command purpose and key behavior.
+  Focus on what, not how.
+
+OPTIONS
+  --flag <value>             Description with type. Default: value
+  --optional                 Boolean flag description
+
+EXAMPLES
+  # Comment explaining scenario
+  mk <command> --flag value
+
+  # Another scenario
+  mk <command> --optional
+
+LEARN MORE
+  Full guide: https://mkolbol.dev/docs/<command>
+```
+
+### Stability Requirements
+- **No timestamps or dates** in help text
+- **No dynamic version numbers** that change per build
+- **Deterministic output**: Running `mk --help` twice produces identical output
+- **No runtime state**: Help text is static, not dependent on system state
+
+## Error Message Style Guide
+
+### Format
+```
+[ERR] ERROR_CODE at <location> — brief description
+Fix: <actionable remediation>
+Docs: <stable URL>
+Code: ERROR_CODE  Rerun: <exact command to retry>
+```
+
+### Writing Rules
+1. **Be specific**: "Configuration file not found at ./mk.json" > "File not found"
+2. **Show location**: Include file:line:col when available
+3. **Provide fix**: Every error includes actionable remediation
+4. **Link to docs**: Use stable anchors, avoid 404 risk
+5. **Use imperative voice**: "Run", "Fix", "Check" (not "You should run")
+6. **Avoid jargon**: Prefer plain language over technical terms
+7. **Include rerun command**: Show exact command to retry after fix
+
+### Examples
+
+**Good**:
+```
+[ERR] CONFIG_NOT_FOUND — Configuration file not found at ./mk.json
+Fix: Run: mk init --preset tty
+Docs: https://mkolbol.dev/docs/config#locations
+Code: CONFIG_NOT_FOUND
+```
+
+**Bad**:
+```
+Error: couldn't find the config
+Try creating one
+```
+
 ## Accessibility
 - Support `--no-ansi`; ensure high‑contrast tokens.
 - ASCII graphs for non‑TTY; avoid red/green only.
@@ -67,7 +187,7 @@ Code: CONFIG_PARSE  Rerun: mk run --file mk.yaml --dry-run
 - **Phase C Additions** (P11): `mk dev`, `mk logs`, `mk trace` help snapshots (see fixtures below).
 
 ## Copywriting Rules
-- Use imperative voice. Avoid jargon. Prefer verbs: “Run”, “Fix”, “Open”.
+- Use imperative voice. Avoid jargon. Prefer verbs: "Run", "Fix", "Open".
 - Link to stable anchors. Avoid 404 risk.
 - Keep primary lines ≤ 80 columns.
 
@@ -85,7 +205,15 @@ To enforce DX consistency, we maintain snapshot tests for critical CLI surfaces:
 - **Scope**: `mk --help` sections, command order, examples
 - **Structure**: Organized sections (Usage, Commands, Options, Examples)
 - **Stability**: Help must be reviewed when modified; snapshot blocks accidental regressions
-- **Status**: Scaffold ready; activated when `scripts/mk.ts` CLI is implemented
+- **Status**: Active with 27 tests covering all commands and fixtures
+
+### Test Coverage
+The help test suite includes:
+1. **Main help**: `mk --help` and `mk -h` flags
+2. **Command help**: All 8 core commands (`init`, `run`, `doctor`, `validate`, `graph`, `dev`, `logs`, `trace`)
+3. **Stability**: Deterministic output (no timestamps, no dynamic versions)
+4. **Did-you-mean**: Typo suggestions for commands and flags (Levenshtein distance ≤ 2)
+5. **Fixture validation**: Structure verification for `mk dev`, `mk logs`, `mk trace` fixtures
 
 ### Error Output Snapshot (`tests/cli/mkdxErrors.spec.ts`)
 - **Purpose**: Enforce error format consistency across all error codes
@@ -152,8 +280,8 @@ npm run test:ci -- tests/cli/mkdxHelp.spec.ts --update
 ## Implementation Checklist for Future MK CLI Phases
 
 **Phase A (v0):**
-- [ ] mkdxHelp.spec.ts — Uncomment describe.skip, activate help snapshot tests
-- [ ] mkdxErrors.spec.ts — Extend ERROR_CATALOG for new error scenarios
+- [x] mkdxHelp.spec.ts — Activated with 27 comprehensive help tests
+- [x] mkdxErrors.spec.ts — Extended ERROR_CATALOG for all error scenarios
 - [ ] Implement mk --help with sections matching snapshot expectations
 - [ ] Implement mk --json for machine-readable output
 - [ ] Create mk init/validate/run subcommands following error format
@@ -161,10 +289,11 @@ npm run test:ci -- tests/cli/mkdxHelp.spec.ts --update
 
 **Phase C (P11+):**
 - [x] Add mk dev/logs/trace help text snapshots (fixtures created)
+- [x] Add comprehensive did-you-mean tests
+- [x] Document help text conventions and error message style guide
 - [ ] Implement mk dev subcommand with hot reload
 - [ ] Implement mk logs subcommand with filtering
 - [ ] Implement mk trace subcommand with latency analysis
 - [ ] Verify help snapshots pass: `npm run test:ci -- tests/cli/mkdxHelp.spec.ts`
 - [ ] Test error messages for these commands match mk-dx-style
 - [ ] Update snapshots if UX changes: `--update` flag
-

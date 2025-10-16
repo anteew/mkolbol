@@ -1,0 +1,334 @@
+diff --git a/docs/devex/packaging.md b/docs/devex/packaging.md
+index 1506597..361fddf 100644
+--- a/docs/devex/packaging.md
++++ b/docs/devex/packaging.md
+@@ -10,6 +10,55 @@ This guide shows you how to package your mkolbol-based application and its custo
+ 4. [Runtime Configuration](#runtime-configuration-discovery)
+ 5. [Deployment Checklist](#deployment-checklist)
+ 
++## CLI Commands for Build and Package
++
++mkolbol provides two CLI commands to bundle and package your application:
++
++### mk build
++
++Bundle your application with esbuild and emit provenance metadata:
++
++```bash
++$ mk build
++[mk build] Bundling with esbuild...
++✓ Built in 0.8s, provenance at dist/build-info.json
++```
++
++**Output files:**
++- `dist/bundle.js` - Your bundled application
++- `dist/bundle.js.map` - Source maps for debugging
++- `dist/build-info.json` - Build provenance metadata
++
++**Provenance metadata includes:**
++- Version, timestamp, and Node.js version
++- Platform and architecture
++- Source files list
++- Bundle SHA256 hash
++
++### mk package
++
++Create a distributable capsule (tarball) from your bundle:
++
++```bash
++$ mk package
++[mk package] Creating capsule...
++✓ Packaged: mkolbol-0.2.0-linux-x64-1729123456789.capsule.tgz (512.3KB)
++  SHA256: a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456
++```
++
++**Output:**
++- Deterministic filename: `mkolbol-{version}-{platform}-{arch}-{timestamp}.capsule.tgz`
++- Contains: bundle.js, bundle.js.map, build-info.json
++- SHA256 hash for integrity verification
++
++**Typical workflow:**
++
++```bash
++npm run build        # Build TypeScript
++mk build            # Bundle with esbuild
++mk package          # Create distributable capsule
++```
++
+ ## Tarball Installation
+ 
+ mkolbol releases are published as `.tgz` tarballs on GitHub. You can install specific versions using either npm directly or the `mk fetch` command.
+diff --git a/package.json b/package.json
+index e345d70..486f8b5 100644
+--- a/package.json
++++ b/package.json
+@@ -75,7 +75,8 @@
+     "dev:external-wrapper": "node --enable-source-maps dist/examples/external-wrapper-demo.js",
+     "dev:pty-wrapper": "node --enable-source-maps dist/examples/pty-wrapper-demo.js",
+     "dev:multi-modal": "node --enable-source-maps dist/examples/multi-modal-output.js",
+-    "dev:worker-demo": "node --enable-source-maps dist/examples/worker-demo.js"
++    "dev:worker-demo": "node --enable-source-maps dist/examples/worker-demo.js",
++    "acceptance:mk": "tsx scripts/mk-acceptance.ts"
+   },
+   "dependencies": {
+     "node-pty": "^1.0.0",
+@@ -84,6 +85,7 @@
+   "devDependencies": {
+     "@agent_vega/laminar": "github:anteew/Laminar",
+     "@types/node": "^20.12.12",
++    "esbuild": "^0.19.0",
+     "fast-check": "^4.3.0",
+     "tsx": "^4.19.2",
+     "typescript": "^5.6.2",
+diff --git a/scripts/mk.ts b/scripts/mk.ts
+index 4216032..924c021 100644
+--- a/scripts/mk.ts
++++ b/scripts/mk.ts
+@@ -367,6 +367,38 @@ const commands: Command[] = [
+       return EXIT_USAGE;
+     },
+   },
++  {
++    name: 'build',
++    description: 'Bundle application with esbuild and emit provenance',
++    usage: 'mk build',
++    handler: async (args: string[]) => {
++      const { buildHandler } = await import('../src/mk/build.js');
++      return buildHandler(args);
++    },
++  },
++  {
++    name: 'package',
++    description: 'Create distributable capsule from bundle',
++    usage: 'mk package',
++    handler: async (args: string[]) => {
++      const { packageHandler } = await import('../src/mk/package.js');
++      return packageHandler(args);
++    },
++  },
++  {
++    name: 'ci',
++    description: 'CI utilities (plan: matrix + cache keys)',
++    usage: 'mk ci plan [--env | --json]',
++    handler: async (args: string[]) => {
++      if (args.length === 0 || args[0] !== 'plan') {
++        console.error('Usage: mk ci plan [--env | --json]');
++        return EXIT_USAGE;
++      }
++      
++      const { ciPlanHandler } = await import('../src/mk/ciPlan.js');
++      return ciPlanHandler(args.slice(1));
++    },
++  },
+ ];
+ 
+ function printMainHelp() {
+diff --git a/src/mk/build.ts b/src/mk/build.ts
+new file mode 100644
+index 0000000..d707a02
+--- /dev/null
++++ b/src/mk/build.ts
+@@ -0,0 +1,104 @@
++import { build as esbuild } from 'esbuild';
++import { writeFileSync } from 'fs';
++import { join, dirname } from 'path';
++import { fileURLToPath } from 'url';
++import { createHash } from 'crypto';
++import { readFileSync, existsSync, mkdirSync } from 'fs';
++
++const __filename = fileURLToPath(import.meta.url);
++const __dirname = dirname(__filename);
++
++interface BuildProvenance {
++  version: string;
++  timestamp: string;
++  nodeVersion: string;
++  platform: string;
++  arch: string;
++  bundler: string;
++  entryPoint: string;
++  outputFile: string;
++  sourceFiles: string[];
++  bundleHash: string;
++}
++
++export async function buildHandler(args: string[]): Promise<number> {
++  const startTime = performance.now();
++  
++  try {
++    const projectRoot = process.cwd();
++    const distDir = join(projectRoot, 'dist');
++    const outfile = join(distDir, 'bundle.js');
++    const provenanceFile = join(distDir, 'build-info.json');
++    
++    // Ensure dist directory exists
++    if (!existsSync(distDir)) {
++      mkdirSync(distDir, { recursive: true });
++    }
++    
++    // Read package.json for version
++    const pkgPath = join(projectRoot, 'package.json');
++    const pkg = existsSync(pkgPath) 
++      ? JSON.parse(readFileSync(pkgPath, 'utf-8')) 
++      : { version: '0.0.0' };
++    
++    // Default entry point
++    const entryPoint = join(projectRoot, 'src/index.ts');
++    
++    if (!existsSync(entryPoint)) {
++      console.error(`Error: Entry point not found: ${entryPoint}`);
++      return 1;
++    }
++    
++    console.log('[mk build] Bundling with esbuild...');
++    
++    // Build with esbuild
++    const result = await esbuild({
++      entryPoints: [entryPoint],
++      bundle: true,
++      platform: 'node',
++      target: 'node20',
++      format: 'esm',
++      outfile,
++      external: ['node-pty', 'yaml'],
++      sourcemap: true,
++      metafile: true,
++      minify: false,
++      treeShaking: true,
++    });
++    
++    // Calculate bundle hash
++    const bundleContent = readFileSync(outfile, 'utf-8');
++    const bundleHash = createHash('sha256').update(bundleContent).digest('hex');
++    
++    // Extract source files from metafile
++    const sourceFiles = result.metafile 
++      ? Object.keys(result.metafile.inputs).sort()
++      : [entryPoint];
++    
++    // Generate provenance
++    const provenance: BuildProvenance = {
++      version: pkg.version,
++      timestamp: new Date().toISOString(),
++      nodeVersion: process.version,
++      platform: process.platform,
++      arch: process.arch,
++      bundler: 'esbuild',
++      entryPoint,
++      outputFile: outfile,
++      sourceFiles,
++      bundleHash,
++    };
++    
++    // Write provenance
++    writeFileSync(provenanceFile, JSON.stringify(provenance, null, 2));
++    
++    const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
++    
++    console.log(`✓ Built in ${elapsed}s, provenance at dist/build-info.json`);
++    
++    return 0;
++  } catch (error) {
++    console.error(`Build failed: ${error instanceof Error ? error.message : String(error)}`);
++    return 1;
++  }
++}
+diff --git a/src/mk/package.ts b/src/mk/package.ts
+new file mode 100644
+index 0000000..0686c78
+--- /dev/null
++++ b/src/mk/package.ts
+@@ -0,0 +1,93 @@
++import { createHash } from 'crypto';
++import { createReadStream, existsSync, statSync, readFileSync } from 'fs';
++import { join } from 'path';
++import { exec } from 'child_process';
++import { promisify } from 'util';
++
++const execAsync = promisify(exec);
++
++interface CapsuleInfo {
++  filename: string;
++  size: number;
++  sha256: string;
++}
++
++function formatSize(bytes: number): string {
++  if (bytes < 1024) return `${bytes}B`;
++  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
++  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
++}
++
++async function calculateFileHash(filepath: string): Promise<string> {
++  const hash = createHash('sha256');
++  const stream = createReadStream(filepath);
++  
++  for await (const chunk of stream) {
++    hash.update(chunk);
++  }
++  
++  return hash.digest('hex');
++}
++
++export async function packageHandler(args: string[]): Promise<number> {
++  const startTime = performance.now();
++  
++  try {
++    const projectRoot = process.cwd();
++    const distDir = join(projectRoot, 'dist');
++    const bundleFile = join(distDir, 'bundle.js');
++    const provenanceFile = join(distDir, 'build-info.json');
++    
++    // Verify required files exist
++    if (!existsSync(bundleFile)) {
++      console.error('Error: Bundle not found. Run `mk build` first.');
++      return 1;
++    }
++    
++    if (!existsSync(provenanceFile)) {
++      console.error('Error: Build provenance not found. Run `mk build` first.');
++      return 1;
++    }
++    
++    // Read provenance for deterministic filename
++    const provenance = JSON.parse(readFileSync(provenanceFile, 'utf-8'));
++    
++    const version = provenance.version || '0.0.0';
++    const timestamp = new Date(provenance.timestamp).getTime();
++    const platform = provenance.platform;
++    const arch = provenance.arch;
++    
++    // Deterministic capsule filename
++    const capsuleFilename = `mkolbol-${version}-${platform}-${arch}-${timestamp}.capsule.tgz`;
++    const capsulePath = join(distDir, capsuleFilename);
++    
++    console.log('[mk package] Creating capsule...');
++    
++    // Create tarball using tar command
++    const files = ['bundle.js', 'bundle.js.map', 'build-info.json']
++      .filter(f => existsSync(join(distDir, f)));
++    
++    await execAsync(
++      `tar -czf "${capsuleFilename}" ${files.map(f => `"${f}"`).join(' ')}`,
++      { cwd: distDir }
++    );
++    
++    // Get file stats
++    const stats = statSync(capsulePath);
++    const size = stats.size;
++    const sizeFormatted = formatSize(size);
++    
++    // Calculate SHA256
++    const sha256 = await calculateFileHash(capsulePath);
++    
++    const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
++    
++    console.log(`✓ Packaged: ${capsuleFilename} (${sizeFormatted})`);
++    console.log(`  SHA256: ${sha256}`);
++    
++    return 0;
++  } catch (error) {
++    console.error(`Package failed: ${error instanceof Error ? error.message : String(error)}`);
++    return 1;
++  }
++}

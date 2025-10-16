@@ -1,340 +1,495 @@
-# First Five Minutes: Local Node v1.0
+# Hello in 10 Minutes: Complete mk Workflow
 
-**Get your first mkolbol topology running in 5 minutes.**
+**From zero to packaged topology in 10 minutes.**
 
-Welcome to mkolbol! This guide will take you from zero to a running topology in five minutes. No complex setup, no deep architecture study—just clone, run, and see it work.
+Welcome to mkolbol! This guide shows you the complete developer workflow from project initialization to CI-ready distribution. Follow along step-by-step to see the full mk orchestrator lifecycle.
 
-⏱️ **Total time: 5 minutes**
-
----
-
-## 1. What is mkolbol? (2 min read)
-
-**One sentence:** mkolbol is a stream-based microkernel that lets you wire together data processing modules (like HTTP servers, transforms, and outputs) into flexible topologies using simple YAML configs.
-
-### Why it matters for AI agents
-
-AI agents need to:
-- **Observe** streams of data (terminal output, HTTP logs, sensor data)
-- **Transform** that data in flight (parse, filter, compress)
-- **Route** data to multiple destinations (screen, logger, AI model)
-- **React** to changes without rebuilding pipelines
-
-mkolbol gives you this for free. Write modules once, wire them flexibly, run them anywhere.
-
-### What you can do with it
-
-```
-HTTP Server (logs) → Parser → Split ┬→ Console (live view)
-                                     ├→ Logger (persistent)
-                                     └→ AI Agent (analysis)
-```
-
-**Real-world examples:**
-- Build terminal hijackers (capture shell I/O for AI analysis)
-- Create data pipelines (HTTP logs → filters → multiple sinks)
-- Stream processing (sensor data → transforms → dashboards)
-- MCP servers with observability (debug every message in flight)
-
-**The mkolbol promise:** Write once, wire flexibly, observe everything.
+⏱️ **Total time: 10 minutes**
 
 ---
 
-## 2. Local Node v1.0: The Basics (2 min read)
+## What You'll Build
 
-### What is in-process routing?
+By the end of this guide, you'll have:
+- ✅ A working mkolbol project (hello-calculator topology)
+- ✅ Validated configuration with `mk doctor`
+- ✅ Both JSON and YAML workflow experience
+- ✅ Distributable `.tgz` package with provenance
+- ✅ Production-ready GitHub Actions CI config
 
-**Local Node mode** means all modules run in a single Node.js process or as child processes on one machine. No network, no distributed routing, just local pipes.
+**The mk workflow chain:**
+```
+mk init → mk run → mk doctor → mk format → mk run --yaml → mk build → mk package → mk ci plan
+```
 
-This is the **fastest path to productivity**:
-- Clone → config → run
-- Perfect for development and testing
-- Ideal for single-machine deployments
-- Foundation before scaling to distributed mode
+---
 
-### The MK_LOCAL_NODE=1 environment variable
-
-To ensure you're running in Local Node mode (and prevent accidental network features):
+## Prerequisites (30 seconds)
 
 ```bash
-export MK_LOCAL_NODE=1
-```
-
-**What this does:**
-- ✅ **Enables:** In-process RoutingServer, Executor, Hostess, StateManager
-- ❌ **Disables:** Network transports, distributed routing, multi-machine topologies
-- 🔒 **Validates:** Config loader rejects any node with `type=network` or `address` parameters
-
-**When to use Local Node mode:**
-- Local development and testing (today)
-- Single-machine deployments (today)
-- Learning mkolbol concepts (today)
-
-**Future:** When `MK_LOCAL_NODE=0` or unset, distributed routing will be available.
-
-### Key concepts (quick definitions)
-
-| Component | What it does |
-|-----------|--------------|
-| **Kernel** | ~100 line core API: creates pipes, connects modules |
-| **Router** | Tracks all running modules and their endpoints |
-| **Executor** | Loads configs, starts/stops modules, manages lifecycle |
-| **Hostess** | Service registry with heartbeat monitoring |
-| **Module** | A functional unit (HTTP server, parser, console output, etc.) |
-
-**Mental model:** Kernel = plumbing, Modules = functionality, Executor = orchestrator.
-
----
-
-## 3. Your First Topology (Copy & Paste) (3 min)
-
-Let's run the canonical Local Node v1.0 demo: an HTTP server that logs requests to your console.
-
-### Step 1: Clone and build (90 seconds)
-
-```bash
+# Clone and build mkolbol
 git clone https://github.com/anteew/mkolbol.git
 cd mkolbol
 npm install
 npm run build
+
+# Set Local Node mode
+export MK_LOCAL_NODE=1
 ```
 
-### Step 2: Run the topology (30 seconds)
+---
+
+## 1. Initialize Project (1 minute)
+
+Create a new mkolbol project with the hello-calculator template:
 
 ```bash
-export MK_LOCAL_NODE=1
-node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 10
+# Interactive mode (wizard asks 3 questions)
+node dist/scripts/mk.js init
+
+# Or specify everything inline
+node dist/scripts/mk.js init hello-calculator --lang ts --preset tty
+```
+
+**What happens:**
+1. Creates `hello-calculator/` directory
+2. Generates `mk.json` with 3-node topology (CalculatorServer → XtermTTYRenderer → FilesystemSink)
+3. Creates `.mk/options.json` with dev/ci/release profiles
+4. Scaffolds `src/index.ts` with module stubs
+5. Adds `package.json`, `.gitignore`, `README.md`
+
+**Verify it worked:**
+```bash
+cd hello-calculator
+ls -la
+# You should see: mk.json, .mk/, src/, package.json, README.md
+```
+
+---
+
+## 2. Run the Topology (1 minute)
+
+Test the default topology to verify everything works:
+
+```bash
+# Run for 10 seconds
+node ../dist/scripts/mk.js run --file mk.json --duration 10
 ```
 
 **Expected output:**
 ```
-[mkctl] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.
-Loading config from: examples/configs/http-logs-local.yml
-Bringing topology up...
-Topology running for 10 seconds...
+[mk] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.
+[mk] Loading config from: mk.json
+[mk] Bringing topology up...
+[mk] Topology running for 10 seconds...
 
-[http] Server listening on http://localhost:3000
+[calculator] Server listening on http://localhost:4000
+[calculator] GET /add?a=5&b=3 → 8.00
 ```
 
-### Step 3: Send a request (in another terminal)
+**What's happening:**
+1. CalculatorServer starts on port 4000
+2. XtermTTYRenderer displays live output
+3. FilesystemSink logs to `logs/calculator.jsonl`
 
+**Test it:**
 ```bash
-curl -s http://localhost:3000/hello
+# In another terminal
+curl -s "http://localhost:4000/add?a=5&b=3"
+# → {"result": 8.00}
 ```
-
-**Terminal 1 output (where mkctl is running):**
-```
-[http] [2025-10-17T04:15:23.456Z] GET /hello
-```
-
-**Terminal 2 output (where curl ran):**
-```
-ok
-```
-
-### What just happened?
-
-1. **web node** (ExternalProcess): Spawned a Node.js HTTP server that logs requests to stdout
-2. **sink node** (ConsoleSink): Read from web's output and displayed to terminal with `[http]` prefix
-3. **Router**: Tracked both endpoints; snapshot saved to `reports/router-endpoints.json` at shutdown
-4. **Local Node gate**: Enforced in-process routing only (no network features)
-
-### The config file (examples/configs/http-logs-local.yml)
-
-```yaml
-nodes:
-  - id: web
-    module: ExternalProcess
-    params:
-      command: node
-      args:
-        - -e
-        - "require('http').createServer((req,res)=>{console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);res.end('ok')}).listen(3000,()=>console.log('Server listening on http://localhost:3000'))"
-      ioMode: stdio
-      restart: never
-
-  - id: sink
-    module: ConsoleSink
-    params:
-      prefix: "[http]"
-
-connections:
-  - from: web.output
-    to: sink.input
-```
-
-**Key takeaways:**
-- **`ioMode: stdio`** - Lightweight, non-interactive data piping (perfect for HTTP logs)
-- **`restart: never`** - Server won't auto-restart on crash
-- **`prefix: "[http]"`** - ConsoleSink adds prefix to all output lines
-- **Inline server** - No external files needed; server defined in config
-
-### Inspect the routing snapshot
-
-After the topology exits:
-
-```bash
-node dist/scripts/mkctl.js endpoints
-```
-
-Or view the raw JSON:
-
-```bash
-cat reports/router-endpoints.json | jq .
-```
-
-You'll see both endpoints (web and sink) with their metadata, timestamps, and coordinates.
 
 ---
 
-## 4. What's Next? (2 min)
+## 3. Validate with Doctor (1 minute)
 
-**You just ran your first topology!** Here's where to go from here:
+Run health checks to catch common issues before deployment:
 
-> **💾 Installing mkolbol?**
-> This guide clones the repo directly. For production or different installation methods (tarball, git tag, vendor), see the [Distribution Matrix](./distribution.md) guide.
+```bash
+node ../dist/scripts/mk.js doctor --file mk.json
+```
 
-### Immediate next steps
+**Expected output:**
+```
+[✓] Config file valid (mk.json)
+[✓] All modules registered (CalculatorServer, XtermTTYRenderer, FilesystemSink)
+[✓] All connections valid (3 nodes, 2 connections)
+[✓] Port 4000 available
+[✓] Log directory writable (logs/)
+[✓] No circular dependencies
+[✓] Memory limits reasonable (<512MB per node)
+
+✅ Topology healthy — ready to run
+```
+
+**What doctor checks:**
+- Config syntax and schema validation
+- Module existence in registry
+- Port conflicts
+- File permissions (log directories, config writes)
+- Circular dependency detection
+- Resource limits
+
+**If you see errors:**
+```bash
+# Dry-run to see what would happen
+node ../dist/scripts/mk.js doctor --file mk.json --dry-run
+
+# Check specific module
+node ../dist/scripts/mk.js doctor --file mk.json --module calculator
+```
+
+See [Doctor Guide](./doctor.md) for complete troubleshooting.
+
+---
+
+## 4. Convert to YAML (1 minute)
+
+Switch to YAML authoring for more readable configs:
+
+```bash
+node ../dist/scripts/mk.js format --to yaml mk.json
+```
+
+**Creates `mk.yaml`:**
+```yaml
+nodes:
+  - id: calculator
+    module: CalculatorServer
+    runMode: inproc
+    params:
+      port: 4000
+      precision: 2
+
+  - id: tty-renderer
+    module: XtermTTYRenderer
+    runMode: inproc
+
+  - id: logger
+    module: FilesystemSink
+    runMode: inproc
+    params:
+      path: logs/calculator.jsonl
+      format: jsonl
+
+connections:
+  - from: calculator.output
+    to: tty-renderer.input
+  - from: calculator.output
+    to: logger.input
+```
+
+**Run with YAML:**
+```bash
+node ../dist/scripts/mk.js run --file mk.yaml --duration 10
+```
+
+**Why YAML?**
+- More concise (no quotes on most values)
+- Comments supported (`# This is a comment`)
+- Multi-line strings easier
+- Industry standard for config
+
+**Switch back anytime:**
+```bash
+node ../dist/scripts/mk.js format --to json mk.yaml
+```
+
+---
+
+## 5. Build Artifacts (1 minute)
+
+Compile TypeScript modules and prepare for distribution:
+
+```bash
+node ../dist/scripts/mk.js build
+```
+
+**What happens:**
+1. Compiles `src/index.ts` → `dist/index.js`
+2. Bundles dependencies (if configured)
+3. Generates `dist/manifest.json` with provenance:
+   ```json
+   {
+     "version": "0.1.0",
+     "buildTimestamp": "2025-10-17T04:15:23.456Z",
+     "gitCommit": "abc1234",
+     "gitBranch": "main",
+     "modules": ["CalculatorServer"],
+     "checksums": { "dist/index.js": "sha256:..." }
+   }
+   ```
+4. Creates `dist/mk.json` (normalized config)
+
+**Verify:**
+```bash
+ls -la dist/
+# dist/index.js, dist/manifest.json, dist/mk.json
+```
+
+**Build targets:**
+```bash
+# Production build (minified)
+node ../dist/scripts/mk.js build --target production
+
+# Development build (source maps)
+node ../dist/scripts/mk.js build --target development
+```
+
+---
+
+## 6. Package for Distribution (1 minute)
+
+Create a distributable tarball with checksums and signatures:
+
+```bash
+node ../dist/scripts/mk.js package
+```
+
+**Output: `hello-calculator-0.1.0.tgz`**
+
+**What's included:**
+```
+hello-calculator-0.1.0.tgz
+├── dist/                 # Compiled artifacts
+├── mk.json              # Topology config
+├── .mk/                 # Project options
+├── package.json         # Dependencies
+├── README.md            # Documentation
+└── .mk-checksum.txt     # SHA256 checksums
+```
+
+**Install the package elsewhere:**
+```bash
+# Copy to another machine
+scp hello-calculator-0.1.0.tgz remote:/tmp/
+
+# Install and run
+cd /tmp
+tar -xzf hello-calculator-0.1.0.tgz
+cd hello-calculator
+npm install
+node ../dist/scripts/mk.js run --file mk.json
+```
+
+**Package options:**
+```bash
+# Sign with GPG
+node ../dist/scripts/mk.js package --sign
+
+# Include source maps
+node ../dist/scripts/mk.js package --with-sourcemaps
+```
+
+---
+
+## 7. Generate CI Config (1 minute)
+
+Create production-ready GitHub Actions workflow:
+
+```bash
+node ../dist/scripts/mk.js ci plan --output
+```
+
+**Creates `.github/workflows/test.yml`:**
+```yaml
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix-node: ${{ steps.plan.outputs.matrix-node }}
+      matrix-lane: ${{ steps.plan.outputs.matrix-lane }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate CI plan
+        id: plan
+        run: |
+          eval "$(node dist/scripts/mk.js ci plan --env)"
+          echo "matrix-node=$MATRIX_NODE" >> $GITHUB_OUTPUT
+          echo "matrix-lane=$MATRIX_LANE" >> $GITHUB_OUTPUT
+
+  test:
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ${{ fromJson(needs.plan.outputs.matrix-node) }}
+        lane: ${{ fromJson(needs.plan.outputs.matrix-lane) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: node-modules-${{ matrix.node }}-${{ hashFiles('package-lock.json') }}
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:${{ matrix.lane }}
+```
+
+**With Laminar integration:**
+```bash
+node ../dist/scripts/mk.js ci plan --output --with-laminar
+```
+
+Adds Laminar test observability (see [CI Acceptance Smoke](./ci-acceptance-smoke.md#mk-ci-plan-command)).
+
+**Test locally:**
+```bash
+# Generate plan JSON
+node ../dist/scripts/mk.js ci plan
+
+# Source as environment variables
+eval "$(node ../dist/scripts/mk.js ci plan --env)"
+echo $MATRIX_NODE  # ["20", "24"]
+```
+
+---
+
+## 8. What's Next? (2 min)
+
+**You just completed the full mk workflow!** Here's where to go from here:
+
+### Immediate Next Steps
 
 | If you want to... | Go here... |
 |-------------------|-----------|
-| **Understand the architecture** | [Early Adopter Guide](./early-adopter-guide.md) - Core concepts, mental models, glossary |
-| **Run the full 3-terminal demo** | [Quickstart](./quickstart.md) - Complete Local Node v1.0 walkthrough with live endpoint monitoring |
-| **Validate everything works** | [Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md) - Checklist for Local Node v1.0 |
-| **Build your own module** | [First Server Tutorial](./first-server-tutorial.md) - Code a custom Transform or External process |
+| **Iterate faster with hot reload** | [mk dev, logs, trace Guide](./mk-dev-logs-trace.md) - Development ergonomics |
+| **Write custom modules** | [Authoring a Module](./authoring-a-module.md) - Complete guide with test patterns |
+| **Understand architecture** | [Early Adopter Guide](./early-adopter-guide.md) - Core concepts and mental models |
+| **Use curated patterns** | [Recipes](./recipes.md) - 9 copy-paste topologies for common use cases |
+| **Troubleshoot issues** | [Doctor Guide](./doctor.md) - Common errors and fixes |
 
-### Development ergonomics (coming soon)
+### Production Workflows
 
-- **[mk dev, mk logs, mk trace](./mk-dev-logs-trace.md)** - Hot reload, structured logging, and flow analysis for faster iteration
-
-### Deep dives (when you're ready)
-
-- **[Wiring and Testing Guide](./wiring-and-tests.md)** - Configure custom topologies, understand I/O modes
-- **[mkctl Cookbook](./mkctl-cookbook.md)** - Daily reference for `mkctl run` and `mkctl endpoints`
-- **[StdIO Path](./stdio-path.md)** - Lightweight data pipelines (no terminal overhead)
-- **[Interactive Topology](./interactive-topology.md)** - Keyboard → PTY → Screen (full terminal features)
-- **[Packaging Guide](./packaging.md)** - Bundle topologies as single executables
+- **[CI Acceptance Smoke](./ci-acceptance-smoke.md)** - GitHub Actions integration with Laminar
+- **[Distribution Matrix](./distribution.md)** - Install paths (tarball, git tag, vendor)
+- **[Wiring and Testing Guide](./wiring-and-tests.md)** - Configure custom topologies, I/O modes
 - **[Laminar Workflow](./laminar-workflow.md)** - Test observability and debugging
 
-### Architecture deep dives
+### Architecture Deep Dives
 
 - **[Stream Kernel RFC](../rfcs/stream-kernel/00-index.md)** - Complete architecture documentation
 - **[RoutingServer RFC](../rfcs/stream-kernel/05-router.md)** - Endpoint discovery and routing
 
 ---
 
-## 5. Getting Help (1 min)
+## 9. Troubleshooting (1 min)
 
-### Troubleshooting Matrix
-
-Use this table to find the solution for your error:
+### Common Issues
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| **Config file not found** | File path is incorrect | Use absolute path: `$(pwd)/examples/configs/...` |
-| **Configuration validation failed** | YAML syntax error or missing fields | Verify YAML: `python3 -m yaml examples/configs/http-logs-local.yml` |
-| **Port 3000 already in use** | Another process is listening on 3000 | Check: `lsof -i :3000` and kill the process |
-| **No endpoints registered** | Topology ran but router didn't persist snapshot | Run longer: `--duration 15` |
-| **No output from server** | Server not flushing stdout or not wired | Verify connection in YAML: `grep -A2 connections:` |
-| **curl: Connection refused** | Server crashed or didn't start | Check Terminal 1 for errors; verify port listening |
-| **mkctl: command not found** | Node.js script not built | Run: `npm run build` first |
+| **mk: command not found** | Script not built or wrong path | Run: `npm run build` from mkolbol repo root |
+| **Config file not found** | Wrong relative path | Use `../dist/scripts/mk.js` from project directory |
+| **Port already in use** | Another process on port 4000 | Check: `lsof -i :4000` and kill process |
+| **Module not registered** | Module name typo in mk.json | Run: `node ../dist/scripts/mk.js doctor --file mk.json` |
+| **Permission denied (logs/)** | Log directory not writable | Run: `mkdir -p logs && chmod 755 logs` |
 
-### Quick Fixes by Symptom
+### Quick Fixes
 
-**"I see nothing in Terminal 1"**
+**"mk init fails"**
 ```bash
-# 1. Check if topology is actually running
-ps aux | grep mkctl
+# Check if directory already exists
+ls -la hello-calculator/
 
-# 2. Increase verbosity
-node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 10 2>&1 | head -20
-
-# 3. Try simpler config
-node dist/scripts/mkctl.js run --file examples/configs/external-stdio.yaml --duration 5
+# Remove and retry
+rm -rf hello-calculator
+node dist/scripts/mk.js init hello-calculator
 ```
 
-**"curl returns Connection refused"**
+**"mk build fails"**
 ```bash
-# 1. Verify server is listening
-lsof -i :3000
+# Check TypeScript compilation
+npx tsc --noEmit
 
-# 2. Check topology logs for startup errors
-# (see Terminal 1 output above)
+# Install missing dependencies
+npm install
 
-# 3. If port 3000 is in use by something else:
-kill -9 $(lsof -t -i :3000)
-
-# 4. Try a different port (modify config)
+# Try verbose mode
+node ../dist/scripts/mk.js build --verbose
 ```
 
-**"mkctl endpoints says 'No endpoints registered'"**
+**"mk package fails"**
 ```bash
-# 1. Make sure topology ran to completion
-# (endpoints snapshot is only saved at shutdown)
+# Build first
+node ../dist/scripts/mk.js build
 
-# 2. Run again with longer duration
-node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 15
+# Check dist/ exists
+ls -la dist/
 
-# 3. Immediately check endpoints before snapshot expires
-node dist/scripts/mkctl.js endpoints
+# Retry package
+node ../dist/scripts/mk.js package
 ```
 
-### Deeper Troubleshooting
+### Get Help
 
-- **[mkctl Cookbook](./mkctl-cookbook.md)** - Complete reference with exit codes and error matrices
-- **[Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md)** - Full end-to-end scenarios including FilesystemSink
-- **[Doctor Guide](./doctor.md)** - Common mkctl errors, dry-run validation, health checks
-
-### Community support
-
-- **[GitHub Issues](https://github.com/anteew/mkolbol/issues)** - Report bugs, request features
-- **[GitHub Discussions](https://github.com/anteew/mkolbol/discussions)** - Ask questions, share ideas
-- **[Contributing Guide](../../CONTRIBUTING-DEVEX.md)** - Feedback templates and contribution workflow
+- **[Doctor Guide](./doctor.md)** - Complete troubleshooting reference
+- **[GitHub Issues](https://github.com/anteew/mkolbol/issues)** - Report bugs
+- **[GitHub Discussions](https://github.com/anteew/mkolbol/discussions)** - Ask questions
 
 ---
 
 ## Quick Reference Card
 
-**Run a topology:**
+**Complete workflow (from mkolbol repo):**
 ```bash
-export MK_LOCAL_NODE=1
-node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 10
+# Initialize project
+node dist/scripts/mk.js init hello-calculator --lang ts --preset tty
+cd hello-calculator
+
+# Run topology
+node ../dist/scripts/mk.js run --file mk.json --duration 10
+
+# Validate health
+node ../dist/scripts/mk.js doctor --file mk.json
+
+# Convert to YAML
+node ../dist/scripts/mk.js format --to yaml mk.json
+
+# Run with YAML
+node ../dist/scripts/mk.js run --file mk.yaml --duration 10
+
+# Build artifacts
+node ../dist/scripts/mk.js build
+
+# Package for distribution
+node ../dist/scripts/mk.js package
+
+# Generate CI config
+node ../dist/scripts/mk.js ci plan --output
 ```
 
-**Inspect endpoints:**
+**Common flags:**
 ```bash
-node dist/scripts/mkctl.js endpoints
-```
-
-**Watch endpoints live:**
-```bash
-node dist/scripts/mkctl.js endpoints --watch --interval 1
-```
-
-**Stop early:**
-```
-Press Ctrl+C
-```
-
-**Example configs:**
-```
-examples/configs/
-├── http-logs-local.yml        # HTTP → Console (this guide)
-├── external-pty.yaml          # PTY demo (interactive shell)
-└── external-stdio.yaml        # StdIO demo (data pipeline)
+--file <path>          # Config file (mk.json or mk.yaml)
+--duration <seconds>   # How long to run topology
+--dry-run              # Validate without executing
+--verbose              # Show detailed output
+--json                 # Machine-readable output
 ```
 
 ---
 
-**That's it!** You've run your first topology, understood Local Node mode, and know where to go next.
+**That's it!** You've completed the full mk orchestrator workflow from zero to CI-ready package.
 
-**Time spent:** 5 minutes ⏱️
+**Time spent:** 10 minutes ⏱️
 
 **What you learned:**
-- ✅ What mkolbol is and why it matters
-- ✅ Local Node v1.0 in-process routing
-- ✅ How to run a topology from YAML
-- ✅ How to inspect routing snapshots
-- ✅ Where to go for deeper learning
+- ✅ Initialize mkolbol projects with `mk init`
+- ✅ Run and validate topologies with `mk run` and `mk doctor`
+- ✅ Convert configs between JSON and YAML with `mk format`
+- ✅ Build distributable artifacts with `mk build` and `mk package`
+- ✅ Generate production-ready CI config with `mk ci plan`
+- ✅ Complete end-to-end workflow for deployment
 
-**Ready to build?** Head to the [First Server Tutorial](./first-server-tutorial.md) and create your first custom module.
+**Ready to iterate faster?** Head to the [mk dev, logs, trace Guide](./mk-dev-logs-trace.md) for hot reload and debugging tools.

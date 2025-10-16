@@ -1,14 +1,159 @@
-# Creating and Consuming GitHub Releases with Tarballs
+# mkolbol Releases
+
+This guide covers:
+1. **Release Candidate (RC)** - Current status, features, install paths, known limitations
+2. **Creating Releases** - For maintainers: how to publish new versions
+3. **Consuming Releases** - For users: how to install specific versions
+
+---
+
+## Release Candidate (RC) — Local Node v1.0
+
+**Status:** 🚧 Release Candidate | **Target:** v1.0.0 | **Last Updated:** 2025-10-17
+
+### What's Included
+
+This RC delivers the complete **Local Node v1.0** experience with:
+
+#### Core Features
+- ✅ **Stream Kernel** - ~100 line microkernel with pipes, connect, split, merge
+- ✅ **Local Node Mode** - In-process routing (MK_LOCAL_NODE=1 enforced)
+- ✅ **Router & Hostess** - Endpoint discovery and health monitoring
+- ✅ **Executor** - Topology orchestration from YAML/JSON configs
+- ✅ **mkctl CLI** - Run topologies (`mkctl run`) and inspect endpoints (`mkctl endpoints`)
+
+#### Modules (Production-Ready)
+- ✅ **ExternalProcess** - Spawn external processes (stdio/pty modes)
+- ✅ **FilesystemSink** - Write to files (JSONL, raw, append/truncate modes)
+- ✅ **ConsoleSink** - Console output with prefixes
+- ✅ **PipeMeterTransform** - Throughput and latency metrics
+- ✅ **TimerSource** - Periodic data generation
+- ✅ **UppercaseTransform** - String transformation example
+
+#### Developer Experience (RC)
+- ✅ **mk CLI** - Project scaffolding and workflow orchestrator
+  - `mk init` - Initialize projects with templates (hello-calculator)
+  - `mk run` - Execute topologies with validation
+  - `mk doctor` - Health checks and diagnostics
+  - `mk format` - Convert between JSON/YAML
+  - `mk build` - Compile and bundle artifacts
+  - `mk package` - Create distributable tarballs
+  - `mk ci plan` - Generate GitHub Actions workflow
+- ✅ **First Five Minutes Guide** - Complete workflow from init to deployment
+- ✅ **Doctor Guide** - Troubleshooting common errors
+- ✅ **Authoring Guide** - Write custom modules
+- ✅ **Recipes** - 9 curated topology patterns
+- ✅ **CI Integration** - Acceptance smoke tests with Laminar
+
+### Installation Paths
+
+**See [Distribution Matrix](./distribution.md) for complete installation guide.**
+
+#### Method 1: Tarball (Recommended for RC)
+```bash
+# Download from GitHub Releases (when published)
+curl -L https://github.com/anteew/mkolbol/releases/download/v1.0.0-rc.1/mkolbol-1.0.0-rc.1.tar.gz \
+  -o mkolbol-1.0.0-rc.1.tar.gz
+
+# Install in your project
+npm install ./mkolbol-1.0.0-rc.1.tar.gz
+```
+
+#### Method 2: Git Tag (For Development)
+```bash
+# Clone specific RC tag
+git clone --branch v1.0.0-rc.1 https://github.com/anteew/mkolbol.git mkolbol-rc
+cd mkolbol-rc
+npm install
+npm run build
+```
+
+#### Method 3: npm Registry
+> **Not Yet Available**: mkolbol is not published to npm. Use tarball or git tag.
+
+### Known Limitations (RC)
+
+#### mk CLI Implementation Status
+- ⚠️ **Partial Implementation**: Most mk commands return placeholder help text (implementation in progress)
+- ⚠️ **No Wizard Mode**: `mk init` requires inline args (`--lang ts --preset tty`), no interactive prompts yet
+- ⚠️ **No Hot Reload**: `mk dev` not yet implemented (manual restart required)
+- ⚠️ **No Structured Logs**: `mk logs --module X` not yet implemented (use manual inspection)
+- ⚠️ **No Trace Analysis**: `mk trace` not yet implemented (use manual performance profiling)
+- ⚠️ **Did-You-Mean**: Typo suggestions not yet implemented (generic error messages)
+
+#### Local Node Mode Only
+- ⚠️ **Single Machine**: Distributed routing (multi-machine topologies) not yet available
+- ⚠️ **In-Process Only**: Worker threads and external process modes limited
+- ⚠️ **Network Features Gated**: MK_LOCAL_NODE=1 disables network transports
+
+#### Module Ecosystem
+- ⚠️ **Limited Modules**: 6 core modules available, community modules not yet published
+- ⚠️ **No Plugin System**: Custom modules require code changes (no dynamic loading)
+- ⚠️ **TTY Rendering**: XtermTTYRenderer module not yet fully integrated
+
+#### Testing & CI
+- ⚠️ **Non-Gating Smoke Tests**: Acceptance tests run but don't block PRs
+- ⚠️ **Flake Detection**: Laminar trends available but not enforced
+
+### Roadmap to v1.0.0
+
+**Before Final Release:**
+- [ ] Implement mk dev (hot reload)
+- [ ] Implement mk logs (structured log streaming)
+- [ ] Implement mk trace (latency analysis)
+- [ ] Add did-you-mean for CLI typos
+- [ ] Expand module ecosystem (5+ community modules)
+- [ ] Make acceptance smoke tests gating
+- [ ] Add performance benchmarks
+
+**Future (v1.1+):**
+- [ ] Distributed routing (multi-machine topologies)
+- [ ] Worker thread support
+- [ ] Plugin system for dynamic module loading
+- [ ] Browser support (WASM kernel)
+- [ ] Cloud deployment templates (AWS, GCP, Azure)
+
+### Getting Started
+
+**Quickest Path (10 minutes):**
+1. Read [First Five Minutes Guide](./first-five-minutes.md)
+2. Run the hello-calculator example:
+   ```bash
+   git clone https://github.com/anteew/mkolbol.git
+   cd mkolbol
+   npm install && npm run build
+   export MK_LOCAL_NODE=1
+   node dist/scripts/mk.js init hello-calculator --lang ts --preset tty
+   cd hello-calculator
+   node ../dist/scripts/mk.js run --file mk.json --duration 10
+   ```
+3. Explore [Recipes](./recipes.md) for more patterns
+
+**Deep Dive:**
+- [Early Adopter Guide](./early-adopter-guide.md) - Architecture and concepts
+- [mkctl Cookbook](./mkctl-cookbook.md) - Daily CLI reference
+- [Authoring a Module](./authoring-a-module.md) - Write custom modules
+- [CI Acceptance Smoke](./ci-acceptance-smoke.md) - GitHub Actions integration
+
+### Feedback & Issues
+
+- **Bug Reports**: [GitHub Issues](https://github.com/anteew/mkolbol/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/anteew/mkolbol/discussions)
+- **Contributing**: [CONTRIBUTING-DEVEX.md](../../CONTRIBUTING-DEVEX.md)
+
+---
+
+## Creating and Consuming GitHub Releases with Tarballs
 
 This guide explains how to create version releases of mkolbol and how consumers use them to install specific versions via tarball.
 
-## Quick Start: For Consumers
+### Quick Start: For Consumers
 
 Already have a version you want? Use this:
 
 ```bash
 # Download specific version from GitHub Releases
-curl -L https://github.com/anteew/Laminar/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz \
+curl -L https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-0.2.0.tar.gz \
   -o mkolbol-0.2.0.tar.gz
 
 # Install in your project

@@ -10,6 +10,55 @@ This guide shows you how to package your mkolbol-based application and its custo
 4. [Runtime Configuration](#runtime-configuration-discovery)
 5. [Deployment Checklist](#deployment-checklist)
 
+## CLI Commands for Build and Package
+
+mkolbol provides two CLI commands to bundle and package your application:
+
+### mk build
+
+Bundle your application with esbuild and emit provenance metadata:
+
+```bash
+$ mk build
+[mk build] Bundling with esbuild...
+✓ Built in 0.8s, provenance at dist/build-info.json
+```
+
+**Output files:**
+- `dist/bundle.js` - Your bundled application
+- `dist/bundle.js.map` - Source maps for debugging
+- `dist/build-info.json` - Build provenance metadata
+
+**Provenance metadata includes:**
+- Version, timestamp, and Node.js version
+- Platform and architecture
+- Source files list
+- Bundle SHA256 hash
+
+### mk package
+
+Create a distributable capsule (tarball) from your bundle:
+
+```bash
+$ mk package
+[mk package] Creating capsule...
+✓ Packaged: mkolbol-0.2.0-linux-x64-1729123456789.capsule.tgz (512.3KB)
+  SHA256: a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456
+```
+
+**Output:**
+- Deterministic filename: `mkolbol-{version}-{platform}-{arch}-{timestamp}.capsule.tgz`
+- Contains: bundle.js, bundle.js.map, build-info.json
+- SHA256 hash for integrity verification
+
+**Typical workflow:**
+
+```bash
+npm run build        # Build TypeScript
+mk build            # Bundle with esbuild
+mk package          # Create distributable capsule
+```
+
 ## Tarball Installation
 
 mkolbol releases are published as `.tgz` tarballs on GitHub. You can install specific versions using either npm directly or the `mk fetch` command.

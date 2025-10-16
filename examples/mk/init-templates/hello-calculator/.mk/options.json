@@ -1,0 +1,54 @@
+{
+  "profiles": {
+    "dev": {
+      "watch": true,
+      "reload": "hot",
+      "logLevel": "debug",
+      "gates": {
+        "MK_LOCAL_NODE": "1"
+      }
+    },
+    "ci": {
+      "watch": false,
+      "reload": "none",
+      "logLevel": "info",
+      "gates": {
+        "MK_LOCAL_NODE": "1"
+      },
+      "testMatrix": {
+        "node": ["20", "24"],
+        "lane": ["threads", "forks"]
+      }
+    },
+    "release": {
+      "watch": false,
+      "reload": "none",
+      "logLevel": "warn",
+      "gates": {
+        "MK_LOCAL_NODE": "0"
+      },
+      "bundle": {
+        "minify": true,
+        "sourceMaps": false
+      }
+    }
+  },
+  "watch": {
+    "patterns": ["src/**/*.ts", "mk.json", "mk.yaml"],
+    "ignore": ["dist/**", "node_modules/**", "logs/**"]
+  },
+  "laminar": {
+    "enabled": true,
+    "config": "laminar.config.json",
+    "digestRules": {
+      "budget": {"kb": 2},
+      "rules": [
+        {"match": {"lvl": "error"}, "actions": [{"type": "include"}]},
+        {"match": {"evt": "assert.fail"}, "actions": [{"type": "slice", "window": 5}]}
+      ]
+    }
+  },
+  "doctor": {
+    "checks": ["config", "modules", "ports", "permissions", "dependencies", "circular", "memory"]
+  }
+}

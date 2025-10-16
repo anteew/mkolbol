@@ -367,6 +367,38 @@ const commands: Command[] = [
       return EXIT_USAGE;
     },
   },
+  {
+    name: 'build',
+    description: 'Bundle application with esbuild and emit provenance',
+    usage: 'mk build',
+    handler: async (args: string[]) => {
+      const { buildHandler } = await import('../src/mk/build.js');
+      return buildHandler(args);
+    },
+  },
+  {
+    name: 'package',
+    description: 'Create distributable capsule from bundle',
+    usage: 'mk package',
+    handler: async (args: string[]) => {
+      const { packageHandler } = await import('../src/mk/package.js');
+      return packageHandler(args);
+    },
+  },
+  {
+    name: 'ci',
+    description: 'CI utilities (plan: matrix + cache keys)',
+    usage: 'mk ci plan [--env | --json]',
+    handler: async (args: string[]) => {
+      if (args.length === 0 || args[0] !== 'plan') {
+        console.error('Usage: mk ci plan [--env | --json]');
+        return EXIT_USAGE;
+      }
+      
+      const { ciPlanHandler } = await import('../src/mk/ciPlan.js');
+      return ciPlanHandler(args.slice(1));
+    },
+  },
 ];
 
 function printMainHelp() {
