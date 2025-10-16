@@ -1108,3 +1108,123 @@ examples/configs/
 ```
 
 **Pro Tip**: Compare each bad config to the working examples (basic.yml, external-stdio.yaml, external-pty.yaml) to see what's different. This is a great way to internalize the correct config format!
+
+---
+
+## CI Acceptance Smoke Testing
+
+The mkolbol project runs automated acceptance smoke tests in CI/CD to catch integration issues that unit tests can't catch.
+
+### Understanding the Acceptance Smoke Test
+
+The smoke test is a **non-gating, best-effort** CI job that runs `mkctl` with a real topology and validates:
+
+1. **Topology execution** — Does mkctl run without errors?
+2. **Data flow** — Does data actually flow through pipes?
+3. **Endpoint registration** — Are modules tracked by the router?
+
+**Why non-gating?**
+- Prevents false positives from blocking development
+- Provides visibility without forcing remediation
+- Can be made gating in future when proven stable
+- Results aggregated in PR comments for awareness
+
+### Smoke Test Configuration
+
+The smoke test runs the `http-logs-local-file.yml` topology:
+
+```yaml
+# Topology that captures HTTP server logs to JSONL
+nodes:
+  - id: web
+    module: ExternalProcess
+    params:
+      command: node
+      args: ['inline HTTP server...']
+      ioMode: stdio
+
+  - id: sink
+    module: FilesystemSink
+    params:
+      filename: reports/http-logs.jsonl
+
+connections:
+  - from: web.output
+    to: sink.input
+```
+
+### Three Validation Checks
+
+After running the topology for 5 seconds, the smoke test checks:
+
+```bash
+# ✅ Check 1: Did topology run successfully?
+grep -q "Topology running" /tmp/smoke-test.log
+
+# ✅ Check 2: Was JSONL file created with data?
+[ -f reports/http-logs.jsonl ] && [ -s reports/http-logs.jsonl ]
+
+# ✅ Check 3: Were endpoints registered in router snapshot?
+[ -f reports/router-endpoints.json ] && [ $(jq 'length' reports/router-endpoints.json) -gt 0 ]
+```
+
+### PR Comment Integration
+
+Results are aggregated into the Laminar test report PR comment:
+
+```markdown
+### 🧪 Acceptance Smoke Test
+✅ Topology | ✅ FilesystemSink | ✅ Router Endpoints
+```
+
+Or if one fails:
+
+```markdown
+### 🧪 Acceptance Smoke Test
+✅ Topology | ❌ FilesystemSink | ✅ Router Endpoints
+```
+
+**Note:** The status is **advisory only** — failures don't block PR merge. Developers should review warnings in the comment.
+
+### Manual Reproduction
+
+To reproduce the smoke test locally:
+
+```bash
+# 1. Build
+npm run build
+
+# 2. Run the same topology
+export MK_LOCAL_NODE=1
+timeout 10 node dist/scripts/mkctl.js run \
+  --file examples/configs/http-logs-local-file.yml \
+  --duration 5
+
+# 3. Verify all three artifacts exist
+ls -la reports/http-logs.jsonl
+ls -la reports/router-endpoints.json
+cat reports/router-endpoints.json | jq 'length'
+```
+
+### Debugging Smoke Test Failures
+
+**If "Topology" check fails:**
+- Check for module not found errors
+- Verify config file is accessible
+- See [Doctor Guide](./doctor.md) for config errors
+
+**If "FilesystemSink" check fails:**
+- Verify pipes connected in YAML
+- Check file permissions on reports/ directory
+- Ensure HTTP server emitted data
+
+**If "Router Endpoints" check fails:**
+- Verify RoutingServer initialization
+- Check that both modules registered
+- May indicate pipe connection issue
+
+### Related Documentation
+
+- **[CI Acceptance Smoke Documentation](./ci-acceptance-smoke.md)** — Complete guide to smoke test architecture and debugging
+- **[Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md)** — Full acceptance test scenarios
+- **[Doctor Guide](./doctor.md)** — Troubleshooting mkctl errors
