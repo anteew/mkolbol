@@ -1,0 +1,29 @@
+# Hello Ticker — YAML Variant
+#
+# A minimal pipeline: TimerSource → UppercaseTransform → ConsoleSink.
+# Prints "TICK" every second for the duration.
+#
+# Run:
+#   node dist/scripts/mkctl.js run --file examples/mk/hello-ticker/mk.yaml --duration 5
+
+nodes:
+  - id: number-generator
+    module: TimerSource
+    params:
+      periodMs: 1000
+
+  - id: transformer
+    module: UppercaseTransform
+
+  - id: console-output
+    module: ConsoleSink
+    params:
+      prefix: "[hello-ticker]"
+
+connections:
+  - from: number-generator.output
+    to: transformer.input
+
+  - from: transformer.output
+    to: console-output.input
+
