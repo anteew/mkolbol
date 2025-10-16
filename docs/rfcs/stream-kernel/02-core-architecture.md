@@ -210,6 +210,10 @@ const aiModules = kernel.lookup({
 
 **Use case:** Dynamic composition, plugin discovery
 
+### CI Enforcement (Process Mode)
+
+Process-mode adapters run in a dedicated vitest lane. The GitHub Actions workflow (`.github/workflows/tests.yml`) requires this lane on every supported Node version. The job executes with `MK_PROCESS_EXPERIMENTAL=1`, writes raw output to `reports/process_raw.log`, and exposes failures immediately (no continue-on-error), keeping process-mode parity aligned with in-process adapters.
+
 ## Pipe Lifecycle
 
 ```

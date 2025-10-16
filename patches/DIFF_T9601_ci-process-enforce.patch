@@ -1,0 +1,68 @@
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index dae6945..2388f80 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -58,12 +58,14 @@ jobs:
+       # Enforced process-mode adapters run (required)
+       - name: Process-mode (Unix adapters)
+         run: |
++          mkdir -p reports
+           MK_PROCESS_EXPERIMENTAL=1 npx vitest run \
+             --pool=forks \
+             --poolOptions.forks.singleFork=true \
+             tests/integration/processUnix.spec.ts \
+             --reporter=default \
+-            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
++            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
++            > reports/process_raw.log 2>&1
+ 
+       - name: Laminar summary/trends (best‑effort)
+         if: ${{ always() }}
+diff --git a/docs/rfcs/stream-kernel/02-core-architecture.md b/docs/rfcs/stream-kernel/02-core-architecture.md
+index 637c308..5e8caed 100644
+--- a/docs/rfcs/stream-kernel/02-core-architecture.md
++++ b/docs/rfcs/stream-kernel/02-core-architecture.md
+@@ -210,6 +210,10 @@ const aiModules = kernel.lookup({
+ 
+ **Use case:** Dynamic composition, plugin discovery
+ 
++### CI Enforcement (Process Mode)
++
++Process-mode adapters run in a dedicated vitest lane. The GitHub Actions workflow (`.github/workflows/tests.yml`) requires this lane on every supported Node version. The job executes with `MK_PROCESS_EXPERIMENTAL=1`, writes raw output to `reports/process_raw.log`, and exposes failures immediately (no continue-on-error), keeping process-mode parity aligned with in-process adapters.
++
+ ## Pipe Lifecycle
+ 
+ ```
+diff --git a/tests/integration/processUnix.spec.ts b/tests/integration/processUnix.spec.ts
+index 44dd38a..c85a195 100644
+--- a/tests/integration/processUnix.spec.ts
++++ b/tests/integration/processUnix.spec.ts
+@@ -13,7 +13,8 @@ describe('Process Mode: Unix Adapters under Load', () => {
+   const heartbeatInterval = 1000; // Match UnixControlAdapter heartbeat interval
+   const heartbeatGrace = 500; // Grace period for heartbeat jitter
+   const teardownGrace = 300; // Grace period for clean teardown
+-  const maxRetries = 3;
++  const maxRetries = 2; // Limit retries to keep CI deterministic (T9601)
++  const retryBackoffBase = 120;
+   let cleanupPaths: string[] = [];
+ 
+   function getSocketPath(name: string): string {
+@@ -31,7 +32,7 @@ describe('Process Mode: Unix Adapters under Load', () => {
+     ]);
+   }
+ 
+-  async function retry<T>(fn: () => Promise<T>, retries: number = maxRetries, delay: number = 100): Promise<T> {
++  async function retry<T>(fn: () => Promise<T>, retries: number = maxRetries, delay: number = retryBackoffBase): Promise<T> {
+     let lastError: Error | undefined;
+     for (let attempt = 0; attempt <= retries; attempt++) {
+       try {
+@@ -39,7 +40,8 @@ describe('Process Mode: Unix Adapters under Load', () => {
+       } catch (err) {
+         lastError = err as Error;
+         if (attempt < retries) {
+-          await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)));
++          const waitMs = delay * (attempt + 1);
++          await new Promise((resolve) => setTimeout(resolve, waitMs));
+         }
+       }
+     }

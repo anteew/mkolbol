@@ -119,6 +119,13 @@ node dist/examples/config-runner.js --file examples/configs/basic.yml
 
 mkctl error messages now include matching hints; the CLI prefixes every message with `[mkctl]` so they’re easy to spot in logs.
 
+### Routing & Discovery
+
+- `mkctl endpoints` prints the currently announced endpoints by reading the RoutingServer snapshot (`reports/router-endpoints.json`).
+- Every `mkctl run` invocation now writes that snapshot automatically; rerun `mkctl endpoints` to confirm what’s live.
+- Need a longer reference? See the **[mkctl Cookbook](docs/devex/mkctl-cookbook.md)** for end-to-end command examples.
+- Architectural details live in **[RoutingServer RFC](docs/rfcs/stream-kernel/05-router.md)**, which tracks the in-process announcement API and future multi-node work.
+
 ## ANSI Parser
 
 Parse ANSI escape sequences from terminal output into structured events:
@@ -724,6 +731,7 @@ Metadata:    {"cols":80,"rows":24,"terminalType":"xterm-256color","ioMode":"pty"
 ```
 
 **See Also:**
+- **[mkctl Cookbook](docs/devex/mkctl-cookbook.md)** - Quick reference for common commands and patterns
 - **[Wiring and Testing Guide](docs/devex/wiring-and-tests.md#external-process-configuration)** - Complete explanation of stdio vs pty modes
 - **[StdIO Path Guide](docs/devex/stdio-path.md)** - Deep dive on stdio mode for data pipelines
 

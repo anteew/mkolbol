@@ -110,4 +110,14 @@ export interface HostessEndpoint {
     coordinates: string;
     metadata?: Record<string, any>;
 }
+export interface RoutingAnnouncement {
+    id: string;
+    type: string;
+    coordinates: string;
+    metadata?: Record<string, any>;
+}
+export interface RoutingEndpoint extends RoutingAnnouncement {
+    announcedAt: number;
+    updatedAt: number;
+}
 //# sourceMappingURL=types.d.ts.map

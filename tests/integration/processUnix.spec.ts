@@ -13,7 +13,8 @@ describe('Process Mode: Unix Adapters under Load', () => {
   const heartbeatInterval = 1000; // Match UnixControlAdapter heartbeat interval
   const heartbeatGrace = 500; // Grace period for heartbeat jitter
   const teardownGrace = 300; // Grace period for clean teardown
-  const maxRetries = 3;
+  const maxRetries = 2; // Limit retries to keep CI deterministic (T9601)
+  const retryBackoffBase = 120;
   let cleanupPaths: string[] = [];
 
   function getSocketPath(name: string): string {
@@ -31,7 +32,7 @@ describe('Process Mode: Unix Adapters under Load', () => {
     ]);
   }
 
-  async function retry<T>(fn: () => Promise<T>, retries: number = maxRetries, delay: number = 100): Promise<T> {
+  async function retry<T>(fn: () => Promise<T>, retries: number = maxRetries, delay: number = retryBackoffBase): Promise<T> {
     let lastError: Error | undefined;
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
@@ -39,7 +40,8 @@ describe('Process Mode: Unix Adapters under Load', () => {
       } catch (err) {
         lastError = err as Error;
         if (attempt < retries) {
-          await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)));
+          const waitMs = delay * (attempt + 1);
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
         }
       }
     }

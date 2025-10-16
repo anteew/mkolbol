@@ -1,0 +1,143 @@
+diff --git a/src/executor/Executor.ts b/src/executor/Executor.ts
+index a3f5a7c..b578fa8 100644
+--- a/src/executor/Executor.ts
++++ b/src/executor/Executor.ts
+@@ -4,7 +4,7 @@ import { StateManager } from '../state/StateManager.js';
+ import { ModuleRegistry } from './moduleRegistry.js';
+ import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
+ import type { TopologyConfig, NodeConfig } from '../config/schema.js';
+-import type { ServerManifest, ExternalServerManifest, IOMode } from '../types.js';
++import type { ServerManifest, ExternalServerManifest, IOMode, RoutingAnnouncement } from '../types.js';
+ import { Worker, MessageChannel } from 'node:worker_threads';
+ import type { ChildProcess } from 'node:child_process';
+ import { fileURLToPath } from 'node:url';
+@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path';
+ import type { TestLogger } from '../logging/logger.js';
+ import { createLogger } from '../logging/logger.js';
+ import { debug } from '../debug/api.js';
++import type { RoutingServer } from '../router/RoutingServer.js';
+ 
+ const __filename = fileURLToPath(import.meta.url);
+ const __dirname = dirname(__filename);
+@@ -40,6 +41,8 @@ export class Executor {
+   private modules = new Map<string, ModuleInstance>();
+   private moduleRegistry: ModuleRegistry;
+   private logger?: TestLogger;
++  private routingServer?: RoutingServer;
++  private routingIndex = new Map<string, string>();
+   private heartbeatConfig: HeartbeatConfig = {
+     timeout: 10000,
+     maxMissed: 3,
+@@ -73,6 +76,10 @@ export class Executor {
+     this.cutoverConfig = { ...this.cutoverConfig, ...config };
+   }
+ 
++  setRoutingServer(server: RoutingServer): void {
++    this.routingServer = server;
++  }
++
+   load(config: TopologyConfig): void {
+     this.config = config;
+   }
+@@ -133,6 +140,11 @@ export class Executor {
+       }
+     }
+ 
++    for (const endpointId of this.routingIndex.values()) {
++      this.routingServer?.withdraw(endpointId);
++    }
++    this.routingIndex.clear();
++
+     this.modules.clear();
+   }
+ 
+@@ -328,6 +340,18 @@ export class Executor {
+         ioMode
+       }
+     });
++    this.announceRoutingEndpoint(nodeConfig.id, identity, {
++      id: identity,
++      type: 'process',
++      coordinates: `node:${nodeConfig.id}`,
++      metadata: {
++        module: nodeConfig.module,
++        runMode: 'process',
++        command,
++        args,
++        ioMode
++      }
++    });
+ 
+     this.stateManager.addNode({
+       id: nodeConfig.id,
+@@ -444,6 +468,17 @@ export class Executor {
+         args
+       }
+     });
++    this.announceRoutingEndpoint(nodeConfig.id, identity, {
++      id: identity,
++      type: 'process',
++      coordinates: `node:${nodeConfig.id}`,
++      metadata: {
++        module: nodeConfig.module,
++        runMode: 'process',
++        command,
++        args
++      }
++    });
+ 
+     this.stateManager.addNode({
+       id: nodeConfig.id,
+@@ -508,6 +543,15 @@ export class Executor {
+         runMode: 'inproc'
+       }
+     });
++    this.announceRoutingEndpoint(nodeConfig.id, identity, {
++      id: identity,
++      type: 'inproc',
++      coordinates: `node:${nodeConfig.id}`,
++      metadata: {
++        module: nodeConfig.module,
++        runMode: 'inproc'
++      }
++    });
+ 
+     this.stateManager.addNode({
+       id: nodeConfig.id,
+@@ -605,6 +649,15 @@ export class Executor {
+         runMode: 'worker'
+       }
+     });
++    this.announceRoutingEndpoint(nodeConfig.id, identity, {
++      id: identity,
++      type: 'worker',
++      coordinates: `node:${nodeConfig.id}`,
++      metadata: {
++        module: nodeConfig.module,
++        runMode: 'worker'
++      }
++    });
+ 
+     this.stateManager.addNode({
+       id: nodeConfig.id,
+@@ -631,6 +684,20 @@ export class Executor {
+     });
+   }
+ 
++  private announceRoutingEndpoint(nodeId: string, endpointId: string, announcement: RoutingAnnouncement): void {
++    const previous = this.routingIndex.get(nodeId);
++    if (previous && previous !== endpointId) {
++      this.routingServer?.withdraw(previous);
++    }
++    this.routingIndex.set(nodeId, endpointId);
++    if (this.routingServer) {
++      this.routingServer.announce({
++        ...announcement,
++        metadata: announcement.metadata ? { ...announcement.metadata } : undefined,
++      });
++    }
++  }
++
+   private getModulePath(moduleName: string): string {
+     const moduleMap: Record<string, string> = {
+       'TimerSource': '../modules/timer.js',

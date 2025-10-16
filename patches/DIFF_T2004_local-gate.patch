@@ -1,0 +1,468 @@
+diff --git a/docs/devex/quickstart.md b/docs/devex/quickstart.md
+index 986dce3..af5c7a2 100644
+--- a/docs/devex/quickstart.md
++++ b/docs/devex/quickstart.md
+@@ -31,7 +31,39 @@ node dist/scripts/mkctl.js run --file examples/configs/external-pty.yaml --durat
+ - Same approach scales from local development to distributed deployments
+ - See **[Wiring and Testing Guide](./wiring-and-tests.md)** for how to build your own config files
+ 
++### Inspect routing announcements
++
++After `mkctl run` finishes it writes a RoutingServer snapshot to `reports/router-endpoints.json`. View it with:
++
++```bash
++mkctl endpoints
++```
++
++You’ll see the endpoint id, module type, coordinates (`node:<id>` for in-process modules), and the timestamps when the announcement was recorded. Re-run the command any time to confirm which modules are currently live.
++
+ ---
++### Local Node Mode (MK_LOCAL_NODE=1)
++
++By default, mkolbol runs in Local Node mode with in-process routing only. This is enforced via the `MK_LOCAL_NODE=1` environment variable:
++
++```bash
++# Explicitly set Local Node mode (in-process Router only)
++MK_LOCAL_NODE=1 node dist/scripts/mkctl.js run --file examples/configs/basic.yml
++```
++
++**What Local Node mode does:**
++- **Enables:** In-process RoutingServer, Executor, Hostess, StateManager
++- **Disables:** Network transports, distributed routing, multi-machine topologies
++- **Validates:** Config loader rejects any node with `type=network` or `address` parameters
++
++**When to use Local Node mode:**
++- Local development and testing
++- Single-machine deployments
++- When you don't need network communication
++
++**Future:** When `MK_LOCAL_NODE` is not set (or set to `0`), network adapters and distributed routing will be available. This feature is planned for future releases.
++
++
+ 
+ ## Manual Demo (Direct Code Execution)
+ 
+diff --git a/scripts/mkctl.ts b/scripts/mkctl.ts
+index 436ae02..37c3bae 100644
+--- a/scripts/mkctl.ts
++++ b/scripts/mkctl.ts
+@@ -6,6 +6,8 @@ import { Hostess } from '../src/hostess/Hostess.js';
+ import { StateManager } from '../src/state/StateManager.js';
+ import { Executor } from '../src/executor/Executor.js';
+ import { loadConfig } from '../src/config/loader.js';
++import { RoutingServer } from '../src/router/RoutingServer.js';
++import type { RoutingEndpoint } from '../src/types.js';
+ 
+ const EXIT_CODES = {
+   SUCCESS: 0,
+@@ -54,6 +56,9 @@ COMMANDS
+ 
+ EXAMPLES
+   mkctl endpoints
++  mkctl endpoints --watch
++  mkctl endpoints --filter type=inproc
++  mkctl endpoints --watch --filter type=worker --interval 2
+   mkctl run --file examples/configs/basic.yml
+   mkctl run --file config.yml --duration 10
+ 
+@@ -67,37 +72,7 @@ async function main() {
+ 
+   switch (cmd) {
+     case 'endpoints': {
+-      const snapshotPath = path.resolve(process.cwd(), 'reports', 'endpoints.json');
+-      
+-      let endpoints: Array<{ id: string; type: string; coordinates: string; metadata?: Record<string, any> }>;
+-      try {
+-        const data = await fs.readFile(snapshotPath, 'utf-8');
+-        endpoints = JSON.parse(data);
+-      } catch (err) {
+-        console.log('No endpoints registered.');
+-        break;
+-      }
+-
+-      if (endpoints.length === 0) {
+-        console.log('No endpoints registered.');
+-        break;
+-      }
+-
+-      console.log('Registered Endpoints:');
+-      console.log('');
+-
+-      for (const endpoint of endpoints) {
+-        console.log(`ID:          ${endpoint.id}`);
+-        console.log(`Type:        ${endpoint.type}`);
+-        console.log(`Coordinates: ${endpoint.coordinates}`);
+-        if (endpoint.metadata?.ioMode) {
+-          console.log(`IO Mode:     ${endpoint.metadata.ioMode}`);
+-        }
+-        if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
+-          console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
+-        }
+-        console.log('');
+-      }
++      await handleEndpointsCommand(process.argv.slice(3));
+       break;
+     }
+     case 'run': {
+@@ -194,9 +169,219 @@ async function waitForDurationOrSignal(durationMs: number): Promise<'timer' | 's
+   });
+ }
+ 
++type EndpointSnapshot = {
++  id: string;
++  type: string;
++  coordinates: string;
++  metadata?: Record<string, any>;
++  announcedAt?: number;
++  updatedAt?: number;
++};
++
++async function loadEndpointSnapshot(): Promise<{ endpoints: EndpointSnapshot[]; source: 'router' | 'hostess' }> {
++  const routerSnapshotPath = path.resolve(process.cwd(), 'reports', 'router-endpoints.json');
++  try {
++    const raw = await fs.readFile(routerSnapshotPath, 'utf-8');
++    const parsed = JSON.parse(raw);
++    if (Array.isArray(parsed)) {
++      const endpoints = parsed.map(normalizeRouterEndpoint);
++      return { endpoints, source: 'router' };
++    }
++  } catch {
++    // fall through to hostess snapshot
++  }
++
++  const hostessSnapshotPath = path.resolve(process.cwd(), 'reports', 'endpoints.json');
++  try {
++    const raw = await fs.readFile(hostessSnapshotPath, 'utf-8');
++    const parsed = JSON.parse(raw);
++    if (Array.isArray(parsed)) {
++      const endpoints = parsed.map((entry: any) => normalizeRouterEndpoint({
++        id: entry.id,
++        type: entry.type,
++        coordinates: entry.coordinates,
++        metadata: entry.metadata,
++        announcedAt: entry.announcedAt,
++        updatedAt: entry.updatedAt,
++      }));
++      return { endpoints, source: 'hostess' };
++    }
++  } catch {
++    // ignore
++  }
++
++  return { endpoints: [], source: 'router' };
++}
++
++function normalizeRouterEndpoint(entry: any): EndpointSnapshot {
++  return {
++    id: String(entry?.id ?? ''),
++    type: String(entry?.type ?? 'unknown'),
++    coordinates: String(entry?.coordinates ?? ''),
++    metadata: entry && typeof entry.metadata === 'object' ? entry.metadata : undefined,
++    announcedAt: typeof entry?.announcedAt === 'number' ? entry.announcedAt : undefined,
++    updatedAt: typeof entry?.updatedAt === 'number' ? entry.updatedAt : undefined,
++  };
++}
++
++function formatTimestamp(value?: number): string {
++  if (value === undefined || value === null) return 'n/a';
++  const date = new Date(value);
++  if (Number.isNaN(date.getTime())) return 'n/a';
++  return date.toISOString();
++}
++
++interface EndpointsArguments {
++  watch: boolean;
++  interval: number;
++  filters: Array<{ key: string; value: string }>;
++}
++
++function parseEndpointsArgs(args: string[]): EndpointsArguments {
++  let watch = false;
++  let interval = 1;
++  const filters: Array<{ key: string; value: string }> = [];
++
++  for (let i = 0; i < args.length; i++) {
++    const token = args[i];
++    if (token === '--watch') {
++      watch = true;
++    } else if (token === '--interval') {
++      const next = args[i + 1];
++      if (!next || next.startsWith('--')) {
++        throw new MkctlError('--interval requires a number (seconds)', EXIT_CODES.USAGE);
++      }
++      const parsed = Number.parseInt(next, 10);
++      if (Number.isNaN(parsed) || parsed <= 0) {
++        throw new MkctlError('--interval must be a positive integer', EXIT_CODES.USAGE);
++      }
++      interval = parsed;
++      i++;
++    } else if (token === '--filter') {
++      const next = args[i + 1];
++      if (!next || next.startsWith('--')) {
++        throw new MkctlError('--filter requires key=value format', EXIT_CODES.USAGE);
++      }
++      const parts = next.split('=');
++      if (parts.length !== 2) {
++        throw new MkctlError('--filter requires key=value format', EXIT_CODES.USAGE);
++      }
++      filters.push({ key: parts[0], value: parts[1] });
++      i++;
++    }
++  }
++
++  return { watch, interval, filters };
++}
++
++function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: string; value: string }>): EndpointSnapshot[] {
++  if (filters.length === 0) return endpoints;
++
++  return endpoints.filter((endpoint) => {
++    for (const { key, value } of filters) {
++      if (key === 'type' && endpoint.type !== value) return false;
++      if (key === 'id' && !endpoint.id.includes(value)) return false;
++      if (key === 'coordinates' && !endpoint.coordinates.includes(value)) return false;
++    }
++    return true;
++  });
++}
++
++function displayEndpoints(endpoints: EndpointSnapshot[], source: 'router' | 'hostess'): void {
++  if (endpoints.length === 0) {
++    console.log('No endpoints match the filters.');
++    return;
++  }
++
++  console.log(`Registered Endpoints (${source === 'router' ? 'RoutingServer snapshot' : 'Hostess snapshot'})`);
++  console.log('');
++
++  for (const endpoint of endpoints) {
++    console.log(`ID:          ${endpoint.id}`);
++    console.log(`Type:        ${endpoint.type}`);
++    console.log(`Coordinates: ${endpoint.coordinates}`);
++    if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
++      console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
++    }
++    if (endpoint.announcedAt !== undefined) {
++      console.log(`Announced:   ${formatTimestamp(endpoint.announcedAt)}`);
++    }
++    if (endpoint.updatedAt !== undefined) {
++      console.log(`Updated:     ${formatTimestamp(endpoint.updatedAt)}`);
++    }
++    console.log('');
++  }
++}
++
++async function handleEndpointsCommand(args: string[]): Promise<void> {
++  const { watch, interval, filters } = parseEndpointsArgs(args);
++
++  if (!watch) {
++    const { endpoints, source } = await loadEndpointSnapshot();
++    
++    if (endpoints.length === 0) {
++      console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
++      return;
++    }
++
++    const filtered = applyFilters(endpoints, filters);
++    displayEndpoints(filtered, source);
++    return;
++  }
++
++  console.log(`Watching endpoints (refresh every ${interval}s)...`);
++  console.log('Press Ctrl+C to stop.\n');
++
++  let running = true;
++  const cleanup = () => {
++    running = false;
++    process.off('SIGINT', onSignal);
++    process.off('SIGTERM', onSignal);
++  };
++
++  const onSignal = () => {
++    cleanup();
++    console.log('\nWatch stopped.');
++  };
++
++  process.once('SIGINT', onSignal);
++  process.once('SIGTERM', onSignal);
++
++  while (running) {
++    const { endpoints, source } = await loadEndpointSnapshot();
++    const filtered = applyFilters(endpoints, filters);
++
++    console.clear();
++    console.log(`[${formatTimestamp(Date.now())}] Watching endpoints (refresh every ${interval}s)...`);
++    console.log('Press Ctrl+C to stop.\n');
++
++    if (endpoints.length === 0) {
++      console.log('No endpoints registered.');
++    } else {
++      displayEndpoints(filtered, source);
++    }
++
++    await new Promise((resolve) => setTimeout(resolve, interval * 1000));
++  }
++}
++
++async function writeRouterSnapshot(router: RoutingServer): Promise<void> {
++  const snapshotDir = path.resolve(process.cwd(), 'reports');
++  const snapshotPath = path.join(snapshotDir, 'router-endpoints.json');
++  await fs.mkdir(snapshotDir, { recursive: true });
++  const payload: RoutingEndpoint[] = router.list();
++  await fs.writeFile(snapshotPath, JSON.stringify(payload, null, 2), 'utf-8');
++  console.log(`[mkctl] Router endpoints captured at ${snapshotPath}`);
++}
++
+ async function handleRunCommand(args: string[]): Promise<number> {
+   const { configPath, durationMs } = parseRunArgs(args);
+ 
++  const localNodeMode = process.env.MK_LOCAL_NODE === '1';
++  if (localNodeMode) {
++    console.log('[mkctl] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.');
++  }
++
+   try {
+     await fs.access(configPath);
+   } catch {
+@@ -240,6 +425,8 @@ async function handleRunCommand(args: string[]): Promise<number> {
+   const hostess = new Hostess();
+   const stateManager = new StateManager(kernel);
+   const executor = new Executor(kernel, hostess, stateManager);
++  const router = new RoutingServer();
++  executor.setRoutingServer(router);
+ 
+   try {
+     executor.load(config);
+@@ -268,6 +455,10 @@ async function handleRunCommand(args: string[]): Promise<number> {
+ 
+   const outcome = await waitForDurationOrSignal(durationMs);
+ 
++  await writeRouterSnapshot(router).catch((err) => {
++    logError(`Failed to write router snapshot: ${err instanceof Error ? err.message : String(err)}`);
++  });
++
+   console.log('\nBringing topology down...');
+   try {
+     await executor.down();
+diff --git a/src/config/loader.ts b/src/config/loader.ts
+index a867025..ffb74ba 100644
+--- a/src/config/loader.ts
++++ b/src/config/loader.ts
+@@ -52,6 +52,8 @@ export function validateTopology(config: any): void {
+   if (!Array.isArray(config.connections)) {
+     throw new Error('"connections" must be an array');
+   }
++
++  const localNodeMode = process.env.MK_LOCAL_NODE === '1';
+   
+   const nodeIds = new Set<string>();
+   
+@@ -79,6 +81,12 @@ export function validateTopology(config: any): void {
+     if (typeof node.module !== 'string') {
+       throw new Error(`Node "${node.id}" has invalid "module" (must be a string)`);
+     }
++
++    if (localNodeMode && node.params) {
++      if (node.params.type === 'network' || node.params.address) {
++        throw new Error(`Node "${node.id}" uses network features (type=network or address field) which are not allowed when MK_LOCAL_NODE=1. Local Node mode only supports in-process routing.`);
++      }
++    }
+   }
+   
+   for (let i = 0; i < config.connections.length; i++) {
+diff --git a/tests/integration/local-node-gate.spec.ts b/tests/integration/local-node-gate.spec.ts
+new file mode 100644
+index 0000000..4188ba4
+--- /dev/null
++++ b/tests/integration/local-node-gate.spec.ts
+@@ -0,0 +1,90 @@
++import { describe, it, expect, beforeEach, afterEach } from 'vitest';
++import { loadConfig } from '../../src/config/loader.js';
++
++describe('MK_LOCAL_NODE gate', () => {
++  const originalEnv = process.env.MK_LOCAL_NODE;
++
++  afterEach(() => {
++    if (originalEnv !== undefined) {
++      process.env.MK_LOCAL_NODE = originalEnv;
++    } else {
++      delete process.env.MK_LOCAL_NODE;
++    }
++  });
++
++  it('allows config without network features when MK_LOCAL_NODE=1', () => {
++    process.env.MK_LOCAL_NODE = '1';
++
++    const config = `
++nodes:
++  - id: timer1
++    module: TimerSource
++    params:
++      periodMs: 100
++connections: []
++`;
++
++    expect(() => loadConfig(config)).not.toThrow();
++  });
++
++  it('rejects config with type=network when MK_LOCAL_NODE=1', () => {
++    process.env.MK_LOCAL_NODE = '1';
++
++    const config = `
++nodes:
++  - id: net1
++    module: NetworkModule
++    params:
++      type: network
++connections: []
++`;
++
++    expect(() => loadConfig(config)).toThrow(/uses network features.*MK_LOCAL_NODE=1/);
++  });
++
++  it('rejects config with address parameter when MK_LOCAL_NODE=1', () => {
++    process.env.MK_LOCAL_NODE = '1';
++
++    const config = `
++nodes:
++  - id: net1
++    module: NetworkModule
++    params:
++      address: "tcp://localhost:9000"
++connections: []
++`;
++
++    expect(() => loadConfig(config)).toThrow(/uses network features.*MK_LOCAL_NODE=1/);
++  });
++
++  it('allows config with network features when MK_LOCAL_NODE is not set', () => {
++    delete process.env.MK_LOCAL_NODE;
++
++    const config = `
++nodes:
++  - id: net1
++    module: NetworkModule
++    params:
++      type: network
++      address: "tcp://localhost:9000"
++connections: []
++`;
++
++    expect(() => loadConfig(config)).not.toThrow();
++  });
++
++  it('allows config with network features when MK_LOCAL_NODE=0', () => {
++    process.env.MK_LOCAL_NODE = '0';
++
++    const config = `
++nodes:
++  - id: net1
++    module: NetworkModule
++    params:
++      type: network
++connections: []
++`;
++
++    expect(() => loadConfig(config)).not.toThrow();
++  });
++});
