@@ -28,9 +28,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: reports/history.jsonl
-          key: laminar-history-node${{ matrix.node }}-${{ github.ref }}
+          # Cache key: per node version + per branch, with workflow as tier 2
+          key: laminar-history-v2-node-${{ matrix.node }}-branch-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: |
-            laminar-history-node${{ matrix.node }}-
+            laminar-history-v2-node-${{ matrix.node }}-branch-${{ github.ref_name }}-
+            laminar-history-v2-node-${{ matrix.node }}-
 
       - name: Install
         run: npm ci
