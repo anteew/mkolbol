@@ -95,12 +95,13 @@ main().catch(e => {
 function parseRunArgs(args) {
     let configPath;
     let durationMs = 5000;
+    let snapshotIntervalMs;
     for (let i = 0; i < args.length; i++) {
         const token = args[i];
         if (token === '--file') {
             const next = args[i + 1];
             if (!next || next.startsWith('--')) {
-                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>]', EXIT_CODES.USAGE);
+                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>]', EXIT_CODES.USAGE);
             }
             configPath = next;
             i++;
@@ -108,7 +109,7 @@ function parseRunArgs(args) {
         else if (token === '--duration') {
             const next = args[i + 1];
             if (!next || next.startsWith('--')) {
-                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>]', EXIT_CODES.USAGE);
+                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>]', EXIT_CODES.USAGE);
             }
             const parsed = Number.parseInt(next, 10);
             if (Number.isNaN(parsed) || parsed <= 0) {
@@ -117,11 +118,23 @@ function parseRunArgs(args) {
             durationMs = parsed * 1000;
             i++;
         }
+        else if (token === '--snapshot-interval') {
+            const next = args[i + 1];
+            if (!next || next.startsWith('--')) {
+                throw new MkctlError('--snapshot-interval requires a number (seconds)', EXIT_CODES.USAGE);
+            }
+            const parsed = Number.parseInt(next, 10);
+            if (Number.isNaN(parsed) || parsed <= 0) {
+                throw new MkctlError('--snapshot-interval must be a positive integer (seconds)', EXIT_CODES.USAGE);
+            }
+            snapshotIntervalMs = parsed * 1000;
+            i++;
+        }
     }
     if (!configPath) {
-        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>]', EXIT_CODES.USAGE);
+        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>]', EXIT_CODES.USAGE);
     }
-    return { configPath, durationMs };
+    return { configPath, durationMs, snapshotIntervalMs };
 }
 async function waitForDurationOrSignal(durationMs) {
     return new Promise((resolve) => {
@@ -326,7 +339,7 @@ async function writeRouterSnapshot(router) {
     console.log(`[mkctl] Router endpoints captured at ${snapshotPath}`);
 }
 async function handleRunCommand(args) {
-    const { configPath, durationMs } = parseRunArgs(args);
+    const { configPath, durationMs, snapshotIntervalMs } = parseRunArgs(args);
     const localNodeMode = process.env.MK_LOCAL_NODE === '1';
     if (localNodeMode) {
         console.log('[mkctl] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.');
@@ -380,7 +393,21 @@ async function handleRunCommand(args) {
         throw new MkctlError(`Failed to start topology: ${message}\nHint: verify module names and external commands referenced by the config.`, EXIT_CODES.RUNTIME, { cause: err });
     }
     console.log(`Topology running for ${durationMs / 1000} seconds...\n`);
+    let snapshotTimer;
+    if (snapshotIntervalMs) {
+        console.log(`[mkctl] Mid-run snapshots enabled (every ${snapshotIntervalMs / 1000}s)`);
+        let snapshotCount = 0;
+        snapshotTimer = setInterval(() => {
+            snapshotCount++;
+            writeRouterSnapshot(router).catch((err) => {
+                logError(`Failed to write snapshot ${snapshotCount}: ${err instanceof Error ? err.message : String(err)}`);
+            });
+        }, snapshotIntervalMs);
+    }
     const outcome = await waitForDurationOrSignal(durationMs);
+    if (snapshotTimer) {
+        clearInterval(snapshotTimer);
+    }
     await writeRouterSnapshot(router).catch((err) => {
         logError(`Failed to write router snapshot: ${err instanceof Error ? err.message : String(err)}`);
     });

@@ -2,61 +2,69 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "E1-A", "parallel": false, "tasks": ["T4001", "T4002"] },
-    { "id": "FS1-B", "parallel": true,  "depends_on": ["E1-A"], "tasks": ["T4101", "T4102", "T4103"] }
+    { "id": "E2-A",  "parallel": false, "tasks": ["T5001", "T5005"] },
+    { "id": "FS2-B", "parallel": true,  "depends_on": ["E2-A"], "tasks": ["T5002", "T5003", "T5004", "T5006"] }
   ],
   "tasks": [
     {
-      "id": "T4001",
+      "id": "T5001",
       "agent": "susan",
-      "title": "ExternalProcess Hardening P1: restart/backoff/log capture",
-      "allowedFiles": ["src/wrappers/ExternalServerWrapper.ts", "tests/integration/externalFromConfig.spec.ts", "docs/devex/mkctl-cookbook.md"],
+      "title": "mkctl ergonomics: SIGINT teardown, exit codes, clearer errors",
+      "allowedFiles": ["scripts/mkctl.ts", "src/config/loader.ts", "tests/cli/mkctlRun.spec.ts", "docs/devex/mkctl-cookbook.md"],
       "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_T4001_restart-backoff.patch"]
+      "deliverables": ["patches/DIFF_T5001_mkctl-ergonomics.patch"]
     },
     {
-      "id": "T4002",
+      "id": "T5005",
       "agent": "susan",
-      "title": "ExternalProcess Hardening P1: env/cwd + exit-code mapping",
-      "allowedFiles": ["src/wrappers/ExternalServerWrapper.ts", "tests/integration/externalFromConfig.spec.ts", "docs/devex/mkctl-cookbook.md"],
+      "title": "mkctl run: optional mid-run router snapshots (flagged)",
+      "allowedFiles": ["scripts/mkctl.ts", "tests/cli/mkctlEndpoints.spec.ts"],
       "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_T4002_logs-env-exitcodes.patch"]
+      "deliverables": ["patches/DIFF_T5005_mkctl-router-snapshots.patch"]
     },
     {
-      "id": "T4101",
+      "id": "T5002",
       "agent": "susan",
-      "title": "FilesystemSink P1: module + append/truncate",
-      "allowedFiles": ["src/modules/filesystem-sink.ts", "tests/renderers/filesystemSink.spec.ts", "examples/configs/http-logs-local.yml"],
-      "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_T4101_filesystem-sink-core.patch"]
-    },
-    {
-      "id": "T4102",
-      "agent": "susan",
-      "title": "FilesystemSink P1: fsync policy + backpressure/errors",
+      "title": "FilesystemSink: implement fsync=\"always\" + tests",
       "allowedFiles": ["src/modules/filesystem-sink.ts", "tests/renderers/filesystemSink.spec.ts"],
       "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_T4102_filesystem-sink-fsync.patch"]
+      "deliverables": ["patches/DIFF_T5002_filesink-fsync-always.patch"]
     },
     {
-      "id": "T4103",
+      "id": "T5003",
       "agent": "susan",
-      "title": "Docs + cookbook: logging to files (Local Node v1.0)",
-      "allowedFiles": ["docs/devex/mkctl-cookbook.md", "docs/devex/quickstart.md", "docs/rfcs/stream-kernel/05-router.md"],
+      "title": "ExternalProcess: edge-path tests (capture limit, backoff cap, signals)",
+      "allowedFiles": ["tests/integration/externalFromConfig.spec.ts"],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_T5003_external-edge-tests.patch"]
+    },
+    {
+      "id": "T5004",
+      "agent": "susan",
+      "title": "ConsoleSink: human-readable Buffer output + docs",
+      "allowedFiles": ["src/modules/consoleSink.ts", "docs/devex/mkctl-cookbook.md", "tests/integration/multiModalOutput.spec.ts"],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_T5004_console-sink.patch"]
+    },
+    {
+      "id": "T5006",
+      "agent": "susan",
+      "title": "Cleanup: remove stray backups (AnsiParser.ts.backup, .current) if present",
+      "allowedFiles": ["src/transforms/AnsiParser.ts.backup", "src/transforms/AnsiParser.ts.current"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_T4103_filesystem-sink-docs.patch"]
+      "deliverables": ["patches/DIFF_T5006_cleanup-backups.patch"]
     }
   ]
 }
 ```
 
-# Ampcode — Core: ExternalProcess Hardening P1 + FilesystemSink P1 (Local Node v1.0)
+# Ampcode — Core Sprint (mkctl ergonomics, FileSink fsync, ExternalProcess tests, ConsoleSink)
 
 Goal
-- Harden ExternalProcess for production (restart/backoff/logs/env/exit codes) and add a simple FilesystemSink so we can dogfood an HTTP→log demo locally.
+- Improve mkctl operability (signals, exit codes, mid-run snapshots), finalize FilesystemSink fsync semantics, add ExternalProcess edge tests, and make ConsoleSink output friendly for logs.
 
 Constraints
-- MK_LOCAL_NODE=1 (no network adapters). Kernel unchanged.
+- `MK_LOCAL_NODE=1` (no network adapters). Kernel unchanged. CI lanes remain strict.
 
 Verification Commands
 ```bash

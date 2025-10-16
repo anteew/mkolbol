@@ -1,3 +1,3 @@
-{"ts":1760619206227,"lvl":"info","case":"should not restart with \"never\" policy","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760619206228,"lvl":"info","case":"should not restart with \"never\" policy","phase":"execution","evt":"test.run"}
-{"ts":1760619206229,"lvl":"info","case":"should not restart with \"never\" policy","phase":"teardown","evt":"case.end","payload":{"duration":419,"status":"passed"}}
+{"ts":1760624434094,"lvl":"info","case":"should not restart with \"never\" policy","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760624434095,"lvl":"info","case":"should not restart with \"never\" policy","phase":"execution","evt":"test.run"}
+{"ts":1760624434096,"lvl":"info","case":"should not restart with \"never\" policy","phase":"teardown","evt":"case.end","payload":{"duration":397,"status":"passed"}}
