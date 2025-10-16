@@ -3,6 +3,7 @@ Primer — what to do next (after context compaction)
 - Recenter: read VEGA/my-state-of-mind-today.txt and VEGA/near-term-and-future-plan.md.
 - Skim docs/rfcs/stream-kernel/00-index.md and src/kernel/Kernel.ts.
 - Skim the latest VEGA/diary-*.txt for what changed.
+- Skim VEGA/local-node-v1.0.md and VEGA/laminar-ci-visibility-plan.md.
 - Open ampcode.md on the active branch and pick the top task.
 
 Taste cues

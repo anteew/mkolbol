@@ -1,0 +1,18 @@
+Diary — 2025-10-16T13:03Z
+
+State before compaction
+- Local Node v1.0 focus (MK_LOCAL_NODE=1) is active.
+- Router P2, ExternalProcess Hardening P1, FilesystemSink P1 shipped; DevEx acceptance pack + quickstart shipped.
+- Open PRs: #71 (Core: ExternalProcess Hardening P1 + FilesystemSink P1 + DevEx acceptance pack) — MERGEABLE; Node 24 forks lane stabilized.
+
+Laminar visibility plan
+- VEGA/laminar-ci-visibility-plan.md documents cache-based history, suite tags, PR comment with summary/top offenders, flake budgets, repro hints.
+
+Rehydrate checklist
+- Read: VEGA/local-node-v1.0.md (scope/acceptance), VEGA/laminar-ci-visibility-plan.md.
+- Sanity: export MK_LOCAL_NODE=1; build + threads; process lane.
+- If PRs exist, review CI trends and merge; rotate next mailboxes.
+
+Next candidates
+- DevEx: add examples/configs/http-logs-local-file.yml with FilesystemSink; update docs to prefer FileSink.
+- Core: Process Cutover P2 (blue/green under load) or Router P2 polish.
