@@ -248,11 +248,13 @@ interface EndpointsArguments {
   watch: boolean;
   interval: number;
   filters: Array<{ key: string; value: string }>;
+  json: boolean;
 }
 
 function parseEndpointsArgs(args: string[]): EndpointsArguments {
   let watch = false;
   let interval = 1;
+  let json = false;
   const filters: Array<{ key: string; value: string }> = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -281,10 +283,12 @@ function parseEndpointsArgs(args: string[]): EndpointsArguments {
       }
       filters.push({ key: parts[0], value: parts[1] });
       i++;
+    } else if (token === '--json') {
+      json = true;
     }
   }
 
-  return { watch, interval, filters };
+  return { watch, interval, filters, json };
 }
 
 function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: string; value: string }>): EndpointSnapshot[] {
@@ -295,6 +299,11 @@ function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: strin
       if (key === 'type' && endpoint.type !== value) return false;
       if (key === 'id' && !endpoint.id.includes(value)) return false;
       if (key === 'coordinates' && !endpoint.coordinates.includes(value)) return false;
+      
+      if (key.startsWith('metadata.')) {
+        const metaKey = key.substring(9);
+        if (!endpoint.metadata || endpoint.metadata[metaKey] !== value) return false;
+      }
     }
     return true;
   });
@@ -327,18 +336,27 @@ function displayEndpoints(endpoints: EndpointSnapshot[], source: 'router' | 'hos
 }
 
 async function handleEndpointsCommand(args: string[]): Promise<void> {
-  const { watch, interval, filters } = parseEndpointsArgs(args);
+  const { watch, interval, filters, json } = parseEndpointsArgs(args);
 
   if (!watch) {
     const { endpoints, source } = await loadEndpointSnapshot();
     
     if (endpoints.length === 0) {
-      console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
+      if (json) {
+        console.log('[]');
+      } else {
+        console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
+      }
       return;
     }
 
     const filtered = applyFilters(endpoints, filters);
-    displayEndpoints(filtered, source);
+    
+    if (json) {
+      console.log(JSON.stringify(filtered, null, 2));
+    } else {
+      displayEndpoints(filtered, source);
+    }
     return;
   }
 

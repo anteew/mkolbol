@@ -105,6 +105,46 @@ mkctl endpoints
 
 Whenever `mkctl run` exits it persists a snapshot to `reports/router-endpoints.json`. `mkctl endpoints` will fall back to the Hostess snapshot (`reports/endpoints.json`) if no router snapshot exists yet.
 
+### Query endpoints in JSON format
+
+```bash
+mkctl endpoints --json
+```
+
+**Output:**
+```json
+[
+  {
+    "id": "localhost:timer1:0x0001:system:no:none:…",
+    "type": "inproc",
+    "coordinates": "node:timer1",
+    "metadata": {"module":"TimerSource","runMode":"inproc"},
+    "announcedAt": 1697520905123,
+    "updatedAt": 1697520905123
+  }
+]
+```
+
+**Use case:** Scripting and automation (parsing in jq, Python, or other tools).
+
+### Filter endpoints by type
+
+```bash
+# Show only external processes
+mkctl endpoints --filter type=external
+
+# Show only inproc modules
+mkctl endpoints --filter type=inproc
+
+# Show only output sinks
+mkctl endpoints --filter type=output
+```
+
+**Combine with --json for programmatic access:**
+```bash
+mkctl endpoints --json --filter type=external | jq '.[].id'
+```
+
 ---
 
 ## Common Topologies

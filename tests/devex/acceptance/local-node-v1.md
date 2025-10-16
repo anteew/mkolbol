@@ -370,6 +370,187 @@ node dist/scripts/mkctl.js endpoints
 
 ---
 
+## FilesystemSink Walkthrough (End-to-End Logging)
+
+### Scenario: HTTP Logs to File
+
+This scenario demonstrates the **complete FilesystemSink flow**: data flows from an HTTP server through a FilesystemSink module into a persistent log file, all coordinated by mkolbol's routing and I/O system.
+
+**Prerequisites:** FilesystemSink module must be available (delivered in SB-MK-CONFIG-PROCESS-P1)
+
+### Configuration
+
+**File:** `examples/configs/http-logs-local-file.yml`
+
+```yaml
+nodes:
+  - id: web
+    module: ExternalProcess
+    params:
+      command: node
+      args:
+        - -e
+        - "require('http').createServer((req,res)=>{console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);res.end('ok')}).listen(3000,()=>console.log('Server listening on http://localhost:3000'))"
+      ioMode: stdio
+      restart: never
+
+  - id: sink
+    module: FilesystemSink
+    params:
+      path: ./logs/http-response.log
+      mode: append
+
+connections:
+  - from: web.output
+    to: sink.input
+```
+
+**Key Differences from ConsoleSink:**
+
+- **`module: FilesystemSink`** - Writes to file instead of console
+- **`path: ./logs/http-response.log`** - Target file (created if it doesn't exist)
+- **`mode: append`** - Append to file (vs. `truncate` to overwrite)
+- No `prefix` parameter (file logging doesn't need visual prefixes)
+
+### Steps
+
+#### Step 1: Run the Topology
+
+```bash
+export MK_LOCAL_NODE=1
+node dist/scripts/mkctl.js run --file examples/configs/http-logs-local-file.yml --duration 10
+```
+
+**Expected Output:**
+```
+[mkctl] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.
+Loading config from: examples/configs/http-logs-local-file.yml
+Bringing topology up...
+Topology running for 10 seconds...
+
+Server listening on http://localhost:3000
+```
+
+**What's Happening:**
+1. mkctl validates and loads the config
+2. Executor instantiates `web` (ExternalProcess) and `sink` (FilesystemSink)
+3. FilesystemSink creates `logs/` directory and opens `http-response.log` in append mode
+4. ExternalProcess spawns HTTP server
+5. StateManager wires `web.output` → `sink.input`
+
+#### Step 2: Generate HTTP Activity
+
+In another terminal, send requests:
+
+```bash
+# Terminal 2: Send multiple requests
+for i in {1..5}; do
+  curl -s http://localhost:3000/request-$i
+  sleep 0.5
+done
+```
+
+**Expected Behavior (Terminal 1):**
+- No console output from logs (they go to file, not console)
+- HTTP server still runs
+
+**What's Happening:**
+1. Each curl request reaches the HTTP server
+2. Server logs `[timestamp] GET /request-N` to stdout
+3. These logs flow through `web.output` → `sink.input` → FilesystemSink
+4. FilesystemSink writes each line to `logs/http-response.log`
+5. File grows with each request (append mode)
+
+#### Step 3: Inspect the Log File (While Topology Runs)
+
+In another terminal:
+
+```bash
+# Terminal 3: Watch the log file grow
+tail -f logs/http-response.log
+```
+
+**Expected Output (updates as requests arrive):**
+```
+[2025-10-17T04:15:23.456Z] GET /request-1
+[2025-10-17T04:15:23.957Z] GET /request-2
+[2025-10-17T04:15:24.458Z] GET /request-3
+[2025-10-17T04:15:24.959Z] GET /request-4
+[2025-10-17T04:15:25.460Z] GET /request-5
+```
+
+**What's Happening:**
+1. `tail -f` watches file for new content
+2. Each request appends a line to the file
+3. FilesystemSink handles backpressure (writes don't block the HTTP server)
+4. File I/O is transparent to the topology
+
+#### Step 4: Verify Log Persistence After Shutdown
+
+After the topology runs (10 seconds), the log file persists:
+
+```bash
+# Terminal 1 (after mkctl completes):
+# Logs are already written to disk
+
+# Terminal 2: Inspect final log file
+cat logs/http-response.log
+```
+
+**Expected Output:**
+```
+[2025-10-17T04:15:23.456Z] GET /request-1
+[2025-10-17T04:15:23.957Z] GET /request-2
+[2025-10-17T04:15:24.458Z] GET /request-3
+[2025-10-17T04:15:24.959Z] GET /request-4
+[2025-10-17T04:15:25.460Z] GET /request-5
+```
+
+**Key Insight:** Unlike ConsoleSink, FilesystemSink persists logs to disk. You can inspect them after the topology exits, archive them, upload to logging systems, etc.
+
+### Verification Checklist
+
+- [ ] **Directory created** - `logs/` directory exists after run starts
+- [ ] **File created** - `logs/http-response.log` is created (initially empty or appended to)
+- [ ] **Logs written** - Each HTTP request generates a log line in the file
+- [ ] **File format correct** - Logs are plain text, one line per request
+- [ ] **Append mode works** - Running topology twice appends lines (doesn't truncate)
+- [ ] **Backpressure handled** - HTTP requests don't stall while logs are written
+- [ ] **Graceful shutdown** - FilesystemSink closes file handle cleanly at shutdown
+- [ ] **File integrity** - Log file is readable and contains all expected entries
+
+### Comparison: ConsoleSink vs FilesystemSink
+
+| Aspect | ConsoleSink | FilesystemSink |
+|--------|-------------|----------------|
+| **Output** | Live console/stdout | File on disk |
+| **Persistence** | Ephemeral (lost on exit) | Persistent (survives process) |
+| **Latency** | Immediate | Buffered (fsync policy dependent) |
+| **Use Case** | Development, debugging, CI logs | Production logging, audit trails |
+| **Query** | Manual inspection | Log aggregation tools, `grep`, `tail` |
+| **Integration** | Shell pipelines, `tee` | ELK, Splunk, CloudWatch, Datadog |
+
+### Next: Integration with Monitoring
+
+After validating FilesystemSink works, you can:
+
+1. **Rotate logs** - Use log rotation tools (`logrotate`, `newsyslog`)
+2. **Aggregate** - Ship logs to centralized system (ELK, Splunk, etc.)
+3. **Parse** - Use tools like `jq` or `awk` to analyze logs programmatically
+4. **Alert** - Trigger alerts based on log patterns
+
+Example: Ship logs to cloud storage after topology runs:
+
+```bash
+# After topology completes
+aws s3 cp logs/http-response.log s3://my-bucket/logs/$(date +%Y-%m-%d-%H-%M-%S).log
+
+# Or archive locally
+tar -czf logs-backup-$(date +%s).tar.gz logs/
+```
+
+---
+
 ## Today vs Soon: Logging Path
 
 ### Today (Current - v1.0)

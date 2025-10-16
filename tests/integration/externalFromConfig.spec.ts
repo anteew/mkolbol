@@ -773,4 +773,272 @@ describe('External From Config Integration', () => {
     },
     10000
   );
+
+  // Health check: command type success
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should pass command-based health check',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'healthcheck-command',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sleep',
+              args: ['5'],
+              ioMode: 'stdio',
+              restart: 'never',
+              healthCheck: {
+                type: 'command',
+                command: 'exit 0',
+                timeout: 1000,
+                retries: 2
+              }
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('healthcheck-command');
+      expect(wrapper).toBeDefined();
+      expect(wrapper.isRunning()).toBe(true);
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // Health check: command type failure
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should fail command-based health check after retries',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'healthcheck-fail',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sleep',
+              args: ['5'],
+              ioMode: 'stdio',
+              restart: 'never',
+              healthCheck: {
+                type: 'command',
+                command: 'exit 1',
+                timeout: 500,
+                retries: 2
+              }
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      
+      await expect(executor.up()).rejects.toThrow(/Health check failed/);
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // Health check: HTTP type success
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should pass HTTP-based health check',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'healthcheck-http',
+            module: 'ExternalProcess',
+            params: {
+              command: 'node',
+              args: ['-e', 'require("http").createServer((req,res)=>res.end("OK")).listen(18765)'],
+              ioMode: 'stdio',
+              restart: 'never',
+              healthCheck: {
+                type: 'http',
+                url: 'http://localhost:18765',
+                timeout: 2000,
+                retries: 5
+              }
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      await executor.up();
+
+      const wrapper = (executor as any).wrappers.get('healthcheck-http');
+      expect(wrapper).toBeDefined();
+      expect(wrapper.isRunning()).toBe(true);
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // Health check: HTTP type failure
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should fail HTTP-based health check with timeout',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'healthcheck-http-fail',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sleep',
+              args: ['5'],
+              ioMode: 'stdio',
+              restart: 'never',
+              healthCheck: {
+                type: 'http',
+                url: 'http://localhost:99999',
+                timeout: 500,
+                retries: 2
+              }
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      
+      await expect(executor.up()).rejects.toThrow(/Health check failed/);
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // Health check: HTTP type 404 failure
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should fail HTTP health check on non-2xx status',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'healthcheck-http-404',
+            module: 'ExternalProcess',
+            params: {
+              command: 'node',
+              args: ['-e', 'require("http").createServer((req,res)=>{res.statusCode=404;res.end()}).listen(18766)'],
+              ioMode: 'stdio',
+              restart: 'never',
+              healthCheck: {
+                type: 'http',
+                url: 'http://localhost:18766',
+                timeout: 2000,
+                retries: 2
+              }
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      
+      await expect(executor.up()).rejects.toThrow(/Health check failed/);
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // Health check: exponential backoff
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should use exponential backoff between health check retries',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'healthcheck-backoff',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sleep',
+              args: ['5'],
+              ioMode: 'stdio',
+              restart: 'never',
+              healthCheck: {
+                type: 'command',
+                command: 'exit 1',
+                timeout: 100,
+                retries: 3
+              }
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      
+      const startTime = Date.now();
+      try {
+        await executor.up();
+      } catch (error) {
+        // Expected to fail
+      }
+      const elapsed = Date.now() - startTime;
+
+      // With 3 retries and exponential backoff (1s, 2s):
+      // Should take at least 3 seconds (1000 + 2000 + execution time)
+      expect(elapsed).toBeGreaterThan(3000);
+
+      await executor.down();
+    },
+    testTimeout
+  );
+
+  // Health check: command timeout
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should timeout command health check',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'healthcheck-cmd-timeout',
+            module: 'ExternalProcess',
+            params: {
+              command: 'sleep',
+              args: ['5'],
+              ioMode: 'stdio',
+              restart: 'never',
+              healthCheck: {
+                type: 'command',
+                command: 'sleep 10',
+                timeout: 500,
+                retries: 1
+              }
+            },
+            runMode: 'process'
+          }
+        ],
+        connections: []
+      };
+
+      executor.load(config);
+      
+      await expect(executor.up()).rejects.toThrow(/timed out/);
+
+      await executor.down();
+    },
+    testTimeout
+  );
 });

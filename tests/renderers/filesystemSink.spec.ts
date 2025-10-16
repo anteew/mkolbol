@@ -193,4 +193,145 @@ describe('FilesystemSink', () => {
     const content = await readFile(filePath);
     expect(content.length).toBe(100 * 256);
   });
+
+  it('should write data in jsonl format', async () => {
+    const filePath = join(testDir, 'jsonl.log');
+    const sink = new FilesystemSink(kernel, { path: filePath, format: 'jsonl' });
+
+    await sink.start();
+    sink.inputPipe.write('line 1');
+    sink.inputPipe.write('line 2');
+    await sink.stop();
+
+    const content = await readFile(filePath, 'utf8');
+    const lines = content.trim().split('\n');
+    
+    expect(lines.length).toBe(2);
+    
+    const parsed1 = JSON.parse(lines[0]);
+    expect(parsed1).toHaveProperty('ts');
+    expect(parsed1).toHaveProperty('data');
+    expect(parsed1.data).toBe('line 1');
+    expect(new Date(parsed1.ts).toISOString()).toBe(parsed1.ts);
+    
+    const parsed2 = JSON.parse(lines[1]);
+    expect(parsed2.data).toBe('line 2');
+  });
+
+  it('should include timestamp in raw mode', async () => {
+    const filePath = join(testDir, 'timestamp.log');
+    const sink = new FilesystemSink(kernel, { 
+      path: filePath, 
+      format: 'raw',
+      includeTimestamp: true 
+    });
+
+    await sink.start();
+    sink.inputPipe.write('first line\n');
+    sink.inputPipe.write('second line\n');
+    await sink.stop();
+
+    const content = await readFile(filePath, 'utf8');
+    const lines = content.trim().split('\n');
+    
+    expect(lines.length).toBe(2);
+    
+    expect(lines[0]).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z first line$/);
+    expect(lines[1]).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z second line$/);
+  });
+
+  it('should handle multiple lines in single chunk with timestamp', async () => {
+    const filePath = join(testDir, 'multiline-timestamp.log');
+    const sink = new FilesystemSink(kernel, { 
+      path: filePath,
+      includeTimestamp: true 
+    });
+
+    await sink.start();
+    sink.inputPipe.write('line 1\nline 2\nline 3\n');
+    await sink.stop();
+
+    const content = await readFile(filePath, 'utf8');
+    const lines = content.trim().split('\n');
+    
+    expect(lines.length).toBe(3);
+    lines.forEach(line => {
+      expect(line).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z line \d$/);
+    });
+  });
+
+  it('should write jsonl format with multiple chunks', async () => {
+    const filePath = join(testDir, 'jsonl-multi.log');
+    const sink = new FilesystemSink(kernel, { path: filePath, format: 'jsonl' });
+
+    await sink.start();
+    for (let i = 0; i < 5; i++) {
+      sink.inputPipe.write(`chunk ${i}`);
+    }
+    await sink.stop();
+
+    const content = await readFile(filePath, 'utf8');
+    const lines = content.trim().split('\n');
+    
+    expect(lines.length).toBe(5);
+    
+    lines.forEach((line, i) => {
+      const parsed = JSON.parse(line);
+      expect(parsed.data).toBe(`chunk ${i}`);
+      expect(new Date(parsed.ts).toISOString()).toBe(parsed.ts);
+    });
+  });
+
+  it('should handle partial lines with timestamp', async () => {
+    const filePath = join(testDir, 'partial-timestamp.log');
+    const sink = new FilesystemSink(kernel, { 
+      path: filePath,
+      includeTimestamp: true 
+    });
+
+    await sink.start();
+    sink.inputPipe.write('start');
+    sink.inputPipe.write(' middle');
+    sink.inputPipe.write(' end\n');
+    await sink.stop();
+
+    const content = await readFile(filePath, 'utf8');
+    const lines = content.trim().split('\n');
+    
+    expect(lines.length).toBe(1);
+    expect(lines[0]).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z start middle end$/);
+  });
+
+  it('should work without format or timestamp options (default behavior)', async () => {
+    const filePath = join(testDir, 'default.log');
+    const sink = new FilesystemSink(kernel, { path: filePath });
+
+    await sink.start();
+    sink.inputPipe.write('raw line 1\n');
+    sink.inputPipe.write('raw line 2\n');
+    await sink.stop();
+
+    const content = await readFile(filePath, 'utf8');
+    expect(content).toBe('raw line 1\nraw line 2\n');
+  });
+
+  it('should ignore includeTimestamp when format is jsonl', async () => {
+    const filePath = join(testDir, 'jsonl-overrides.log');
+    const sink = new FilesystemSink(kernel, { 
+      path: filePath, 
+      format: 'jsonl',
+      includeTimestamp: true
+    });
+
+    await sink.start();
+    sink.inputPipe.write('test data');
+    await sink.stop();
+
+    const content = await readFile(filePath, 'utf8');
+    const parsed = JSON.parse(content.trim());
+    
+    expect(parsed).toHaveProperty('ts');
+    expect(parsed).toHaveProperty('data');
+    expect(parsed.data).toBe('test data');
+  });
 });

@@ -218,6 +218,7 @@ function formatTimestamp(value) {
 function parseEndpointsArgs(args) {
     let watch = false;
     let interval = 1;
+    let json = false;
     const filters = [];
     for (let i = 0; i < args.length; i++) {
         const token = args[i];
@@ -248,8 +249,11 @@ function parseEndpointsArgs(args) {
             filters.push({ key: parts[0], value: parts[1] });
             i++;
         }
+        else if (token === '--json') {
+            json = true;
+        }
     }
-    return { watch, interval, filters };
+    return { watch, interval, filters, json };
 }
 function applyFilters(endpoints, filters) {
     if (filters.length === 0)
@@ -262,6 +266,11 @@ function applyFilters(endpoints, filters) {
                 return false;
             if (key === 'coordinates' && !endpoint.coordinates.includes(value))
                 return false;
+            if (key.startsWith('metadata.')) {
+                const metaKey = key.substring(9);
+                if (!endpoint.metadata || endpoint.metadata[metaKey] !== value)
+                    return false;
+            }
         }
         return true;
     });
@@ -290,15 +299,25 @@ function displayEndpoints(endpoints, source) {
     }
 }
 async function handleEndpointsCommand(args) {
-    const { watch, interval, filters } = parseEndpointsArgs(args);
+    const { watch, interval, filters, json } = parseEndpointsArgs(args);
     if (!watch) {
         const { endpoints, source } = await loadEndpointSnapshot();
         if (endpoints.length === 0) {
-            console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
+            if (json) {
+                console.log('[]');
+            }
+            else {
+                console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
+            }
             return;
         }
         const filtered = applyFilters(endpoints, filters);
-        displayEndpoints(filtered, source);
+        if (json) {
+            console.log(JSON.stringify(filtered, null, 2));
+        }
+        else {
+            displayEndpoints(filtered, source);
+        }
         return;
     }
     console.log(`Watching endpoints (refresh every ${interval}s)...`);

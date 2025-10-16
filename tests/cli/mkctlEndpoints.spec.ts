@@ -147,6 +147,39 @@ connections:
     expect(outcome.code).toBe(EXIT_CODES.SUCCESS);
     expect(outcome.stdout).toContain('No endpoints match the filters');
   });
+
+  it('outputs JSON format when --json flag is used', async () => {
+    const snapshotPath = join(workspaceDir, 'reports', 'router-endpoints.json');
+    mkdirSync(join(workspaceDir, 'reports'), { recursive: true });
+    const testData = [
+      { id: 'ep1', type: 'inproc', coordinates: 'node:ep1', metadata: { module: 'TestMod' }, announcedAt: 1000, updatedAt: 2000 }
+    ];
+    writeFileSync(snapshotPath, JSON.stringify(testData));
+
+    const result = spawnMkctl(['endpoints', '--json']);
+    const outcome = await result.result;
+
+    expect(outcome.code).toBe(EXIT_CODES.SUCCESS);
+    const parsed = JSON.parse(outcome.stdout);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed[0].id).toBe('ep1');
+  });
+
+  it('filters by metadata fields', async () => {
+    const snapshotPath = join(workspaceDir, 'reports', 'router-endpoints.json');
+    mkdirSync(join(workspaceDir, 'reports'), { recursive: true });
+    writeFileSync(snapshotPath, JSON.stringify([
+      { id: 'ep1', type: 'inproc', coordinates: 'node:ep1', metadata: { module: 'Timer' }, announcedAt: Date.now(), updatedAt: Date.now() },
+      { id: 'ep2', type: 'inproc', coordinates: 'node:ep2', metadata: { module: 'Console' }, announcedAt: Date.now(), updatedAt: Date.now() }
+    ]));
+
+    const result = spawnMkctl(['endpoints', '--filter', 'metadata.module=Timer']);
+    const outcome = await result.result;
+
+    expect(outcome.code).toBe(EXIT_CODES.SUCCESS);
+    expect(outcome.stdout).toContain('node:ep1');
+    expect(outcome.stdout).not.toContain('node:ep2');
+  });
 });
 
 const EXIT_CODES = {

@@ -74,6 +74,14 @@ export function buildServerIdentity(parts: {
 export type IOMode = 'stdio' | 'pty' | 'socket';
 export type RestartPolicy = 'never' | 'on-failure' | 'always';
 
+export interface HealthCheckConfig {
+  type: 'command' | 'http';
+  command?: string;
+  url?: string;
+  timeout?: number;
+  retries?: number;
+}
+
 export interface ExternalServerManifest extends ServerManifest {
   command: string;
   args: string[];
@@ -89,6 +97,7 @@ export interface ExternalServerManifest extends ServerManifest {
   encoding?: 'utf8' | 'binary';
   shell?: string;
   shellArgs?: string[];
+  healthCheck?: HealthCheckConfig;
 }
 
 export interface ProcessInfo {

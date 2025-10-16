@@ -1,0 +1,119 @@
+diff --git a/scripts/mkctl.ts b/scripts/mkctl.ts
+index fb7d5c8..a744143 100644
+--- a/scripts/mkctl.ts
++++ b/scripts/mkctl.ts
+@@ -248,11 +248,13 @@ interface EndpointsArguments {
+   watch: boolean;
+   interval: number;
+   filters: Array<{ key: string; value: string }>;
++  json: boolean;
+ }
+ 
+ function parseEndpointsArgs(args: string[]): EndpointsArguments {
+   let watch = false;
+   let interval = 1;
++  let json = false;
+   const filters: Array<{ key: string; value: string }> = [];
+ 
+   for (let i = 0; i < args.length; i++) {
+@@ -281,10 +283,12 @@ function parseEndpointsArgs(args: string[]): EndpointsArguments {
+       }
+       filters.push({ key: parts[0], value: parts[1] });
+       i++;
++    } else if (token === '--json') {
++      json = true;
+     }
+   }
+ 
+-  return { watch, interval, filters };
++  return { watch, interval, filters, json };
+ }
+ 
+ function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: string; value: string }>): EndpointSnapshot[] {
+@@ -295,6 +299,11 @@ function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: strin
+       if (key === 'type' && endpoint.type !== value) return false;
+       if (key === 'id' && !endpoint.id.includes(value)) return false;
+       if (key === 'coordinates' && !endpoint.coordinates.includes(value)) return false;
++      
++      if (key.startsWith('metadata.')) {
++        const metaKey = key.substring(9);
++        if (!endpoint.metadata || endpoint.metadata[metaKey] !== value) return false;
++      }
+     }
+     return true;
+   });
+@@ -327,18 +336,27 @@ function displayEndpoints(endpoints: EndpointSnapshot[], source: 'router' | 'hos
+ }
+ 
+ async function handleEndpointsCommand(args: string[]): Promise<void> {
+-  const { watch, interval, filters } = parseEndpointsArgs(args);
++  const { watch, interval, filters, json } = parseEndpointsArgs(args);
+ 
+   if (!watch) {
+     const { endpoints, source } = await loadEndpointSnapshot();
+     
+     if (endpoints.length === 0) {
+-      console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
++      if (json) {
++        console.log('[]');
++      } else {
++        console.log('No endpoints registered. (Run `mkctl run` first to generate a snapshot.)');
++      }
+       return;
+     }
+ 
+     const filtered = applyFilters(endpoints, filters);
+-    displayEndpoints(filtered, source);
++    
++    if (json) {
++      console.log(JSON.stringify(filtered, null, 2));
++    } else {
++      displayEndpoints(filtered, source);
++    }
+     return;
+   }
+ 
+diff --git a/tests/cli/mkctlEndpoints.spec.ts b/tests/cli/mkctlEndpoints.spec.ts
+index d34f7e2..58373b5 100644
+--- a/tests/cli/mkctlEndpoints.spec.ts
++++ b/tests/cli/mkctlEndpoints.spec.ts
+@@ -147,6 +147,39 @@ connections:
+     expect(outcome.code).toBe(EXIT_CODES.SUCCESS);
+     expect(outcome.stdout).toContain('No endpoints match the filters');
+   });
++
++  it('outputs JSON format when --json flag is used', async () => {
++    const snapshotPath = join(workspaceDir, 'reports', 'router-endpoints.json');
++    mkdirSync(join(workspaceDir, 'reports'), { recursive: true });
++    const testData = [
++      { id: 'ep1', type: 'inproc', coordinates: 'node:ep1', metadata: { module: 'TestMod' }, announcedAt: 1000, updatedAt: 2000 }
++    ];
++    writeFileSync(snapshotPath, JSON.stringify(testData));
++
++    const result = spawnMkctl(['endpoints', '--json']);
++    const outcome = await result.result;
++
++    expect(outcome.code).toBe(EXIT_CODES.SUCCESS);
++    const parsed = JSON.parse(outcome.stdout);
++    expect(Array.isArray(parsed)).toBe(true);
++    expect(parsed[0].id).toBe('ep1');
++  });
++
++  it('filters by metadata fields', async () => {
++    const snapshotPath = join(workspaceDir, 'reports', 'router-endpoints.json');
++    mkdirSync(join(workspaceDir, 'reports'), { recursive: true });
++    writeFileSync(snapshotPath, JSON.stringify([
++      { id: 'ep1', type: 'inproc', coordinates: 'node:ep1', metadata: { module: 'Timer' }, announcedAt: Date.now(), updatedAt: Date.now() },
++      { id: 'ep2', type: 'inproc', coordinates: 'node:ep2', metadata: { module: 'Console' }, announcedAt: Date.now(), updatedAt: Date.now() }
++    ]));
++
++    const result = spawnMkctl(['endpoints', '--filter', 'metadata.module=Timer']);
++    const outcome = await result.result;
++
++    expect(outcome.code).toBe(EXIT_CODES.SUCCESS);
++    expect(outcome.stdout).toContain('node:ep1');
++    expect(outcome.stdout).not.toContain('node:ep2');
++  });
+ });
+ 
+ const EXIT_CODES = {

@@ -157,6 +157,50 @@ ls -l reports/http-logs.jsonl
 ```
 - Node IDs stay the same (web, sink), so the documentation diff is minimal
 
+### FilesystemSink Format Options
+
+FilesystemSink supports two output formats:
+
+**Raw format (default):**
+```yaml
+- id: sink
+  module: FilesystemSink
+  params:
+    path: reports/output.log
+    format: raw  # default, can be omitted
+```
+
+**JSONL format with timestamps:**
+```yaml
+- id: sink
+  module: FilesystemSink
+  params:
+    path: reports/output.jsonl
+    format: jsonl  # wraps each chunk as {"ts": "2025-10-16T...", "data": "..."}
+```
+
+Example JSONL output:
+```jsonl
+{"ts":"2025-10-16T12:34:56.789Z","data":"[http] GET /hello"}
+{"ts":"2025-10-16T12:34:57.123Z","data":"[http] GET /test"}
+```
+
+**Raw format with timestamps:**
+```yaml
+- id: sink
+  module: FilesystemSink
+  params:
+    path: reports/output.log
+    format: raw
+    includeTimestamp: true  # prepends ISO timestamp to each line
+```
+
+Example timestamped raw output:
+```
+2025-10-16T12:34:56.789Z [http] GET /hello
+2025-10-16T12:34:57.123Z [http] GET /test
+```
+
 ### Configuration
 
 The config `examples/configs/http-logs-local.yml` demonstrates:
