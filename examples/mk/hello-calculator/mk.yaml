@@ -1,37 +1,46 @@
-# Hello Calculator - YAML Variant
+# Hello Calculator — HTTP Variant
 #
-# Demonstrates mkolbol basics with TimerSource → UppercaseTransform → ConsoleSink
+# A tiny HTTP calculator server wired through mkolbol using ExternalProcess.
+# Endpoints:
+#  - /add?a=5&b=3       → {"result":8}
+#  - /subtract?a=10&b=4 → {"result":6}
 #
-# Usage:
-#   npx mkctl run --file mk.yaml --duration 5
-#
-# Expected output:
-#   [hello-calc] TICK
-#   [hello-calc] TICK
-#   [hello-calc] TICK
+# Run:
+#   node dist/scripts/mkctl.js run --file examples/mk/hello-calculator/mk.yaml --duration 10
+# Test in another shell:
+#   curl 'http://localhost:4000/add?a=2&b=3'
+#   curl 'http://localhost:4000/subtract?a=10&b=7'
 
 nodes:
-  - id: number-generator
-    module: TimerSource
+  - id: calc
+    module: ExternalProcess
     params:
-      periodMs: 1000
-      # Emit a tick every 1 second
+      command: node
+      args:
+        - -e
+        - |
+          const http=require('http');
+          const server=http.createServer((req,res)=>{
+            const u=new URL(req.url,'http://localhost:4000');
+            const a=parseFloat(u.searchParams.get('a')||'0');
+            const b=parseFloat(u.searchParams.get('b')||'0');
+            let result;
+            if(u.pathname==='/add') result=a+b;
+            else if(u.pathname==='/subtract') result=a-b;
+            else { res.statusCode=404; return res.end('not found'); }
+            console.log(`[calc] ${u.pathname}?a=${a}&b=${b} -> ${result}`);
+            res.setHeader('content-type','application/json');
+            res.end(JSON.stringify({result}));
+          });
+          server.listen(4000,()=>console.log('Calculator listening on http://localhost:4000'));
+      ioMode: stdio
+      restart: never
 
-  - id: transformer
-    module: UppercaseTransform
-    # Transform to uppercase
-
-  - id: console-output
+  - id: console
     module: ConsoleSink
     params:
-      prefix: "[hello-calc]"
-      # Add prefix to console output
+      prefix: "[hello-calculator]"
 
 connections:
-  - from: number-generator.output
-    to: transformer.input
-    # Connect generator output to transformer input
-
-  - from: transformer.output
-    to: console-output.input
-    # Connect transformer output to console output
+  - from: calc.output
+    to: console.input

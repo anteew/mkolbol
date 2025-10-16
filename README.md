@@ -2,6 +2,44 @@
 
 **Stream-based microkernel for AI agent systems**
 
+## QUICKSTART — Build With mk (30–60s)
+
+If the `mk` command isn’t in your PATH, run it via npm or node from this repo.
+
+```bash
+# 1) Prepare
+export MK_LOCAL_NODE=1
+npm ci && npm run build
+
+# 2) Use mk via npm (inside this repo)
+npm run mk -- --help
+
+# 3) Scaffold the sample app (HTTP calculator)
+npm run mk -- init hello-calculator --force
+cd hello-calculator
+
+# 4) Validate the topology (dry-run)
+npm run mk -- run mk.json --dry-run
+
+# 5) (Optional) Run the example calculator with mkctl
+cd ..  # from inside hello-calculator, go back to repo root
+node dist/scripts/mkctl.js run \
+  --file examples/mk/hello-calculator/mk.yaml \
+  --duration 10
+
+# In another shell, exercise the calculator
+curl 'http://localhost:4000/add?a=2&b=3'       # → {"result":5}
+curl 'http://localhost:4000/subtract?a=10&b=7' # → {"result":3}
+
+# Pro tip: make a short alias if you prefer direct invocation
+alias mk="node $(pwd)/dist/scripts/mk.js"
+```
+
+Notes
+- You can always run mk directly with `node dist/scripts/mk.js ...`.
+- The `mk` and `mkctl` binaries are also exposed as npm scripts: `npm run mk -- …`, `npm run mkctl -- …`.
+- Local‑node gate: keep `MK_LOCAL_NODE=1` set while dogfooding.
+
 ## Primary Architect
  - **Architect Name** - VEGA
  - **Architect Model** - GPT-5 Thinking HIGH
@@ -16,7 +54,7 @@
 
 **Learn the concepts:** **[Early Adopter Guide](docs/devex/early-adopter-guide.md)** - Understand mkolbol's architecture and mental model
 
-## Quickstart
+## Quickstart — Demos & Testing
 
 **Try the Live Demos:**
 - [PTY to XtermTTYRenderer Demo](docs/devex/quickstart.md) - See PTY and terminal rendering in action in under 2 minutes
@@ -52,7 +90,7 @@ npx lam show --case kernel.spec/connect_moves_data_1_1 --around assert.fail --wi
 npx lam repro
 ```
 
-**Basic Commands:**
+**Laminar Basic Commands:**
 - `npx lam init` — Create laminar.config.json with defaults
 - `npx lam run [--lane ci|pty|auto] [--filter <pattern>]` — Execute tests with structured logging
 - `npx lam summary` — List all test results
