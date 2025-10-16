@@ -488,9 +488,58 @@ nodes:
 
 **Backoff behavior:**
 - Retry 1: wait 1 second
-- Retry 2: wait 2 seconds  
+- Retry 2: wait 2 seconds
 - Retry 3: wait 4 seconds
 - Maximum backoff: capped at 10 seconds
+
+### Health Check Error Messages & Solutions
+
+Common health check failures and how to fix them:
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| `Health check failed after N retries` | Process didn't respond to health check | Check that process is actually started; verify command/URL is correct |
+| `Connection refused on http://localhost:PORT` | Port not listening or process crashed | Verify process starts without health check; increase retries or timeout |
+| `curl: command not found` | Using command health check but curl not in PATH | Use full path: `/usr/bin/curl` or check PATH in process environment |
+| `Timeout waiting for response` | Process is slow to start | Increase `timeout` value (default 5000ms) |
+| `HTTP 503: Service Unavailable` | Process started but not ready | Process may be initializing; increase `retries` or check startup logic |
+
+**Debugging Health Checks:**
+
+```bash
+# Test the health check command manually before configuring
+# For command health check:
+curl -f http://localhost:8080/health  # Should return exit code 0
+
+# For HTTP health check:
+curl -v http://localhost:3000/health  # Should return 2xx status
+
+# Add debug logging to health check response:
+# In your service code
+console.error('[health] /health endpoint called');
+```
+
+**Example: Adding Health Check to Existing Service**
+
+```yaml
+nodes:
+  - id: slow-server
+    module: ExternalProcess
+    params:
+      command: /usr/bin/node
+      args: ['server.js']
+      ioMode: stdio
+      healthCheck:
+        type: http
+        url: 'http://localhost:3000/health'
+        timeout: 10000  # Give server 10 seconds
+        retries: 5      # Try up to 5 times
+
+      # Optional: Run server without health check initially
+      # Just remove healthCheck block below, then add it back
+
+connections: []
+```
 
 ---
 

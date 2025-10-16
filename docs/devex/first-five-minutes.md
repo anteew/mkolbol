@@ -221,27 +221,65 @@ You'll see both endpoints (web and sink) with their metadata, timestamps, and co
 
 ## 5. Getting Help (1 min)
 
-### Troubleshooting
+### Troubleshooting Matrix
 
-**Config file not found:** → See [mkctl Cookbook: Config Errors](./mkctl-cookbook.md#config-file-not-found)
+Use this table to find the solution for your error:
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| **Config file not found** | File path is incorrect | Use absolute path: `$(pwd)/examples/configs/...` |
+| **Configuration validation failed** | YAML syntax error or missing fields | Verify YAML: `python3 -m yaml examples/configs/http-logs-local.yml` |
+| **Port 3000 already in use** | Another process is listening on 3000 | Check: `lsof -i :3000` and kill the process |
+| **No endpoints registered** | Topology ran but router didn't persist snapshot | Run longer: `--duration 15` |
+| **No output from server** | Server not flushing stdout or not wired | Verify connection in YAML: `grep -A2 connections:` |
+| **curl: Connection refused** | Server crashed or didn't start | Check Terminal 1 for errors; verify port listening |
+| **mkctl: command not found** | Node.js script not built | Run: `npm run build` first |
+
+### Quick Fixes by Symptom
+
+**"I see nothing in Terminal 1"**
 ```bash
-# Use absolute path
-node dist/scripts/mkctl.js run --file $(pwd)/examples/configs/http-logs-local.yml --duration 10
+# 1. Check if topology is actually running
+ps aux | grep mkctl
+
+# 2. Increase verbosity
+node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 10 2>&1 | head -20
+
+# 3. Try simpler config
+node dist/scripts/mkctl.js run --file examples/configs/external-stdio.yaml --duration 5
 ```
 
-**Server not starting:** → See [mkctl Cookbook: Port Conflicts](./mkctl-cookbook.md#port-already-in-use)
+**"curl returns Connection refused"**
 ```bash
-# Check if port 3000 is already in use
+# 1. Verify server is listening
 lsof -i :3000
+
+# 2. Check topology logs for startup errors
+# (see Terminal 1 output above)
+
+# 3. If port 3000 is in use by something else:
+kill -9 $(lsof -t -i :3000)
+
+# 4. Try a different port (modify config)
 ```
 
-**No endpoints registered:** → See [Quickstart: Endpoints](./quickstart.md#discovering-endpoints)
+**"mkctl endpoints says 'No endpoints registered'"**
 ```bash
-# Run topology with longer duration
+# 1. Make sure topology ran to completion
+# (endpoints snapshot is only saved at shutdown)
+
+# 2. Run again with longer duration
 node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 15
+
+# 3. Immediately check endpoints before snapshot expires
+node dist/scripts/mkctl.js endpoints
 ```
 
-**More help:** [mkctl Cookbook](./mkctl-cookbook.md) has a complete troubleshooting matrix with exit codes and fixes. [Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md) has end-to-end scenarios including FilesystemSink logging.
+### Deeper Troubleshooting
+
+- **[mkctl Cookbook](./mkctl-cookbook.md)** - Complete reference with exit codes and error matrices
+- **[Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md)** - Full end-to-end scenarios including FilesystemSink
+- **[Doctor Guide](./doctor.md)** - Common mkctl errors, dry-run validation, health checks
 
 ### Community support
 
