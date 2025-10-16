@@ -2,54 +2,44 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "MKD-P2-A",  "parallel": true,  "tasks": ["T9101","T9102","T9104"] },
-    { "id": "MKD-P2-B",  "parallel": true,  "depends_on": ["MKD-P2-A"], "tasks": ["T9103","T9105"] }
+    { "id": "MKD-P3-A",  "parallel": true,  "tasks": ["T9301","T9302"] },
+    { "id": "MKD-P3-B",  "parallel": true,  "depends_on": ["MKD-P3-A"], "tasks": ["T9303","T9304"] }
   ],
   "tasks": [
-    {"id": "T9101", "agent": "susan", "title": "Release pack (npm pack) + minimal files set",
-      "allowedFiles": ["package.json", ".npmignore", ".github/workflows/release.yml"],
-      "verify": ["npm run build", "npm pack"],
-      "deliverables": ["patches/DIFF_T9101_release-pack.patch"]},
+    {"id": "T9301", "agent": "susan", "title": "mk dev: hot‑reload in‑proc modules (watch + restart)",
+      "allowedFiles": ["scripts/mk.ts", "src/mk/dev.ts", "src/executor/Executor.ts", "tests/cli/mkDev.spec.ts"],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_T9301_mk-dev-hot-reload.patch"]},
 
-    {"id": "T9102", "agent": "susan", "title": "Release CI: tag→build→pack→attach .tgz to GitHub Release",
-      "allowedFiles": [".github/workflows/release.yml"],
-      "verify": ["true"],
-      "deliverables": ["patches/DIFF_T9102_release-ci.patch"]},
+    {"id": "T9302", "agent": "susan", "title": "mk logs: per‑module tail with filters (human + --json)",
+      "allowedFiles": ["scripts/mk.ts", "src/mk/logs.ts", "tests/cli/mkLogs.spec.ts"],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_T9302_mk-logs.patch"]},
 
-    {"id": "T9104", "agent": "susan", "title": "Packaging knobs: bin entries + postinstall/prepare guards",
-      "allowedFiles": ["package.json"],
-      "verify": ["npm pack"],
-      "deliverables": ["patches/DIFF_T9104_packaging-knobs.patch"]},
+    {"id": "T9303", "agent": "susan", "title": "mk trace: sampled flow timings (Executor hooks)",
+      "allowedFiles": ["scripts/mk.ts", "src/mk/trace.ts", "src/executor/Executor.ts", "tests/cli/mkTrace.spec.ts"],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_T9303_mk-trace.patch"]},
 
-    {"id": "T9103", "agent": "susan", "title": "Consumer acceptance: fixture app installs from local .tgz",
-      "allowedFiles": ["tests/consumer/fixture-app/**", ".github/workflows/tests.yml", "scripts/test-consumer.ts"],
+    {"id": "T9304", "agent": "susan", "title": "mk recipes: list curated patterns (tee→filesink, rate‑limit, etc.)",
+      "allowedFiles": ["scripts/mk.ts", "src/mk/recipes.ts", "docs/devex/recipes.md"],
       "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_T9103_consumer-acceptance.patch"]},
-
-    {"id": "T9105", "agent": "susan", "title": "mk fetch (experimental): download and install release tarball by tag",
-      "allowedFiles": ["scripts/mk.ts", "src/mk/fetch.ts", "docs/devex/packaging.md"],
-      "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_T9105_mk-fetch.patch"]}
+      "deliverables": ["patches/DIFF_T9304_mk-recipes.patch"]}
   ]
 }
 ```
 
-# Ampcode — MKD Phase B: No‑Registry Distribution (Tarball‑first)
+# Ampcode — MKD Phase C: Dev Ergonomics (dev/logs/trace/recipes)
 
 Goal
-- Enable installing mkolbol without npm registry: tarball‑first distribution, Git tag pinning, and vendor path, with CI release artifacts and a consumer acceptance test.
+- Deliver a fast developer loop: hot reload for in‑proc modules, structured logs, lightweight tracing, and discoverable recipes.
 
 Constraints
-- Do not publish to npm. Prefer GitHub Releases artifacts (.tgz) and documented Git/tag installs.
-
-Notes for Susan
-- Tarball must contain dist/, types, bins (mk, mkctl), README, LICENSE; no dev files, tests, or node_modules.
-- Guard prepare/postinstall so consumer installs have no side effects.
-- Consumer fixture installs from freshly built .tgz and runs a tiny topology (TTYRenderer + FilesystemSink) as the acceptance proof.
+- No kernel semantics changes. Hook via Executor and CLI; keep features opt‑in and safe by default.
 
 Verification
 ```bash
 export MK_LOCAL_NODE=1
 npm run build
-npm pack
+npm run test:ci
 ```
