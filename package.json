@@ -76,6 +76,8 @@
     "dev:pty-wrapper": "node --enable-source-maps dist/examples/pty-wrapper-demo.js",
     "dev:multi-modal": "node --enable-source-maps dist/examples/multi-modal-output.js",
     "dev:worker-demo": "node --enable-source-maps dist/examples/worker-demo.js",
+    "mk": "node dist/scripts/mk.js",
+    "mkctl": "node dist/scripts/mkctl.js",
     "acceptance:mk": "tsx scripts/mk-acceptance.ts"
   },
   "dependencies": {
@@ -92,5 +94,3 @@
     "vitest": "^1.6.0"
   }
 }
-    "mk": "node dist/scripts/mk.js",
-    "mkctl": "node dist/scripts/mkctl.js",
