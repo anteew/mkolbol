@@ -15,7 +15,8 @@ If stalled
 - Write a one-sentence WHY at hot edges or in the PR.
 - Prefer small PR-sized diffs; wire tests before changing semantics.
 
-Sanity on main
+Sanity on main (Local Node)
+- Export: `export MK_LOCAL_NODE=1` (local‑only gate)
 - Threads: `npm ci && npm run build && npm run test:ci` (digest suite included).
 - Forks: `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty` (process‑mode enforcement job).
 

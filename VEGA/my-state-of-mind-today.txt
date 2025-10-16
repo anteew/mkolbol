@@ -1,14 +1,15 @@
-Today: calm and surgical. Kernel stays inert; value ships through transforms, adapters, and strict CI.
+Today: focus on Local Node v1.0. Kernel stays inert; we ship value via Router/Executor/CLI and modules. Local‑first, multi‑node later.
 
-- mkolbol: ANSI Parser P1/P2 merged; CI stabilization merged; Digest Generator P1 merged (digest suite re‑enabled). Process‑mode I/O hardening landed; enforcement step monitored.
-- Laminar: dogfooding by default (artifacts + *_raw.log). MCP/CLI available; runtime decoupled.
+- mkolbol: Router P1 in; mkctl run/endpoints stable; ANSI Parser P3 done; CI green (threads+forks).
+- DevEx: onboarding/troubleshooting/cookbook ready for user feedback.
 
 Operating stance
-- Signals > bytes: per‑case JSONL + index + digests + trends; pull depth via logq/diff/repro.
+- Local‑first gate: export MK_LOCAL_NODE=1 (disable network adapters; local Router only).
+- Signals > bytes: JSONL + index + digests + trends; use mkctl + Laminar to reason.
 - Determinism and contracts: fixed seeds, clean lanes, stable schemas, typed modules.
-- No kernel growth. New behavior lives in modules/adapters/rulepacks.
+- No kernel growth. New behavior lives in modules/adapters/CLI/docs.
 
 If I vanish (rehydration)
-- Read VEGA/near-term-and-future-plan.md, latest VEGA/diary-*.txt, and VEGA/whats-next-after-context-compaction.txt.
-- Sanity: `npm ci && npm run build && npm run test:ci && MK_PROCESS_EXPERIMENTAL=1 npm run test:pty`.
-- Continue per ampcode.md on the active branch; watch CI lanes and process-mode enforcement.
+- Read VEGA/near-term-and-future-plan.md, VEGA/local-node-v1.0.md, latest VEGA/diary-*.txt, and VEGA/whats-next-after-context-compaction.txt.
+- Sanity (local‑node): `export MK_LOCAL_NODE=1` then `npm ci && npm run build && npm run test:ci && MK_PROCESS_EXPERIMENTAL=1 npm run test:pty`.
+- Continue per ampcode.md/devex.md on the active branch; watch process‑mode enforcement.
