@@ -21,7 +21,7 @@
 }
 ```
 
-# Sprint — SB-DEVEX-CONFIG-PROCESS-P1 (Docs sync for external-from-config)
+# Sprint — SB-DEVEX-MKCTL-P1 (Docs for mkctl run + First-Five-Minutes landing)
 
 **Architect**: VEGA  
 **Role**: Developer Experience (external early adopter focus)  
@@ -72,16 +72,15 @@ waves:
 
 ## Tasks (new)
 
-### TASK D8501 — Wiring & Tests doc: external-from-config
-**Goal**: Align docs/devex/wiring-and-tests.md with the new ExternalProcess config support (stdio/pty), including YAML/JSON examples and lane guidance.
+### TASK D8701 — mkctl run docs + quickstart
+**Goal**: Document `mkctl run --file` usage and update quickstart to prefer mkctl for first runs.
 
 **Allowed Files**
 ```yaml
 modify:
-  - docs/devex/wiring-and-tests.md
   - docs/devex/quickstart.md
-  - docs/devex/first-server-tutorial.md
   - README.md
+  - docs/devex/wiring-and-tests.md
 ```
 
 **Requirements**
@@ -89,11 +88,11 @@ modify:
 2. Clarify when to run forks vs threads; point to acceptance suite templates.
 3. Link to example configs under examples/configs/ if present.
 
-**Deliverable**: `patches/DIFF_D8501_docs-external-config.patch`
+**Deliverable**: `patches/DIFF_D8701_docs-mkctl-run.patch`
 
 ---
 
-### TASK D8502 — mkctl endpoints doc update
+### TASK D8702 — mkctl endpoints doc update
 **Goal**: Document that mkctl endpoints show ioMode for external endpoints and how to interpret it.
 
 **Allowed Files**
@@ -103,11 +102,11 @@ modify:
   - docs/devex/stdio-path.md
 ```
 
-**Deliverable**: `patches/DIFF_D8502_docs-mkctl-endpoints.patch`
+**Deliverable**: `patches/DIFF_D8702_docs-mkctl-endpoints.patch`
 
 ---
 
-### TASK D8503 — Acceptance suite note (executor gating)
+### TASK D8703 — Acceptance suite note (executor gating)
 **Goal**: Note the MK_DEVEX_EXECUTOR flag to enable the “Executor topology” acceptance test and provide brief instructions.
 
 **Allowed Files**
@@ -117,12 +116,12 @@ modify:
   - docs/devex/wiring-and-tests.md
 ```
 
-**Deliverable**: `patches/DIFF_D8503_docs-acceptance-gating.patch`
+**Deliverable**: `patches/DIFF_D8703_docs-acceptance-gating.patch`
 
 ---
 
-### TASK D8504 — Early adopter guide cross-links
-**Goal**: Ensure quickstart → stdio path → interactive topology → wiring pages link smoothly with a short “choose your path” callout.
+### TASK D8704 — Early adopter guide cross-links + First Five Minutes landing
+**Goal**: Add a small landing section in early-adopter-guide that presents “Choose your path” (mkctl run, StdIO, Interactive), and cross-link between pages.
 
 **Allowed Files**
 ```yaml
@@ -131,7 +130,7 @@ modify:
   - docs/devex/quickstart.md
 ```
 
-**Deliverable**: `patches/DIFF_D8504_docs-crosslinks.patch`
+**Deliverable**: `patches/DIFF_D8704_docs-first-five-minutes.patch`
 
 ### TASK T8001 — Early Adopter Guide (First 5 Minutes)
 **Goal**: Produce a concise “what it is / how it flows” doc tailored to new developers.
