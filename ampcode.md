@@ -2,26 +2,35 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "A", "parallel": false, "tasks": ["T9001", "T9002"] },
-    { "id": "B", "parallel": true, "depends_on": ["A"], "tasks": ["T9003", "T9004", "T9005"] }
+    { "id": "A", "parallel": false, "tasks": ["T9501", "T9502"] },
+    { "id": "B", "parallel": true, "depends_on": ["A"], "tasks": ["T9503", "T9504", "T9505"] }
   ],
   "tasks": [
-    { "id": "T9001", "agent": "susan", "title": "ANSI P3: truecolor/256 SGR (38/48;2;r;g;b and 38/48;5;n)", "deliverables": ["patches/DIFF_T9001_parser-truecolor-256.patch"] },
-    { "id": "T9002", "agent": "susan", "title": "ANSI P3: resize events + state invariants", "deliverables": ["patches/DIFF_T9002_parser-resize.patch"] },
-    { "id": "T9003", "agent": "susan", "title": "ANSI P3: minimal DEC subset (DECAWM, DECSCNM)", "deliverables": ["patches/DIFF_T9003_parser-dec-modes.patch"] },
-    { "id": "T9004", "agent": "susan", "title": "Tests + perf guard (color tables, resize, modes)", "deliverables": ["patches/DIFF_T9004_parser-tests-perf.patch"] },
-    { "id": "T9005", "agent": "susan", "title": "Docs: update ansi-parser.md (P3)", "deliverables": ["patches/DIFF_T9005_parser-docs-p3.patch"] }
+    { "id": "T9501", "agent": "susan", "title": "mkctl: SIGINT/Ctrl+C handling", "deliverables": ["patches/DIFF_T9501_mkctl-sigint.patch"] },
+    { "id": "T9502", "agent": "susan", "title": "mkctl: exit codes mapping", "deliverables": ["patches/DIFF_T9502_mkctl-exit-codes.patch"] },
+    { "id": "T9503", "agent": "susan", "title": "mkctl: friendly error messages", "deliverables": ["patches/DIFF_T9503_mkctl-errors.patch"] },
+    { "id": "T9504", "agent": "susan", "title": "ANSI Parser P3 polish: docs/examples/perf", "deliverables": ["patches/DIFF_T9504_parser-p3-polish.patch"] },
+    { "id": "T9505", "agent": "susan", "title": "Cleanup: remove stray backups", "deliverables": ["patches/DIFF_T9505_cleanup-backups.patch"] }
   ]
 }
 ```
 
-# Sprint — SB-MK-ANSI-PARSER-P3
+# Sprint — SB-MK-DEVEX-P5 (Susan)
 
-Goal
-- Raise ANSI parser fidelity: truecolor/256 SGR, resize events with stable state, and a minimal DEC mode subset, with tests and docs.
+Theme
+- mkctl ergonomics (signals, exit codes, messages) + ANSI Parser P3 docs/examples/perf polish.
 
-Constraints
-- No kernel edits; scope limited to src/transforms/AnsiParser.ts, tests, and docs/rfcs/stream-kernel/ansi-parser.md.
+Guardrails
+- Kernel inert (pipes + registry only). Small, test-first diffs. CI must stay green in threads and process lanes.
 
-Verification
-- npm run test:ci — green; new color/resize tests passing; perf guard within documented bounds.
+Tasks & DoD
+- T9501: Trap SIGINT; call Executor.down(); exit promptly. Test sends SIGINT to a running `mkctl run` and asserts clean stop and expected code.
+- T9502: Map exit codes for missing file, invalid YAML/JSON, runtime error. Tests assert codes and messages.
+- T9503: Improve CLI messages with concise hints. Tests assert substrings; README troubleshooting updated.
+- T9504: Add doc notes and runnable examples for truecolor/256, resize, DEC modes; keep perf guard stable.
+- T9505: Delete `src/transforms/AnsiParser.ts.backup` (and similar). Ensure build/tests pass.
+
+Runbook
+- `npm ci && npm run build && npm run test:ci`
+- `MK_PROCESS_EXPERIMENTAL=1 npm run test:pty`
+- Quick check: `node dist/scripts/mkctl.js run --file examples/configs/external-stdio.yaml --duration 1`
