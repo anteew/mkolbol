@@ -1,14 +1,14 @@
-Today: calm and surgical. Kernel stays inert; value ships through transforms, adapters, and strict CI.
+Today: steady and pragmatic. Kernel remains inert; we ship value via parser fidelity, CLI ergonomics, and rock‑solid CI.
 
-- mkolbol: ANSI Parser P1/P2 merged; CI stabilization merged; Digest Generator P1 merged (digest suite re‑enabled). Process‑mode I/O hardening landed; enforcement step monitored.
-- Laminar: dogfooding by default (artifacts + *_raw.log). MCP/CLI available; runtime decoupled.
+- mkolbol: mkctl run landed; ANSI Parser P3 implemented (truecolor/256, resize, DEC modes) with tests and perf guard. CI green in threads + forks.
+- DevEx: early‑adopter docs, wiring guide, mkctl usage, acceptance templates in place; feedback hooks added.
 
 Operating stance
-- Signals > bytes: per‑case JSONL + index + digests + trends; pull depth via logq/diff/repro.
+- Signals > bytes: JSONL events, indices, digests, trends; use mkctl run + Laminar to reason quickly.
 - Determinism and contracts: fixed seeds, clean lanes, stable schemas, typed modules.
-- No kernel growth. New behavior lives in modules/adapters/rulepacks.
+- No kernel growth. Behavior lives in modules/adapters/CLI/docs.
 
 If I vanish (rehydration)
 - Read VEGA/near-term-and-future-plan.md, latest VEGA/diary-*.txt, and VEGA/whats-next-after-context-compaction.txt.
 - Sanity: `npm ci && npm run build && npm run test:ci && MK_PROCESS_EXPERIMENTAL=1 npm run test:pty`.
-- Continue per ampcode.md on the active branch; watch CI lanes and process-mode enforcement.
+- Check open PRs (e.g., #64). Continue with the sprint in ampcode.md on the active branch.

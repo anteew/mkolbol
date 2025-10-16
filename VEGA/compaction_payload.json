@@ -1,12 +1,11 @@
 {
-  "timestamp": "$(cat /tmp/utcts)",
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "repo": "mkolbol",
-  "head": "$(cat /tmp/headsha)",
+  "head": "$(git rev-parse --short HEAD)",
   "recent_prs": [
-    { "number": 55, "title": "ANSI Parser P1", "state": "merged" },
-    { "number": 56, "title": "ANSI Parser P2", "state": "merged" },
-    { "number": 57, "title": "CI Stabilize P1", "state": "merged" },
-    { "number": 58, "title": "Digest Generator P1", "state": "merged" }
+    { "number": 62, "title": "Config-from-Config + DevEx mkctl docs", "state": "merged" },
+    { "number": 63, "title": "mkctl run (config executor) + DevEx mkctl docs", "state": "merged" },
+    { "number": 64, "title": "Susan: ANSI Parser P3 + mkctl run", "state": "open" }
   ],
   "ci": {
     "threads": { "strict": true, "digest": true },
@@ -17,7 +16,8 @@
     "sanity": [
       "npm ci && npm run build",
       "npm run test:ci",
-      "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty"
+      "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty",
+      "node dist/scripts/mkctl.js run --file examples/configs/external-stdio.yaml --duration 1"
     ],
     "laminar": [
       "npm run lam -- summary",
@@ -25,7 +25,8 @@
     ]
   },
   "next_candidates": [
-    "Process‑mode enforcement to required",
-    "Packaging/Quickstart + docs polish"
+    "ANSI Parser P3 polish (docs/examples/perf)",
+    "mkctl run ergonomics (SIGINT, exit codes)",
+    "DevEx First Five Minutes landing"
   ]
 }

@@ -1,0 +1,20 @@
+Diary — 2025-10-16T23:50Z
+
+Snapshot
+- PR #62 merged (Config-from-Config + DevEx mkctl docs).
+- PR #64 opened (Susan: ANSI Parser P3 + mkctl run; code/tests/docs + reports).
+- mkctl run executes YAML/JSON topologies (stdio/pty) and exits cleanly.
+- ANSI Parser P3: truecolor/256 SGR, resize events, DEC modes (DECAWM/DECSCNM) with tests and perf guard.
+
+Branch & SHA
+- Branch: mkolbol-devex-p4
+- HEAD: __TO_FILL_BY_TOOL__
+
+Focus
+- Keep the kernel inert; add capabilities in modules/adapters/CLI/docs.
+- Make “first five minutes” for early adopters smooth: mkctl run + examples + acceptance templates.
+
+Next
+- Monitor PR #64; if green, merge.
+- After merge: branch mkolbol-devex-p5; queue Susan: mkctl run polish (ctrl-c handling, exit codes, tail logs); Vex: First‑Five‑Minutes landing page polish + starter kit pointers.
+

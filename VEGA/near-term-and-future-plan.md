@@ -1,24 +1,23 @@
 # Near-Term and Future Plan (VEGA)
 
-Version: 2025-10-12
+Version: 2025-10-16
 Owner: VEGA
 
 ## Near Term (next 1–2 sessions)
 
-mkolbol — Process‑mode enforcement
-- Promote the Unix adapters spec from monitored to required after a green window; finalize timeouts and health checks.
+mkolbol — Parser P3 polish + mkctl ergonomics
+- Merge PR #64; branch mkolbol-devex-p5.
+- Parser P3: small polish (docs/examples), keep perf guard stable; no kernel changes.
+- mkctl run: quality‑of‑life (SIGINT handling, exit codes, friendlier errors).
 
-Laminar Packaging/Quickstart
-- npx entry (`npx laminar`), `lam init` scaffolder, and a GH Actions sample; README Quickstart.
-
-Laminar Docs Final
-- MCP cookbook; ingest how‑tos; rule packs & redaction guidance; budgets/overlays patterns.
+DevEx — First Five Minutes landing (optional if time)
+- Short landing that routes to: mkctl run → StdIO path → Interactive topology.
 
 ## Next (following sessions)
 
 mkolbol — Optional follow‑ups
-- TCP adapters experiment for remote child once Unix path is enforced
-- NATS adapter later for ControlBus (stretch)
+- Minimal Router/Routing announcements P1 (skeleton; no network) for discovery UX.
+- Starter “Renderer Pack” plan (TTY + JSON → future browser module).
 
 ## Future / Parking Lot
 
