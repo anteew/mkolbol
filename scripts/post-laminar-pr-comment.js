@@ -142,32 +142,59 @@ function calculateFlakeBudget() {
   try {
     const lines = fs.readFileSync(HISTORY_PATH, 'utf-8').split('\n').filter(l => l.trim());
 
-    // Parse JSONL and get last 5 runs worth of data
-    const runs = [];
-    const testFailures = {};
+    // Parse JSONL and group by runId to get distinct runs
+    const runIds = new Set();
+    const runFailures = {}; // Map: runId -> Map of testName -> count
 
     for (const line of lines) {
       try {
         const entry = JSON.parse(line);
-        if (entry.type === 'test:result' && entry.pass === false) {
-          const testName = entry.name || 'unknown';
-          testFailures[testName] = (testFailures[testName] || 0) + 1;
+        const runId = entry.runMetadata?.runId || entry.metadata?.runId;
+
+        if (!runId) continue;
+
+        // Track unique run IDs in order
+        runIds.add(runId);
+
+        // Only count test failures (status='fail')
+        if (entry.status === 'fail' || entry.status === 'failed') {
+          const testName = entry.testName || 'unknown';
+
+          if (!runFailures[runId]) {
+            runFailures[runId] = {};
+          }
+          runFailures[runId][testName] = (runFailures[runId][testName] || 0) + 1;
         }
       } catch (e) {
         // Ignore parse errors
       }
     }
 
-    // Find flaky tests (≥2 failures)
+    // Get last 5 runs (sorted by insertion order, which is chronological)
+    const sortedRunIds = Array.from(runIds);
+    const last5Runs = sortedRunIds.slice(-5);
+
+    // Count failures per test across last 5 runs
+    const testFailures = {};
+    for (const runId of last5Runs) {
+      const failures = runFailures[runId] || {};
+      for (const [testName, count] of Object.entries(failures)) {
+        testFailures[testName] = (testFailures[testName] || 0) + 1;
+      }
+    }
+
+    // Find flaky tests (≥2 failures in last 5 runs)
     const flakyTests = Object.entries(testFailures)
       .filter(([_, count]) => count >= 2)
-      .map(([name, count]) => `${name} (${count}x)`);
+      .sort((a, b) => b[1] - a[1]) // Sort by count descending
+      .map(([name, count]) => `• ${name} (${count}/${last5Runs.length} runs)`);
 
     if (flakyTests.length === 0) {
       return '';
     }
 
-    return `\n### 🔴 Flake Budget (≥2 failures in history)\n\`\`\`\n${flakyTests.slice(0, 5).join('\n')}\n\`\`\``;
+    const statsLine = `Flaky tests (appeared ≥2 times in last ${last5Runs.length} runs)`;
+    return `\n### 🔴 Flake Budget\n${statsLine}\n\`\`\`\n${flakyTests.slice(0, 10).join('\n')}\n\`\`\``;
   } catch (err) {
     console.error('[Laminar] Error calculating flake budget:', err.message);
     return '';
