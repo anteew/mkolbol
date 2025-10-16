@@ -1,0 +1,56 @@
+mk dev — Start development server with hot reload
+
+USAGE
+  mk dev [--file <path>] [--duration <time>] [--watch] [--dry-run] [--verbose] [--debug <section>]
+
+DESCRIPTION
+  Run your topology with file watch enabled. When you edit TypeScript/JavaScript source,
+  configuration files, or package.json, changes automatically recompile and restart the
+  affected modules. Zero-restart latency—perfect for rapid iteration.
+
+OPTIONS
+  --file <path>              Path to topology config (mk.json or mk.yaml). Default: mk.json
+  --duration <time>          Run for N seconds or Nm/Nh (e.g., 10, 5m, 1h). Default: ∞ (Ctrl+C to stop)
+  --watch                    Alias for default behavior (always on)
+  --dry-run                  Validate config and show module manifest without starting
+  --verbose                  Show file watch events, compile logs, and reload timing
+  --debug <section>          Deep dive: watch|reload|metrics
+  --reload-all               Force recompile and restart all modules
+  --no-color                 Disable colored output
+  --json                     Machine-readable output
+  --help                     Show this message
+
+EXAMPLES
+  # Start development with hot reload
+  mk dev
+
+  # Explicit config file
+  mk dev --file topologies/calculator.json
+
+  # Trace every reload with verbose output
+  mk dev --verbose
+
+  # Run for 10 minutes, then exit
+  mk dev --duration 10m
+
+  # Validate without starting
+  mk dev --dry-run
+
+  # Deep dive into reload lifecycle
+  mk dev --debug reload
+
+ENVIRONMENT
+  MK_LOCAL_NODE=1            Enforce Local Node mode (default)
+  MK_FORMAT=json|yaml        Override config format detection
+  MK_VERBOSE=1               Enable verbose logging
+
+OUTPUT
+  Watch events:     [mk:dev] File changed: src/http-server.ts
+  Compilation:      [mk:dev] Recompiling...
+  Success:          [mk:dev] ✓ Compiled in 245ms
+  Module restart:   [mk:dev] Restarting module: http-server
+  Error (non-fatal): [mk:dev] ✗ Compile error in src/parser.ts:42:10
+
+LEARN MORE
+  Full guide: https://mkolbol.dev/docs/mk-dev-logs-trace#mk-dev-hot-reload
+  RFC: https://mkolbol.dev/docs/rfcs/mk-dev-orchestrator

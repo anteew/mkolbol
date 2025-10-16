@@ -203,6 +203,10 @@ You'll see both endpoints (web and sink) with their metadata, timestamps, and co
 | **Validate everything works** | [Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md) - Checklist for Local Node v1.0 |
 | **Build your own module** | [First Server Tutorial](./first-server-tutorial.md) - Code a custom Transform or External process |
 
+### Development ergonomics (coming soon)
+
+- **[mk dev, mk logs, mk trace](./mk-dev-logs-trace.md)** - Hot reload, structured logging, and flow analysis for faster iteration
+
 ### Deep dives (when you're ready)
 
 - **[Wiring and Testing Guide](./wiring-and-tests.md)** - Configure custom topologies, understand I/O modes

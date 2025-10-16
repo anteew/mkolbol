@@ -1,0 +1,554 @@
+diff --git a/src/mk/logs.ts b/src/mk/logs.ts
+new file mode 100644
+index 0000000..9d20ca9
+--- /dev/null
++++ b/src/mk/logs.ts
+@@ -0,0 +1,255 @@
++import * as fs from 'fs';
++import * as path from 'path';
++import { createInterface } from 'readline';
++
++export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
++
++export interface LogsOptions {
++  module?: string;
++  level?: LogLevel;
++  json?: boolean;
++  follow?: boolean;
++  lines?: number;
++}
++
++export interface LogEntry {
++  timestamp: string;
++  level: LogLevel;
++  module: string;
++  event: string;
++  payload?: unknown;
++}
++
++const LEVEL_VALUES: Record<LogLevel, number> = {
++  error: 0,
++  warn: 1,
++  info: 2,
++  debug: 3,
++};
++
++function parseDebugLog(line: string): LogEntry | null {
++  try {
++    const timestampMatch = line.match(/^\[([\d-T:.Z]+)\]/);
++    const levelMatch = line.match(/\[([A-Z]+)\]/);
++    const moduleMatch = line.match(/\[([a-z-]+)\]/);
++    const eventMatch = line.match(/\]\s+([^:]+)(?::(.*))?$/);
++
++    if (timestampMatch && levelMatch && moduleMatch) {
++      const level = levelMatch[1].toLowerCase() as LogLevel;
++      const event = eventMatch ? eventMatch[1].trim() : 'unknown';
++      const payloadStr = eventMatch && eventMatch[2] ? eventMatch[2].trim() : undefined;
++      let payload: unknown = undefined;
++
++      if (payloadStr) {
++        try {
++          payload = JSON.parse(payloadStr);
++        } catch {
++          payload = payloadStr;
++        }
++      }
++
++      return {
++        timestamp: timestampMatch[1],
++        level,
++        module: moduleMatch[1],
++        event,
++        payload,
++      };
++    }
++  } catch (e) {
++    return null;
++  }
++  return null;
++}
++
++function parseJsonlLog(line: string): LogEntry | null {
++  try {
++    const data = JSON.parse(line);
++    
++    if (data.evt && data.evt.startsWith('debug.')) {
++      const parts = data.evt.split('.');
++      const module = parts[1] || 'unknown';
++      const event = parts.slice(2).join('.') || 'unknown';
++      
++      return {
++        timestamp: data.ts ? new Date(data.ts).toISOString() : new Date().toISOString(),
++        level: (data.lvl as LogLevel) || 'info',
++        module,
++        event,
++        payload: data.payload,
++      };
++    }
++  } catch (e) {
++    return null;
++  }
++  return null;
++}
++
++function shouldIncludeLog(entry: LogEntry, options: LogsOptions): boolean {
++  if (options.module && entry.module !== options.module) {
++    return false;
++  }
++
++  if (options.level) {
++    const entryLevel = LEVEL_VALUES[entry.level];
++    const filterLevel = LEVEL_VALUES[options.level];
++    if (entryLevel > filterLevel) {
++      return false;
++    }
++  }
++
++  return true;
++}
++
++function formatLogHuman(entry: LogEntry): string {
++  const timestamp = new Date(entry.timestamp).toISOString();
++  const levelStr = entry.level.toUpperCase().padEnd(5);
++  const moduleStr = entry.module.padEnd(15);
++  const payload = entry.payload ? ` ${JSON.stringify(entry.payload)}` : '';
++  return `[${timestamp}] ${levelStr} [${moduleStr}] ${entry.event}${payload}`;
++}
++
++function formatLogJson(entry: LogEntry): string {
++  return JSON.stringify(entry);
++}
++
++async function tailDebugLogs(options: LogsOptions): Promise<void> {
++  const debugLog = process.env.DEBUG === '1' || process.env.MK_DEBUG_MODULES;
++  
++  if (!debugLog) {
++    console.error('Debug logging is not enabled. Set DEBUG=1 or MK_DEBUG_MODULES to enable.');
++    return;
++  }
++
++  console.error('Reading from console output (DEBUG mode)...');
++  console.error('This command works best with pre-captured logs or JSONL files.');
++  console.error('Use: DEBUG=1 mk run <topology> 2>&1 | mk logs [options]');
++}
++
++async function tailJsonlLogs(logPath: string, options: LogsOptions): Promise<void> {
++  if (!fs.existsSync(logPath)) {
++    throw new Error(`Log file not found: ${logPath}`);
++  }
++
++  const stream = fs.createReadStream(logPath);
++  const rl = createInterface({
++    input: stream,
++    crlfDelay: Infinity,
++  });
++
++  const entries: LogEntry[] = [];
++
++  for await (const line of rl) {
++    const entry = parseJsonlLog(line);
++    if (entry && shouldIncludeLog(entry, options)) {
++      entries.push(entry);
++    }
++  }
++
++  const linesToShow = options.lines || 50;
++  const toDisplay = entries.slice(-linesToShow);
++
++  for (const entry of toDisplay) {
++    const formatted = options.json ? formatLogJson(entry) : formatLogHuman(entry);
++    console.log(formatted);
++  }
++}
++
++async function followJsonlLogs(logPath: string, options: LogsOptions): Promise<void> {
++  if (!fs.existsSync(logPath)) {
++    throw new Error(`Log file not found: ${logPath}`);
++  }
++
++  let position = 0;
++  const fileStats = fs.statSync(logPath);
++  position = Math.max(0, fileStats.size);
++
++  console.error(`Following logs from: ${logPath}`);
++  console.error('Press Ctrl+C to stop...\n');
++
++  const checkForChanges = () => {
++    const currentStats = fs.statSync(logPath);
++    if (currentStats.size > position) {
++      const stream = fs.createReadStream(logPath, {
++        start: position,
++        encoding: 'utf8',
++      });
++
++      let buffer = '';
++      stream.on('data', (chunk) => {
++        buffer += chunk;
++        const lines = buffer.split('\n');
++        buffer = lines.pop() || '';
++
++        for (const line of lines) {
++          if (line.trim()) {
++            const entry = parseJsonlLog(line);
++            if (entry && shouldIncludeLog(entry, options)) {
++              const formatted = options.json ? formatLogJson(entry) : formatLogHuman(entry);
++              console.log(formatted);
++            }
++          }
++        }
++      });
++
++      stream.on('end', () => {
++        position = currentStats.size;
++      });
++    }
++  };
++
++  const interval = setInterval(checkForChanges, 500);
++
++  process.on('SIGINT', () => {
++    clearInterval(interval);
++    console.error('\nStopped following logs.');
++    process.exit(0);
++  });
++
++  process.on('SIGTERM', () => {
++    clearInterval(interval);
++    process.exit(0);
++  });
++}
++
++export async function tailLogs(options: LogsOptions): Promise<void> {
++  const reportsDir = path.join(process.cwd(), 'reports');
++  
++  if (!fs.existsSync(reportsDir)) {
++    await tailDebugLogs(options);
++    return;
++  }
++
++  const suites = fs.readdirSync(reportsDir).filter(f => {
++    const stat = fs.statSync(path.join(reportsDir, f));
++    return stat.isDirectory();
++  });
++
++  if (suites.length === 0) {
++    await tailDebugLogs(options);
++    return;
++  }
++
++  const suite = suites[0];
++  const suiteDir = path.join(reportsDir, suite);
++  const logFiles = fs.readdirSync(suiteDir).filter(f => f.endsWith('.jsonl'));
++
++  if (logFiles.length === 0) {
++    await tailDebugLogs(options);
++    return;
++  }
++
++  const latestLog = logFiles
++    .map(f => ({
++      name: f,
++      path: path.join(suiteDir, f),
++      mtime: fs.statSync(path.join(suiteDir, f)).mtime,
++    }))
++    .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())[0];
++
++  if (options.follow) {
++    await followJsonlLogs(latestLog.path, options);
++  } else {
++    await tailJsonlLogs(latestLog.path, options);
++  }
++}
+diff --git a/tests/cli/mkLogs.spec.ts b/tests/cli/mkLogs.spec.ts
+new file mode 100644
+index 0000000..74c17a3
+--- /dev/null
++++ b/tests/cli/mkLogs.spec.ts
+@@ -0,0 +1,287 @@
++import { describe, it, expect, beforeAll, afterAll } from 'vitest';
++import { spawnSync, spawn, ChildProcess } from 'node:child_process';
++import { join } from 'node:path';
++import { writeFileSync, unlinkSync, mkdirSync, existsSync, rmSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++
++describe('mk logs command', () => {
++  const mkPath = join(process.cwd(), 'dist', 'scripts', 'mk.js');
++  const testDir = join(tmpdir(), 'mk-logs-test');
++  const reportsDir = join(testDir, 'reports', 'test-suite');
++  const testLogPath = join(reportsDir, 'test.case.jsonl');
++
++  beforeAll(() => {
++    if (existsSync(testDir)) {
++      rmSync(testDir, { recursive: true, force: true });
++    }
++    mkdirSync(reportsDir, { recursive: true });
++
++    const logEntries = [
++      {
++        ts: Date.now() - 5000,
++        lvl: 'error',
++        case: 'test.case',
++        evt: 'debug.kernel.pipe.error',
++        payload: { pipeId: 'pipe-1', error: 'connection failed' },
++      },
++      {
++        ts: Date.now() - 4000,
++        lvl: 'warn',
++        case: 'test.case',
++        evt: 'debug.router.sweep.stale',
++        payload: { serverId: 'server-1', ttl: 5000 },
++      },
++      {
++        ts: Date.now() - 3000,
++        lvl: 'info',
++        case: 'test.case',
++        evt: 'debug.kernel.pipe.connect',
++        payload: { fromId: 'node-1', toId: 'node-2' },
++      },
++      {
++        ts: Date.now() - 2000,
++        lvl: 'debug',
++        case: 'test.case',
++        evt: 'debug.executor.start',
++        payload: { nodeCount: 3 },
++      },
++      {
++        ts: Date.now() - 1000,
++        lvl: 'info',
++        case: 'test.case',
++        evt: 'debug.filesystem-sink.write',
++        payload: { path: '/tmp/output.txt', bytes: 1024 },
++      },
++    ];
++
++    const logContent = logEntries.map((e) => JSON.stringify(e)).join('\n') + '\n';
++    writeFileSync(testLogPath, logContent);
++  });
++
++  afterAll(() => {
++    try {
++      rmSync(testDir, { recursive: true, force: true });
++    } catch (e) {
++      // ignore
++    }
++  });
++
++  it('shows help when --help flag is used', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--help'], { encoding: 'utf8' });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('Tail module logs with filtering');
++    expect(r.stdout).toContain('Usage: mk logs');
++  });
++
++  it('tails logs in human-readable format by default', () => {
++    const r = spawnSync('node', [mkPath, 'logs'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('kernel');
++    expect(r.stdout).toContain('router');
++    expect(r.stdout).toContain('executor');
++    expect(r.stdout).toContain('filesystem-sink');
++  });
++
++  it('filters logs by module name', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--module', 'kernel'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('kernel');
++    expect(r.stdout).not.toContain('router');
++    expect(r.stdout).not.toContain('executor');
++  });
++
++  it('filters logs by level (error)', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--level', 'error'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('ERROR');
++    expect(r.stdout).not.toContain('WARN');
++    expect(r.stdout).not.toContain('INFO');
++    expect(r.stdout).not.toContain('DEBUG');
++  });
++
++  it('filters logs by level (warn) includes error and warn', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--level', 'warn'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('ERROR');
++    expect(r.stdout).toContain('WARN');
++    expect(r.stdout).not.toContain('INFO');
++    expect(r.stdout).not.toContain('DEBUG');
++  });
++
++  it('filters logs by level (info) includes error, warn, and info', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--level', 'info'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('ERROR');
++    expect(r.stdout).toContain('WARN');
++    expect(r.stdout).toContain('INFO');
++    expect(r.stdout).not.toContain('DEBUG');
++  });
++
++  it('outputs logs in JSON format with --json flag', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--json'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++
++    const lines = r.stdout.trim().split('\n');
++    expect(lines.length).toBeGreaterThan(0);
++
++    const firstLog = JSON.parse(lines[0]);
++    expect(firstLog).toHaveProperty('timestamp');
++    expect(firstLog).toHaveProperty('level');
++    expect(firstLog).toHaveProperty('module');
++    expect(firstLog).toHaveProperty('event');
++  });
++
++  it('combines multiple filters (module and level)', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--module', 'kernel', '--level', 'error'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('kernel');
++    expect(r.stdout).toContain('ERROR');
++    expect(r.stdout).not.toContain('router');
++    expect(r.stdout).not.toContain('INFO');
++  });
++
++  it('limits output lines with --lines flag', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--lines', '2'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    const lines = r.stdout.trim().split('\n').filter(l => l.length > 0);
++    expect(lines.length).toBeLessThanOrEqual(2);
++  });
++
++  it('shows error for invalid level', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--level', 'invalid'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(64);
++    expect(r.stderr).toContain('Invalid level');
++  });
++
++  it('shows error for invalid --lines value', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--lines', 'abc'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(64);
++    expect(r.stderr).toContain('Invalid --lines value');
++  });
++
++  it('accepts -f as short form of --follow', () => {
++    const proc = spawn('node', [mkPath, 'logs', '-f'], {
++      cwd: testDir,
++      stdio: 'pipe',
++    });
++
++    let stderr = '';
++    proc.stderr?.on('data', (chunk) => {
++      stderr += chunk.toString();
++    });
++
++    setTimeout(() => {
++      proc.kill('SIGTERM');
++    }, 500);
++
++    return new Promise<void>((resolve) => {
++      proc.on('exit', () => {
++        expect(stderr).toContain('Following logs from');
++        resolve();
++      });
++    });
++  });
++
++  it('shows human-readable timestamps in output', () => {
++    const r = spawnSync('node', [mkPath, 'logs'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toMatch(/\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\]/);
++  });
++
++  it('includes payload in human-readable output', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--module', 'kernel', '--level', 'error'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('pipeId');
++    expect(r.stdout).toContain('pipe-1');
++    expect(r.stdout).toContain('connection failed');
++  });
++
++  it('handles empty reports directory gracefully', () => {
++    const emptyDir = join(tmpdir(), 'mk-logs-empty');
++    if (existsSync(emptyDir)) {
++      rmSync(emptyDir, { recursive: true, force: true });
++    }
++    mkdirSync(emptyDir, { recursive: true });
++
++    const r = spawnSync('node', [mkPath, 'logs'], {
++      encoding: 'utf8',
++      cwd: emptyDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stderr).toContain('Debug logging is not enabled');
++
++    rmSync(emptyDir, { recursive: true, force: true });
++  });
++
++  it('displays module names padded in human format', () => {
++    const r = spawnSync('node', [mkPath, 'logs'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toMatch(/\[kernel\s+\]/);
++    expect(r.stdout).toMatch(/\[router\s+\]/);
++  });
++
++  it('shows event names after module', () => {
++    const r = spawnSync('node', [mkPath, 'logs', '--module', 'kernel'], {
++      encoding: 'utf8',
++      cwd: testDir,
++    });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('pipe.error');
++    expect(r.stdout).toContain('pipe.connect');
++  });
++});

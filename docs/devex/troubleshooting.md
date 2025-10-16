@@ -451,6 +451,308 @@ params:
 
 ---
 
+## mk dev (Hot Reload) Issues
+
+### Module reload not triggering
+
+**Symptom**: File saved but `mk dev` doesn't recompile or restart
+
+**Cause**: File not in watch patterns, or module runMode doesn't support hot reload
+
+**Fix**:
+```bash
+# 1. Check which files are being watched
+mk dev --verbose
+
+# Output should show watched paths like:
+# [mk:dev] Watching: src/**/*.ts, mk.json, package.json
+
+# 2. Verify module has correct runMode
+mk dev --dry-run
+
+# Output should show your module with:
+# "runMode": "inproc"    ← Hot reload works
+# "runMode": "process"   ← Hot reload doesn't work (spawned separately)
+
+# 3. Update .mk/options.json to add more paths
+# See [mk dev guide](./mk-dev-logs-trace.md#file-watch-patterns)
+```
+
+### Compile errors don't appear
+
+**Symptom**: File has errors but `mk dev` keeps running silently
+
+**Cause**: Error output not being printed; compile fails but topology keeps previous version
+
+**Fix**:
+```bash
+# Use verbose mode to see compile errors
+mk dev --verbose
+
+# Or check errors manually
+mk doctor --section types
+
+# The topology keeps the old version until you fix the compile error
+# Once fixed and saved, it recompiles automatically
+```
+
+### Slow recompiles (> 1 second)
+
+**Symptom**: Hitting save = 2-3 second lag before reload
+
+**Cause**: Large codebase or many watch patterns; TypeScript compilation overhead
+
+**Fix**:
+```json
+// .mk/options.json: ignore unnecessary paths
+{
+  "dev": {
+    "watch": [
+      "src/**/*.ts",
+      "mk.json"
+    ],
+    "ignore": [
+      "**/*.test.ts",
+      "**/node_modules",
+      "dist/**",
+      "reports/**"
+    ]
+  }
+}
+```
+
+### Module state lost on reload
+
+**Symptom**: In-memory cache or connection state not preserved after reload
+
+**Cause**: Module constructor runs again (fresh state)
+
+**Fix**:
+Modules should persist important state externally. For example:
+
+```typescript
+// ✗ Bad: State lost on reload
+class MyModule {
+  cache: Map<string, any> = new Map();  // ← Gone on reload!
+}
+
+// ✓ Good: State in shared storage
+class MyModule {
+  cache: Map<string, any>;
+  constructor(kernel: Kernel, options: any) {
+    // Load from file or shared cache before creating new instance
+    this.cache = loadCacheFromFile('cache.json');
+  }
+}
+```
+
+See **[Authoring a Module](./authoring-a-module.md)** for patterns.
+
+---
+
+## mk logs (Formatting & Filtering) Issues
+
+### No output when using --watch
+
+**Symptom**: `mk logs --watch` appears to hang with no output
+
+**Cause**: Topology not running or modules not outputting
+
+**Fix**:
+```bash
+# 1. Verify topology is running
+mk dev --file my-topology.json &
+sleep 2
+
+# 2. Try mk logs
+mk logs --watch
+
+# 3. If still nothing, check modules are emitting
+mk logs --tail 50  # Show recent lines without watching
+
+# 4. Verify modules produce output
+# (Some modules may not log anything)
+```
+
+### Timestamp format confusing (ISO vs local)
+
+**Symptom**: Logs show UTC but you want local timezone
+
+**Cause**: Default is ISO 8601 UTC
+
+**Fix**:
+```bash
+# Show in local time
+mk logs --timezone local --watch
+
+# Or set environment variable
+export MK_LOG_TIMEZONE=local
+mk logs --watch
+
+# Check .mk/options.json for persistent setting:
+```
+
+```json
+{
+  "logs": {
+    "timezone": "local",
+    "format": "human"
+  }
+}
+```
+
+**Timezone options**:
+- `ISO` (default): 2025-10-17T10:23:45.123Z
+- `local`: Oct 17, 10:23:45 AM (respects system timezone)
+- `epoch`: 1729163025123 (milliseconds since epoch)
+
+### Logs output too verbose (too many entries)
+
+**Symptom**: `mk logs --watch` shows too much; hard to find what you need
+
+**Cause**: Capturing all levels (info, debug, trace)
+
+**Fix**:
+```bash
+# Filter to errors and warnings only
+mk logs --level error,warning --watch
+
+# Or filter by pattern (case-sensitive)
+mk logs --pattern 'ERROR|WARN' --watch
+
+# Or filter by module
+mk logs --module my-module --watch
+
+# Combine filters
+mk logs --module my-module --level error --pattern 'timeout' --watch
+
+# Save to file instead
+mk logs --output debug.log --watch  # File, no console
+```
+
+### "Cannot parse" when exporting to JSON
+
+**Symptom**: `mk logs --format json` produces invalid JSON
+
+**Cause**: JSONL (newline-delimited) not pure JSON array
+
+**Fix**:
+```bash
+# JSONL format (correct for streaming)
+mk logs --format jsonl --output logs.jsonl
+
+# Each line is valid JSON:
+cat logs.jsonl | head -1 | jq .
+
+# To convert to JSON array:
+jq -s '.' logs.jsonl > logs-array.json
+```
+
+---
+
+## mk trace (Performance & Analysis) Issues
+
+### Trace overhead too high (CPU spiking)
+
+**Symptom**: `mk trace --duration 10` causes CPU to jump 5-10%
+
+**Cause**: Tracing all messages; can add ~50 microseconds per message
+
+**Fix**:
+```bash
+# Option 1: Trace only 10% of messages
+mk trace --sample-rate 0.1 --duration 30
+
+# Option 2: Trace specific module only
+mk trace --module parser --duration 10
+
+# Option 3: Accept overhead but run during non-peak times
+mk trace --duration 60 &  # Background it
+```
+
+**Performance targets**:
+- CPU overhead: ~0.5% per topology (usually negligible)
+- Latency impact: < 50 microseconds per message
+- Safe to leave enabled during development
+
+### "No trace data available"
+
+**Symptom**: `mk trace` runs but returns empty results
+
+**Cause**: Topology not running or no messages flowing
+
+**Fix**:
+```bash
+# 1. Verify topology is active
+ps aux | grep mkctl
+
+# 2. Generate traffic
+# (Make requests, trigger events, etc.)
+
+# 3. Run trace with longer duration
+mk trace --duration 60 --watch
+
+# 4. Check that modules are connected
+mk dev --file my-topology.json --graph
+```
+
+### Latency percentiles look wrong (p50 > p95)
+
+**Symptom**: Latency distribution seems inverted or nonsensical
+
+**Cause**: Insufficient message volume for statistical significance
+
+**Fix**:
+```bash
+# Trace for longer to collect more data
+mk trace --duration 60 --top 5
+
+# Must capture at least 100-1000 messages for valid percentiles
+
+# Check count:
+# Top 10 Latency Offenders (total time)
+#   1. parser (5.2s, 25%) — 50,000 messages ← This count
+```
+
+### Module missing from trace results
+
+**Symptom**: You know module is running but it's not in top list
+
+**Cause**: Module is fast (low latency) and not in top N
+
+**Fix**:
+```bash
+# Increase top N to see more modules
+mk trace --duration 30 --top 20
+
+# Or show all modules slower than threshold
+mk trace --duration 30 --threshold 0.1  # Show > 0.1ms average
+
+# Or trace that specific module
+mk trace --module my-module --duration 30
+```
+
+### JSON export not usable by external tools
+
+**Symptom**: flamegraph or other tool can't parse trace output
+
+**Cause**: Format incompatibility
+
+**Fix**:
+```bash
+# Verify JSON is valid
+mk trace --format json --output trace.json
+jq . trace.json > /dev/null  # Should not error
+
+# If error, check mkolbol version
+mk --version
+
+# See documentation for format details
+cat trace.json | head -5  # Inspect structure
+```
+
+---
+
 ## Getting Help
 
 **Still stuck?**

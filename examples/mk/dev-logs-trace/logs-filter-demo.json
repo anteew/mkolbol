@@ -1,0 +1,45 @@
+{
+  "topology": {
+    "nodes": [
+      {
+        "id": "web-server",
+        "module": "ExternalProcess",
+        "runMode": "process",
+        "params": {
+          "command": "node",
+          "args": [
+            "-e",
+            "const http = require('http'); http.createServer((req, res) => { console.log(`[${new Date().toISOString()}] GET ${req.url}`); if (req.url === '/health') res.end('ok'); else res.statusCode = 404; res.end('not found'); }).listen(5000, () => console.log('Server ready on :5000'))"
+          ],
+          "ioMode": "stdio"
+        }
+      },
+      {
+        "id": "request-logger",
+        "module": "FilesystemSink",
+        "runMode": "inproc",
+        "params": {
+          "path": "reports/http-requests.log",
+          "format": "raw",
+          "includeTimestamp": true
+        }
+      },
+      {
+        "id": "error-logger",
+        "module": "FilesystemSink",
+        "runMode": "inproc",
+        "params": {
+          "path": "reports/http-errors.log",
+          "format": "raw",
+          "includeTimestamp": true
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from": "web-server.output",
+        "to": "request-logger.input"
+      }
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+mk logs — Stream and filter structured logs
+
+USAGE
+  mk logs [--module <id>] [--level <level>] [--pattern <regex>] [--watch] [--tail <n>] [--output <file>] [--format <fmt>]
+
+DESCRIPTION
+  Watch or tail logs from all running modules with optional filtering. Logs are captured from
+  stdout/stderr, console.log, module loggers, and RoutingServer events. Combine filters to
+  isolate specific behaviors.
+
+OPTIONS
+  --module <id>              Filter by module id (e.g., http-server, parser)
+  --level <level>            Comma-separated list: error,warning,info,debug,trace. Default: all
+  --pattern <regex>          JavaScript regex to match message content (case-sensitive)
+  --watch                    Stream live logs (blocks until Ctrl+C)
+  --tail <n>                 Show last N lines, then exit. Default: all
+  --output <file>            Write logs to file (with or without --watch)
+  --format <fmt>             Output format: raw|json|jsonl. Default: raw with timestamp
+  --timezone <tz>            Timestamp format: local|UTC|epoch. Default: ISO 8601 UTC
+  --no-color                 Disable colored output
+  --json                     Machine-readable output (JSON lines)
+  --help                     Show this message
+
+LEVELS
+  error   — Runtime failures, exceptions, critical errors
+  warning — Deprecations, slow operations, retries, resource warnings
+  info    — Normal operation, requests, module lifecycle (default)
+  debug   — Fine-grained flow, loop iterations, state changes
+  trace   — Every message, extremely verbose (use with caution)
+
+EXAMPLES
+  # Stream all logs
+  mk logs --watch
+
+  # Only errors from http-server
+  mk logs --module http-server --level error --watch
+
+  # Show 404 responses
+  mk logs --pattern '404' --watch
+
+  # Last 50 lines, no watch
+  mk logs --tail 50
+
+  # Export to file
+  mk logs --output session.log --watch
+
+  # Debug-level logs, save to JSONL
+  mk logs --level debug --format jsonl --output debug.jsonl
+
+  # Errors and warnings matching "timeout"
+  mk logs --level error,warning --pattern 'timeout' --watch
+
+ENVIRONMENT
+  MK_LOG_TIMEZONE=local|UTC|epoch   Override timezone for all logs
+  MK_LOG_FORMAT=raw|json|jsonl      Override output format
+
+OUTPUT
+  [module-id] [2025-10-17T10:23:45.123Z] message text here
+  [http] [2025-10-17T10:23:45.456Z] GET /api/users — 200 OK (12.4ms)
+
+JSON OUTPUT (--format jsonl)
+  {"ts":"2025-10-17T10:23:45.123Z","module":"http","level":"info","message":"GET /health","fields":{"status":200}}
+
+LEARN MORE
+  Full guide: https://mkolbol.dev/docs/mk-dev-logs-trace#mk-logs-structured-logging-with-filters
+  Recipes: https://mkolbol.dev/docs/recipes

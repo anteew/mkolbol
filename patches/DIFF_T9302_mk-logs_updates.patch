@@ -1,0 +1,158 @@
+diff --git a/scripts/mk.ts b/scripts/mk.ts
+index 2cf317c..b0565f2 100644
+--- a/scripts/mk.ts
++++ b/scripts/mk.ts
+@@ -33,6 +33,97 @@ const commands: Command[] = [
+       return runHandler(args);
+     },
+   },
++  {
++    name: 'dev',
++    description: 'Run topology with hot-reload for in-proc modules',
++    usage: 'mk dev <config> [--verbose]',
++    handler: async (args: string[]) => {
++      if (args.length === 0) {
++        console.error('Error: Missing topology config file');
++        console.error('Usage: mk dev <config> [--verbose]');
++        return EXIT_USAGE;
++      }
++
++      const configPath = args[0];
++      const verbose = args.includes('--verbose');
++
++      try {
++        const { loadConfig } = await import('../src/config/loader.js');
++        const { Kernel } = await import('../src/kernel/Kernel.js');
++        const { Hostess } = await import('../src/hostess/Hostess.js');
++        const { StateManager } = await import('../src/state/StateManager.js');
++        const { Executor } = await import('../src/executor/Executor.js');
++        const { watchModules } = await import('../src/mk/dev.js');
++        
++        // Load topology
++        const topology = loadConfig(configPath);
++        
++        console.log('[mk dev] Starting topology with hot-reload...');
++        
++        // Initialize system
++        const kernel = new Kernel();
++        const hostess = new Hostess();
++        const stateManager = new StateManager(kernel);
++        const executor = new Executor(kernel, hostess, stateManager);
++        
++        // Register modules
++        const modules = [
++          { name: 'TimerSource', path: '../src/modules/timer.js' },
++          { name: 'UppercaseTransform', path: '../src/modules/uppercase.js' },
++          { name: 'ConsoleSink', path: '../src/modules/consoleSink.js' },
++          { name: 'FilesystemSink', path: '../src/modules/filesystem-sink.js' },
++          { name: 'PipeMeterTransform', path: '../src/transforms/pipeMeter.js' },
++          { name: 'RateLimiterTransform', path: '../src/transforms/rateLimiter.js' },
++          { name: 'TeeTransform', path: '../src/transforms/tee.js' },
++        ];
++        
++        for (const mod of modules) {
++          try {
++            const modulePath = new URL(mod.path, import.meta.url).pathname;
++            const moduleExport = await import(modulePath);
++            executor.registerModule(mod.name, moduleExport.default || moduleExport[mod.name]);
++          } catch (err) {
++            // Module might not exist, skip
++          }
++        }
++        
++        // Load and start executor
++        executor.load(topology);
++        await executor.up();
++        
++        // Start file watchers
++        const watcher = watchModules(executor, topology, {
++          verbose,
++          onReload: (nodeId) => {
++            console.log(`[mk dev] Node ${nodeId} hot-reloaded`);
++          }
++        });
++        
++        console.log('[mk dev] System running. Press Ctrl+C to stop.');
++        
++        // Handle graceful shutdown
++        const shutdown = async () => {
++          console.log('\n[mk dev] Shutting down...');
++          watcher.stop();
++          await executor.down();
++          process.exit(EXIT_SUCCESS);
++        };
++        
++        process.on('SIGINT', shutdown);
++        process.on('SIGTERM', shutdown);
++        
++        // Keep process alive
++        await new Promise<void>((resolve) => {
++          // Never resolves - keeps process running until signal
++        });
++        
++        return EXIT_SUCCESS;
++      } catch (error) {
++        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++        return EXIT_ERROR;
++      }
++    },
++  },
+   {
+     name: 'doctor',
+     description: 'Diagnose system and dependency issues',
+@@ -153,6 +244,55 @@ const commands: Command[] = [
+       }
+     },
+   },
++  {
++    name: 'logs',
++    description: 'Tail module logs with filtering',
++    usage: 'mk logs [--module <name>] [--level <error|warn|info|debug>] [--json] [--follow] [--lines <n>]',
++    handler: async (args: string[]) => {
++      const { tailLogs } = await import('../src/mk/logs.js');
++      
++      const options: {
++        module?: string;
++        level?: 'error' | 'warn' | 'info' | 'debug';
++        json?: boolean;
++        follow?: boolean;
++        lines?: number;
++      } = {};
++      
++      for (let i = 0; i < args.length; i++) {
++        const arg = args[i];
++        if (arg === '--module' && i + 1 < args.length) {
++          options.module = args[++i];
++        } else if (arg === '--level' && i + 1 < args.length) {
++          const level = args[++i];
++          if (level === 'error' || level === 'warn' || level === 'info' || level === 'debug') {
++            options.level = level;
++          } else {
++            console.error(`Invalid level: ${level}. Use: error, warn, info, or debug`);
++            return EXIT_USAGE;
++          }
++        } else if (arg === '--json') {
++          options.json = true;
++        } else if (arg === '--follow' || arg === '-f') {
++          options.follow = true;
++        } else if (arg === '--lines' && i + 1 < args.length) {
++          options.lines = parseInt(args[++i], 10);
++          if (isNaN(options.lines) || options.lines <= 0) {
++            console.error('Invalid --lines value. Must be a positive number.');
++            return EXIT_USAGE;
++          }
++        }
++      }
++      
++      try {
++        await tailLogs(options);
++        return EXIT_SUCCESS;
++      } catch (error) {
++        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++        return EXIT_ERROR;
++      }
++    },
++  },
+ ];
+ 
+ function printMainHelp() {

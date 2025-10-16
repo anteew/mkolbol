@@ -1,3 +1,3 @@
-{"ts":1760636128163,"lvl":"info","case":"heartbeat maintains liveness","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760636128164,"lvl":"info","case":"heartbeat maintains liveness","phase":"execution","evt":"test.run"}
-{"ts":1760636128165,"lvl":"info","case":"heartbeat maintains liveness","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760643123977,"lvl":"info","case":"heartbeat maintains liveness","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760643123978,"lvl":"info","case":"heartbeat maintains liveness","phase":"execution","evt":"test.run"}
+{"ts":1760643123979,"lvl":"info","case":"heartbeat maintains liveness","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}

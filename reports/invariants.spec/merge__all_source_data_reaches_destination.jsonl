@@ -1,3 +1,3 @@
-{"ts":1760636152006,"lvl":"info","case":"merge: all source data reaches destination","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760636152007,"lvl":"info","case":"merge: all source data reaches destination","phase":"execution","evt":"test.run"}
-{"ts":1760636152008,"lvl":"info","case":"merge: all source data reaches destination","phase":"teardown","evt":"case.end","payload":{"duration":121,"status":"passed"}}
+{"ts":1760643018617,"lvl":"info","case":"merge: all source data reaches destination","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760643018618,"lvl":"info","case":"merge: all source data reaches destination","phase":"execution","evt":"test.run"}
+{"ts":1760643018619,"lvl":"info","case":"merge: all source data reaches destination","phase":"teardown","evt":"case.end","payload":{"duration":104,"status":"passed"}}

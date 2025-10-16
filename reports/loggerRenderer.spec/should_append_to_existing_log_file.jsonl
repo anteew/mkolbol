@@ -1,3 +1,3 @@
-{"ts":1760636128075,"lvl":"info","case":"should append to existing log file","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760636128076,"lvl":"info","case":"should append to existing log file","phase":"execution","evt":"test.run"}
-{"ts":1760636128077,"lvl":"info","case":"should append to existing log file","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760643123637,"lvl":"info","case":"should append to existing log file","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760643123638,"lvl":"info","case":"should append to existing log file","phase":"execution","evt":"test.run"}
+{"ts":1760643123639,"lvl":"info","case":"should append to existing log file","phase":"teardown","evt":"case.end","payload":{"duration":30,"status":"passed"}}
