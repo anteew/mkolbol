@@ -6,6 +6,38 @@ import { Hostess } from '../src/hostess/Hostess.js';
 import { StateManager } from '../src/state/StateManager.js';
 import { Executor } from '../src/executor/Executor.js';
 import { loadConfig } from '../src/config/loader.js';
+const EXIT_CODES = {
+    SUCCESS: 0,
+    USAGE: 64,
+    CONFIG_PARSE: 65,
+    CONFIG_NOT_FOUND: 66,
+    RUNTIME: 70,
+    INTERRUPTED: 130,
+};
+class MkctlError extends Error {
+    code;
+    constructor(message, code, options) {
+        super(message, options);
+        this.code = code;
+        this.name = 'MkctlError';
+    }
+}
+function logError(message) {
+    console.error(`[mkctl] ${message}`);
+}
+function handleException(err) {
+    if (err instanceof MkctlError) {
+        logError(err.message);
+        return err.code;
+    }
+    if (err instanceof Error) {
+        logError(`Unexpected error: ${err.message}`);
+    }
+    else {
+        logError(`Unexpected error: ${String(err)}`);
+    }
+    return EXIT_CODES.RUNTIME;
+}
 function printHelp() {
     console.log(`mkctl - Microkernel Control CLI
 
@@ -60,43 +92,150 @@ async function main() {
             break;
         }
         case 'run': {
-            const args = process.argv.slice(3);
-            const fileIndex = args.indexOf('--file');
-            const durationIndex = args.indexOf('--duration');
-            if (fileIndex === -1 || fileIndex === args.length - 1) {
-                console.error('Usage: mkctl run --file <path> [--duration <seconds>]');
-                process.exit(1);
+            try {
+                const exitCode = await handleRunCommand(process.argv.slice(3));
+                process.exit(exitCode);
             }
-            const configPath = args[fileIndex + 1];
-            const duration = durationIndex !== -1 && durationIndex < args.length - 1
-                ? parseInt(args[durationIndex + 1], 10) * 1000
-                : 5000;
-            console.log(`Loading config from: ${configPath}`);
-            const config = loadConfig(configPath);
-            const kernel = new Kernel();
-            const hostess = new Hostess();
-            const stateManager = new StateManager(kernel);
-            const executor = new Executor(kernel, hostess, stateManager);
-            executor.load(config);
-            console.log('Bringing topology up...');
-            await executor.up();
-            console.log(`Topology running for ${duration / 1000} seconds...\n`);
-            await new Promise(resolve => setTimeout(resolve, duration));
-            console.log('\nBringing topology down...');
-            await executor.down();
-            console.log('Done.');
-            process.exit(0);
+            catch (err) {
+                const code = handleException(err);
+                process.exit(code);
+            }
+            return;
         }
         default:
             printHelp();
             if (cmd) {
-                console.error(`\nUnknown command: ${cmd}`);
-                process.exit(1);
+                logError(`Unknown command: ${cmd}`);
+                process.exit(EXIT_CODES.USAGE);
             }
+            return;
     }
 }
 main().catch(e => {
-    console.error(e);
-    process.exit(1);
+    const code = handleException(e);
+    process.exit(code);
 });
+function parseRunArgs(args) {
+    let configPath;
+    let durationMs = 5000;
+    for (let i = 0; i < args.length; i++) {
+        const token = args[i];
+        if (token === '--file') {
+            const next = args[i + 1];
+            if (!next || next.startsWith('--')) {
+                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>]', EXIT_CODES.USAGE);
+            }
+            configPath = next;
+            i++;
+        }
+        else if (token === '--duration') {
+            const next = args[i + 1];
+            if (!next || next.startsWith('--')) {
+                throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>]', EXIT_CODES.USAGE);
+            }
+            const parsed = Number.parseInt(next, 10);
+            if (Number.isNaN(parsed) || parsed <= 0) {
+                throw new MkctlError('Duration must be a positive integer (seconds).', EXIT_CODES.USAGE);
+            }
+            durationMs = parsed * 1000;
+            i++;
+        }
+    }
+    if (!configPath) {
+        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>]', EXIT_CODES.USAGE);
+    }
+    return { configPath, durationMs };
+}
+async function waitForDurationOrSignal(durationMs) {
+    return new Promise((resolve) => {
+        let settled = false;
+        const cleanup = () => {
+            process.off('SIGINT', onSignal);
+            process.off('SIGTERM', onSignal);
+        };
+        const onSignal = (signal) => {
+            if (settled)
+                return;
+            settled = true;
+            console.log(`\nReceived ${signal}. Shutting down...`);
+            clearTimeout(timer);
+            cleanup();
+            resolve('signal');
+        };
+        const timer = setTimeout(() => {
+            if (settled)
+                return;
+            settled = true;
+            cleanup();
+            resolve('timer');
+        }, durationMs);
+        process.once('SIGINT', onSignal);
+        process.once('SIGTERM', onSignal);
+    });
+}
+async function handleRunCommand(args) {
+    const { configPath, durationMs } = parseRunArgs(args);
+    try {
+        await fs.access(configPath);
+    }
+    catch {
+        throw new MkctlError(`Config file not found: ${configPath}\nHint: confirm the path or pick one from examples/configs.`, EXIT_CODES.CONFIG_NOT_FOUND);
+    }
+    console.log(`Loading config from: ${configPath}`);
+    let config;
+    try {
+        config = loadConfig(configPath);
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const validationIndicators = [
+            'Configuration must',
+            'Duplicate node id',
+            'address "',
+            'node "',
+            '"nodes" must be an array',
+            '"connections" must be an array'
+        ];
+        const isValidationIssue = validationIndicators.some(pattern => message.includes(pattern));
+        if (isValidationIssue) {
+            throw new MkctlError(`Configuration validation failed: ${message}\nHint: ensure nodes[] and connections[] are defined with unique IDs.`, EXIT_CODES.CONFIG_PARSE, { cause: err });
+        }
+        throw new MkctlError(`Failed to read config ${configPath}: ${message}\nHint: validate that the file contains well-formed YAML or JSON.`, EXIT_CODES.CONFIG_PARSE, { cause: err });
+    }
+    const kernel = new Kernel();
+    const hostess = new Hostess();
+    const stateManager = new StateManager(kernel);
+    const executor = new Executor(kernel, hostess, stateManager);
+    try {
+        executor.load(config);
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new MkctlError(`Configuration validation failed: ${message}\nHint: ensure nodes[] and connections[] are defined with unique IDs.`, EXIT_CODES.CONFIG_PARSE, { cause: err });
+    }
+    console.log('Bringing topology up...');
+    try {
+        await executor.up();
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new MkctlError(`Failed to start topology: ${message}\nHint: verify module names and external commands referenced by the config.`, EXIT_CODES.RUNTIME, { cause: err });
+    }
+    console.log(`Topology running for ${durationMs / 1000} seconds...\n`);
+    const outcome = await waitForDurationOrSignal(durationMs);
+    console.log('\nBringing topology down...');
+    try {
+        await executor.down();
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new MkctlError(`Failed while shutting down topology: ${message}\nHint: inspect module shutdown hooks or external process logs.`, EXIT_CODES.RUNTIME, { cause: err });
+    }
+    if (outcome === 'signal') {
+        console.log('Interrupted.');
+        return EXIT_CODES.INTERRUPTED;
+    }
+    console.log('Done.');
+    return EXIT_CODES.SUCCESS;
+}
 //# sourceMappingURL=mkctl.js.map

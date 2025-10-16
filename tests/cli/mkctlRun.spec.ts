@@ -8,6 +8,15 @@ describe('mkctl run', () => {
   const testConfigDir = join(__dirname, '../fixtures/cli-configs');
   let tempFiles: string[] = [];
 
+  const EXIT_CODES = {
+    SUCCESS: 0,
+    USAGE: 64,
+    CONFIG_PARSE: 65,
+    CONFIG_NOT_FOUND: 66,
+    RUNTIME: 70,
+    INTERRUPTED: 130,
+  } as const;
+
   beforeEach(() => {
     if (!existsSync(testConfigDir)) {
       mkdirSync(testConfigDir, { recursive: true });
@@ -27,24 +36,24 @@ describe('mkctl run', () => {
     tempFiles = [];
   });
 
-  function runMkctl(args: string[], timeout: number = 5000): Promise<{ stdout: string; stderr: string; code: number | null }> {
-    return new Promise((resolve, reject) => {
-      const proc = spawn('tsx', [mkctlPath, ...args], {
-        cwd: join(__dirname, '../..'),
-        env: { ...process.env }
-      });
+  function spawnMkctl(args: string[], timeout: number = 5000): { proc: ChildProcess; result: Promise<{ stdout: string; stderr: string; code: number | null }> } {
+    const proc = spawn('tsx', [mkctlPath, ...args], {
+      cwd: join(__dirname, '../..'),
+      env: { ...process.env }
+    });
 
-      let stdout = '';
-      let stderr = '';
+    let stdout = '';
+    let stderr = '';
 
-      proc.stdout?.on('data', (data) => {
-        stdout += data.toString();
-      });
+    proc.stdout?.on('data', (data) => {
+      stdout += data.toString();
+    });
 
-      proc.stderr?.on('data', (data) => {
-        stderr += data.toString();
-      });
+    proc.stderr?.on('data', (data) => {
+      stderr += data.toString();
+    });
 
+    const result = new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve, reject) => {
       const timer = setTimeout(() => {
         proc.kill('SIGTERM');
       }, timeout);
@@ -59,28 +68,35 @@ describe('mkctl run', () => {
         reject(err);
       });
     });
+
+    return { proc, result };
+  }
+
+  function runMkctl(args: string[], timeout: number = 5000) {
+    return spawnMkctl(args, timeout).result;
   }
 
   describe('--file argument parsing', () => {
     it('should error when --file is missing', async () => {
       const result = await runMkctl(['run'], 1000);
       
-      expect(result.code).toBe(1);
+      expect(result.code).toBe(EXIT_CODES.USAGE);
       expect(result.stderr).toContain('Usage: mkctl run --file <path>');
     });
 
     it('should error when --file has no value', async () => {
       const result = await runMkctl(['run', '--file'], 1000);
       
-      expect(result.code).toBe(1);
+      expect(result.code).toBe(EXIT_CODES.USAGE);
       expect(result.stderr).toContain('Usage: mkctl run --file <path>');
     });
 
     it('should error when config file does not exist', async () => {
       const result = await runMkctl(['run', '--file', '/nonexistent/config.yml'], 1000);
       
-      expect(result.code).toBe(1);
-      expect(result.stderr).toBeTruthy();
+      expect(result.code).toBe(EXIT_CODES.CONFIG_NOT_FOUND);
+      expect(result.stderr).toContain('Config file not found');
+      expect(result.stderr).toContain('Hint:');
     });
   });
 
@@ -104,7 +120,7 @@ connections: []
       const result = await runMkctl(['run', '--file', configPath], 8000);
       const elapsed = Date.now() - start;
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Topology running for 5 seconds');
       expect(elapsed).toBeGreaterThanOrEqual(5000);
       expect(elapsed).toBeLessThan(6000);
@@ -119,7 +135,7 @@ connections: []
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
       const elapsed = Date.now() - start;
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Topology running for 1 seconds');
       expect(elapsed).toBeGreaterThanOrEqual(1000);
       expect(elapsed).toBeLessThan(2000);
@@ -134,7 +150,7 @@ connections: []
       const result = await runMkctl(['run', '--duration', '1', '--file', configPath], 3000);
       const elapsed = Date.now() - start;
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Topology running for 1 seconds');
       expect(elapsed).toBeGreaterThanOrEqual(1000);
       expect(elapsed).toBeLessThan(2000);
@@ -158,8 +174,9 @@ connections: []
 
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 2000);
 
-      expect(result.code).toBe(1);
-      expect(result.stderr).toBeTruthy();
+      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
+      expect(result.stderr).toContain('Failed to read config');
+      expect(result.stderr).toContain('Hint:');
     });
 
     it('should handle missing nodes array', async () => {
@@ -172,8 +189,10 @@ connections: []
 
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 2000);
 
-      expect(result.code).toBe(1);
+      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
       expect(result.stderr).toContain('Configuration must have a "nodes" array');
+      expect(result.stderr).toContain('Configuration validation failed');
+      expect(result.stderr).toContain('Hint:');
     });
 
     it('should handle missing connections array', async () => {
@@ -188,8 +207,9 @@ nodes:
 
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 2000);
 
-      expect(result.code).toBe(1);
+      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
       expect(result.stderr).toContain('Configuration must have a "connections" array');
+      expect(result.stderr).toContain('Hint:');
     });
 
     it('should handle duplicate node IDs', async () => {
@@ -207,8 +227,9 @@ connections: []
 
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 2000);
 
-      expect(result.code).toBe(1);
+      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
       expect(result.stderr).toContain('Duplicate node id: "timer1"');
+      expect(result.stderr).toContain('Hint:');
     });
 
     it('should handle invalid connection references', async () => {
@@ -226,8 +247,28 @@ connections:
 
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 2000);
 
-      expect(result.code).toBe(1);
+      expect(result.code).toBe(EXIT_CODES.CONFIG_PARSE);
       expect(result.stderr).toContain('node "nonexistent" referenced in "to" does not exist');
+      expect(result.stderr).toContain('Hint:');
+    });
+
+    it('should map runtime errors to runtime exit code', async () => {
+      const invalidRuntimeConfig = `
+nodes:
+  - id: crashy
+    module: DoesNotExist
+
+connections: []
+`;
+      const configPath = join(testConfigDir, 'runtime-error.yml');
+      writeFileSync(configPath, invalidRuntimeConfig);
+      tempFiles.push(configPath);
+
+      const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 2000);
+
+      expect(result.code).toBe(EXIT_CODES.RUNTIME);
+      expect(result.stderr).toContain('Failed to start topology');
+      expect(result.stderr).toContain('Hint:');
     });
   });
 
@@ -238,7 +279,7 @@ connections:
       const configPath = join(examplesDir, 'basic.yml');
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Loading config from:');
       expect(result.stdout).toContain('Bringing topology up');
       expect(result.stdout).toContain('Topology running for 1 seconds');
@@ -250,7 +291,7 @@ connections:
       const configPath = join(examplesDir, 'multi.yml');
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Loading config from:');
       expect(result.stdout).toContain('Bringing topology up');
       expect(result.stdout).toContain('Topology running for 1 seconds');
@@ -262,7 +303,7 @@ connections:
       const configPath = join(examplesDir, 'external-pty.yaml');
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Loading config from:');
       expect(result.stdout).toContain('Bringing topology up');
       expect(result.stdout).toContain('Done');
@@ -272,7 +313,7 @@ connections:
       const configPath = join(examplesDir, 'external-stdio.yaml');
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Loading config from:');
       expect(result.stdout).toContain('Bringing topology up');
       expect(result.stdout).toContain('Done');
@@ -309,7 +350,7 @@ connections:
 
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Bringing topology up');
       expect(result.stdout).toContain('Done');
     });
@@ -330,7 +371,7 @@ connections: []
 
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Done');
     });
 
@@ -351,8 +392,38 @@ connections: []
 
       const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
 
-      expect(result.code).toBe(0);
+      expect(result.code).toBe(EXIT_CODES.SUCCESS);
       expect(result.stdout).toContain('Done');
+    });
+  });
+
+  describe('signal handling', () => {
+    const validConfig = `
+nodes:
+  - id: timer1
+    module: TimerSource
+    params:
+      periodMs: 200
+
+connections: []
+`;
+
+    it('should shut down gracefully on SIGINT', async () => {
+      const configPath = join(testConfigDir, 'sigint-config.yml');
+      writeFileSync(configPath, validConfig);
+      tempFiles.push(configPath);
+
+      const { proc, result } = spawnMkctl(['run', '--file', configPath, '--duration', '10'], 10000);
+
+      // Wait briefly for the topology to come up
+      await new Promise(resolve => setTimeout(resolve, 500));
+      proc.kill('SIGINT');
+
+      const outcome = await result;
+
+      expect(outcome.code).toBe(EXIT_CODES.INTERRUPTED);
+      expect(outcome.stdout).toContain('Received SIGINT');
+      expect(outcome.stdout).toContain('Bringing topology down');
     });
   });
 });

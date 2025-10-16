@@ -12,7 +12,9 @@
 
 ## New to mkolbol?
 
-Start here: **[Early Adopter Guide](docs/devex/early-adopter-guide.md)** - Understand mkolbol in 5 minutes
+**⏱️ First 5 minutes:** **[First Five Minutes](docs/devex/first-five-minutes.md)** - Pick your path (mkctl run, StdIO, or Interactive)
+
+**Learn the concepts:** **[Early Adopter Guide](docs/devex/early-adopter-guide.md)** - Understand mkolbol's architecture and mental model
 
 ## Quickstart
 
@@ -105,6 +107,18 @@ node dist/examples/config-runner.js --file examples/configs/basic.yml
   - `examples/configs/external-stdio.yaml` - External process with stdio mode
   - `examples/configs/external-pty.yaml` - External process with PTY mode
 
+### mkctl Troubleshooting
+
+| Exit Code | Meaning | Friendly Hint |
+|-----------|---------|---------------|
+| `64` | Usage error (missing flags, bad duration) | Run `mkctl run --file <path> [--duration <seconds>]` and double-check your arguments. |
+| `65` | Config parse/validation failure | Ensure the file is valid YAML/JSON and that `nodes[]` / `connections[]` are present with unique IDs. |
+| `66` | Config file not found | Verify the path or reuse one of the samples in `examples/configs/`. |
+| `70` | Topology runtime error | Confirm module names exist (or external commands can spawn) before launching the topology. |
+| `130` | Interrupted via Ctrl+C | mkctl caught the signal and shut the topology down cleanly. |
+
+mkctl error messages now include matching hints; the CLI prefixes every message with `[mkctl]` so they’re easy to spot in logs.
+
 ## ANSI Parser
 
 Parse ANSI escape sequences from terminal output into structured events:
@@ -126,6 +140,7 @@ parser.inputPipe.write('\x1b[1;32mGreen Bold\x1b[0m\n');
 Run the example:
 ```bash
 npx tsx examples/ansi-parser-simple.ts
+npx tsx examples/ansi-parser-p3.ts   # Demonstrates truecolor, resize, DEC modes
 ```
 
 ## Overview
@@ -820,6 +835,19 @@ Key documents:
 - [Implementation Roadmap](docs/rfcs/stream-kernel/09-roadmap.md)
 
 > **Note:** There is also a [single-file version](STREAM_KERNEL_RFC.md) of the Stream Kernel RFC, but the modular version is recommended for easier navigation and maintenance.
+
+## Troubleshooting
+
+Running into issues? Check the comprehensive **[Troubleshooting Guide](docs/devex/troubleshooting.md)** for:
+- Installation errors (build tools, native dependencies)
+- Running topologies (mkctl run, config paths, YAML errors)
+- PTY & terminal issues (permissions, TTY corruption)
+- Node version mismatches
+- External process configuration problems
+- Testing failures and timeouts
+- Performance & resource issues
+
+For quick command fixes, see the [Installation Troubleshooting](#troubleshooting) section above.
 
 ## Publishing
 

@@ -1,3 +1,3 @@
-{"ts":1760583358275,"lvl":"info","case":"combines rules from go-defaults and custom rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
-{"ts":1760583358276,"lvl":"info","case":"combines rules from go-defaults and custom rules","phase":"execution","evt":"test.run"}
-{"ts":1760583358277,"lvl":"info","case":"combines rules from go-defaults and custom rules","phase":"teardown","evt":"case.end","payload":{"duration":34,"status":"passed"}}
+{"ts":1760585696076,"lvl":"info","case":"combines rules from go-defaults and custom rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test"}},"seed":42}
+{"ts":1760585696077,"lvl":"info","case":"combines rules from go-defaults and custom rules","phase":"execution","evt":"test.run"}
+{"ts":1760585696078,"lvl":"info","case":"combines rules from go-defaults and custom rules","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
