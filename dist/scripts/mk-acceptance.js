@@ -56,48 +56,24 @@ async function runTest(name, testFn) {
     }
 }
 async function testMkInit(projectPath) {
-    await runTest('mk init test-project', async () => {
-        // Since mk init is not implemented yet, we'll create a mock project structure
+    await runTest('mk init test-project-acceptance', async () => {
         if (existsSync(projectPath)) {
             rmSync(projectPath, { recursive: true, force: true });
         }
-        mkdirSync(projectPath, { recursive: true });
-        // Create a simple topology.yml
-        const topologyYml = `nodes:
-  - id: timer
-    module: TimerSource
-    params:
-      interval: 1000
-      maxTicks: 5
-
-  - id: sink
-    module: ConsoleSink
-    params:
-      prefix: "[test]"
-
-connections:
-  - from: timer.output
-    to: sink.input
-`;
-        writeFileSync(join(projectPath, 'topology.yml'), topologyYml);
-        if (!existsSync(join(projectPath, 'topology.yml'))) {
-            throw new Error('topology.yml not created');
+        const result = exec('node dist/scripts/mk.js init test-project-acceptance --force');
+        if (!result.success) {
+            throw new Error(`mk init failed: ${result.stderr}`);
+        }
+        if (!existsSync(join(projectPath, 'mk.json'))) {
+            throw new Error('mk.json not created by init');
         }
     });
 }
 async function testMkRunDryRun(projectPath) {
-    await runTest('mk run topology.yml --dry-run', async () => {
-        const result = exec('node ../dist/scripts/mk.js run topology.yml --dry-run', projectPath);
-        if (!result.success) {
-            // Dry run might not be fully implemented, check if it at least tries to load config
-            if (result.stderr.includes('not found') || result.stderr.includes('ENOENT')) {
-                throw new Error('Config file not found');
-            }
-            // If it's just not implemented, that's acceptable for this test
-            if (!result.stderr.includes('--dry-run')) {
-                // Command executed, even if dry-run not fully implemented
-                return;
-            }
+    await runTest('mk run mk.json --dry-run', async () => {
+        const result = exec('node ../dist/scripts/mk.js run mk.json --dry-run', projectPath);
+        if (!result.success && result.stderr) {
+            throw new Error(result.stderr);
         }
     });
 }
@@ -118,33 +94,23 @@ async function testMkDoctor() {
         }
     });
 }
-async function testMkFormatToJson(projectPath) {
-    await runTest('mk format topology.yml --to json', async () => {
-        const result = exec('node ../dist/scripts/mk.js format --to json --file topology.yml', projectPath);
-        if (!result.success) {
-            throw new Error(`Format command failed: ${result.stderr}`);
+async function testMkFormatToYaml(projectPath) {
+    await runTest('mk format mk.json --to yaml (to mk.yaml)', async () => {
+        const res = exec('node ../dist/scripts/mk.js format --to yaml --file mk.json', projectPath);
+        if (!res.success) {
+            throw new Error(`Format command failed: ${res.stderr}`);
         }
-        // Verify output is valid JSON
-        try {
-            const parsed = JSON.parse(result.stdout);
-            if (!parsed.nodes || !Array.isArray(parsed.nodes)) {
-                throw new Error('Invalid topology JSON structure');
-            }
-        }
-        catch (parseErr) {
-            throw new Error(`Invalid JSON output: ${parseErr.message}`);
+        writeFileSync(join(projectPath, 'mk.yaml'), res.stdout);
+        if (!existsSync(join(projectPath, 'mk.yaml'))) {
+            throw new Error('mk.yaml not created');
         }
     });
 }
 async function testMkRunYaml(projectPath) {
-    await runTest('mk run topology.yml --yaml', async () => {
-        // This would require the topology to actually run
-        // For acceptance, we'll test that the command accepts the flag
-        const result = exec('node ../dist/scripts/mk.js run topology.yml --yaml --dry-run', projectPath);
-        // We expect this to either succeed or fail gracefully
-        // The main goal is to verify the command structure works
-        if (result.stderr.includes('Unknown') || result.stderr.includes('invalid')) {
-            throw new Error(`Command structure invalid: ${result.stderr}`);
+    await runTest('mk run mk.yaml --yaml --dry-run', async () => {
+        const result = exec('node ../dist/scripts/mk.js run mk.yaml --yaml --dry-run', projectPath);
+        if (!result.success && result.stderr) {
+            throw new Error(result.stderr);
         }
     });
 }
@@ -272,7 +238,7 @@ async function main() {
         await testMkInit(projectPath);
         await testMkRunDryRun(projectPath);
         await testMkDoctor();
-        await testMkFormatToJson(projectPath);
+        await testMkFormatToYaml(projectPath);
         await testMkRunYaml(projectPath);
         // Generate report
         await generateReport(projectPath);

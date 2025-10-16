@@ -1,0 +1,39 @@
+{
+  "topology": {
+    "nodes": [
+      {
+        "id": "calculator",
+        "module": "CalculatorServer",
+        "runMode": "inproc",
+        "params": {
+          "port": 4000,
+          "precision": 2
+        }
+      },
+      {
+        "id": "tty-renderer",
+        "module": "XtermTTYRenderer",
+        "runMode": "inproc"
+      },
+      {
+        "id": "logger",
+        "module": "FilesystemSink",
+        "runMode": "inproc",
+        "params": {
+          "path": "logs/calculator.jsonl",
+          "format": "jsonl"
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from": "calculator.output",
+        "to": "tty-renderer.input"
+      },
+      {
+        "from": "calculator.output",
+        "to": "logger.input"
+      }
+    ]
+  }
+}

@@ -1,5 +1,5 @@
-import { readFileSync, existsSync } from 'fs';
-import { validateTopology } from '../config/loader.js';
+import { existsSync } from 'fs';
+import { loadConfig } from '../config/loader.js';
 import { EXIT_CODES } from './errors.js';
 export async function runHandler(args) {
     const dryRunIndex = args.indexOf('--dry-run');
@@ -17,36 +17,23 @@ export async function runHandler(args) {
         console.error(`Error: Config file not found: ${topologyFile}`);
         return EXIT_CODES.CONFIG_NOT_FOUND;
     }
-    let content;
     try {
-        content = readFileSync(topologyFile, 'utf-8');
+        // loadConfig handles JSON/YAML and accepts { topology: { ... } } wrappers
+        loadConfig(topologyFile, { validate: true });
     }
     catch (error) {
-        console.error(`Error: Failed to read config file: ${error instanceof Error ? error.message : String(error)}`);
-        return EXIT_CODES.CONFIG_NOT_FOUND;
-    }
-    let config;
-    try {
-        const trimmed = content.trim();
-        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-            config = JSON.parse(content);
+        const msg = error instanceof Error ? error.message : String(error);
+        if (/not found|ENOENT/i.test(msg)) {
+            console.error(`Error: Config file not found: ${topologyFile}`);
+            return EXIT_CODES.CONFIG_NOT_FOUND;
         }
-        else {
-            const { parse: parseYaml } = await import('yaml');
-            config = parseYaml(content);
+        if (/parse|yaml|json/i.test(msg)) {
+            console.error(`Error: Failed to parse config file`);
+            console.error(`  ${msg}`);
+            return EXIT_CODES.CONFIG_INVALID;
         }
-    }
-    catch (error) {
-        console.error(`Error: Failed to parse config file`);
-        console.error(`  ${error instanceof Error ? error.message : String(error)}`);
-        return EXIT_CODES.CONFIG_INVALID;
-    }
-    try {
-        validateTopology(config);
-    }
-    catch (error) {
         console.error(`Error: Configuration validation failed`);
-        console.error(`  ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`  ${msg}`);
         return EXIT_CODES.VALIDATION_ERROR;
     }
     if (isDryRun) {

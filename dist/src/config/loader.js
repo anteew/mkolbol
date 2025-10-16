@@ -17,6 +17,13 @@ export function loadConfig(pathOrString, opts) {
     else {
         config = parseYaml(content);
     }
+    // Backward/forward compatibility: allow wrapper { topology: { nodes, connections } }
+    if (!config.nodes && config.topology && typeof config.topology === 'object') {
+        const wrapped = config.topology;
+        if (wrapped.nodes && wrapped.connections) {
+            config = wrapped;
+        }
+    }
     if (options.validate) {
         validateTopology(config);
     }
