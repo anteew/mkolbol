@@ -27,7 +27,8 @@ async function main() {
     capabilities: { type: 'source', accepts: [], produces: [] },
     command: 'bash',
     args: ['-l'],
-    // inherit default env via ExternalServerWrapper; explicit env not required here
+    // Explicit env is required by ExternalServerManifest; merge happens in wrapper.
+    env: {},
     cwd: process.cwd(),
     ioMode: 'pty',
     restart: 'never'

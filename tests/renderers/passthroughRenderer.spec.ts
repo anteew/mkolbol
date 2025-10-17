@@ -25,28 +25,20 @@ describe('PassthroughRenderer', () => {
     renderer.destroy();
   });
 
-  it('should render raw ANSI to stdout', (done) => {
+  it('should render raw ANSI to stdout', async () => {
     const testData = Buffer.from('Hello, World!');
-    
     renderer.inputPipe.write(testData);
-    
-    setTimeout(() => {
-      const output = Buffer.concat(capturedOutput).toString();
-      expect(output).toBe('Hello, World!');
-      done();
-    }, 100);
+    await new Promise((r) => setImmediate(r));
+    const output = Buffer.concat(capturedOutput).toString();
+    expect(output).toBe('Hello, World!');
   });
 
-  it('should handle ANSI escape sequences', (done) => {
+  it('should handle ANSI escape sequences', async () => {
     const testData = Buffer.from('\x1b[31mRed Text\x1b[0m');
-    
     renderer.inputPipe.write(testData);
-    
-    setTimeout(() => {
-      const output = Buffer.concat(capturedOutput).toString();
-      expect(output).toContain('\x1b[31m');
-      expect(output).toContain('Red Text');
-      done();
-    }, 100);
+    await new Promise((r) => setImmediate(r));
+    const output = Buffer.concat(capturedOutput).toString();
+    expect(output).toContain('\x1b[31m');
+    expect(output).toContain('Red Text');
   });
 });
