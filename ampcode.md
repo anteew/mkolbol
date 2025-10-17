@@ -1,24 +1,61 @@
+````json
+
 ```json
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "MKD-P4-A", "parallel": true, "tasks": ["T9401", "T9402", "T9403"] },
-    { "id": "MKD-P4-B", "parallel": true, "depends_on": ["MKD-P4-A"], "tasks": ["T9404", "T9405"] }
+    { "id": "P20A-ROUTER-P3", "parallel": false, "tasks": ["N2001","N2002","N2003"] }
   ],
+  "branch": "mkolbol-core-router-p3-subscribe",
   "tasks": [
-    {
-      "id": "T9401",
-      "agent": "susan",
-      "title": "mk init: scaffold minimal project (+tests, .mk/options)",
-      "allowedFiles": [
-        "scripts/mk.ts",
-        "src/mk/init.ts",
-        "templates/init/**",
-        "tests/cli/mkInit.spec.ts"
-      ],
-      "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_T9401_mk-init.patch"]
-    },
+    {"id":"N2001","agent":"susan","title":"RoutingServer: subscribe() API + event stream (added/updated/removed/staleExpired)",
+      "why":"Enable live route/liveness updates to consumers without polling.",
+      "allowedFiles":["src/router/RoutingServer.ts","src/executor/Executor.ts","src/types/router.ts","tests/integration/router.subscribe.spec.ts"],
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2001_router-subscribe.patch"]},
+
+    {"id":"N2002","agent":"susan","title":"Heartbeat/TTL integration: emit stale→expired transitions; snapshot includes expiresAt",
+      "why":"Expose liveness semantics over subscriptions; align with TTL rules.",
+      "allowedFiles":["src/router/RoutingServer.ts","tests/integration/router.ttl.spec.ts","tests/integration/router.subscribe.spec.ts"],
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2002_router-ttl-subscribe.patch"]},
+
+    {"id":"N2003","agent":"susan","title":"Acceptance: demo subscriber + soak under churn; Laminar artifacts",
+      "why":"Prove stability and clear events under load and restarts.",
+      "allowedFiles":["examples/network/subscriber-demo/**","docs/devex/network-quickstart.md","reports/**"],
+      "verify":["npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_N2003_subscriber-acceptance.patch"]}
+  ]
+}
+````
+
+Branch Instructions
+
+- IMPORTANT: Work only on `mkolbol-core-router-p3-subscribe`.
+- Keep API minimal: subscribe(filter?): AsyncIterator<Event> or on('event', cb).
+- Event types: {type:'added'|'updated'|'removed'|'stale'|'expired', endpoint, expiresAt?}.
+- Tests must cover reconnect and TTL transitions.
+
+{
+"ampcode": "v1",
+"waves": [
+{ "id": "MKD-P4-A", "parallel": true, "tasks": ["T9401", "T9402", "T9403"] },
+{ "id": "MKD-P4-B", "parallel": true, "depends_on": ["MKD-P4-A"], "tasks": ["T9404", "T9405"] }
+],
+"tasks": [
+{
+"id": "T9401",
+"agent": "susan",
+"title": "mk init: scaffold minimal project (+tests, .mk/options)",
+"allowedFiles": [
+"scripts/mk.ts",
+"src/mk/init.ts",
+"templates/init/**",
+"tests/cli/mkInit.spec.ts"
+],
+"verify": ["npm run build"],
+"deliverables": ["patches/DIFF_T9401_mk-init.patch"]
+},
 
     {
       "id": "T9402",
@@ -60,9 +97,11 @@
       "verify": ["npm run build", "npm run test:ci"],
       "deliverables": ["patches/DIFF_T9405_mk-did-you-mean.patch"]
     }
-  ]
+
+]
 }
-```
+
+````
 
 ```json
 {
@@ -182,7 +221,7 @@
     }
   ]
 }
-```
+````
 
 # Ampcode — P17: Orchestrator v1 (mk Anywhere) + Router P2 TTL
 
