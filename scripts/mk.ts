@@ -555,6 +555,8 @@ function printCommandHelp(cmd: Command) {
   console.log(`${cmd.description}\n`);
   console.log(`Usage: ${cmd.usage}`);
 }
+async function mkMain() {
+  let args = process.argv.slice(2);
   // Global flags: -C/--project/--project-dir to change directory, --version/-V for version info
   const projectFlagIndex = args.findIndex(
     (a) => a === '-C' || a === '--project' || a === '--project-dir'
@@ -586,16 +588,15 @@ function printCommandHelp(cmd: Command) {
     printMainHelp();
     process.exit(EXIT_SUCCESS);
   }
-
   const commandName = args[0];
   const command = commands.find((cmd) => cmd.name === commandName);
-    const jsonOutput = isJsonOutputRequested(args);
-    const error = createError('UNKNOWN_COMMAND', { details: { command: commandName } });
-    
-    if (jsonOutput) {
-      console.error(formatError(error, 'json'));
+  if (!command) {
+    const isJson = isJsonOutputRequested(args);
+    const errObj = createError('UNKNOWN_COMMAND', { details: { command: commandName } });
+    if (isJson) {
+      console.error(formatError(errObj, 'json'));
     } else {
-      console.error(formatError(error, 'text'));
+      console.error(formatError(errObj, 'text'));
     }
     process.exit(EXIT_USAGE);
   }
