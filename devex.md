@@ -136,3 +136,50 @@ Success Criteria
 - First‑Five‑Minutes shows a single “Hello in 10 Minutes” path end‑to‑end.
 - CI plan doc provides a working Actions snippet with Laminar hooks.
 - Release Notes (RC) published; style/links consistent; help snapshots pass.
+
+---
+
+```json
+{
+  "ampcode": "v1",
+  "waves": [
+    { "id": "P17-DOCS-A_MK_ANYWHERE", "parallel": true,  "tasks": ["D11001","D11002","D11004"] },
+    { "id": "P17-DOCS-B_ROUTER_P2",  "parallel": true,  "depends_on": ["P17-DOCS-A_MK_ANYWHERE"], "tasks": ["D11003","D11005"] }
+  ],
+  "tasks": [
+    {"id":"D11001","agent":"devex","title":"Quickstart/README: mk self install + mk anywhere (no npm registry)",
+      "allowedFiles":["README.md","docs/devex/first-five-minutes.md","docs/devex/installation.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D11001_docs-mk-anywhere-quickstart.patch"]},
+
+    {"id":"D11002","agent":"devex","title":"Tutorial: mk bootstrap out-of-tree app (Hello Calculator)",
+      "allowedFiles":["docs/devex/using-mkolbol-in-your-repo.md","docs/devex/hello-calculator.md","examples/mk/init-templates/**"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D11002_docs-bootstrap-tutorial.patch"]},
+
+    {"id":"D11003","agent":"devex","title":"Doctor guide: toolchain/shim checks with exact remediation snippets",
+      "allowedFiles":["docs/devex/doctor.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D11003_docs-doctor-toolchain.patch"]},
+
+    {"id":"D11004","agent":"devex","title":"CLI reference + help snapshots for self install/fetch/bootstrap",
+      "allowedFiles":["tests/cli/mkdxHelp.spec.ts","docs/devex/mk-dx-style.md","docs/devex/cli-reference.md"],
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_D11004_docs-help-snapshots-mk-anywhere.patch"]},
+
+    {"id":"D11005","agent":"devex","title":"mkctl endpoints liveness: cookbook updates + watch examples",
+      "allowedFiles":["docs/devex/mkctl-cookbook.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D11005_docs-mkctl-liveness.patch"]}
+  ]
+}
+```
+
+# DevEx — P17 Docs: mk Anywhere + Router Liveness
+
+Intent
+- Teach users how to install mk as a global shim, bootstrap out‑of‑tree apps, and observe endpoint liveness via mkctl.
+
+Notes
+- Keep distribution paths to tarball/git tag only; no npm registry references.
+- Include explicit PATH instructions for POSIX and Windows; no auto‑mutation.
