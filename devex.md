@@ -1,4 +1,53 @@
 ```json
+
+```json
+{
+  "ampcode": "v1",
+  "waves": [
+    { "id": "P19-LINT", "parallel": false, "tasks": ["D1901","D1902","D1903","D1904","D1905"] }
+  ],
+  "branch": "mkolbol-devex-p19-lint-cleanup",
+  "tasks": [
+    {"id":"D1901","agent":"devex","title":"ESLint pass: remove unused vars/args and obsolete eslint-disable",
+      "allowedFiles":["src/**","scripts/**"],
+      "why":"Reduce hundreds of warnings that slow agents and CI logs.",
+      "verify":["npm run build","npm run lint"],
+      "deliverables":["patches/DIFF_D1901_eslint-clean.patch"]},
+
+    {"id":"D1902","agent":"devex","title":"Prettier sweep: format repo; refine .prettierignore for generated/patch files",
+      "allowedFiles":[".prettierignore","**/*"],
+      "why":"Fix style warnings en masse while excluding generated artifacts.",
+      "verify":["npm run format:check"],
+      "deliverables":["patches/DIFF_D1902_prettier-sweep.patch"]},
+
+    {"id":"D1903","agent":"devex","title":"DX scripts: add lint:fix and format:write; wire into pre-push gate (warnings allowed)",
+      "allowedFiles":["package.json","scripts/git-hooks/pre-push","docs/devex/local-ci.md"],
+      "why":"Make it one-command to fix common issues before pushing.",
+      "verify":["npm run lint:fix && npm run format:write && npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_D1903_dx-lint-fix-wireup.patch"]},
+
+    {"id":"D1904","agent":"devex","title":"Docs: Archive guidelines + rotate heavy logs (devex/ampcode) to archives/",
+      "allowedFiles":["README.md","docs/devex/local-ci.md","archives/**","devex.md"],
+      "why":"Prevent agents from choking on very large files.",
+      "verify":["rg -n 'archives/' README.md docs/devex/local-ci.md devex.md"],
+      "deliverables":["patches/DIFF_D1904_archive-guidelines.patch"]},
+
+    {"id":"D1905","agent":"devex","title":"Acceptance: reduce lint warnings by ≥70% and keep build/tests green",
+      "allowedFiles":["tests/**","reports/**"],
+      "why":"Measure outcome, not just changes; ensure no regressions.",
+      "verify":["npm run build","npm run test:ci","npm run lint | tee reports/lint-summary.txt"],
+      "deliverables":["patches/DIFF_D1905_lint-acceptance.patch"]}
+  ]
+}
+```
+
+Branch Instructions
+- IMPORTANT: Run this sprint only on branch `mkolbol-devex-p19-lint-cleanup`.
+- Do not change branches or merge; commit patches and logs as usual. The architect will handle PRs/merges.
+- Use `npm run lint:fix` first; then address remaining warnings with targeted edits.
+- Exclude generated outputs under `dist/`, `patches/`, and `reports/` from Prettier runs (via .prettierignore).
+- Keep policy: warnings allowed; do not flip CI to fail-on-warn.
+
 {
   "ampcode": "v1",
   "waves": [

@@ -1,0 +1,10 @@
+# VEGA Diary — P18 merged and P19 lint kickoff
+
+What changed
+- P18A (TCP) and P18B (WebSocket) merged to main. Local build/tests green.
+- Created branch mkolbol-devex-p19-lint-cleanup for Vex to reduce lint noise.
+- Rotated ampcode.log to archives/ to speed up agents reading logs.
+
+Next
+- Vex: run the P19-LINT sprint in devex.md on the p19 branch.
+- After lint debt reduction, we’ll plan mkctl --connect tcp:// / ws://.
