@@ -1,3 +1,3 @@
-{"ts":1760719215641,"lvl":"info","case":"respects global optOut flag","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760719215642,"lvl":"info","case":"respects global optOut flag","phase":"execution","evt":"test.run"}
-{"ts":1760719215643,"lvl":"info","case":"respects global optOut flag","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760727841222,"lvl":"info","case":"respects global optOut flag","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727841223,"lvl":"info","case":"respects global optOut flag","phase":"execution","evt":"test.run"}
+{"ts":1760727841224,"lvl":"info","case":"respects global optOut flag","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
