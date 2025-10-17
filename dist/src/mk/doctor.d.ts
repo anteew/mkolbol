@@ -5,6 +5,6 @@ export type CheckResult = {
     remediation?: string;
 };
 export type CheckSection = 'all' | 'toolchain' | 'environment';
-export declare function runDoctorChecks(verbose?: boolean, section?: CheckSection): Promise<CheckResult[]>;
+export declare function runDoctorChecks(_verbose?: boolean, section?: CheckSection): Promise<CheckResult[]>;
 export declare function formatCheckResults(results: CheckResult[], format?: 'text' | 'json'): string;
 //# sourceMappingURL=doctor.d.ts.map

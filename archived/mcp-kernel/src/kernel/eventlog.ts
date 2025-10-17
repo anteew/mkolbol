@@ -1,4 +1,10 @@
-type EventRow = { seq: number; type: string; aggregate_id: string; payload: any; created_at: number };
+type EventRow = {
+  seq: number;
+  type: string;
+  aggregate_id: string;
+  payload: any;
+  created_at: number;
+};
 
 export class EventLog {
   private seq = 0;

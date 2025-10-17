@@ -2,7 +2,7 @@
 /**
  * mk-acceptance.ts
  * End-to-end acceptance test for mk CLI commands
- * 
+ *
  * Tests the following sequence:
  * 1. mk init test-project
  * 2. cd test-project && mk run topology.yml --dry-run
@@ -55,7 +55,7 @@ function exec(command: string, cwd?: string): { stdout: string; stderr: string; 
 async function runTest(name: string, testFn: () => Promise<void>): Promise<void> {
   const start = Date.now();
   log(`Running: ${name}`);
-  
+
   try {
     await testFn();
     const duration = Date.now() - start;
@@ -96,16 +96,16 @@ async function testMkRunDryRun(projectPath: string): Promise<void> {
 async function testMkDoctor(): Promise<void> {
   await runTest('mk doctor', async () => {
     const result = exec('node dist/scripts/mk.js doctor');
-    
+
     if (!result.success) {
       throw new Error(`mk doctor failed: ${result.stderr}`);
     }
-    
+
     // Check that output contains expected doctor output
     if (!result.stdout.includes('doctor')) {
       throw new Error('Unexpected doctor output format');
     }
-    
+
     // For acceptance, we'll allow warnings but not failures
     // Check if there are any [FAIL] markers
     if (result.stdout.includes('[FAIL]')) {
@@ -139,7 +139,7 @@ async function testMkRunYaml(projectPath: string): Promise<void> {
 async function testTtlSoakUnderLoad(): Promise<void> {
   await runTest('TTL expiry soak test under load (non-gating)', async () => {
     log('Starting TTL soak test with heartbeats and load...');
-    
+
     // Create a topology with router heartbeats enabled
     const soakTopology = `
 nodes:
@@ -171,53 +171,54 @@ connections:
   - from: meter.output
     to: sink.input
 `;
-    
+
     const soakConfigPath = join(process.cwd(), 'reports', 'ttl-soak-topology.yml');
     const reportsDir = join(process.cwd(), 'reports');
     if (!existsSync(reportsDir)) {
       mkdirSync(reportsDir, { recursive: true });
     }
     writeFileSync(soakConfigPath, soakTopology);
-    
+
     // Run topology for 10 seconds with router heartbeats
     const result = exec(
       `timeout 12 node dist/scripts/mkctl.js run --file ${soakConfigPath} --duration 10`,
-      process.cwd()
+      process.cwd(),
     );
-    
+
     const logOutput = result.stdout + result.stderr;
-    
+
     // Verify topology ran
     if (!logOutput.includes('Topology running') && !logOutput.includes('Starting')) {
       throw new Error('Topology did not start successfully');
     }
-    
+
     // Verify data flowed (check for JSONL output)
     const soakOutputPath = join(reportsDir, 'ttl-soak.jsonl');
     if (!existsSync(soakOutputPath)) {
       throw new Error('TTL soak test: no output data file created');
     }
-    
+
     const outputContent = readFileSync(soakOutputPath, 'utf-8');
-    const lineCount = outputContent.split('\n').filter(l => l.trim()).length;
-    
+    const lineCount = outputContent.split('\n').filter((l) => l.trim()).length;
+
     if (lineCount < 10) {
       throw new Error(`TTL soak test: insufficient data throughput (${lineCount} lines)`);
     }
-    
+
     log(`TTL soak test completed: ${lineCount} messages processed under load`);
-    
+
     // Check for router endpoints snapshot (validates heartbeat mechanism)
     const endpointsPath = join(reportsDir, 'router-endpoints.json');
     if (existsSync(endpointsPath)) {
       const endpoints = JSON.parse(readFileSync(endpointsPath, 'utf-8'));
       log(`Router endpoints tracked: ${endpoints.length} endpoints`);
-      
+
       // Verify stale endpoints would be detected (check TTL metadata exists)
-      const hasHeartbeatData = endpoints.some((ep: any) => 
-        ep.updatedAt !== undefined || ep.expiresAt !== undefined || ep.ttlMs !== undefined
+      const hasHeartbeatData = endpoints.some(
+        (ep: any) =>
+          ep.updatedAt !== undefined || ep.expiresAt !== undefined || ep.ttlMs !== undefined,
       );
-      
+
       if (hasHeartbeatData) {
         log('✓ Heartbeat/TTL metadata present in endpoint tracking');
       }
@@ -227,12 +228,12 @@ connections:
 
 async function generateReport(projectPath: string): Promise<void> {
   log('Generating report...');
-  
-  const passed = results.filter(r => r.passed).length;
-  const failed = results.filter(r => !r.passed).length;
+
+  const passed = results.filter((r) => r.passed).length;
+  const failed = results.filter((r) => !r.passed).length;
   const total = results.length;
   const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
-  
+
   const timestamp = new Date().toISOString();
   const report = `# mk CLI Acceptance Test Results
 
@@ -242,15 +243,17 @@ async function generateReport(projectPath: string): Promise<void> {
 
 ## Test Results
 
-${results.map(r => {
-  const icon = r.passed ? '✓' : '✗';
-  const status = r.passed ? 'PASSED' : 'FAILED';
-  return `### ${icon} ${r.name} - ${status}
+${results
+  .map((r) => {
+    const icon = r.passed ? '✓' : '✗';
+    const status = r.passed ? 'PASSED' : 'FAILED';
+    return `### ${icon} ${r.name} - ${status}
 
 **Duration:** ${r.duration}ms
 ${r.passed ? '' : `**Error:** ${r.message}`}
 `;
-}).join('\n')}
+  })
+  .join('\n')}
 
 ## Summary
 
@@ -266,11 +269,12 @@ ${failed === 0 ? '✅ **All tests passed!**' : `⚠️ **${failed} test(s) faile
 
 ## Next Steps
 
-${failed === 0 
-  ? `- The mk CLI is working correctly
+${
+  failed === 0
+    ? `- The mk CLI is working correctly
 - Ready for production use
 - Consider extending test coverage with additional scenarios`
-  : `- Review failed tests above
+    : `- Review failed tests above
 - Check error messages for remediation steps
 - Run \`mk doctor --verbose\` for detailed diagnostics`
 }
@@ -281,30 +285,30 @@ ${failed === 0
   if (!existsSync(reportsDir)) {
     mkdirSync(reportsDir, { recursive: true });
   }
-  
+
   const reportPath = join(reportsDir, 'mk-acceptance-results.md');
   writeFileSync(reportPath, report);
   log(`Report written to: ${reportPath}`);
-  
+
   // Also update the local-node-v1.md with acceptance results
   await updateAcceptanceDoc(report);
 }
 
 async function updateAcceptanceDoc(report: string): Promise<void> {
   const docPath = join(process.cwd(), 'tests/devex/acceptance/local-node-v1.md');
-  
+
   if (!existsSync(docPath)) {
     log('Acceptance doc not found, skipping update');
     return;
   }
-  
+
   try {
     const content = readFileSync(docPath, 'utf-8');
-    
+
     // Check if there's already an acceptance results section
     const sectionMarker = '## mk CLI Acceptance Test Results';
     const timestamp = new Date().toISOString();
-    
+
     const resultsSection = `
 
 ---
@@ -314,26 +318,29 @@ ${sectionMarker}
 **Last Run:** ${timestamp}
 
 \`\`\`
-${results.map(r => `${r.passed ? '✓' : '✗'} ${r.name} (${r.duration}ms)`).join('\n')}
+${results.map((r) => `${r.passed ? '✓' : '✗'} ${r.name} (${r.duration}ms)`).join('\n')}
 \`\`\`
 
-**Summary:** ${results.filter(r => r.passed).length}/${results.length} tests passed
+**Summary:** ${results.filter((r) => r.passed).length}/${results.length} tests passed
 
 See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
 
 `;
-    
+
     let updatedContent: string;
     if (content.includes(sectionMarker)) {
       // Replace existing section. Be tolerant of leading blank lines before the separator.
       const escapedMarker = sectionMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(?:\\n\\n)?---\\n\\n${escapedMarker}[\\s\\S]*?(?=\\n---\\n|$)`, 'm');
+      const regex = new RegExp(
+        `(?:\\n\\n)?---\\n\\n${escapedMarker}[\\s\\S]*?(?=\\n---\\n|$)`,
+        'm',
+      );
       updatedContent = content.replace(regex, `\n\n${resultsSection.trim()}`);
     } else {
       // Append to end
       updatedContent = content + resultsSection;
     }
-    
+
     writeFileSync(docPath, updatedContent);
     log('Updated acceptance doc with results');
   } catch (err: any) {
@@ -343,7 +350,7 @@ See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acce
 
 async function cleanup(projectPath: string): Promise<void> {
   log('Cleaning up test project...');
-  
+
   if (existsSync(projectPath)) {
     try {
       rmSync(projectPath, { recursive: true, force: true });
@@ -356,9 +363,9 @@ async function cleanup(projectPath: string): Promise<void> {
 
 async function main(): Promise<number> {
   log('Starting mk CLI acceptance tests...\n');
-  
+
   const projectPath = join(process.cwd(), 'test-project-acceptance');
-  
+
   try {
     // Run all tests in sequence
     await testMkInit(projectPath);
@@ -366,17 +373,17 @@ async function main(): Promise<number> {
     await testMkDoctor();
     await testMkFormatToYaml(projectPath);
     await testMkRunYaml(projectPath);
-    
+
     // TTL soak test (non-gating, best-effort)
     await testTtlSoakUnderLoad();
-    
+
     // Generate report
     await generateReport(projectPath);
-    
+
     // Print summary
-    const passed = results.filter(r => r.passed).length;
-    const failed = results.filter(r => !r.passed).length;
-    
+    const passed = results.filter((r) => r.passed).length;
+    const failed = results.filter((r) => !r.passed).length;
+
     console.log('\n' + '='.repeat(60));
     console.log('ACCEPTANCE TEST SUMMARY');
     console.log('='.repeat(60));
@@ -384,14 +391,16 @@ async function main(): Promise<number> {
     console.log(`Passed: ${passed}`);
     console.log(`Failed: ${failed}`);
     console.log('='.repeat(60));
-    
+
     if (failed > 0) {
       console.log('\nFailed tests:');
-      results.filter(r => !r.passed).forEach(r => {
-        console.log(`  - ${r.name}: ${r.message}`);
-      });
+      results
+        .filter((r) => !r.passed)
+        .forEach((r) => {
+          console.log(`  - ${r.name}: ${r.message}`);
+        });
     }
-    
+
     return failed === 0 ? EXIT_SUCCESS : EXIT_ERROR;
   } finally {
     // Always cleanup
@@ -400,9 +409,11 @@ async function main(): Promise<number> {
 }
 
 // Run the acceptance tests
-main().then(exitCode => {
-  process.exit(exitCode);
-}).catch(err => {
-  error(`Fatal error: ${err.message}`);
-  process.exit(EXIT_ERROR);
-});
+main()
+  .then((exitCode) => {
+    process.exit(exitCode);
+  })
+  .catch((err) => {
+    error(`Fatal error: ${err.message}`);
+    process.exit(EXIT_ERROR);
+  });

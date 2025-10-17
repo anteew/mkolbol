@@ -12,7 +12,11 @@ import {
 } from '../types/topology.js';
 import { debug } from '../debug/api.js';
 
-type ValidatorFn = (from: TerminalRef, tos: TerminalRef[], type: 'direct' | 'split' | 'merge') => ValidationResult;
+type ValidatorFn = (
+  from: TerminalRef,
+  tos: TerminalRef[],
+  type: 'direct' | 'split' | 'merge',
+) => ValidationResult;
 
 export class StateManager {
   private nodes = new Map<string, NodeDef>();
@@ -40,7 +44,7 @@ export class StateManager {
       name: manifest.name ?? id,
       terminals: manifest.terminals ?? [],
       capabilities: manifest.capabilities ?? [],
-      humanReadable: manifest.humanReadable ?? (manifest.name ?? id),
+      humanReadable: manifest.humanReadable ?? manifest.name ?? id,
       location: manifest.location ?? 'local',
     } as NodeDef;
     this.nodes.set(id, node);
@@ -82,7 +86,10 @@ export class StateManager {
     return conn;
   }
 
-  split(source: string | TerminalRef, destinations: (string | TerminalRef)[]): ConnectionMetadata[] {
+  split(
+    source: string | TerminalRef,
+    destinations: (string | TerminalRef)[],
+  ): ConnectionMetadata[] {
     const srcRef = typeof source === 'string' ? this.parseAddress(source) : source;
     const dstRefs = destinations.map((d) => (typeof d === 'string' ? this.parseAddress(d) : d));
     this.validate(srcRef, dstRefs, 'split');
@@ -102,7 +109,10 @@ export class StateManager {
     return conns;
   }
 
-  merge(sources: (string | TerminalRef)[], destination: string | TerminalRef): ConnectionMetadata[] {
+  merge(
+    sources: (string | TerminalRef)[],
+    destination: string | TerminalRef,
+  ): ConnectionMetadata[] {
     const srcRefs = sources.map((s) => (typeof s === 'string' ? this.parseAddress(s) : s));
     const dstRef = typeof destination === 'string' ? this.parseAddress(destination) : destination;
     this.validate(dstRef, srcRefs, 'merge');

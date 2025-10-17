@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 
 describe('mk CLI help microcopy (snapshot tests)', () => {
   const mkPath = process.env.MK_BIN || join(process.cwd(), 'dist', 'scripts', 'mk.js');
-  
+
   it('prints structured help with sections and examples', () => {
     const r = spawnSync('node', [mkPath, '--help'], { encoding: 'utf8' });
     expect(r.status).toBe(0);
@@ -37,7 +37,7 @@ describe('mk CLI help microcopy (snapshot tests)', () => {
     const r = spawnSync('node', [mkPath, '--help'], { encoding: 'utf8' });
     // Note: 'validate' not yet implemented, removed from test
     const coreCommands = ['init', 'run', 'doctor', 'graph', 'dev', 'logs', 'trace'];
-    
+
     for (const cmd of coreCommands) {
       expect(r.stdout).toContain(cmd);
     }
@@ -102,13 +102,13 @@ describe('mk CLI help microcopy (snapshot tests)', () => {
     it('help output is deterministic (no timestamps or dates)', () => {
       const r1 = spawnSync('node', [mkPath, '--help'], { encoding: 'utf8' });
       const r2 = spawnSync('node', [mkPath, '--help'], { encoding: 'utf8' });
-      
+
       expect(r1.stdout).toBe(r2.stdout);
     });
 
     it('help does not contain dynamic version numbers', () => {
       const r = spawnSync('node', [mkPath, '--help'], { encoding: 'utf8' });
-      
+
       // Should not contain current date/time patterns
       expect(r.stdout).not.toMatch(/\d{4}-\d{2}-\d{2}/); // No ISO dates
       expect(r.stdout).not.toMatch(/\d{2}:\d{2}:\d{2}/); // No timestamps
@@ -118,7 +118,7 @@ describe('mk CLI help microcopy (snapshot tests)', () => {
   describe('did-you-mean suggestions', () => {
     // Note: Did-you-mean functionality is documented in style guide but not yet implemented
     // These tests verify current error behavior and will pass once did-you-mean is added
-    
+
     it('shows error for unknown command (rnu)', () => {
       const r = spawnSync('node', [mkPath, 'rnu'], { encoding: 'utf8' });
       expect(r.status).not.toBe(0);
@@ -142,7 +142,9 @@ describe('mk CLI help microcopy (snapshot tests)', () => {
     });
 
     it('handles completely unrelated command without crashing', () => {
-      const r = spawnSync('node', [mkPath, 'completely-unrelated-nonsense-xyz'], { encoding: 'utf8' });
+      const r = spawnSync('node', [mkPath, 'completely-unrelated-nonsense-xyz'], {
+        encoding: 'utf8',
+      });
       expect(r.status).not.toBe(0);
       expect(r.stderr).toContain('Unknown command');
       // Should not crash, may or may not have suggestions
@@ -153,7 +155,7 @@ describe('mk CLI help microcopy (snapshot tests)', () => {
     it('mk dev help matches fixture structure', () => {
       const fixturePath = join(process.cwd(), 'tests', 'fixtures', 'mkdx', 'mk-dev.help.txt');
       const fixture = readFileSync(fixturePath, 'utf8');
-      
+
       // Verify fixture structure
       expect(fixture).toContain('USAGE');
       expect(fixture).toContain('DESCRIPTION');
@@ -167,7 +169,7 @@ describe('mk CLI help microcopy (snapshot tests)', () => {
     it('mk logs help matches fixture structure', () => {
       const fixturePath = join(process.cwd(), 'tests', 'fixtures', 'mkdx', 'mk-logs.help.txt');
       const fixture = readFileSync(fixturePath, 'utf8');
-      
+
       expect(fixture).toContain('USAGE');
       expect(fixture).toContain('DESCRIPTION');
       expect(fixture).toContain('OPTIONS');
@@ -178,7 +180,7 @@ describe('mk CLI help microcopy (snapshot tests)', () => {
     it('mk trace help matches fixture structure', () => {
       const fixturePath = join(process.cwd(), 'tests', 'fixtures', 'mkdx', 'mk-trace.help.txt');
       const fixture = readFileSync(fixturePath, 'utf8');
-      
+
       expect(fixture).toContain('USAGE');
       expect(fixture).toContain('DESCRIPTION');
       expect(fixture).toContain('OPTIONS');

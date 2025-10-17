@@ -17,14 +17,14 @@ export class DigestGenerator {
     status: string,
     duration: number,
     location: string,
-    artifactPath: string
+    artifactPath: string,
   ): Promise<DigestOutput | null> {
     if (!this.config.enabled) {
       return null;
     }
 
     const allEvents = await this.loadEvents(artifactPath);
-    const caseEvents = allEvents.filter(e => e.case === caseId);
+    const caseEvents = allEvents.filter((e) => e.case === caseId);
 
     if (caseEvents.length === 0) {
       return null;
@@ -32,7 +32,7 @@ export class DigestGenerator {
 
     const rules = this.config.rules || [];
     const sortedRules = this.sortRulesByPriority(rules);
-    
+
     let filteredEvents = this.applyRules(caseEvents, sortedRules);
 
     const shouldRedact = this.shouldApplyRedaction();
@@ -56,20 +56,20 @@ export class DigestGenerator {
         generated: Date.now(),
         source: artifactPath,
         eventCount: allEvents.length,
-        filteredCount: filteredEvents.length
+        filteredCount: filteredEvents.length,
       },
       events: filteredEvents,
-      summary
+      summary,
     };
   }
 
   private async loadEvents(eventsPath: string): Promise<DigestEvent[]> {
     const allEvents: DigestEvent[] = [];
-    
+
     const fileStream = fs.createReadStream(eventsPath);
     const rl = readline.createInterface({
       input: fileStream,
-      crlfDelay: Infinity
+      crlfDelay: Infinity,
     });
 
     for await (const line of rl) {
@@ -99,8 +99,8 @@ export class DigestGenerator {
     const excluded = new Set<number>();
 
     for (const rule of rules) {
-      const hasIncludeAction = rule.actions.some(a => a.type === 'include');
-      const hasExcludeAction = rule.actions.some(a => a.type === 'exclude');
+      const hasIncludeAction = rule.actions.some((a) => a.type === 'include');
+      const hasExcludeAction = rule.actions.some((a) => a.type === 'exclude');
 
       for (let i = 0; i < events.length; i++) {
         if (excluded.has(i)) continue;
@@ -115,10 +115,14 @@ export class DigestGenerator {
               included.add(i);
             }
 
-            const sliceAction = rule.actions.find(a => a.type === 'slice');
+            const sliceAction = rule.actions.find((a) => a.type === 'slice');
             if (sliceAction && sliceAction.window) {
               const window = sliceAction.window;
-              for (let j = Math.max(0, i - window); j <= Math.min(events.length - 1, i + window); j++) {
+              for (
+                let j = Math.max(0, i - window);
+                j <= Math.min(events.length - 1, i + window);
+                j++
+              ) {
                 if (!excluded.has(j)) {
                   included.add(j);
                 }
@@ -156,10 +160,8 @@ export class DigestGenerator {
     }
 
     if (match.pattern) {
-      const pattern = match.pattern instanceof RegExp 
-        ? match.pattern 
-        : new RegExp(match.pattern);
-      
+      const pattern = match.pattern instanceof RegExp ? match.pattern : new RegExp(match.pattern);
+
       const searchText = `${event.case} ${event.evt} ${event.phase || ''}`;
       if (!pattern.test(searchText)) {
         return false;
@@ -196,7 +198,7 @@ export class DigestGenerator {
 
     for (const event of events) {
       const redactedEvent = { ...event };
-      
+
       if (event.payload) {
         const result = redactValue(event.payload);
         redactedEvent.payload = result.value;
@@ -214,9 +216,9 @@ export class DigestGenerator {
       debug: 0,
       info: 0,
       warn: 0,
-      error: 0
+      error: 0,
     };
-    
+
     const byEventType: Record<string, number> = {};
 
     for (const event of events) {
@@ -229,7 +231,7 @@ export class DigestGenerator {
       byLevel,
       byEventType,
       redactedFields,
-      includedEvents: events.length
+      includedEvents: events.length,
     };
   }
 }

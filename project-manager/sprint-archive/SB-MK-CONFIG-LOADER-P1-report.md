@@ -8,6 +8,7 @@
 The sprint `SB-MK-CONFIG-LOADER-P1` is **complete**. The goal was to add a minimal, deterministic config loader to the `mkolbol` project.
 
 **Outcome:**
+
 - All 5 tasks assigned to Susan's agents were completed successfully.
 - The work was integrated into the `main` branch via the merge of Pull Request #49.
 - The project now has the capability to load topologies from YAML or JSON files.

@@ -6,10 +6,10 @@ import type { ExternalServerManifest } from '../../src/types.js';
 
 /**
  * StdIO Path Integration Tests
- * 
+ *
  * Tests the StdIO communication path using ExternalServerWrapper.
  * Run in forks/PTY lane via: npm run test:pty
- * 
+ *
  * Coverage:
  * - Roundtrip (stdin → stdout)
  * - Drain behavior (backpressure)
@@ -34,227 +34,245 @@ describe('StdIO Path Integration', () => {
     }
   });
 
-  it('should perform stdin → stdout roundtrip', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'cat-stdio',
-      classHex: '0xCAT1',
-      owner: 'test',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform',
-        accepts: ['text'],
-        produces: ['text']
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should perform stdin → stdout roundtrip',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'cat-stdio',
+        classHex: '0xCAT1',
+        owner: 'test',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+          accepts: ['text'],
+          produces: ['text'],
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    const output: Buffer[] = [];
-    wrapper.outputPipe.on('data', (data) => output.push(Buffer.from(data)));
+      const output: Buffer[] = [];
+      wrapper.outputPipe.on('data', (data) => output.push(Buffer.from(data)));
 
-    const testMessage = 'Hello StdIO\n';
-    wrapper.inputPipe.write(testMessage);
+      const testMessage = 'Hello StdIO\n';
+      wrapper.inputPipe.write(testMessage);
 
-    await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-    const received = Buffer.concat(output).toString();
-    expect(received).toBe(testMessage);
-  }, testTimeout);
+      const received = Buffer.concat(output).toString();
+      expect(received).toBe(testMessage);
+    },
+    testTimeout,
+  );
 
-  it('should handle drain events under backpressure', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'cat-drain',
-      classHex: '0xCAT2',
-      owner: 'test',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should handle drain events under backpressure',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'cat-drain',
+        classHex: '0xCAT2',
+        owner: 'test',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    const chunkSize = 64 * 1024;
-    const numChunks = 50;
-    const testData: Buffer[] = [];
-    
-    for (let i = 0; i < numChunks; i++) {
-      testData.push(Buffer.alloc(chunkSize, i % 256));
-    }
+      const chunkSize = 64 * 1024;
+      const numChunks = 50;
+      const testData: Buffer[] = [];
 
-    const receivedChunks: Buffer[] = [];
-    let drainEvents = 0;
-
-    wrapper.outputPipe.on('data', (chunk) => {
-      receivedChunks.push(Buffer.from(chunk));
-    });
-
-    for (let i = 0; i < testData.length; i++) {
-      const canContinue = wrapper.inputPipe.write(testData[i]);
-      if (!canContinue) {
-        drainEvents++;
-        await new Promise<void>((resolve) => {
-          wrapper.inputPipe.once('drain', resolve);
-        });
+      for (let i = 0; i < numChunks; i++) {
+        testData.push(Buffer.alloc(chunkSize, i % 256));
       }
-    }
-    wrapper.inputPipe.end();
 
-    await new Promise<void>((resolve) => {
-      wrapper.outputPipe.once('end', resolve);
-    });
+      const receivedChunks: Buffer[] = [];
+      let drainEvents = 0;
 
-    const receivedBuffer = Buffer.concat(receivedChunks);
-    const expectedBuffer = Buffer.concat(testData);
-    expect(receivedBuffer.length).toBe(expectedBuffer.length);
-    expect(receivedBuffer.equals(expectedBuffer)).toBe(true);
-    expect(drainEvents).toBeGreaterThan(0);
-  }, testTimeout);
+      wrapper.outputPipe.on('data', (chunk) => {
+        receivedChunks.push(Buffer.from(chunk));
+      });
 
-  it('should manage lifecycle (start/stop)', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'cat-lifecycle',
-      classHex: '0xCAT3',
-      owner: 'test',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+      for (let i = 0; i < testData.length; i++) {
+        const canContinue = wrapper.inputPipe.write(testData[i]);
+        if (!canContinue) {
+          drainEvents++;
+          await new Promise<void>((resolve) => {
+            wrapper.inputPipe.once('drain', resolve);
+          });
+        }
+      }
+      wrapper.inputPipe.end();
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    
-    expect(wrapper.isRunning()).toBe(false);
+      await new Promise<void>((resolve) => {
+        wrapper.outputPipe.once('end', resolve);
+      });
 
-    await wrapper.spawn();
-    expect(wrapper.isRunning()).toBe(true);
-    expect(wrapper.getProcessInfo().pid).toBeGreaterThan(0);
+      const receivedBuffer = Buffer.concat(receivedChunks);
+      const expectedBuffer = Buffer.concat(testData);
+      expect(receivedBuffer.length).toBe(expectedBuffer.length);
+      expect(receivedBuffer.equals(expectedBuffer)).toBe(true);
+      expect(drainEvents).toBeGreaterThan(0);
+    },
+    testTimeout,
+  );
 
-    await wrapper.shutdown();
-    expect(wrapper.isRunning()).toBe(false);
-  }, testTimeout);
+  it(
+    'should manage lifecycle (start/stop)',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'cat-lifecycle',
+        classHex: '0xCAT3',
+        owner: 'test',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-  it('should register with Hostess correctly', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'cat-hostess',
-      classHex: '0xCAT4',
-      owner: 'test',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' }
-      ],
-      capabilities: {
-        type: 'output'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      expect(wrapper.isRunning()).toBe(false);
 
-    const servers = hostess.list();
-    const found = servers.find(s => s.servername === 'cat-hostess');
-    
-    expect(found).toBeDefined();
-    expect(found?.servername).toBe('cat-hostess');
+      await wrapper.spawn();
+      expect(wrapper.isRunning()).toBe(true);
+      expect(wrapper.getProcessInfo().pid).toBeGreaterThan(0);
 
-    const endpoints = hostess.listEndpoints();
-    const endpoint = Array.from(endpoints.entries()).find(
-      ([_, ep]) => ep.coordinates === '/bin/cat '
-    );
+      await wrapper.shutdown();
+      expect(wrapper.isRunning()).toBe(false);
+    },
+    testTimeout,
+  );
 
-    expect(endpoint).toBeDefined();
-    expect(endpoint![1].type).toBe('external');
-    expect(endpoint![1].metadata?.ioMode).toBe('stdio');
-    expect(endpoint![1].metadata?.cwd).toBe(process.cwd());
-  }, testTimeout);
+  it(
+    'should register with Hostess correctly',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'cat-hostess',
+        classHex: '0xCAT4',
+        owner: 'test',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [{ name: 'input', type: 'local', direction: 'input' }],
+        capabilities: {
+          type: 'output',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-  it('should handle multiple sequential messages', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'cat-sequential',
-      classHex: '0xCAT5',
-      owner: 'test',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      const servers = hostess.list();
+      const found = servers.find((s) => s.servername === 'cat-hostess');
 
-    const output: Buffer[] = [];
-    wrapper.outputPipe.on('data', (data) => output.push(Buffer.from(data)));
+      expect(found).toBeDefined();
+      expect(found?.servername).toBe('cat-hostess');
 
-    const messages = ['message1\n', 'message2\n', 'message3\n'];
-    
-    for (const msg of messages) {
-      wrapper.inputPipe.write(msg);
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+      const endpoints = hostess.listEndpoints();
+      const endpoint = Array.from(endpoints.entries()).find(
+        ([_, ep]) => ep.coordinates === '/bin/cat ',
+      );
 
-    await new Promise(resolve => setTimeout(resolve, 300));
+      expect(endpoint).toBeDefined();
+      expect(endpoint![1].type).toBe('external');
+      expect(endpoint![1].metadata?.ioMode).toBe('stdio');
+      expect(endpoint![1].metadata?.cwd).toBe(process.cwd());
+    },
+    testTimeout,
+  );
 
-    const received = Buffer.concat(output).toString();
-    messages.forEach(msg => {
-      expect(received).toContain(msg.trim());
-    });
-  }, testTimeout);
+  it(
+    'should handle multiple sequential messages',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'cat-sequential',
+        classHex: '0xCAT5',
+        owner: 'test',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
+
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
+
+      const output: Buffer[] = [];
+      wrapper.outputPipe.on('data', (data) => output.push(Buffer.from(data)));
+
+      const messages = ['message1\n', 'message2\n', 'message3\n'];
+
+      for (const msg of messages) {
+        wrapper.inputPipe.write(msg);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const received = Buffer.concat(output).toString();
+      messages.forEach((msg) => {
+        expect(received).toContain(msg.trim());
+      });
+    },
+    testTimeout,
+  );
 });

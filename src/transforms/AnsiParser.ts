@@ -17,7 +17,12 @@ interface PrintEvent {
 
 interface CursorEvent {
   type: 'cursor';
-  data: { action: 'position' | 'up' | 'down' | 'forward' | 'back' | 'carriageReturn' | 'backspace'; x: number; y: number; amount?: number };
+  data: {
+    action: 'position' | 'up' | 'down' | 'forward' | 'back' | 'carriageReturn' | 'backspace';
+    x: number;
+    y: number;
+    amount?: number;
+  };
 }
 
 interface EraseEvent {
@@ -40,7 +45,13 @@ interface ModeEvent {
   data: { mode: number; enabled: boolean; isDEC: boolean };
 }
 
-export type AnsiParserEvent = PrintEvent | CursorEvent | EraseEvent | StyleEvent | ResizeEvent | ModeEvent;
+export type AnsiParserEvent =
+  | PrintEvent
+  | CursorEvent
+  | EraseEvent
+  | StyleEvent
+  | ResizeEvent
+  | ModeEvent;
 
 export interface AnsiParserOptions {
   scrollbackLimit?: number;
@@ -64,10 +75,22 @@ export interface TerminalSnapshot {
 }
 
 const ANSI_BASE_COLORS = [
-  '#000000', '#800000', '#008000', '#808000',
-  '#000080', '#800080', '#008080', '#c0c0c0',
-  '#808080', '#ff0000', '#00ff00', '#ffff00',
-  '#0000ff', '#ff00ff', '#00ffff', '#ffffff',
+  '#000000',
+  '#800000',
+  '#008000',
+  '#808000',
+  '#000080',
+  '#800080',
+  '#008080',
+  '#c0c0c0',
+  '#808080',
+  '#ff0000',
+  '#00ff00',
+  '#ffff00',
+  '#0000ff',
+  '#ff00ff',
+  '#00ffff',
+  '#ffffff',
 ];
 
 const ANSI_COLOR_LEVELS = [0, 95, 135, 175, 215, 255];
@@ -207,19 +230,20 @@ export class AnsiParser {
 
       const charCode = this.buffer.charCodeAt(i);
 
-      if (charCode === 0x1B) {
+      if (charCode === 0x1b) {
         this.flushCharBatch();
         const escapeLen = this.parseEscapeSequence(i);
         i += escapeLen;
-      } else if (charCode === 0x9B) { // CSI (single-byte)
+      } else if (charCode === 0x9b) {
+        // CSI (single-byte)
         this.flushCharBatch();
         const consumed = this.parseCSI(i + 1, 1);
         i += consumed; // includes prefix
-      } else if (charCode === 0x0A) {
+      } else if (charCode === 0x0a) {
         this.flushCharBatch();
         this.handleLineFeed();
         i++;
-      } else if (charCode === 0x0D) {
+      } else if (charCode === 0x0d) {
         this.flushCharBatch();
         this.handleCarriageReturn();
         i++;
@@ -265,10 +289,10 @@ export class AnsiParser {
 
     this.events.push({
       type: 'print',
-      data: { 
-        char: this.charBatch, 
-        x: this.batchStartX, 
-        y: this.batchStartY, 
+      data: {
+        char: this.charBatch,
+        x: this.batchStartX,
+        y: this.batchStartY,
         style: { ...this.state },
       },
     });
@@ -303,10 +327,10 @@ export class AnsiParser {
     while (i < this.buffer.length) {
       const charCode = this.buffer.charCodeAt(i);
 
-      if (charCode >= 0x30 && charCode <= 0x3F) {
+      if (charCode >= 0x30 && charCode <= 0x3f) {
         // parameter bytes 0-9:;<=>?
         i++;
-      } else if (charCode >= 0x40 && charCode <= 0x7E) {
+      } else if (charCode >= 0x40 && charCode <= 0x7e) {
         // final byte
         const paramStr = this.buffer.slice(paramStart, i);
         this.executeCSI(paramStr, this.buffer[i]);
@@ -392,12 +416,12 @@ export class AnsiParser {
 
   private parseParams(paramStr: string): number[] {
     if (paramStr.length === 0) return [];
-    
+
     let str = paramStr;
     if (str.startsWith('?')) {
       str = str.slice(1);
     }
-    
+
     const params: number[] = [];
     let current = 0;
     let hasDigits = false;
@@ -627,11 +651,11 @@ export class AnsiParser {
         style: { ...this.currentLineStyle },
         timestamp: Date.now(),
       });
-      
+
       if (this.scrollback.length > this.scrollbackLimit) {
         this.scrollback.shift();
       }
-      
+
       this.currentLine = '';
     }
   }
@@ -686,7 +710,7 @@ export class AnsiParser {
   }
 
   exportPlainText(): string {
-    const lines = this.scrollback.map(line => line.content);
+    const lines = this.scrollback.map((line) => line.content);
     return lines.join('\n');
   }
 

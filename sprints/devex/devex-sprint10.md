@@ -1,9 +1,7 @@
 ```json
 {
   "ampcode": "v1",
-  "waves": [
-    { "id": "DX-A", "parallel": true,  "tasks": ["D1001", "D1002"] }
-  ],
+  "waves": [{ "id": "DX-A", "parallel": true, "tasks": ["D1001", "D1002"] }],
   "tasks": [
     {
       "id": "D1001",
@@ -30,7 +28,7 @@
 Goal: Clarify non‑npm GitHub installs and provide a version matrix and quick troubleshooting for first‑time runs.
 
 Verification Commands
+
 ```bash
 npm run build
 ```
-

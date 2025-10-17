@@ -7,7 +7,7 @@ const LEVEL_VALUES = {
     info: 2,
     debug: 3,
 };
-function parseDebugLog(line) {
+function _parseDebugLog(line) {
     try {
         const timestampMatch = line.match(/^\[([\d-T:.Z]+)\]/);
         const levelMatch = line.match(/\[([A-Z]+)\]/);
@@ -35,7 +35,7 @@ function parseDebugLog(line) {
             };
         }
     }
-    catch (e) {
+    catch {
         return null;
     }
     return null;
@@ -56,7 +56,7 @@ function parseJsonlLog(line) {
             };
         }
     }
-    catch (e) {
+    catch {
         return null;
     }
     return null;
@@ -84,7 +84,7 @@ function formatLogHuman(entry) {
 function formatLogJson(entry) {
     return JSON.stringify(entry);
 }
-async function tailDebugLogs(options) {
+async function tailDebugLogs(_options) {
     const debugLog = process.env.DEBUG === '1' || process.env.MK_DEBUG_MODULES;
     if (!debugLog) {
         console.error('Debug logging is not enabled. Set DEBUG=1 or MK_DEBUG_MODULES to enable.');

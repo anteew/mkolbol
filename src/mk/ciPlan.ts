@@ -1,4 +1,4 @@
-import { createError, formatError } from './errors.js';
+import { formatError } from './errors.js';
 
 const EXIT_SUCCESS = 0;
 const EXIT_ERROR = 1;
@@ -18,28 +18,28 @@ function generateCIPlan(): CIPlan {
   return {
     matrix: {
       node: ['20', '24'],
-      lane: ['threads', 'forks']
+      lane: ['threads', 'forks'],
     },
     cacheKeys: {
       'node-modules-20': 'node-modules-20-abc123',
-      'node-modules-24': 'node-modules-24-def456'
-    }
+      'node-modules-24': 'node-modules-24-def456',
+    },
   };
 }
 
 function formatEnvOutput(plan: CIPlan): string {
   const lines: string[] = [];
-  
+
   // Matrix variables as JSON strings
   lines.push(`export MATRIX_NODE='${JSON.stringify(plan.matrix.node)}'`);
   lines.push(`export MATRIX_LANE='${JSON.stringify(plan.matrix.lane)}'`);
-  
+
   // Cache keys as individual exports
   for (const [key, value] of Object.entries(plan.cacheKeys)) {
     const envKey = key.toUpperCase().replace(/-/g, '_');
     lines.push(`export CACHE_KEY_${envKey}=${value}`);
   }
-  
+
   return lines.join('\n');
 }
 
@@ -51,7 +51,7 @@ export async function ciPlanHandler(args: string[]): Promise<number> {
   try {
     let envOutput = false;
     let jsonOutput = false;
-    
+
     for (const arg of args) {
       if (arg === '--env') {
         envOutput = true;
@@ -66,9 +66,9 @@ export async function ciPlanHandler(args: string[]): Promise<number> {
         return EXIT_USAGE;
       }
     }
-    
+
     const plan = generateCIPlan();
-    
+
     if (envOutput) {
       console.log(formatEnvOutput(plan));
     } else if (jsonOutput) {
@@ -76,7 +76,7 @@ export async function ciPlanHandler(args: string[]): Promise<number> {
     } else {
       console.log(formatJsonOutput(plan));
     }
-    
+
     return EXIT_SUCCESS;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));

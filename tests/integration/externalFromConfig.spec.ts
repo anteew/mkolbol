@@ -38,12 +38,12 @@ describe('External From Config Integration', () => {
             params: {
               command: 'cat',
               args: [],
-              ioMode: 'stdio'
+              ioMode: 'stdio',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -52,7 +52,7 @@ describe('External From Config Integration', () => {
       // Verify endpoint registration
       const endpoints = hostess.listEndpoints();
       const stdioEndpoint = Array.from(endpoints.entries()).find(
-        ([_, ep]) => ep.coordinates === 'node:echo-stdio'
+        ([_, ep]) => ep.coordinates === 'node:echo-stdio',
       );
 
       expect(stdioEndpoint).toBeDefined();
@@ -88,7 +88,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // GATED: Process mode test requires experimental flag
@@ -103,12 +103,12 @@ describe('External From Config Integration', () => {
             params: {
               command: 'cat',
               args: [],
-              ioMode: 'pty'
+              ioMode: 'pty',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -117,7 +117,7 @@ describe('External From Config Integration', () => {
       // Verify endpoint registration
       const endpoints = hostess.listEndpoints();
       const ptyEndpoint = Array.from(endpoints.entries()).find(
-        ([_, ep]) => ep.coordinates === 'node:echo-pty'
+        ([_, ep]) => ep.coordinates === 'node:echo-pty',
       );
 
       expect(ptyEndpoint).toBeDefined();
@@ -153,7 +153,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // GATED: Process mode test requires experimental flag
@@ -168,9 +168,9 @@ describe('External From Config Integration', () => {
             params: {
               command: 'cat',
               args: [],
-              ioMode: 'stdio'
+              ioMode: 'stdio',
             },
-            runMode: 'process'
+            runMode: 'process',
           },
           {
             id: 'echo-pty',
@@ -178,12 +178,12 @@ describe('External From Config Integration', () => {
             params: {
               command: 'cat',
               args: [],
-              ioMode: 'pty'
+              ioMode: 'pty',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -193,12 +193,8 @@ describe('External From Config Integration', () => {
       const endpoints = hostess.listEndpoints();
       const endpointsArray = Array.from(endpoints.entries());
 
-      const stdioEndpoint = endpointsArray.find(
-        ([_, ep]) => ep.coordinates === 'node:echo-stdio'
-      );
-      const ptyEndpoint = endpointsArray.find(
-        ([_, ep]) => ep.coordinates === 'node:echo-pty'
-      );
+      const stdioEndpoint = endpointsArray.find(([_, ep]) => ep.coordinates === 'node:echo-stdio');
+      const ptyEndpoint = endpointsArray.find(([_, ep]) => ep.coordinates === 'node:echo-pty');
 
       expect(stdioEndpoint).toBeDefined();
       expect(ptyEndpoint).toBeDefined();
@@ -215,7 +211,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // GATED: Process mode test requires experimental flag
@@ -230,12 +226,12 @@ describe('External From Config Integration', () => {
             params: {
               command: 'sh',
               args: ['-c', 'echo "stdout message" && echo "stderr message" >&2'],
-              ioMode: 'stdio'
+              ioMode: 'stdio',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -255,7 +251,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // GATED: Process mode test requires experimental flag
@@ -272,12 +268,12 @@ describe('External From Config Integration', () => {
               args: ['test'],
               ioMode: 'stdio',
               restart: 'never',
-              restartDelay: 1000
+              restartDelay: 1000,
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -291,7 +287,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // GATED: Process mode test requires experimental flag
@@ -307,12 +303,12 @@ describe('External From Config Integration', () => {
             params: {
               command: 'sh',
               args: ['-c', 'yes "test line" | head -n 10000'],
-              ioMode: 'stdio'
+              ioMode: 'stdio',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -332,7 +328,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // GATED: Process mode test requires experimental flag
@@ -348,12 +344,12 @@ describe('External From Config Integration', () => {
               command: 'sh',
               args: ['-c', 'exit 127'],
               ioMode: 'stdio',
-              restart: 'never'
+              restart: 'never',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -373,7 +369,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // GATED: Process mode test requires experimental flag
@@ -390,12 +386,12 @@ describe('External From Config Integration', () => {
               args: ['-c', 'echo "TEST_VAR=$TEST_VAR"'],
               ioMode: 'stdio',
               env: { TEST_VAR: 'hello' },
-              restart: 'never'
+              restart: 'never',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -412,7 +408,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // GATED: Process mode test requires experimental flag
@@ -429,12 +425,12 @@ describe('External From Config Integration', () => {
               args: [],
               ioMode: 'stdio',
               cwd: '/tmp',
-              restart: 'never'
+              restart: 'never',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -451,7 +447,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // EDGE CASE: Capture limit enforcement
@@ -468,12 +464,12 @@ describe('External From Config Integration', () => {
               command: 'sh',
               args: ['-c', 'dd if=/dev/zero bs=1024 count=150 2>/dev/null | base64'],
               ioMode: 'stdio',
-              restart: 'never'
+              restart: 'never',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -494,7 +490,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    15000
+    15000,
   );
 
   // EDGE CASE: Backoff cap at 30s
@@ -511,12 +507,12 @@ describe('External From Config Integration', () => {
               args: ['test'],
               ioMode: 'stdio',
               restart: 'never',
-              restartDelay: 1000
+              restartDelay: 1000,
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -536,7 +532,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // EDGE CASE: SIGTERM signal handling
@@ -552,12 +548,12 @@ describe('External From Config Integration', () => {
               command: 'sh',
               args: ['-c', 'trap "exit 143" TERM; sleep 10 & wait'],
               ioMode: 'stdio',
-              restart: 'never'
+              restart: 'never',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -584,7 +580,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // EDGE CASE: SIGKILL signal handling
@@ -600,12 +596,12 @@ describe('External From Config Integration', () => {
               command: 'sh',
               args: ['-c', 'sleep 10'],
               ioMode: 'stdio',
-              restart: 'never'
+              restart: 'never',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -632,7 +628,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // EDGE CASE: Restart count limit
@@ -650,12 +646,12 @@ describe('External From Config Integration', () => {
               ioMode: 'stdio',
               restart: 'always',
               maxRestarts: 2,
-              restartDelay: 50
+              restartDelay: 50,
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -678,7 +674,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // EDGE CASE: Capture limit for stderr
@@ -694,12 +690,12 @@ describe('External From Config Integration', () => {
               command: 'sh',
               args: ['-c', 'dd if=/dev/zero bs=1024 count=150 2>&1 >&2 | base64 >&2'],
               ioMode: 'stdio',
-              restart: 'never'
+              restart: 'never',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -719,7 +715,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    15000
+    15000,
   );
 
   // EDGE CASE: Shutdown timeout with SIGKILL fallback
@@ -735,12 +731,12 @@ describe('External From Config Integration', () => {
               command: 'sleep',
               args: ['60'],
               ioMode: 'stdio',
-              restart: 'never'
+              restart: 'never',
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -765,13 +761,13 @@ describe('External From Config Integration', () => {
       // Should have completed quickly (sleep responds to SIGTERM)
       expect(elapsedTime).toBeLessThan(2000);
       expect(wrapper.isRunning()).toBe(false);
-      
+
       // The wrapper's shutdown method should have completed
       expect(wrapper.process).toBeUndefined();
 
       await executor.down();
     },
-    10000
+    10000,
   );
 
   // Health check: command type success
@@ -792,13 +788,13 @@ describe('External From Config Integration', () => {
                 type: 'command',
                 command: 'exit 0',
                 timeout: 1000,
-                retries: 2
-              }
+                retries: 2,
+              },
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -810,7 +806,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // Health check: command type failure
@@ -831,22 +827,22 @@ describe('External From Config Integration', () => {
                 type: 'command',
                 command: 'exit 1',
                 timeout: 500,
-                retries: 2
-              }
+                retries: 2,
+              },
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
-      
+
       await expect(executor.up()).rejects.toThrow(/Health check failed/);
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   async function getFreePort(): Promise<number> {
@@ -874,20 +870,23 @@ describe('External From Config Integration', () => {
             module: 'ExternalProcess',
             params: {
               command: 'node',
-              args: ['-e', `const http=require("http");const s=http.createServer((req,res)=>res.end("OK"));s.listen(${port});process.on("SIGTERM",()=>s.close())`],
+              args: [
+                '-e',
+                `const http=require("http");const s=http.createServer((req,res)=>res.end("OK"));s.listen(${port});process.on("SIGTERM",()=>s.close())`,
+              ],
               ioMode: 'stdio',
               restart: 'never',
               healthCheck: {
                 type: 'http',
                 url: `http://localhost:${port}`,
                 timeout: 2000,
-                retries: 5
-              }
+                retries: 5,
+              },
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -899,7 +898,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // Health check: HTTP type failure
@@ -920,22 +919,22 @@ describe('External From Config Integration', () => {
                 type: 'http',
                 url: 'http://localhost:99999',
                 timeout: 500,
-                retries: 2
-              }
+                retries: 2,
+              },
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
-      
+
       await expect(executor.up()).rejects.toThrow(/Health check failed/);
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // Health check: HTTP type 404 failure (uses a free ephemeral port)
@@ -950,29 +949,32 @@ describe('External From Config Integration', () => {
             module: 'ExternalProcess',
             params: {
               command: 'node',
-              args: ['-e', `const http=require("http");const s=http.createServer((req,res)=>{res.statusCode=404;res.end()});s.listen(${port});process.on("SIGTERM",()=>s.close())`],
+              args: [
+                '-e',
+                `const http=require("http");const s=http.createServer((req,res)=>{res.statusCode=404;res.end()});s.listen(${port});process.on("SIGTERM",()=>s.close())`,
+              ],
               ioMode: 'stdio',
               restart: 'never',
               healthCheck: {
                 type: 'http',
                 url: `http://localhost:${port}`,
                 timeout: 2000,
-                retries: 2
-              }
+                retries: 2,
+              },
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
-      
+
       await expect(executor.up()).rejects.toThrow(/Health check failed/);
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // Health check: exponential backoff
@@ -993,17 +995,17 @@ describe('External From Config Integration', () => {
                 type: 'command',
                 command: 'exit 1',
                 timeout: 100,
-                retries: 3
-              }
+                retries: 3,
+              },
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
-      
+
       const startTime = Date.now();
       try {
         await executor.up();
@@ -1018,7 +1020,7 @@ describe('External From Config Integration', () => {
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 
   // Health check: command timeout
@@ -1039,21 +1041,21 @@ describe('External From Config Integration', () => {
                 type: 'command',
                 command: 'sleep 10',
                 timeout: 500,
-                retries: 1
-              }
+                retries: 1,
+              },
             },
-            runMode: 'process'
-          }
+            runMode: 'process',
+          },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
-      
+
       await expect(executor.up()).rejects.toThrow(/timed out/);
 
       await executor.down();
     },
-    testTimeout
+    testTimeout,
   );
 });

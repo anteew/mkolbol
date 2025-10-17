@@ -5,12 +5,14 @@ This guide explains how to run the mkolbol consumer acceptance test fixture on y
 ## What is the Fixture App?
 
 The **fixture app** is a minimal mkolbol topology that:
+
 - Loads from a YAML configuration
 - Runs a `TimerSource` module (emits messages every 500ms)
 - Writes output to `FilesystemSink` in JSONL format
 - Completes successfully if output file is created
 
 **Use this to verify:**
+
 - mkolbol installed correctly
 - Modules are loadable and executable
 - File I/O works as expected
@@ -41,6 +43,7 @@ npm test
 ```
 
 **Expected output:**
+
 ```
 [Consumer Test] Starting topology test...
 [Consumer Test] Loading topology...
@@ -60,6 +63,7 @@ cat test-output.jsonl | jq '.'
 ```
 
 **Expected output (JSON objects, one per line):**
+
 ```json
 {"ts":"2025-10-16T12:34:56.789Z","data":"tick"}
 {"ts":"2025-10-16T12:34:57.289Z","data":"tick"}
@@ -103,6 +107,7 @@ connections:
 ```
 
 **What it does:**
+
 1. `TimerSource` emits "tick" every 500ms (configurable)
 2. Data flows to `FilesystemSink`
 3. Output written as JSONL (JSON Lines format with timestamps)
@@ -129,6 +134,7 @@ The fixture app uses different installation methods to demonstrate each path.
 ### Current Method: Tarball (via package.json)
 
 **package.json:**
+
 ```json
 {
   "dependencies": {
@@ -138,6 +144,7 @@ The fixture app uses different installation methods to demonstrate each path.
 ```
 
 **Run:**
+
 ```bash
 npm install
 npm test
@@ -156,6 +163,7 @@ Edit `package.json` to pin a git tag:
 ```
 
 Then:
+
 ```bash
 npm install
 npm test
@@ -174,6 +182,7 @@ Edit `package.json` to reference a monorepo workspace:
 ```
 
 Or with workspaces:
+
 ```json
 {
   "dependencies": {
@@ -183,6 +192,7 @@ Or with workspaces:
 ```
 
 Then:
+
 ```bash
 npm install
 npm test
@@ -197,6 +207,7 @@ npm test
 **Problem:** Dependency not installed or tarball path wrong.
 
 **Solution:**
+
 ```bash
 # Verify tarball exists
 ls -la ../../../mkolbol-*.tgz
@@ -211,6 +222,7 @@ npm install
 **Problem:** mkolbol installed but can't be imported.
 
 **Solution:**
+
 ```bash
 # Check installation
 ls node_modules/mkolbol/
@@ -225,6 +237,7 @@ npm install
 **Problem:** Topology ran but didn't write output.
 
 **Diagnosis:**
+
 ```bash
 # Check FilesystemSink module exists
 node -e "import('mkolbol').then(m => console.log(Object.keys(m)))"
@@ -234,6 +247,7 @@ node test-run.js 2>&1 | grep -i error
 ```
 
 **Solution:**
+
 ```bash
 # Verify topology.yml syntax
 python3 -m yaml topology.yml
@@ -250,6 +264,7 @@ npm test -- --verbose
 **Problem:** Topology ran but generated no events.
 
 **Solution:**
+
 ```bash
 # Increase test duration (in test-run.js, line 35)
 await new Promise(resolve => setTimeout(resolve, 5000));  // was 2000
@@ -266,6 +281,7 @@ node -e "import('mkolbol').then(m => console.log(m.TimerSource))"
 **Problem:** TypeScript not built or dist directory missing.
 
 **Solution:**
+
 ```bash
 # Build mkolbol first
 cd ../../..
@@ -307,14 +323,14 @@ cat test-output.jsonl | head -5
 
 After running the test, confirm:
 
-| Check | Command | Expected |
-|-------|---------|----------|
-| Test exit code | `npm test; echo $?` | `0` |
-| Output file exists | `ls test-output.jsonl` | File listed |
-| Output is valid JSON | `cat test-output.jsonl \| jq .` | Pretty-printed JSON |
-| Event count | `cat test-output.jsonl \| wc -l` | `>= 3` |
-| Has timestamps | `cat test-output.jsonl \| jq -r '.ts'` | ISO 8601 dates |
-| Has data field | `cat test-output.jsonl \| jq '.data'` | "tick" strings |
+| Check                | Command                                | Expected            |
+| -------------------- | -------------------------------------- | ------------------- |
+| Test exit code       | `npm test; echo $?`                    | `0`                 |
+| Output file exists   | `ls test-output.jsonl`                 | File listed         |
+| Output is valid JSON | `cat test-output.jsonl \| jq .`        | Pretty-printed JSON |
+| Event count          | `cat test-output.jsonl \| wc -l`       | `>= 3`              |
+| Has timestamps       | `cat test-output.jsonl \| jq -r '.ts'` | ISO 8601 dates      |
+| Has data field       | `cat test-output.jsonl \| jq '.data'`  | "tick" strings      |
 
 ---
 
@@ -341,6 +357,7 @@ tests/consumer/fixture-app/
 ```
 
 **Cleaning up:**
+
 ```bash
 npm test              # Test auto-cleans output before each run
 rm -rf node_modules   # Clean dependencies if needed
@@ -364,6 +381,7 @@ echo "Consumer acceptance passed ✅"
 ```
 
 **GitHub Actions example:**
+
 ```yaml
 - name: Consumer acceptance test
   run: |
@@ -373,6 +391,7 @@ echo "Consumer acceptance passed ✅"
 ```
 
 **Exit codes:**
+
 - `0` - Test passed
 - `1` - Test failed
 
@@ -407,6 +426,7 @@ connections:
 ```
 
 Then run:
+
 ```bash
 npm test
 ```

@@ -32,24 +32,24 @@ export class PipeMeterTransform {
 
   constructor(
     private kernel: Kernel,
-    options: PipeMeterOptions = {}
+    options: PipeMeterOptions = {},
   ) {
     this.emitInterval = options.emitInterval ?? 1000;
     this.startTime = Date.now();
     this.lastEmitTime = this.startTime;
 
     this.inputPipe = kernel.createPipe({ objectMode: true });
-    
+
     const transformer = new Transform({
       objectMode: true,
       transform: (chunk, _enc, cb) => {
         this.totalMessages++;
-        
+
         const size = this.calculateSize(chunk);
         this.totalBytes += size;
-        
+
         cb(null, chunk);
-      }
+      },
     });
 
     this.outputPipe = kernel.createPipe({ objectMode: true });
@@ -78,14 +78,14 @@ export class PipeMeterTransform {
   private updateRates(): void {
     const now = Date.now();
     const timeDelta = (now - this.lastEmitTime) / 1000;
-    
+
     if (timeDelta > 0) {
       const bytesDelta = this.totalBytes - this.lastEmitBytes;
       const messagesDelta = this.totalMessages - this.lastEmitMessages;
-      
+
       this.bytesPerSecond = bytesDelta / timeDelta;
       this.messagesPerSecond = messagesDelta / timeDelta;
-      
+
       this.lastEmitTime = now;
       this.lastEmitBytes = this.totalBytes;
       this.lastEmitMessages = this.totalMessages;
@@ -94,7 +94,7 @@ export class PipeMeterTransform {
 
   public getMetrics(): PipeMeterMetrics {
     this.updateRates();
-    
+
     return {
       totalBytes: this.totalBytes,
       totalMessages: this.totalMessages,

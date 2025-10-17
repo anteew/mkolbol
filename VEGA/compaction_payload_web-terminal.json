@@ -2,8 +2,16 @@
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "branch": "mkolbol-devex-p14-web-terminal",
   "prs": [
-    { "number": 81, "title": "examples: fix hello-calculator + add hello-ticker", "status": "checks rerun after package.json fix" },
-    { "number": 82, "title": "examples: web terminal (xterm.js) + bash host; docs quickstart; README link", "status": "conflicts resolved; checks running" }
+    {
+      "number": 81,
+      "title": "examples: fix hello-calculator + add hello-ticker",
+      "status": "checks rerun after package.json fix"
+    },
+    {
+      "number": 82,
+      "title": "examples: web terminal (xterm.js) + bash host; docs quickstart; README link",
+      "status": "conflicts resolved; checks running"
+    }
   ],
   "changes": {
     "examples": [
@@ -11,21 +19,13 @@
       "src/examples/web-terminal-server.ts",
       "examples/web-terminal/public/terminal.html"
     ],
-    "docs": [
-      "docs/devex/web-terminal-quickstart.md",
-      "README.md"
-    ],
-    "scripts": [
-      "package.json scripts: mk, mkctl, dev:bash-host, dev:web-terminal"
-    ]
+    "docs": ["docs/devex/web-terminal-quickstart.md", "README.md"],
+    "scripts": ["package.json scripts: mk, mkctl, dev:bash-host, dev:web-terminal"]
   },
   "rehydrate": {
     "env": ["export MK_LOCAL_NODE=1"],
     "build": ["npm ci", "npm run build"],
-    "run": [
-      "npm run dev:web-terminal",
-      "open http://localhost:9090"
-    ],
+    "run": ["npm run dev:web-terminal", "open http://localhost:9090"],
     "ssh_forward": "ssh -L 9090:localhost:9090 <user>@<host>"
   },
   "next": [
@@ -34,4 +34,3 @@
     "Optional: gate WS with token; add FileSink recording"
   ]
 }
-

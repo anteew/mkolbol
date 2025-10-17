@@ -16,7 +16,7 @@ export class TeeTransform {
 
   constructor(
     private kernel: Kernel,
-    options: TeeOptions = {}
+    options: TeeOptions = {},
   ) {
     const outputCount = options.outputCount ?? 2;
     const objectMode = options.objectMode ?? true;
@@ -26,12 +26,12 @@ export class TeeTransform {
     }
 
     this.inputPipe = kernel.createPipe({ objectMode });
-    
+
     this.outputPipes = [];
     for (let i = 0; i < outputCount; i++) {
       const outputPipe = kernel.createPipe({ objectMode });
       this.outputPipes.push(outputPipe);
-      
+
       outputPipe.on('drain', () => {
         this.checkBackpressure();
       });
@@ -48,7 +48,7 @@ export class TeeTransform {
           outputPipe.end();
         }
         callback();
-      }
+      },
     });
 
     this.inputPipe.pipe(this.transformer);

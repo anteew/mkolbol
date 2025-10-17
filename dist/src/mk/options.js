@@ -49,7 +49,7 @@ function loadOptionsFile(filePath, profile) {
         }
         return {};
     }
-    catch (err) {
+    catch {
         return {};
     }
 }

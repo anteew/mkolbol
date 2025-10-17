@@ -34,7 +34,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 3,
         refillRate: 1,
-        refillInterval: 100
+        refillInterval: 100,
       });
 
       const received: string[] = [];
@@ -46,7 +46,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter.inputPipe.write('msg2');
       rateLimiter.inputPipe.write('msg3');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(received).toEqual(['msg1', 'msg2', 'msg3']);
       expect(rateLimiter.getTokens()).toBe(0);
@@ -56,7 +56,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 2,
         refillRate: 0,
-        refillInterval: 10000
+        refillInterval: 10000,
       });
 
       const received: string[] = [];
@@ -70,7 +70,7 @@ describe('RateLimiterTransform', () => {
           }
         });
       });
-      
+
       rateLimiter.inputPipe.write('msg1');
       rateLimiter.inputPipe.write('msg2');
       rateLimiter.inputPipe.write('msg3');
@@ -86,7 +86,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 2,
         refillRate: 2,
-        refillInterval: 100
+        refillInterval: 100,
       });
 
       const received: string[] = [];
@@ -99,10 +99,10 @@ describe('RateLimiterTransform', () => {
       rateLimiter.inputPipe.write('msg3');
       rateLimiter.inputPipe.write('msg4');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(received).toEqual(['msg1', 'msg2']);
 
-      await new Promise(resolve => setTimeout(resolve, 120));
+      await new Promise((resolve) => setTimeout(resolve, 120));
       expect(received).toEqual(['msg1', 'msg2', 'msg3', 'msg4']);
     });
 
@@ -110,17 +110,17 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 10,
         refillRate: 3,
-        refillInterval: 100
+        refillInterval: 100,
       });
 
       rateLimiter.inputPipe.write('msg1');
       rateLimiter.inputPipe.write('msg2');
       rateLimiter.inputPipe.write('msg3');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(rateLimiter.getTokens()).toBe(7);
 
-      await new Promise(resolve => setTimeout(resolve, 120));
+      await new Promise((resolve) => setTimeout(resolve, 120));
       expect(rateLimiter.getTokens()).toBe(10);
     });
 
@@ -128,10 +128,10 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 5,
         refillRate: 10,
-        refillInterval: 100
+        refillInterval: 100,
       });
 
-      await new Promise(resolve => setTimeout(resolve, 250));
+      await new Promise((resolve) => setTimeout(resolve, 250));
 
       expect(rateLimiter.getTokens()).toBe(5);
     });
@@ -142,7 +142,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 5,
         refillRate: 1,
-        refillInterval: 100
+        refillInterval: 100,
       });
 
       const received: string[] = [];
@@ -154,7 +154,7 @@ describe('RateLimiterTransform', () => {
         rateLimiter.inputPipe.write(`msg${i}`);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(received.length).toBe(5);
       expect(rateLimiter.getTokens()).toBe(0);
@@ -164,7 +164,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 3,
         refillRate: 0,
-        refillInterval: 10000
+        refillInterval: 10000,
       });
 
       const received: string[] = [];
@@ -178,7 +178,7 @@ describe('RateLimiterTransform', () => {
           }
         });
       });
-      
+
       for (let i = 0; i < 10; i++) {
         rateLimiter.inputPipe.write(`msg${i}`);
       }
@@ -193,7 +193,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 2,
         refillRate: 2,
-        refillInterval: 100
+        refillInterval: 100,
       });
 
       const received: string[] = [];
@@ -205,13 +205,13 @@ describe('RateLimiterTransform', () => {
         rateLimiter.inputPipe.write(`msg${i}`);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(received.length).toBe(2);
 
-      await new Promise(resolve => setTimeout(resolve, 120));
+      await new Promise((resolve) => setTimeout(resolve, 120));
       expect(received.length).toBe(4);
 
-      await new Promise(resolve => setTimeout(resolve, 120));
+      await new Promise((resolve) => setTimeout(resolve, 120));
       expect(received.length).toBe(6);
     });
   });
@@ -221,7 +221,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 1,
         refillRate: 0,
-        refillInterval: 10000
+        refillInterval: 10000,
       });
 
       const done = new Promise<void>((resolve) => {
@@ -229,7 +229,7 @@ describe('RateLimiterTransform', () => {
           setTimeout(resolve, 50);
         });
       });
-      
+
       rateLimiter.inputPipe.write('msg1');
       rateLimiter.inputPipe.write('msg2');
       rateLimiter.inputPipe.write('msg3');
@@ -243,7 +243,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 1,
         refillRate: 1,
-        refillInterval: 100
+        refillInterval: 100,
       });
 
       const received: string[] = [];
@@ -255,13 +255,13 @@ describe('RateLimiterTransform', () => {
       rateLimiter.inputPipe.write('msg2');
       rateLimiter.inputPipe.write('msg3');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(received).toEqual(['msg1']);
 
-      await new Promise(resolve => setTimeout(resolve, 120));
+      await new Promise((resolve) => setTimeout(resolve, 120));
       expect(received).toEqual(['msg1', 'msg2']);
 
-      await new Promise(resolve => setTimeout(resolve, 120));
+      await new Promise((resolve) => setTimeout(resolve, 120));
       expect(received).toEqual(['msg1', 'msg2', 'msg3']);
     });
 
@@ -269,7 +269,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 5,
         refillRate: 2,
-        refillInterval: 50
+        refillInterval: 50,
       });
 
       const received: string[] = [];
@@ -281,11 +281,11 @@ describe('RateLimiterTransform', () => {
         rateLimiter.inputPipe.write(`msg${i}`);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       expect(received.length).toBeGreaterThanOrEqual(5);
       expect(received.length).toBeLessThanOrEqual(10);
 
-      await new Promise(resolve => setTimeout(resolve, 400));
+      await new Promise((resolve) => setTimeout(resolve, 400));
       expect(received.length).toBe(20);
     });
 
@@ -293,7 +293,7 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 2,
         refillRate: 1,
-        refillInterval: 150
+        refillInterval: 150,
       });
 
       const received: string[] = [];
@@ -307,7 +307,7 @@ describe('RateLimiterTransform', () => {
           }
         });
       });
-      
+
       for (let i = 0; i < 5; i++) {
         rateLimiter.inputPipe.write(`msg${i}`);
       }
@@ -316,11 +316,11 @@ describe('RateLimiterTransform', () => {
       const initialPending = rateLimiter.getPendingCount();
       expect(initialPending).toBeGreaterThanOrEqual(1);
 
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
       const afterFirst = rateLimiter.getPendingCount();
       expect(afterFirst).toBeLessThanOrEqual(initialPending);
 
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       expect(rateLimiter.getPendingCount()).toBe(0);
     });
   });
@@ -342,16 +342,16 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 10,
         refillRate: 5,
-        refillInterval: 100
+        refillInterval: 100,
       });
 
       rateLimiter.inputPipe.write('msg1');
       rateLimiter.inputPipe.write('msg2');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(rateLimiter.getTokens()).toBe(8);
 
-      await new Promise(resolve => setTimeout(resolve, 120));
+      await new Promise((resolve) => setTimeout(resolve, 120));
       expect(rateLimiter.getTokens()).toBeGreaterThanOrEqual(10);
     });
 
@@ -359,16 +359,16 @@ describe('RateLimiterTransform', () => {
       rateLimiter = new RateLimiterTransform(kernel, {
         capacity: 10,
         refillRate: 2,
-        refillInterval: 200
+        refillInterval: 200,
       });
 
       rateLimiter.inputPipe.write('msg1');
       rateLimiter.inputPipe.write('msg2');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       expect(rateLimiter.getTokens()).toBe(8);
 
-      await new Promise(resolve => setTimeout(resolve, 180));
+      await new Promise((resolve) => setTimeout(resolve, 180));
       expect(rateLimiter.getTokens()).toBe(10);
     });
   });
@@ -377,18 +377,18 @@ describe('RateLimiterTransform', () => {
     rateLimiter = new RateLimiterTransform(kernel, {
       capacity: 10,
       refillRate: 5,
-      refillInterval: 100
+      refillInterval: 100,
     });
 
     rateLimiter.inputPipe.write('msg1');
     rateLimiter.inputPipe.write('msg2');
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     const tokensBeforeStop = rateLimiter.getTokens();
 
     rateLimiter.stop();
 
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 150));
     expect(rateLimiter.getTokens()).toBe(tokensBeforeStop);
   });
 
@@ -396,7 +396,7 @@ describe('RateLimiterTransform', () => {
     rateLimiter = new RateLimiterTransform(kernel, {
       capacity: 5,
       refillRate: 1,
-      refillInterval: 100
+      refillInterval: 100,
     });
 
     const received: any[] = [];
@@ -408,12 +408,8 @@ describe('RateLimiterTransform', () => {
     rateLimiter.inputPipe.write({ type: 'object', value: 42 });
     rateLimiter.inputPipe.write(Buffer.from('buffer'));
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(received).toEqual([
-      'string',
-      { type: 'object', value: 42 },
-      Buffer.from('buffer')
-    ]);
+    expect(received).toEqual(['string', { type: 'object', value: 42 }, Buffer.from('buffer')]);
   });
 });

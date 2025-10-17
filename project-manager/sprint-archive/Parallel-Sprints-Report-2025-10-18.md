@@ -11,6 +11,7 @@ Two parallel sprints have been completed and merged into `main` via Pull Request
 2.  **`SB-DEVEX-CONFIG-PROCESS-P1` (Vex):** This sprint synchronized the developer documentation with the new external process configuration features, ensuring the guides for early adopters are up-to-date.
 
 **Outcome:**
+
 - All tasks for both sprints were completed successfully.
 - The work was integrated into the `main` branch via the merge of Pull Request #62, which passed all CI checks.
 
@@ -18,8 +19,8 @@ Two parallel sprints have been completed and merged into `main` via Pull Request
 
 Continuing our data-driven analysis of Laminar, I have compared the raw test output with the Laminar summary from the CI run for PR #62.
 
--   **Raw Vitest Log (`threads_raw.log`):** 27,249 bytes
--   **Laminar Summary (`summary.jsonl`):** 2,571 bytes
+- **Raw Vitest Log (`threads_raw.log`):** 27,249 bytes
+- **Laminar Summary (`summary.jsonl`):** 2,571 bytes
 
 **Result:**
 For this sprint, Laminar provided an **91% reduction** in the size of the test summary output. This is the most significant saving we have measured to date and continues to provide powerful, quantitative proof of Laminar's value in creating a token-efficient observability pipeline for AI agents.

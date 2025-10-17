@@ -11,5 +11,10 @@ const merged = kernel.createPipe({ objectMode: true });
 kernel.merge([fast.outputPipe, slow.outputPipe], merged);
 kernel.connect(merged, sink.inputPipe);
 
-fast.start(); slow.start();
-setTimeout(() => { fast.stop(); slow.stop(); console.log('Done.'); }, 2000);
+fast.start();
+slow.start();
+setTimeout(() => {
+  fast.stop();
+  slow.stop();
+  console.log('Done.');
+}, 2000);

@@ -3,18 +3,18 @@ nodes:
     module: TimerSource
     params:
       periodMs: 1000
-  
+
   - id: upper1
     module: UppercaseTransform
-  
+
   - id: console1
     module: ConsoleSink
     params:
-      prefix: "[basic]"
+      prefix: '[basic]'
 
 connections:
   - from: timer1.output
     to: upper1.input
-  
+
   - from: upper1.output
     to: console1.input

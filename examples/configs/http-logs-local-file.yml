@@ -25,6 +25,6 @@ nodes:
 connections:
   - from: web.output
     to: meter.input
-  
+
   - from: meter.output
     to: file.input

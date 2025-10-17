@@ -36,9 +36,9 @@ nodes:
   - id: tty1
     module: TTYRenderer
     params:
-      target: stdout        # or a file path like 'logs/output.log'
-      rawMode: true         # enable raw mode (default: true)
-      stripAnsi: false      # strip ANSI codes (default: false)
+      target: stdout # or a file path like 'logs/output.log'
+      rawMode: true # enable raw mode (default: true)
+      stripAnsi: false # strip ANSI codes (default: false)
 
 connections:
   - from: source.output
@@ -48,16 +48,19 @@ connections:
 ## Options
 
 ### `target`
+
 - **Type**: `'stdout' | string`
 - **Default**: `'stdout'`
 - **Description**: Output destination. Use `'stdout'` for standard output or provide a file path.
 
 ### `rawMode`
+
 - **Type**: `boolean`
 - **Default**: `true`
 - **Description**: Enable TTY raw mode when output target is stdout. Only applies if stdout is a TTY.
 
 ### `stripAnsi`
+
 - **Type**: `boolean`
 - **Default**: `false`
 - **Description**: Remove ANSI escape sequences from output. Useful for creating plain text logs.
@@ -72,7 +75,7 @@ nodes:
     module: TimerSource
     params:
       periodMs: 1000
-  
+
   - id: tty1
     module: TTYRenderer
 
@@ -82,6 +85,7 @@ connections:
 ```
 
 Run with:
+
 ```bash
 node dist/scripts/mkctl.js run --file examples/configs/tty-basic.yml --duration 5
 ```
@@ -92,7 +96,7 @@ node dist/scripts/mkctl.js run --file examples/configs/tty-basic.yml --duration 
 nodes:
   - id: source1
     module: SomeSource
-  
+
   - id: tty1
     module: TTYRenderer
     params:
@@ -112,7 +116,7 @@ This configuration preserves all ANSI codes in the output file, useful for creat
 nodes:
   - id: source1
     module: SomeSource
-  
+
   - id: tty1
     module: TTYRenderer
     params:
@@ -132,15 +136,15 @@ This removes all ANSI escape sequences, creating clean plain text logs suitable 
 nodes:
   - id: source1
     module: SomeSource
-  
+
   - id: tee1
     module: TeeTransform
-  
+
   - id: tty-stdout
     module: TTYRenderer
     params:
       target: stdout
-  
+
   - id: tty-file
     module: TTYRenderer
     params:
@@ -169,17 +173,21 @@ constructor(kernel: Kernel, options?: TTYRendererOptions)
 ### Methods
 
 #### `start(): Promise<void>`
+
 Initializes the renderer. If outputting to a file, creates necessary directories and opens the file stream. If `rawMode` is enabled and stdout is a TTY, sets raw mode.
 
 #### `stop(): Promise<void>`
+
 Gracefully stops the renderer. If `rawMode` was enabled, restores normal mode. If outputting to a file, closes the file stream.
 
 #### `destroy(): void`
+
 Forcefully destroys the renderer and any open file streams.
 
 ### Properties
 
 #### `inputPipe: Pipe`
+
 The input pipe that accepts data for rendering.
 
 ## TTY vs Non-TTY Behavior
@@ -214,29 +222,32 @@ node dist/scripts/mkctl.js run --file examples/configs/tty-basic.yml | cat
 
 ## Comparison with Other Renderers
 
-| Feature | TTYRenderer | ConsoleSink | FilesystemSink |
-|---------|-------------|-------------|----------------|
-| ANSI passthrough | ✓ | ✗ | ✓ |
-| stdout output | ✓ | ✓ (with prefix) | ✗ |
-| File output | ✓ | ✗ | ✓ |
-| ANSI stripping | ✓ | ✗ | ✗ |
-| Raw mode | ✓ | ✗ | ✗ |
-| Timestamps | ✗ | ✗ | ✓ |
-| JSONL format | ✗ | ✓ | ✓ |
-| Statistics | ✗ | ✗ | ✓ |
+| Feature          | TTYRenderer | ConsoleSink     | FilesystemSink |
+| ---------------- | ----------- | --------------- | -------------- |
+| ANSI passthrough | ✓           | ✗               | ✓              |
+| stdout output    | ✓           | ✓ (with prefix) | ✗              |
+| File output      | ✓           | ✗               | ✓              |
+| ANSI stripping   | ✓           | ✗               | ✗              |
+| Raw mode         | ✓           | ✗               | ✗              |
+| Timestamps       | ✗           | ✗               | ✓              |
+| JSONL format     | ✗           | ✓               | ✓              |
+| Statistics       | ✗           | ✗               | ✓              |
 
 **When to use TTYRenderer**:
+
 - Need simple ANSI passthrough
 - Want raw terminal output without prefixes
 - Need optional ANSI stripping
 - Want both stdout and file output with same module
 
 **When to use ConsoleSink**:
+
 - Need prefixed console output
 - Want JSONL format for logs
 - Don't need file output
 
 **When to use FilesystemSink**:
+
 - Need advanced file features (fsync, modes)
 - Want statistics tracking
 - Need timestamp injection
@@ -245,14 +256,17 @@ node dist/scripts/mkctl.js run --file examples/configs/tty-basic.yml | cat
 ## Troubleshooting
 
 ### ANSI codes not rendering in terminal
+
 - Ensure stdout is a TTY: `node -p "process.stdout.isTTY"`
 - Check terminal supports ANSI: `echo -e "\x1b[31mRed\x1b[0m"`
 
 ### File output missing ANSI codes
+
 - Verify `stripAnsi: false` (default)
 - Check file with `cat -v filename` to see escape sequences
 
 ### Raw mode not working
+
 - Verify stdout is a TTY
 - Check `target: stdout` is set
 - Ensure no process overrides `process.stdin.setRawMode`

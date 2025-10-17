@@ -26,6 +26,7 @@ Think of a routing server as an **airport** with **terminals** (connection point
 ```
 
 **Terminals** are connection points:
+
 - **Local:** Connect to servers in same process/machine
 - **Network:** Connect to remote machines via TCP/WebSocket
 - **Loopback:** For testing or hairpin scenarios
@@ -67,10 +68,14 @@ class RoutingServer {
     this.kernel = kernel;
     this.machineId = machineId;
 
-    kernel.register('router', {
-      type: 'routing',
-      features: ['service-discovery', 'multi-hop']
-    }, kernel.createPipe());
+    kernel.register(
+      'router',
+      {
+        type: 'routing',
+        features: ['service-discovery', 'multi-hop'],
+      },
+      kernel.createPipe(),
+    );
   }
 
   /**
@@ -82,7 +87,7 @@ class RoutingServer {
       type,
       inputPipe: this.kernel.createPipe(),
       outputPipe: this.kernel.createPipe(),
-      remoteAddress: address
+      remoteAddress: address,
     };
 
     terminal.inputPipe.on('data', (envelope: Envelope) => {
@@ -123,7 +128,7 @@ class RoutingServer {
       serviceName,
       terminal,
       machineId,
-      hops
+      hops,
     });
 
     console.log(`[Router] Route added: ${serviceName} → ${terminal} (${hops} hops)`);
@@ -134,7 +139,7 @@ class RoutingServer {
    */
   getLocalServices(): string[] {
     const services: string[] = [];
-    
+
     for (const [name, { caps }] of this.kernel.lookup({})) {
       if (caps.type !== 'routing') {
         services.push(name);
@@ -194,6 +199,7 @@ Machine A (no GPU)          Machine C (has GPU)
 ### Code Example
 
 **Machine A:**
+
 ```typescript
 const kernel = new Kernel();
 const router = new RoutingServer(kernel, 'machine-a');
@@ -220,7 +226,7 @@ const envelope = {
   source: 'pty-server@machine-a',
   destination: 'gpu-server',
   replyTo: 'mp4-encoder@machine-a',
-  data: frame
+  data: frame,
 };
 
 // Send to router
@@ -228,6 +234,7 @@ router.route(envelope);
 ```
 
 **Machine C:**
+
 ```typescript
 const kernelC = new Kernel();
 const routerC = new RoutingServer(kernelC, 'machine-c');
@@ -247,8 +254,8 @@ gpu.input.on('data', (envelope) => {
 
   const reply = {
     source: 'gpu-server@machine-c',
-    destination: envelope.replyTo,  // "mp4-encoder@machine-a"
-    data: processed
+    destination: envelope.replyTo, // "mp4-encoder@machine-a"
+    data: processed,
   };
 
   routerC.route(reply);
@@ -279,7 +286,7 @@ class RoutingServer {
       machineId: this.machineId,
       services: this.getLocalServices(),
       routes: this.getKnownRoutes(),
-      hops: 0
+      hops: 0,
     };
 
     this.broadcastToNetwork(announcement);
@@ -288,12 +295,7 @@ class RoutingServer {
   onAnnouncementReceived(announcement: any, fromTerminal: Terminal): void {
     // Learn about services on announcing machine
     for (const service of announcement.services) {
-      this.addRoute(
-        service,
-        fromTerminal.name,
-        announcement.machineId,
-        announcement.hops + 1
-      );
+      this.addRoute(service, fromTerminal.name, announcement.machineId, announcement.hops + 1);
     }
 
     // Learn about multi-hop routes
@@ -303,12 +305,7 @@ class RoutingServer {
 
       // Only add if closer route
       if (!existing || newHops < existing.hops) {
-        this.addRoute(
-          route.serviceName,
-          fromTerminal.name,
-          route.machineId,
-          newHops
-        );
+        this.addRoute(route.serviceName, fromTerminal.name, route.machineId, newHops);
       }
     }
   }
@@ -328,18 +325,21 @@ class RoutingServer {
 **After announcements propagate:**
 
 **Machine A knows:**
+
 - `pty-server` (local, 0 hops)
 - `parser-server` (via B, 1 hop)
 - `gpu-server` (via C, 1 hop)
 - `mp4-server` (local, 0 hops)
 
 **Machine B knows:**
+
 - `parser-server` (local, 0 hops)
 - `pty-server` (via A, 1 hop)
 - `gpu-server` (via C, 1 hop)
 - `gpu-server` (via A→C, 2 hops) ← Alternative route!
 
 **Machine C knows:**
+
 - `gpu-server` (local, 0 hops)
 - `pty-server` (via A, 1 hop)
 - `parser-server` (via B, 1 hop)
@@ -413,7 +413,6 @@ machines:
       - name: to-machine-b
         type: network
         address: 10.0.0.2:9002
-
 # Service discovery is automatic!
 ```
 
@@ -428,11 +427,7 @@ const router = new RoutingServer(kernel, 'machine-a');
 
 // Create terminals from config
 for (const terminalConfig of machineConfig.terminals) {
-  router.createTerminal(
-    terminalConfig.name,
-    terminalConfig.type,
-    terminalConfig.address
-  );
+  router.createTerminal(terminalConfig.name, terminalConfig.type, terminalConfig.address);
 }
 
 // Start service discovery
@@ -487,13 +482,14 @@ spec:
 ✅ **Automatic discovery** - Service mesh finds routes  
 ✅ **Location transparency** - Servers don't know where peers are  
 ✅ **Multi-hop routing** - Data flows through multiple machines  
-✅ **Hairpin/loopback** - Remote processing, local return  
+✅ **Hairpin/loopback** - Remote processing, local return
 
 **The routing server is policy, not mechanism.** The kernel provides pipes; routing server implements distributed routing as a module.
 
 ## Next Steps
 
 See:
+
 - **[Deployment Flexibility](05-deployment-flexibility.md)** - Single → multi → distributed progression
 - **[Service Registry](07-service-registry.md)** - Capability-based discovery
 - **[PTY Use Cases](04-pty-use-cases.md)** - Example: Remote GPU processing

@@ -17,7 +17,14 @@ export class ControlBus {
       const suite = process.env.LAMINAR_SUITE || 'debug';
       const caseName = (process.env.LAMINAR_CASE || 'control-bus').replace(/[^a-zA-Z0-9-_]/g, '_');
       const logger = createLogger(suite, caseName);
-      this.eventLogger = (evt) => logger.emit(evt.evt, { payload: evt.payload, id: evt.id, corr: evt.corr, phase: evt.phase, lvl: evt.lvl });
+      this.eventLogger = (evt) =>
+        logger.emit(evt.evt, {
+          payload: evt.payload,
+          id: evt.id,
+          corr: evt.corr,
+          phase: evt.phase,
+          lvl: evt.lvl,
+        });
     }
   }
 

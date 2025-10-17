@@ -35,9 +35,9 @@ describe('Endpoints List Integration', () => {
       const config: TopologyConfig = {
         nodes: [
           { id: 'timer1', module: 'TimerSource', params: { periodMs: 1000 } },
-          { id: 'sink1', module: 'ConsoleSink', params: { prefix: '[test]' } }
+          { id: 'sink1', module: 'ConsoleSink', params: { prefix: '[test]' } },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -65,40 +65,41 @@ describe('Endpoints List Integration', () => {
 
     // GATED: Worker endpoint test requires worker harness infrastructure (T4611)
     // Only run when MK_WORKER_EXPERIMENTAL=1 is set
-    it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)('should register endpoints for worker nodes', async () => {
-      const config: TopologyConfig = {
-        nodes: [
-          { id: 'worker1', module: 'UppercaseTransform', runMode: 'worker' }
-        ],
-        connections: []
-      };
+    it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)(
+      'should register endpoints for worker nodes',
+      async () => {
+        const config: TopologyConfig = {
+          nodes: [{ id: 'worker1', module: 'UppercaseTransform', runMode: 'worker' }],
+          connections: [],
+        };
 
-      executor.load(config);
-      await executor.up();
+        executor.load(config);
+        await executor.up();
 
-      const endpoints = hostess.listEndpoints();
-      expect(endpoints.size).toBeGreaterThanOrEqual(1);
+        const endpoints = hostess.listEndpoints();
+        expect(endpoints.size).toBeGreaterThanOrEqual(1);
 
-      const endpointEntries = Array.from(endpoints.entries());
-      const workerEndpoint = endpointEntries.find(([_, ep]) => ep.coordinates === 'node:worker1');
+        const endpointEntries = Array.from(endpoints.entries());
+        const workerEndpoint = endpointEntries.find(([_, ep]) => ep.coordinates === 'node:worker1');
 
-      expect(workerEndpoint).toBeDefined();
-      expect(workerEndpoint![1].type).toBe('worker');
-      expect(workerEndpoint![1].metadata?.module).toBe('UppercaseTransform');
-      expect(workerEndpoint![1].metadata?.runMode).toBe('worker');
-    });
+        expect(workerEndpoint).toBeDefined();
+        expect(workerEndpoint![1].type).toBe('worker');
+        expect(workerEndpoint![1].metadata?.module).toBe('UppercaseTransform');
+        expect(workerEndpoint![1].metadata?.runMode).toBe('worker');
+      },
+    );
 
     it('should list all registered endpoints across multiple nodes', async () => {
       const config: TopologyConfig = {
         nodes: [
           { id: 'timer1', module: 'TimerSource' },
           { id: 'upper1', module: 'UppercaseTransform' },
-          { id: 'sink1', module: 'ConsoleSink' }
+          { id: 'sink1', module: 'ConsoleSink' },
         ],
         connections: [
           { from: 'timer1.output', to: 'upper1.input' },
-          { from: 'upper1.output', to: 'sink1.input' }
-        ]
+          { from: 'upper1.output', to: 'sink1.input' },
+        ],
       };
 
       executor.load(config);
@@ -109,7 +110,7 @@ describe('Endpoints List Integration', () => {
       // Should have endpoints for all 3 nodes
       expect(endpoints.size).toBeGreaterThanOrEqual(3);
 
-      const coordinatesSet = new Set(Array.from(endpoints.values()).map(ep => ep.coordinates));
+      const coordinatesSet = new Set(Array.from(endpoints.values()).map((ep) => ep.coordinates));
       expect(coordinatesSet.has('node:timer1')).toBe(true);
       expect(coordinatesSet.has('node:upper1')).toBe(true);
       expect(coordinatesSet.has('node:sink1')).toBe(true);
@@ -135,16 +136,16 @@ describe('Endpoints List Integration', () => {
         authMechanism: 'none',
         terminals: [
           { name: 'input', type: 'local', direction: 'input' },
-          { name: 'output', type: 'local', direction: 'output' }
+          { name: 'output', type: 'local', direction: 'output' },
         ],
         capabilities: {
-          type: 'transform'
+          type: 'transform',
         },
         command: '/bin/cat',
         args: [],
         env: {},
         cwd: process.cwd(),
-        ioMode: 'stdio'
+        ioMode: 'stdio',
       };
 
       wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
@@ -182,10 +183,10 @@ describe('Endpoints List Integration', () => {
         authMechanism: 'none',
         terminals: [
           { name: 'input', type: 'local', direction: 'input' },
-          { name: 'output', type: 'local', direction: 'output' }
+          { name: 'output', type: 'local', direction: 'output' },
         ],
         capabilities: {
-          type: 'transform'
+          type: 'transform',
         },
         command: '/bin/bash',
         args: [],
@@ -194,7 +195,7 @@ describe('Endpoints List Integration', () => {
         ioMode: 'pty',
         initialCols: 80,
         initialRows: 24,
-        terminalType: 'xterm-256color'
+        terminalType: 'xterm-256color',
       };
 
       wrapper = new PTYServerWrapper(kernel, hostess, manifest);
@@ -228,9 +229,9 @@ describe('Endpoints List Integration', () => {
       const config: TopologyConfig = {
         nodes: [
           { id: 'timer1', module: 'TimerSource' },
-          { id: 'sink1', module: 'ConsoleSink' }
+          { id: 'sink1', module: 'ConsoleSink' },
         ],
-        connections: []
+        connections: [],
       };
 
       executor.load(config);
@@ -246,16 +247,16 @@ describe('Endpoints List Integration', () => {
         authMechanism: 'none',
         terminals: [
           { name: 'input', type: 'local', direction: 'input' },
-          { name: 'output', type: 'local', direction: 'output' }
+          { name: 'output', type: 'local', direction: 'output' },
         ],
         capabilities: {
-          type: 'transform'
+          type: 'transform',
         },
         command: '/bin/cat',
         args: [],
         env: {},
         cwd: process.cwd(),
-        ioMode: 'stdio'
+        ioMode: 'stdio',
       };
 
       externalWrapper = new ExternalServerWrapper(kernel, hostess, externalManifest);
@@ -267,7 +268,7 @@ describe('Endpoints List Integration', () => {
       // Should have at least 3 endpoints (2 inproc + 1 external)
       expect(endpoints.size).toBeGreaterThanOrEqual(3);
 
-      const types = new Set(Array.from(endpoints.values()).map(ep => ep.type));
+      const types = new Set(Array.from(endpoints.values()).map((ep) => ep.type));
       expect(types.has('inproc')).toBe(true);
       expect(types.has('external')).toBe(true);
     });
@@ -276,10 +277,8 @@ describe('Endpoints List Integration', () => {
   describe('Endpoint lifecycle', () => {
     it('should maintain endpoints after executor restart', async () => {
       const config: TopologyConfig = {
-        nodes: [
-          { id: 'timer1', module: 'TimerSource' }
-        ],
-        connections: []
+        nodes: [{ id: 'timer1', module: 'TimerSource' }],
+        connections: [],
       };
 
       executor.load(config);

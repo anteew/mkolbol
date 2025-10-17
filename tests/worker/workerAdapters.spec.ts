@@ -15,12 +15,12 @@ describe('WorkerBusAdapter', () => {
       received.push(data);
     });
 
-    await new Promise(resolve => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
 
     const topic1 = adapter1.topic('test');
     topic1.write({ kind: 'event', type: 'test', id: 'test-1', ts: 123 });
 
-    await new Promise(resolve => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(received).toHaveLength(1);
     expect(received[0]).toEqual({ kind: 'event', type: 'test', id: 'test-1', ts: 123 });
@@ -44,7 +44,7 @@ describe('WorkerPipe', () => {
     const testBuffer = Buffer.from('hello worker');
     pipe1.write(testBuffer);
 
-    await new Promise(resolve => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(received).toHaveLength(1);
     expect(Buffer.isBuffer(received[0])).toBe(true);
@@ -67,7 +67,7 @@ describe('Worker handshake', () => {
       received.push(data);
     });
 
-    await new Promise(resolve => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
 
     const topic1 = adapter1.topic('control.hello');
     const handshakeEvent = {
@@ -75,11 +75,11 @@ describe('Worker handshake', () => {
       type: 'worker.ready',
       id: 'node-42',
       ts: Date.now(),
-      payload: { nodeId: 'node-42' }
+      payload: { nodeId: 'node-42' },
     };
     topic1.write(handshakeEvent);
 
-    await new Promise(resolve => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(received).toHaveLength(1);
     expect(received[0]).toHaveProperty('kind', 'event');

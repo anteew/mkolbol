@@ -176,7 +176,10 @@ describe('mk logs command', () => {
     });
 
     expect(r.status).toBe(0);
-    const lines = r.stdout.trim().split('\n').filter(l => l.length > 0);
+    const lines = r.stdout
+      .trim()
+      .split('\n')
+      .filter((l) => l.length > 0);
     expect(lines.length).toBeLessThanOrEqual(2);
   });
 

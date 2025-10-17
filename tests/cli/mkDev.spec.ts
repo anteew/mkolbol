@@ -21,7 +21,7 @@ describe('DevWatcher', () => {
   });
 
   afterEach(() => {
-    testFiles.forEach(file => {
+    testFiles.forEach((file) => {
       try {
         if (existsSync(file)) {
           unlinkSync(file);
@@ -37,13 +37,10 @@ describe('DevWatcher', () => {
     it('should create a DevWatcher instance', () => {
       const topology: TopologyConfig = {
         nodes: [],
-        connections: []
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       expect(watcher).toBeDefined();
     });
@@ -51,14 +48,10 @@ describe('DevWatcher', () => {
     it('should accept verbose option', () => {
       const topology: TopologyConfig = {
         nodes: [],
-        connections: []
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology,
-        { verbose: true }
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology, { verbose: true });
 
       expect(watcher).toBeDefined();
     });
@@ -66,15 +59,11 @@ describe('DevWatcher', () => {
     it('should accept onReload callback', () => {
       const topology: TopologyConfig = {
         nodes: [],
-        connections: []
+        connections: [],
       };
 
       const onReload = vi.fn();
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology,
-        { onReload }
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology, { onReload });
 
       expect(watcher).toBeDefined();
     });
@@ -84,13 +73,10 @@ describe('DevWatcher', () => {
     it('should start watching without errors for empty topology', () => {
       const topology: TopologyConfig = {
         nodes: [],
-        connections: []
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       expect(() => watcher.start()).not.toThrow();
       watcher.stop();
@@ -99,13 +85,10 @@ describe('DevWatcher', () => {
     it('should stop watchers cleanly', () => {
       const topology: TopologyConfig = {
         nodes: [],
-        connections: []
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       watcher.start();
       expect(() => watcher.stop()).not.toThrow();
@@ -114,13 +97,10 @@ describe('DevWatcher', () => {
     it('should handle multiple start/stop cycles', () => {
       const topology: TopologyConfig = {
         nodes: [],
-        connections: []
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       watcher.start();
       watcher.stop();
@@ -136,15 +116,12 @@ describe('DevWatcher', () => {
       const topology: TopologyConfig = {
         nodes: [
           { id: 'worker1', module: 'TimerSource', runMode: 'worker' },
-          { id: 'process1', module: 'UppercaseTransform', runMode: 'process' }
+          { id: 'process1', module: 'UppercaseTransform', runMode: 'process' },
         ],
-        connections: []
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       watcher.start();
       watcher.stop();
@@ -157,15 +134,12 @@ describe('DevWatcher', () => {
       const topology: TopologyConfig = {
         nodes: [
           { id: 'timer1', module: 'TimerSource', runMode: 'inproc' },
-          { id: 'worker1', module: 'ConsoleSink', runMode: 'worker' }
+          { id: 'worker1', module: 'ConsoleSink', runMode: 'worker' },
         ],
-        connections: []
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       watcher.start();
       watcher.stop();
@@ -175,16 +149,11 @@ describe('DevWatcher', () => {
 
     it('should handle unknown modules gracefully', () => {
       const topology: TopologyConfig = {
-        nodes: [
-          { id: 'unknown1', module: 'UnknownModule', runMode: 'inproc' }
-        ],
-        connections: []
+        nodes: [{ id: 'unknown1', module: 'UnknownModule', runMode: 'inproc' }],
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       expect(() => watcher.start()).not.toThrow();
       watcher.stop();
@@ -199,44 +168,35 @@ describe('DevWatcher', () => {
       testFiles.push(testModulePath);
 
       const topology: TopologyConfig = {
-        nodes: [
-          { id: 'test1', module: 'TimerSource', runMode: 'inproc' }
-        ],
-        connections: []
+        nodes: [{ id: 'test1', module: 'TimerSource', runMode: 'inproc' }],
+        connections: [],
       };
 
       const onReload = vi.fn();
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology,
-        { onReload, verbose: false }
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology, {
+        onReload,
+        verbose: false,
+      });
 
       watcher.start();
 
       // Give it time to set up watchers
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       watcher.stop();
     });
 
     it('should debounce rapid file changes', async () => {
       const topology: TopologyConfig = {
-        nodes: [
-          { id: 'timer1', module: 'TimerSource', runMode: 'inproc' }
-        ],
-        connections: []
+        nodes: [{ id: 'timer1', module: 'TimerSource', runMode: 'inproc' }],
+        connections: [],
       };
 
       const onReload = vi.fn();
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology,
-        { onReload }
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology, { onReload });
 
       watcher.start();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       watcher.stop();
 
       // Debouncing should prevent multiple reloads
@@ -249,16 +209,11 @@ describe('DevWatcher', () => {
       mockExecutor.restartNode = vi.fn().mockRejectedValue(new Error('Restart failed'));
 
       const topology: TopologyConfig = {
-        nodes: [
-          { id: 'timer1', module: 'TimerSource', runMode: 'inproc' }
-        ],
-        connections: []
+        nodes: [{ id: 'timer1', module: 'TimerSource', runMode: 'inproc' }],
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       // Should not throw even if restart fails
       expect(() => watcher.start()).not.toThrow();
@@ -267,16 +222,11 @@ describe('DevWatcher', () => {
 
     it('should handle watch errors gracefully', () => {
       const topology: TopologyConfig = {
-        nodes: [
-          { id: 'timer1', module: 'TimerSource', runMode: 'inproc' }
-        ],
-        connections: []
+        nodes: [{ id: 'timer1', module: 'TimerSource', runMode: 'inproc' }],
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       expect(() => watcher.start()).not.toThrow();
       watcher.stop();
@@ -287,13 +237,10 @@ describe('DevWatcher', () => {
     it('should create and start a watcher', () => {
       const topology: TopologyConfig = {
         nodes: [],
-        connections: []
+        connections: [],
       };
 
-      const watcher = watchModules(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = watchModules(mockExecutor as Executor, topology);
 
       expect(watcher).toBeDefined();
       expect(watcher).toBeInstanceOf(DevWatcher);
@@ -303,15 +250,11 @@ describe('DevWatcher', () => {
     it('should accept options', () => {
       const topology: TopologyConfig = {
         nodes: [],
-        connections: []
+        connections: [],
       };
 
       const onReload = vi.fn();
-      const watcher = watchModules(
-        mockExecutor as Executor,
-        topology,
-        { verbose: true, onReload }
-      );
+      const watcher = watchModules(mockExecutor as Executor, topology, { verbose: true, onReload });
 
       expect(watcher).toBeDefined();
       watcher.stop();
@@ -323,21 +266,15 @@ describe('DevWatcher', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const topology: TopologyConfig = {
-        nodes: [
-          { id: 'timer1', module: 'TimerSource', runMode: 'inproc' }
-        ],
-        connections: []
+        nodes: [{ id: 'timer1', module: 'TimerSource', runMode: 'inproc' }],
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology,
-        { verbose: true }
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology, { verbose: true });
 
       watcher.start();
       expect(consoleSpy).toHaveBeenCalled();
-      
+
       watcher.stop();
       consoleSpy.mockRestore();
     });
@@ -346,21 +283,15 @@ describe('DevWatcher', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const topology: TopologyConfig = {
-        nodes: [
-          { id: 'timer1', module: 'TimerSource', runMode: 'inproc' }
-        ],
-        connections: []
+        nodes: [{ id: 'timer1', module: 'TimerSource', runMode: 'inproc' }],
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology,
-        { verbose: false }
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology, { verbose: false });
 
       watcher.start();
       watcher.stop();
-      
+
       consoleSpy.mockRestore();
     });
   });
@@ -370,14 +301,10 @@ describe('DevWatcher', () => {
       const onReload = vi.fn();
       const topology: TopologyConfig = {
         nodes: [],
-        connections: []
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology,
-        { onReload }
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology, { onReload });
 
       watcher.start();
       watcher.stop();
@@ -393,15 +320,12 @@ describe('DevWatcher', () => {
         nodes: [
           { id: 'timer1', module: 'TimerSource' },
           { id: 'upper1', module: 'UppercaseTransform' },
-          { id: 'console1', module: 'ConsoleSink' }
+          { id: 'console1', module: 'ConsoleSink' },
         ],
-        connections: []
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       expect(() => watcher.start()).not.toThrow();
       watcher.stop();
@@ -409,16 +333,11 @@ describe('DevWatcher', () => {
 
     it('should handle modules without known paths', () => {
       const topology: TopologyConfig = {
-        nodes: [
-          { id: 'custom1', module: 'CustomModule' }
-        ],
-        connections: []
+        nodes: [{ id: 'custom1', module: 'CustomModule' }],
+        connections: [],
       };
 
-      const watcher = new DevWatcher(
-        mockExecutor as Executor,
-        topology
-      );
+      const watcher = new DevWatcher(mockExecutor as Executor, topology);
 
       expect(() => watcher.start()).not.toThrow();
       watcher.stop();

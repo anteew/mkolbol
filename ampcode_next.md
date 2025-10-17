@@ -3,8 +3,8 @@
   "ampcode": "v1",
   "notes": "Do not branch/commit/push — VEGA handles git. Next sprint draft only.",
   "waves": [
-    { "id": "HINTS-A", "parallel": true,  "tasks": ["T4301", "T4302"] },
-    { "id": "HINTS-B", "parallel": true,  "depends_on": ["HINTS-A"], "tasks": ["T4303", "T4304"] },
+    { "id": "HINTS-A", "parallel": true, "tasks": ["T4301", "T4302"] },
+    { "id": "HINTS-B", "parallel": true, "depends_on": ["HINTS-A"], "tasks": ["T4303", "T4304"] },
     { "id": "HINTS-C", "parallel": false, "depends_on": ["HINTS-B"], "tasks": ["T4305"] }
   ],
   "tasks": [
@@ -57,6 +57,7 @@
 Goal: Add compact “what to do next” hints for each failing test, both in console (one line per fail when enabled) and as per-case artifacts (.hints.json/.md). Keep output tiny and agent-friendly.
 
 Scope
+
 - Detect common triage patterns from digest + minimal log context:
   - missing-include: Expected domain event absent in digest window
   - redaction-mismatch: Rule pack expects pattern (e.g., jwt) but redactedFields==0
@@ -71,11 +72,12 @@ Scope
   - Env override: `LAMINAR_HINTS=1`
 
 Acceptance
+
 - When a digested failure is present, enabling hints shows exactly one concise line per fail with: cause tag, one key signal (evt/field), and 1–2 suggested commands.
 - Per-case hints artifacts exist and reference the exact files/commands.
 - No change to default console output when disabled.
 
 Non-goals
+
 - Do not rewrite digest or event schema.
 - No network calls or heavy log scans; only digest + small local window from the case file.
-

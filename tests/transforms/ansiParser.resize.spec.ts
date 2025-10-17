@@ -10,7 +10,8 @@ describe('AnsiParser resize handling', () => {
 
   it('clamps cursor state when resized to smaller dimensions', () => {
     const parser = new AnsiParser();
-    const internalState = (parser as unknown as { state: { cursorX: number; cursorY: number } }).state;
+    const internalState = (parser as unknown as { state: { cursorX: number; cursorY: number } })
+      .state;
     internalState.cursorX = 200;
     internalState.cursorY = 80;
 

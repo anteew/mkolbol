@@ -40,7 +40,7 @@ describe('TTYRenderer', () => {
       const testData = Buffer.from('Hello, World!');
       renderer.inputPipe.write(testData);
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toBe('Hello, World!');
@@ -56,7 +56,7 @@ describe('TTYRenderer', () => {
       const testData = Buffer.from('\x1b[31mRed Text\x1b[0m');
       renderer.inputPipe.write(testData);
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toContain('\x1b[31m');
@@ -74,7 +74,7 @@ describe('TTYRenderer', () => {
       const testData = Buffer.from('\x1b[31mRed Text\x1b[0m Normal');
       renderer.inputPipe.write(testData);
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).not.toContain('\x1b[31m');
@@ -93,7 +93,7 @@ describe('TTYRenderer', () => {
       renderer.inputPipe.write('Line 2\n');
       renderer.inputPipe.write('Line 3\n');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toBe('Line 1\nLine 2\nLine 3\n');
@@ -108,7 +108,7 @@ describe('TTYRenderer', () => {
 
       renderer.inputPipe.write('String data');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toBe('String data');
@@ -123,7 +123,7 @@ describe('TTYRenderer', () => {
 
       renderer.inputPipe.write({ key: 'value', num: 42 });
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toBe('{"key":"value","num":42}');
@@ -228,7 +228,7 @@ describe('TTYRenderer', () => {
 
       renderer.inputPipe.write('test data');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toBe('test data');
@@ -239,10 +239,10 @@ describe('TTYRenderer', () => {
 
     it('should handle rawMode gracefully when not a TTY', async () => {
       const renderer = new TTYRenderer(kernel, { rawMode: true });
-      
+
       await expect(renderer.start()).resolves.toBeUndefined();
       await expect(renderer.stop()).resolves.toBeUndefined();
-      
+
       renderer.destroy();
     });
   });
@@ -255,7 +255,7 @@ describe('TTYRenderer', () => {
       renderer.inputPipe.write('');
       renderer.inputPipe.write(Buffer.alloc(0));
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toBe('');
@@ -317,7 +317,7 @@ describe('TTYRenderer', () => {
       const complexAnsi = '\x1b[1;31;42mBold Red on Green\x1b[0m\x1b[2J\x1b[HCursor';
       renderer.inputPipe.write(complexAnsi);
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toBe('Bold Red on GreenCursor');
@@ -348,14 +348,14 @@ describe('TTYRenderer', () => {
 
       await renderer.start();
       const ansiSequences = [
-        '\x1b[0m',      // Reset
-        '\x1b[1m',      // Bold
-        '\x1b[31m',     // Red foreground
-        '\x1b[42m',     // Green background
-        '\x1b[2J',      // Clear screen
-        '\x1b[H',       // Home cursor
-        '\x1b[?25h',    // Show cursor
-        '\x1b[?25l',    // Hide cursor
+        '\x1b[0m', // Reset
+        '\x1b[1m', // Bold
+        '\x1b[31m', // Red foreground
+        '\x1b[42m', // Green background
+        '\x1b[2J', // Clear screen
+        '\x1b[H', // Home cursor
+        '\x1b[?25h', // Show cursor
+        '\x1b[?25l', // Hide cursor
       ];
 
       for (const seq of ansiSequences) {
@@ -379,7 +379,7 @@ describe('TTYRenderer', () => {
       const data = 'Test output\n';
       renderer.inputPipe.write(data);
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toBe(data);
@@ -394,7 +394,7 @@ describe('TTYRenderer', () => {
 
       renderer.inputPipe.write('Default stdout\n');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(capturedOutput.length).toBeGreaterThan(0);
       const output = Buffer.concat(capturedOutput).toString();
@@ -500,12 +500,12 @@ describe('TTYRenderer', () => {
       await renderer.start();
 
       const testVectors = [
-        '\x1b[0m',                      // Reset
-        '\x1b[1;31m',                   // Bold red
-        '\x1b[38;2;255;128;64m',        // RGB color
-        '\x1b[48;5;123m',               // 256 color background
-        '\x1b]0;Title\x07',             // Set window title
-        '\x1b[2J\x1b[H',                // Clear screen and home
+        '\x1b[0m', // Reset
+        '\x1b[1;31m', // Bold red
+        '\x1b[38;2;255;128;64m', // RGB color
+        '\x1b[48;5;123m', // 256 color background
+        '\x1b]0;Title\x07', // Set window title
+        '\x1b[2J\x1b[H', // Clear screen and home
       ];
 
       for (const input of testVectors) {
@@ -563,7 +563,7 @@ describe('TTYRenderer', () => {
       const data = 'Stdout content\n';
       renderer.inputPipe.write(data);
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const output = Buffer.concat(capturedOutput).toString();
       expect(output).toBe(data);
@@ -593,7 +593,7 @@ describe('TTYRenderer', () => {
 
     it('should handle file target vs stdout target independently', async () => {
       const filePath = join(testDir, 'independent.log');
-      
+
       const stdoutRenderer = new TTYRenderer(kernel);
       await stdoutRenderer.start();
       stdoutRenderer.inputPipe.write('To stdout\n');
@@ -613,7 +613,7 @@ describe('TTYRenderer', () => {
 
       const fileContent = await readFile(filePath, 'utf8');
       expect(fileContent).toBe('To file\n');
-      
+
       const stdoutOutput2 = Buffer.concat(capturedOutput).toString();
       expect(stdoutOutput2).not.toContain('To file');
     });

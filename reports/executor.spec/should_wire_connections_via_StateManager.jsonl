@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-{"ts":1760727514898,"lvl":"info","case":"should wire connections via StateManager","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760727514899,"lvl":"info","case":"should wire connections via StateManager","phase":"execution","evt":"test.run"}
-{"ts":1760727514900,"lvl":"info","case":"should wire connections via StateManager","phase":"teardown","evt":"case.end","payload":{"duration":66,"status":"passed"}}
-=======
-{"ts":1760727844016,"lvl":"info","case":"should wire connections via StateManager","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760727844017,"lvl":"info","case":"should wire connections via StateManager","phase":"execution","evt":"test.run"}
-{"ts":1760727844018,"lvl":"info","case":"should wire connections via StateManager","phase":"teardown","evt":"case.end","payload":{"duration":6,"status":"passed"}}
->>>>>>> origin/main
+{"ts":1760731410231,"lvl":"info","case":"should wire connections via StateManager","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760731410232,"lvl":"info","case":"should wire connections via StateManager","phase":"execution","evt":"test.run"}
+{"ts":1760731410233,"lvl":"info","case":"should wire connections via StateManager","phase":"teardown","evt":"case.end","payload":{"duration":39,"status":"passed"}}

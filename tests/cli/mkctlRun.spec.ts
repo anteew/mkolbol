@@ -24,7 +24,7 @@ describe('mkctl run', () => {
   });
 
   afterEach(() => {
-    tempFiles.forEach(file => {
+    tempFiles.forEach((file) => {
       try {
         if (existsSync(file)) {
           unlinkSync(file);
@@ -36,10 +36,16 @@ describe('mkctl run', () => {
     tempFiles = [];
   });
 
-  function spawnMkctl(args: string[], timeout: number = 5000): { proc: ChildProcess; result: Promise<{ stdout: string; stderr: string; code: number | null }> } {
+  function spawnMkctl(
+    args: string[],
+    timeout: number = 5000,
+  ): {
+    proc: ChildProcess;
+    result: Promise<{ stdout: string; stderr: string; code: number | null }>;
+  } {
     const proc = spawn('tsx', [mkctlPath, ...args], {
       cwd: join(__dirname, '../..'),
-      env: { ...process.env }
+      env: { ...process.env },
     });
 
     let stdout = '';
@@ -53,21 +59,23 @@ describe('mkctl run', () => {
       stderr += data.toString();
     });
 
-    const result = new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        proc.kill('SIGTERM');
-      }, timeout);
+    const result = new Promise<{ stdout: string; stderr: string; code: number | null }>(
+      (resolve, reject) => {
+        const timer = setTimeout(() => {
+          proc.kill('SIGTERM');
+        }, timeout);
 
-      proc.on('close', (code) => {
-        clearTimeout(timer);
-        resolve({ stdout, stderr, code });
-      });
+        proc.on('close', (code) => {
+          clearTimeout(timer);
+          resolve({ stdout, stderr, code });
+        });
 
-      proc.on('error', (err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
-    });
+        proc.on('error', (err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+      },
+    );
 
     return { proc, result };
   }
@@ -79,21 +87,21 @@ describe('mkctl run', () => {
   describe('--file argument parsing', () => {
     it('should error when --file is missing', async () => {
       const result = await runMkctl(['run'], 1000);
-      
+
       expect(result.code).toBe(EXIT_CODES.USAGE);
       expect(result.stderr).toContain('Usage: mkctl run --file <path>');
     });
 
     it('should error when --file has no value', async () => {
       const result = await runMkctl(['run', '--file'], 1000);
-      
+
       expect(result.code).toBe(EXIT_CODES.USAGE);
       expect(result.stderr).toContain('Usage: mkctl run --file <path>');
     });
 
     it('should error when config file does not exist', async () => {
       const result = await runMkctl(['run', '--file', '/nonexistent/config.yml'], 1000);
-      
+
       expect(result.code).toBe(EXIT_CODES.CONFIG_NOT_FOUND);
       expect(result.stderr).toContain('Config file not found');
       expect(result.stderr).toContain('Hint:');
@@ -327,25 +335,31 @@ connections: []
       expect(result.stdout).toContain('Done');
     });
 
-    it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('should successfully run external-pty.yaml', async () => {
-      const configPath = join(examplesDir, 'external-pty.yaml');
-      const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
+    it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+      'should successfully run external-pty.yaml',
+      async () => {
+        const configPath = join(examplesDir, 'external-pty.yaml');
+        const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
 
-      expect(result.code).toBe(EXIT_CODES.SUCCESS);
-      expect(result.stdout).toContain('Loading config from:');
-      expect(result.stdout).toContain('Bringing topology up');
-      expect(result.stdout).toContain('Done');
-    });
+        expect(result.code).toBe(EXIT_CODES.SUCCESS);
+        expect(result.stdout).toContain('Loading config from:');
+        expect(result.stdout).toContain('Bringing topology up');
+        expect(result.stdout).toContain('Done');
+      },
+    );
 
-    it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('should successfully run external-stdio.yaml', async () => {
-      const configPath = join(examplesDir, 'external-stdio.yaml');
-      const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
+    it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+      'should successfully run external-stdio.yaml',
+      async () => {
+        const configPath = join(examplesDir, 'external-stdio.yaml');
+        const result = await runMkctl(['run', '--file', configPath, '--duration', '1'], 3000);
 
-      expect(result.code).toBe(EXIT_CODES.SUCCESS);
-      expect(result.stdout).toContain('Loading config from:');
-      expect(result.stdout).toContain('Bringing topology up');
-      expect(result.stdout).toContain('Done');
-    });
+        expect(result.code).toBe(EXIT_CODES.SUCCESS);
+        expect(result.stdout).toContain('Loading config from:');
+        expect(result.stdout).toContain('Bringing topology up');
+        expect(result.stdout).toContain('Done');
+      },
+    );
   });
 
   describe('functional tests', () => {
@@ -409,10 +423,10 @@ connections: []
           {
             id: 'timer1',
             module: 'TimerSource',
-            params: { periodMs: 500 }
-          }
+            params: { periodMs: 500 },
+          },
         ],
-        connections: []
+        connections: [],
       };
       const configPath = join(testConfigDir, 'json-config.json');
       writeFileSync(configPath, JSON.stringify(config, null, 2));
@@ -444,7 +458,7 @@ connections: []
       const { proc, result } = spawnMkctl(['run', '--file', configPath, '--duration', '10'], 10000);
 
       // Wait briefly for the topology to come up
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       proc.kill('SIGINT');
 
       const outcome = await result;
@@ -538,7 +552,10 @@ connections: []
     });
 
     it('should exit with CONFIG_NOT_FOUND error when config file does not exist', async () => {
-      const result = await runMkctl(['run', '--file', '/nonexistent/config.yml', '--dry-run'], 1000);
+      const result = await runMkctl(
+        ['run', '--file', '/nonexistent/config.yml', '--dry-run'],
+        1000,
+      );
 
       expect(result.code).toBe(EXIT_CODES.CONFIG_NOT_FOUND);
       expect(result.stderr).toContain('Config file not found');

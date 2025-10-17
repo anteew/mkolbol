@@ -1,4 +1,4 @@
-import type { TerminalState, Cell, EscapeSequence } from '../types.js';
+import type { TerminalState, EscapeSequence } from '../types.js';
 
 export class ANSIParser {
   private state: TerminalState;
@@ -9,16 +9,20 @@ export class ANSIParser {
 
   private createEmptyState(rows: number, cols: number): TerminalState {
     return {
-      cells: Array(rows).fill(null).map(() => 
-        Array(cols).fill(null).map(() => ({ char: ' ', fg: null, bg: null }))
-      ),
+      cells: Array(rows)
+        .fill(null)
+        .map(() =>
+          Array(cols)
+            .fill(null)
+            .map(() => ({ char: ' ', fg: null, bg: null })),
+        ),
       cursorX: 0,
       cursorY: 0,
       rows,
       cols,
       scrollback: [],
       currentFg: null,
-      currentBg: null
+      currentBg: null,
     };
   }
 
@@ -46,17 +50,14 @@ export class ANSIParser {
         }
         i++;
       } else if (char === '\t') {
-        this.state.cursorX = Math.min(
-          this.state.cols - 1,
-          ((this.state.cursorX + 8) >> 3) << 3
-        );
+        this.state.cursorX = Math.min(this.state.cols - 1, ((this.state.cursorX + 8) >> 3) << 3);
         i++;
       } else {
         if (this.state.cursorY < this.state.rows && this.state.cursorX < this.state.cols) {
           this.state.cells[this.state.cursorY][this.state.cursorX] = {
             char: char,
             fg: this.state.currentFg,
-            bg: this.state.currentBg
+            bg: this.state.currentBg,
           };
         }
         this.state.cursorX++;
@@ -94,10 +95,10 @@ export class ANSIParser {
 
       return {
         type: 'csi',
-        params: params ? params.split(';').map(p => parseInt(p) || 0) : [],
+        params: params ? params.split(';').map((p) => parseInt(p) || 0) : [],
         cmd: cmd,
         length: i - start + 1,
-        raw: str.substring(start, i + 1)
+        raw: str.substring(start, i + 1),
       };
     } else if (str[i] === ']') {
       i++;
@@ -109,7 +110,7 @@ export class ANSIParser {
       return {
         type: 'osc',
         length: i - start + 1,
-        raw: str.substring(start, i + 1)
+        raw: str.substring(start, i + 1),
       };
     }
 
@@ -139,10 +140,16 @@ export class ANSIParser {
           this.state.cursorY = Math.max(0, this.state.cursorY - (seq.params?.[0] || 1));
           break;
         case 'B':
-          this.state.cursorY = Math.min(this.state.rows - 1, this.state.cursorY + (seq.params?.[0] || 1));
+          this.state.cursorY = Math.min(
+            this.state.rows - 1,
+            this.state.cursorY + (seq.params?.[0] || 1),
+          );
           break;
         case 'C':
-          this.state.cursorX = Math.min(this.state.cols - 1, this.state.cursorX + (seq.params?.[0] || 1));
+          this.state.cursorX = Math.min(
+            this.state.cols - 1,
+            this.state.cursorX + (seq.params?.[0] || 1),
+          );
           break;
         case 'D':
           this.state.cursorX = Math.max(0, this.state.cursorX - (seq.params?.[0] || 1));
@@ -176,10 +183,22 @@ export class ANSIParser {
 
   private ansiColorToRGB(color: number): string {
     const colors = [
-      '#000000', '#800000', '#008000', '#808000',
-      '#000080', '#800080', '#008080', '#c0c0c0',
-      '#808080', '#ff0000', '#00ff00', '#ffff00',
-      '#0000ff', '#ff00ff', '#00ffff', '#ffffff'
+      '#000000',
+      '#800000',
+      '#008000',
+      '#808000',
+      '#000080',
+      '#800080',
+      '#008080',
+      '#c0c0c0',
+      '#808080',
+      '#ff0000',
+      '#00ff00',
+      '#ffff00',
+      '#0000ff',
+      '#ff00ff',
+      '#00ffff',
+      '#ffffff',
     ];
     return colors[color] || '#ffffff';
   }
@@ -223,15 +242,15 @@ export class ANSIParser {
 
   private scroll(): void {
     this.state.scrollback.push(this.state.cells[0]);
-    
+
     for (let i = 0; i < this.state.rows - 1; i++) {
       this.state.cells[i] = this.state.cells[i + 1];
     }
-    
+
     this.state.cells[this.state.rows - 1] = Array(this.state.cols)
       .fill(null)
       .map(() => ({ char: ' ', fg: null, bg: null }));
-    
+
     this.state.cursorY = this.state.rows - 1;
   }
 

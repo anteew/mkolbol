@@ -42,7 +42,7 @@ export class TestLogger {
       corr?: string;
       path?: string;
       payload?: T;
-    } = {}
+    } = {},
   ): void {
     const event = createEvent(evt, this.caseName, options);
     this.writeEvent(event);

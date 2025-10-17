@@ -34,11 +34,13 @@ Before exploring these examples, we recommend:
 ### 1. Simple Transform Modules
 
 In-process TypeScript modules that transform data. Best for:
+
 - Learning the module pattern
 - Lightweight processing
 - Fast iteration during development
 
 **Coming soon:**
+
 - Uppercase transform
 - Text reversal
 - JSON formatting and validation
@@ -46,11 +48,13 @@ In-process TypeScript modules that transform data. Best for:
 ### 2. External Process Modules
 
 Subprocess wrappers for any language. Best for:
+
 - Multi-language support (Python, Go, Rust, etc.)
 - Process isolation
 - Wrapping existing CLI tools
 
 **Coming soon:**
+
 - Python echo server
 - Go word counter
 - Rust data filter
@@ -58,11 +62,13 @@ Subprocess wrappers for any language. Best for:
 ### 3. Full Topology Examples
 
 Complete applications with multiple modules. Best for:
+
 - Understanding module composition
 - Real-world architecture patterns
 - Production deployment reference
 
 **Coming soon:**
+
 - PTY with multiple renderers (screen + canvas + logger)
 - Distributed pipeline (source → transform → output)
 
@@ -109,11 +115,11 @@ If you're stuck or have questions:
 
 ## Example Status
 
-| Category | Status | ETA |
-|----------|--------|-----|
+| Category         | Status  | ETA     |
+| ---------------- | ------- | ------- |
 | Simple Transform | Planned | Q1 2025 |
 | External Process | Planned | Q1 2025 |
-| Full Topology | Planned | Q2 2025 |
+| Full Topology    | Planned | Q2 2025 |
 
 Check back soon for complete, runnable examples!
 

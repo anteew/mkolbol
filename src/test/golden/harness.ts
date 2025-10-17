@@ -14,7 +14,10 @@ export interface GoldenOptions {
 
 const DEFAULT_MASKS: MaskRule[] = [
   { pattern: /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, replacement: '<TIMESTAMP>' },
-  { pattern: /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, replacement: '<UUID>' },
+  {
+    pattern: /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+    replacement: '<UUID>',
+  },
   { pattern: /\d{13,}/g, replacement: '<TIMESTAMP_MS>' },
 ];
 
@@ -71,7 +74,7 @@ export class GoldenHarness {
     if (!result.match) {
       throw new Error(
         `Snapshot mismatch for ${this.options.suite}/${this.options.case}\n` +
-        `Expected:\n${result.expected}\n\nActual:\n${result.actual}`
+          `Expected:\n${result.expected}\n\nActual:\n${result.actual}`,
       );
     }
   }

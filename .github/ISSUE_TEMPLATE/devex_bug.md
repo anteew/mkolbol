@@ -1,7 +1,7 @@
 ---
 name: DevEx Bug Report
 about: Report a bug or issue you encountered while using mkolbol
-title: "[BUG] "
+title: '[BUG] '
 labels: devex, bug
 assignees: ''
 ---
@@ -49,6 +49,7 @@ assignees: ''
 **Branch**:
 
 **Steps to reproduce from repo**:
+
 ```bash
 git clone <your-repo-url>
 cd <repo-directory>
@@ -65,6 +66,7 @@ npm install
 ```
 
 **Configuration files** (if relevant):
+
 ```yaml
 # vitest.config.ts, laminar.config.json, package.json snippets, etc.
 ```
@@ -92,6 +94,7 @@ Paste error output here
 <!-- If you ran tests with Laminar, please attach or link the following: -->
 
 - **Summary Output**:
+
   ```bash
   # Run: npx lam summary
   # Paste output here OR attach reports/summary.jsonl

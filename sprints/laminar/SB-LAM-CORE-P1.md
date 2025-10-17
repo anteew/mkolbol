@@ -2,8 +2,8 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "CORE-A", "parallel": true,  "tasks": ["T2501", "T2502"] },
-    { "id": "CORE-B", "parallel": true,  "depends_on": ["CORE-A"], "tasks": ["T2503"] },
+    { "id": "CORE-A", "parallel": true, "tasks": ["T2501", "T2502"] },
+    { "id": "CORE-B", "parallel": true, "depends_on": ["CORE-A"], "tasks": ["T2503"] },
     { "id": "CORE-C", "parallel": false, "depends_on": ["CORE-B"], "tasks": ["T2504", "T2505"] }
   ],
   "tasks": [
@@ -12,10 +12,7 @@
       "agent": "susan-1",
       "title": "Reporter: always-on per-case JSONL writer",
       "allowedFiles": ["src/test/reporter/jsonlReporter.ts"],
-      "verify": [
-        "npm run build",
-        "npm run test:ci || true"
-      ],
+      "verify": ["npm run build", "npm run test:ci || true"],
       "deliverables": ["patches/DIFF_T2501_reporter-per-case-jsonl.patch"]
     },
     {
@@ -45,9 +42,7 @@
       "agent": "susan-4",
       "title": "Tests: ensure per-case JSONL + index exist and are valid",
       "allowedFiles": ["tests/laminar/coreReporter.spec.ts", "reports/**"],
-      "verify": [
-        "npm run test:ci || true"
-      ],
+      "verify": ["npm run test:ci || true"],
       "deliverables": ["patches/DIFF_T2504_tests-core-reporter.patch"]
     },
     {
@@ -71,27 +66,32 @@
 ## Tasks
 
 ### T2501 — Reporter: always-on per-case JSONL writer
+
 - Add per-case writers to `src/test/reporter/jsonlReporter.ts` so each test gets `reports/<suite>/<case>.jsonl` regardless of reruns or debug modes.
 - Ensure directories are created and filenames are sanitized consistently with summary.
 
 ### T2502 — Reporter: artifact index manifest
+
 - On finish, emit `reports/index.json` with an array of cases: `{ suite, case, status, duration, artifactURI, digestURI?, sizeBytes, mtime }`.
 - Keep it small and deterministic; omit volatile fields.
 
 ### T2503 — CLI: summary/show consume index.json
+
 - `lam summary` should show digest availability and use `index.json` for paths.
 - `lam show` should resolve case → log path via index; fallback remains.
 
 ### T2504 — Tests
+
 - Add tests that run a tiny suite and assert `reports/<suite>/<case>.jsonl` exists and `reports/index.json` validates (JSON parse + required keys).
 
 ### T2505 — Docs
+
 - Document per-case log guarantees and `index.json` schema and examples.
 
 ---
 
 ## Success Criteria
+
 - Running `npm run test:ci` produces per-case logs for all tests and `reports/index.json`.
 - `lam summary` and `lam show` function using `index.json`.
 - Docs describe artifact guarantees.
-

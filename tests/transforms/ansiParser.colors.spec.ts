@@ -7,7 +7,7 @@ describe('AnsiParser color handling', () => {
   it('maps 256-color foreground indices to hex values', () => {
     const parser = new AnsiParser();
     const events = parser.parse('\u001b[38;5;196m');
-    const styleEvent = events.find(event => event.type === STYLE_EVENT_TYPE);
+    const styleEvent = events.find((event) => event.type === STYLE_EVENT_TYPE);
 
     expect(styleEvent).toBeDefined();
     expect(styleEvent?.type).toBe(STYLE_EVENT_TYPE);
@@ -17,7 +17,7 @@ describe('AnsiParser color handling', () => {
   it('maps 256-color background indices to hex values', () => {
     const parser = new AnsiParser();
     const events = parser.parse('\u001b[48;5;21m');
-    const styleEvent = events.find(event => event.type === STYLE_EVENT_TYPE);
+    const styleEvent = events.find((event) => event.type === STYLE_EVENT_TYPE);
 
     expect(styleEvent).toBeDefined();
     expect(styleEvent?.data.backgroundColor).toBe('#0000ff');
@@ -26,7 +26,7 @@ describe('AnsiParser color handling', () => {
   it('converts truecolor RGB foreground values into hex', () => {
     const parser = new AnsiParser();
     const events = parser.parse('\u001b[38;2;255;128;64m');
-    const styleEvent = events.find(event => event.type === STYLE_EVENT_TYPE);
+    const styleEvent = events.find((event) => event.type === STYLE_EVENT_TYPE);
 
     expect(styleEvent).toBeDefined();
     expect(styleEvent?.data.foregroundColor).toBe('#ff8040');
@@ -36,11 +36,11 @@ describe('AnsiParser color handling', () => {
     const parser = new AnsiParser();
 
     const fgEvents = parser.parse('\u001b[38;2;400;0;0m');
-    const fgStyleEvent = fgEvents.find(event => event.type === STYLE_EVENT_TYPE);
+    const fgStyleEvent = fgEvents.find((event) => event.type === STYLE_EVENT_TYPE);
     expect(fgStyleEvent?.data.foregroundColor).toBe('#ff0000');
 
     const bgEvents = parser.parse('\u001b[48;5;512m');
-    const bgStyleEvent = bgEvents.find(event => event.type === STYLE_EVENT_TYPE);
+    const bgStyleEvent = bgEvents.find((event) => event.type === STYLE_EVENT_TYPE);
     expect(bgStyleEvent?.data.backgroundColor).toBe('#eeeeee');
   });
 });

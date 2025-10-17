@@ -6,14 +6,16 @@
 const args = process.argv.slice(2);
 
 function printHelp() {
-  console.log(`lam — minimal stub CLI\n\n` +
-    `Usage:\n` +
-    `  lam --help           Show this help\n` +
-    `  lam version          Show package version\n\n` +
-    `Notes:\n` +
-    `  - This repository no longer bundles the Laminar toolkit.\n` +
-    `  - For kernel demos, use: node dist/examples/*.js\n` +
-    `  - For registry endpoints, use: node dist/scripts/mkctl.js endpoints\n`);
+  console.log(
+    `lam — minimal stub CLI\n\n` +
+      `Usage:\n` +
+      `  lam --help           Show this help\n` +
+      `  lam version          Show package version\n\n` +
+      `Notes:\n` +
+      `  - This repository no longer bundles the Laminar toolkit.\n` +
+      `  - For kernel demos, use: node dist/examples/*.js\n` +
+      `  - For registry endpoints, use: node dist/scripts/mkctl.js endpoints\n`,
+  );
 }
 
 if (args.includes('--help') || args.includes('-h')) {
@@ -23,7 +25,6 @@ if (args.includes('--help') || args.includes('-h')) {
 
 if (args[0] === 'version' || args[0] === '--version' || args[0] === '-v') {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const pkg = require('../package.json');
     console.log(pkg.version || 'unknown');
   } catch {
@@ -34,4 +35,3 @@ if (args[0] === 'version' || args[0] === '--version' || args[0] === '-v') {
 
 printHelp();
 process.exit(0);
-

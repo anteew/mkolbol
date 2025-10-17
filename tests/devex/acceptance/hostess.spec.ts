@@ -85,60 +85,64 @@ describe('Acceptance: Hostess Endpoint Registration', () => {
    *   - Endpoint not found → Registration missing or spawn failed
    *   - Wrong coordinates → Manifest misconfigured
    */
-  it('should register endpoint after spawn', async () => {
-    // CUSTOMIZE: Replace this manifest with your server's configuration
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'test-acceptance-server',
-      classHex: '0xACCEPT',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform',
-        accepts: ['text'],
-        produces: ['text']
-      },
-      command: '/bin/cat', // CUSTOMIZE: Replace with your command
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should register endpoint after spawn',
+    async () => {
+      // CUSTOMIZE: Replace this manifest with your server's configuration
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'test-acceptance-server',
+        classHex: '0xACCEPT',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+          accepts: ['text'],
+          produces: ['text'],
+        },
+        command: '/bin/cat', // CUSTOMIZE: Replace with your command
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    // CUSTOMIZE: Replace ExternalServerWrapper with YourServerWrapper
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      // CUSTOMIZE: Replace ExternalServerWrapper with YourServerWrapper
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
 
-    // Verify no endpoint exists before spawn
-    const endpointsBefore = hostess.listEndpoints();
-    expect(endpointsBefore.size).toBe(0);
+      // Verify no endpoint exists before spawn
+      const endpointsBefore = hostess.listEndpoints();
+      expect(endpointsBefore.size).toBe(0);
 
-    // Spawn the server
-    await wrapper.spawn();
+      // Spawn the server
+      await wrapper.spawn();
 
-    // Verify endpoint is registered after spawn
-    const endpointsAfter = hostess.listEndpoints();
-    expect(endpointsAfter.size).toBe(1);
+      // Verify endpoint is registered after spawn
+      const endpointsAfter = hostess.listEndpoints();
+      expect(endpointsAfter.size).toBe(1);
 
-    // CUSTOMIZE: Update this search to match your server's coordinates
-    // Option 1: Search by command (for ExternalServerWrapper)
-    const serverEndpoint = Array.from(endpointsAfter.entries()).find(
-      ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('/bin/cat')
-    );
+      // CUSTOMIZE: Update this search to match your server's coordinates
+      // Option 1: Search by command (for ExternalServerWrapper)
+      const serverEndpoint = Array.from(endpointsAfter.entries()).find(
+        ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('/bin/cat'),
+      );
 
-    // Option 2: Search by servername (alternative)
-    // const serverEndpoint = Array.from(endpointsAfter.entries()).find(
-    //   ([_, ep]) => ep.coordinates.includes('test-acceptance-server')
-    // );
+      // Option 2: Search by servername (alternative)
+      // const serverEndpoint = Array.from(endpointsAfter.entries()).find(
+      //   ([_, ep]) => ep.coordinates.includes('test-acceptance-server')
+      // );
 
-    expect(serverEndpoint).toBeDefined();
-    expect(serverEndpoint![1].type).toBe('external');
-  }, testTimeout);
+      expect(serverEndpoint).toBeDefined();
+      expect(serverEndpoint![1].type).toBe('external');
+    },
+    testTimeout,
+  );
 
   /**
    * TEST 2: Required Metadata Fields
@@ -149,54 +153,56 @@ describe('Acceptance: Hostess Endpoint Registration', () => {
    *   - Missing coordinates → Address information missing
    *   - Missing metadata → Manifest not propagated
    */
-  it('should have required metadata fields', async () => {
-    // CUSTOMIZE: Update manifest as needed
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'test-metadata-server',
-      classHex: '0xMETA',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' }
-      ],
-      capabilities: {
-        type: 'output'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should have required metadata fields',
+    async () => {
+      // CUSTOMIZE: Update manifest as needed
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'test-metadata-server',
+        classHex: '0xMETA',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [{ name: 'input', type: 'local', direction: 'input' }],
+        capabilities: {
+          type: 'output',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    const endpoints = hostess.listEndpoints();
-    const serverEndpoint = Array.from(endpoints.entries())[0];
+      const endpoints = hostess.listEndpoints();
+      const serverEndpoint = Array.from(endpoints.entries())[0];
 
-    // Verify required fields exist
-    expect(serverEndpoint).toBeDefined();
-    const [endpointId, endpoint] = serverEndpoint;
+      // Verify required fields exist
+      expect(serverEndpoint).toBeDefined();
+      const [endpointId, endpoint] = serverEndpoint;
 
-    // Type field (required)
-    expect(endpoint.type).toBeDefined();
-    expect(typeof endpoint.type).toBe('string');
-    expect(endpoint.type).toBe('external'); // CUSTOMIZE: 'inproc', 'worker', 'external', 'pty'
+      // Type field (required)
+      expect(endpoint.type).toBeDefined();
+      expect(typeof endpoint.type).toBe('string');
+      expect(endpoint.type).toBe('external'); // CUSTOMIZE: 'inproc', 'worker', 'external', 'pty'
 
-    // Coordinates field (required)
-    expect(endpoint.coordinates).toBeDefined();
-    expect(typeof endpoint.coordinates).toBe('string');
-    expect(endpoint.coordinates.length).toBeGreaterThan(0);
+      // Coordinates field (required)
+      expect(endpoint.coordinates).toBeDefined();
+      expect(typeof endpoint.coordinates).toBe('string');
+      expect(endpoint.coordinates.length).toBeGreaterThan(0);
 
-    // Metadata field (required for most wrappers)
-    expect(endpoint.metadata).toBeDefined();
-    expect(typeof endpoint.metadata).toBe('object');
-    expect(endpoint.metadata?.ioMode).toBe('stdio');
-  }, testTimeout);
+      // Metadata field (required for most wrappers)
+      expect(endpoint.metadata).toBeDefined();
+      expect(typeof endpoint.metadata).toBe('object');
+      expect(endpoint.metadata?.ioMode).toBe('stdio');
+    },
+    testTimeout,
+  );
 
   /**
    * TEST 3: Capability Declaration
@@ -206,49 +212,53 @@ describe('Acceptance: Hostess Endpoint Registration', () => {
    *   - Missing capabilities → Manifest not propagated
    *   - Wrong type → Capability misconfigured
    */
-  it('should declare capabilities', async () => {
-    // CUSTOMIZE: Set capabilities for your server
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'test-capabilities-server',
-      classHex: '0xCAP',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform',
-        accepts: ['text', 'json'],
-        produces: ['text'],
-        features: ['uppercase', 'trim']
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should declare capabilities',
+    async () => {
+      // CUSTOMIZE: Set capabilities for your server
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'test-capabilities-server',
+        classHex: '0xCAP',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+          accepts: ['text', 'json'],
+          produces: ['text'],
+          features: ['uppercase', 'trim'],
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    const endpoints = hostess.listEndpoints();
-    const [_, endpoint] = Array.from(endpoints.entries())[0];
+      const endpoints = hostess.listEndpoints();
+      const [_, endpoint] = Array.from(endpoints.entries())[0];
 
-    // CUSTOMIZE: Update assertions to match your server's capabilities
-    expect(endpoint.metadata).toBeDefined();
+      // CUSTOMIZE: Update assertions to match your server's capabilities
+      expect(endpoint.metadata).toBeDefined();
 
-    // Note: For ExternalServerWrapper, capabilities are stored in the
-    // manifest field of metadata, not directly in metadata.capabilities
-    // Adjust this based on your wrapper's implementation
-    if (endpoint.metadata?.capabilities) {
-      expect(endpoint.metadata.capabilities.type).toBe('transform');
-    }
-  }, testTimeout);
+      // Note: For ExternalServerWrapper, capabilities are stored in the
+      // manifest field of metadata, not directly in metadata.capabilities
+      // Adjust this based on your wrapper's implementation
+      if (endpoint.metadata?.capabilities) {
+        expect(endpoint.metadata.capabilities.type).toBe('transform');
+      }
+    },
+    testTimeout,
+  );
 
   /**
    * TEST 4: Discovery by Capabilities
@@ -261,53 +271,57 @@ describe('Acceptance: Hostess Endpoint Registration', () => {
    * NOTE: This test demonstrates how to search for servers by capabilities.
    * The actual query API depends on your Hostess implementation.
    */
-  it('should be discoverable by capabilities', async () => {
-    // CUSTOMIZE: Create multiple servers with different capabilities
-    const transformManifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'transform-server',
-      classHex: '0xTRANS',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should be discoverable by capabilities',
+    async () => {
+      // CUSTOMIZE: Create multiple servers with different capabilities
+      const transformManifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'transform-server',
+        classHex: '0xTRANS',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, transformManifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, transformManifest);
+      await wrapper.spawn();
 
-    // Query all endpoints
-    const endpoints = hostess.listEndpoints();
-    expect(endpoints.size).toBe(1);
+      // Query all endpoints
+      const endpoints = hostess.listEndpoints();
+      expect(endpoints.size).toBe(1);
 
-    // CUSTOMIZE: Implement your search logic based on capabilities
-    // Example: Find all transform servers
-    const transformServers = Array.from(endpoints.entries()).filter(
-      ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('cat')
-    );
+      // CUSTOMIZE: Implement your search logic based on capabilities
+      // Example: Find all transform servers
+      const transformServers = Array.from(endpoints.entries()).filter(
+        ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('cat'),
+      );
 
-    expect(transformServers.length).toBe(1);
-    expect(transformServers[0][1].type).toBe('external');
+      expect(transformServers.length).toBe(1);
+      expect(transformServers[0][1].type).toBe('external');
 
-    // Example: Search by metadata fields
-    const externalServers = Array.from(endpoints.entries()).filter(
-      ([_, ep]) => ep.metadata?.ioMode === 'stdio'
-    );
+      // Example: Search by metadata fields
+      const externalServers = Array.from(endpoints.entries()).filter(
+        ([_, ep]) => ep.metadata?.ioMode === 'stdio',
+      );
 
-    expect(externalServers.length).toBe(1);
-  }, testTimeout);
+      expect(externalServers.length).toBe(1);
+    },
+    testTimeout,
+  );
 
   /**
    * TEST 5: Multiple Endpoint Registration
@@ -317,64 +331,68 @@ describe('Acceptance: Hostess Endpoint Registration', () => {
    *   - Wrong count → Registration collision or leak
    *   - Duplicate IDs → ID generation broken
    */
-  it('should support multiple endpoint registrations', async () => {
-    // Spawn first server
-    const manifest1: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'server-1',
-      classHex: '0x0001',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [{ name: 'input', type: 'local', direction: 'input' }],
-      capabilities: { type: 'output' },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should support multiple endpoint registrations',
+    async () => {
+      // Spawn first server
+      const manifest1: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'server-1',
+        classHex: '0x0001',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [{ name: 'input', type: 'local', direction: 'input' }],
+        capabilities: { type: 'output' },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    const wrapper1 = new ExternalServerWrapper(kernel, hostess, manifest1);
-    await wrapper1.spawn();
+      const wrapper1 = new ExternalServerWrapper(kernel, hostess, manifest1);
+      await wrapper1.spawn();
 
-    // Spawn second server
-    const manifest2: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'server-2',
-      classHex: '0x0002',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [{ name: 'output', type: 'local', direction: 'output' }],
-      capabilities: { type: 'input' },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+      // Spawn second server
+      const manifest2: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'server-2',
+        classHex: '0x0002',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [{ name: 'output', type: 'local', direction: 'output' }],
+        capabilities: { type: 'input' },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    const wrapper2 = new ExternalServerWrapper(kernel, hostess, manifest2);
-    await wrapper2.spawn();
+      const wrapper2 = new ExternalServerWrapper(kernel, hostess, manifest2);
+      await wrapper2.spawn();
 
-    // Verify both registered
-    const endpoints = hostess.listEndpoints();
-    expect(endpoints.size).toBe(2);
+      // Verify both registered
+      const endpoints = hostess.listEndpoints();
+      expect(endpoints.size).toBe(2);
 
-    // Verify unique IDs
-    const endpointIds = Array.from(endpoints.keys());
-    expect(new Set(endpointIds).size).toBe(2); // No duplicates
+      // Verify unique IDs
+      const endpointIds = Array.from(endpoints.keys());
+      expect(new Set(endpointIds).size).toBe(2); // No duplicates
 
-    // Clean up both
-    await wrapper1.shutdown();
-    await wrapper2.shutdown();
+      // Clean up both
+      await wrapper1.shutdown();
+      await wrapper2.shutdown();
 
-    // Assign to wrapper for afterEach cleanup
-    wrapper = wrapper2;
-  }, testTimeout);
+      // Assign to wrapper for afterEach cleanup
+      wrapper = wrapper2;
+    },
+    testTimeout,
+  );
 });
 
 /**

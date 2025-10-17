@@ -63,7 +63,9 @@ describe('StateManager', () => {
     sm.setValidator((from: TerminalRef, tos: TerminalRef[], _type): ValidationResult => {
       const [to] = tos;
       const ok = from.terminal === 'out' && to.terminal === 'in';
-      return ok ? { valid: true, errors: [] } : { valid: false, errors: [{ message: 'direction mismatch' }] };
+      return ok
+        ? { valid: true, errors: [] }
+        : { valid: false, errors: [{ message: 'direction mismatch' }] };
     });
 
     const ok = sm.connect('a.out', 'b.in');
@@ -75,7 +77,9 @@ describe('StateManager', () => {
     smBad.setValidator((from: TerminalRef, tos: TerminalRef[], _type): ValidationResult => {
       const [to] = tos;
       const ok2 = from.terminal === 'out' && to.terminal === 'in';
-      return ok2 ? { valid: true, errors: [] } : { valid: false, errors: [{ message: 'direction mismatch' }] };
+      return ok2
+        ? { valid: true, errors: [] }
+        : { valid: false, errors: [{ message: 'direction mismatch' }] };
     });
     expect(() => smBad.connect('x.in', 'y.out')).toThrow();
   });

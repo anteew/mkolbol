@@ -30,9 +30,9 @@ describe('Executor → RoutingServer integration', () => {
     const config: TopologyConfig = {
       nodes: [
         { id: 'timer1', module: 'TimerSource', params: { periodMs: 100 } },
-        { id: 'sink1', module: 'ConsoleSink', params: { prefix: '[router]' } }
+        { id: 'sink1', module: 'ConsoleSink', params: { prefix: '[router]' } },
       ],
-      connections: [{ from: 'timer1.output', to: 'sink1.input' }]
+      connections: [{ from: 'timer1.output', to: 'sink1.input' }],
     };
 
     executor.load(config);
@@ -56,7 +56,7 @@ describe('Executor → RoutingServer integration', () => {
   it('updates routing entry on restart', async () => {
     const config: TopologyConfig = {
       nodes: [{ id: 'timer1', module: 'TimerSource', params: { periodMs: 50 } }],
-      connections: []
+      connections: [],
     };
 
     executor.load(config);
@@ -77,7 +77,7 @@ describe('Executor → RoutingServer integration', () => {
   it('sends periodic heartbeats to router when enabled', async () => {
     const config: TopologyConfig = {
       nodes: [{ id: 'timer1', module: 'TimerSource', params: { periodMs: 200 } }],
-      connections: []
+      connections: [],
     };
 
     executor.setRouterHeartbeatConfig({ enabled: true, intervalMs: 100 });
@@ -96,7 +96,7 @@ describe('Executor → RoutingServer integration', () => {
   it('stops heartbeats on shutdown', async () => {
     const config: TopologyConfig = {
       nodes: [{ id: 'timer1', module: 'TimerSource', params: { periodMs: 100 } }],
-      connections: []
+      connections: [],
     };
 
     executor.setRouterHeartbeatConfig({ enabled: true, intervalMs: 50 });
@@ -113,7 +113,7 @@ describe('Executor → RoutingServer integration', () => {
   it('does not send heartbeats when disabled', async () => {
     const config: TopologyConfig = {
       nodes: [{ id: 'timer1', module: 'TimerSource', params: { periodMs: 100 } }],
-      connections: []
+      connections: [],
     };
 
     executor.setRouterHeartbeatConfig({ enabled: false });

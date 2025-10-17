@@ -34,7 +34,7 @@ describe('PipeMeterTransform', () => {
     pipeMeter.inputPipe.write('hello');
     pipeMeter.inputPipe.write('world');
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(received).toEqual(['hello', 'world']);
   });
@@ -46,7 +46,7 @@ describe('PipeMeterTransform', () => {
     pipeMeter.inputPipe.write('message2');
     pipeMeter.inputPipe.write('message3');
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const metrics = pipeMeter.getMetrics();
     expect(metrics.totalMessages).toBe(3);
@@ -58,7 +58,7 @@ describe('PipeMeterTransform', () => {
     pipeMeter.inputPipe.write('hello');
     pipeMeter.inputPipe.write('world');
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const metrics = pipeMeter.getMetrics();
     expect(metrics.totalBytes).toBe(10);
@@ -70,7 +70,7 @@ describe('PipeMeterTransform', () => {
     pipeMeter.inputPipe.write(Buffer.from('hello'));
     pipeMeter.inputPipe.write(Buffer.from('world'));
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const metrics = pipeMeter.getMetrics();
     expect(metrics.totalBytes).toBe(10);
@@ -85,13 +85,13 @@ describe('PipeMeterTransform', () => {
     pipeMeter.inputPipe.write(obj1);
     pipeMeter.inputPipe.write(obj2);
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const metrics = pipeMeter.getMetrics();
-    const expectedSize = 
+    const expectedSize =
       Buffer.byteLength(JSON.stringify(obj1), 'utf8') +
       Buffer.byteLength(JSON.stringify(obj2), 'utf8');
-    
+
     expect(metrics.totalBytes).toBe(expectedSize);
   });
 
@@ -99,12 +99,12 @@ describe('PipeMeterTransform', () => {
     pipeMeter = new PipeMeterTransform(kernel, { emitInterval: 200 });
 
     pipeMeter.inputPipe.write('hello');
-    
-    await new Promise(resolve => setTimeout(resolve, 250));
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
 
     pipeMeter.inputPipe.write('world');
-    
-    await new Promise(resolve => setTimeout(resolve, 250));
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
 
     const metrics = pipeMeter.getMetrics();
     expect(metrics.bytesPerSecond).toBeGreaterThanOrEqual(0);
@@ -114,13 +114,13 @@ describe('PipeMeterTransform', () => {
     pipeMeter = new PipeMeterTransform(kernel, { emitInterval: 200 });
 
     pipeMeter.inputPipe.write('msg1');
-    
-    await new Promise(resolve => setTimeout(resolve, 250));
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
 
     pipeMeter.inputPipe.write('msg2');
     pipeMeter.inputPipe.write('msg3');
-    
-    await new Promise(resolve => setTimeout(resolve, 250));
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
 
     const metrics = pipeMeter.getMetrics();
     expect(metrics.messagesPerSecond).toBeGreaterThanOrEqual(0);
@@ -131,7 +131,7 @@ describe('PipeMeterTransform', () => {
 
     pipeMeter.inputPipe.write('test');
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const metrics = pipeMeter.getMetrics();
 
@@ -156,7 +156,7 @@ describe('PipeMeterTransform', () => {
 
     pipeMeter.inputPipe.write('test');
 
-    await new Promise(resolve => setTimeout(resolve, customInterval + 50));
+    await new Promise((resolve) => setTimeout(resolve, customInterval + 50));
 
     const metrics = pipeMeter.getMetrics();
     expect(metrics.totalMessages).toBe(1);
@@ -166,9 +166,9 @@ describe('PipeMeterTransform', () => {
     pipeMeter = new PipeMeterTransform(kernel);
 
     const metrics1 = pipeMeter.getMetrics();
-    
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     const metrics2 = pipeMeter.getMetrics();
 
     expect(metrics2.lastUpdateTime).toBeGreaterThanOrEqual(metrics1.lastUpdateTime);
@@ -178,14 +178,14 @@ describe('PipeMeterTransform', () => {
     pipeMeter = new PipeMeterTransform(kernel, { emitInterval: 100 });
 
     pipeMeter.inputPipe.write('test');
-    
-    await new Promise(resolve => setTimeout(resolve, 50));
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     pipeMeter.stop();
 
     const metrics1 = pipeMeter.getMetrics();
-    
-    await new Promise(resolve => setTimeout(resolve, 200));
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     const metrics2 = pipeMeter.getMetrics();
 
@@ -198,7 +198,7 @@ describe('PipeMeterTransform', () => {
 
     const messageCount = 50;
     let received = 0;
-    
+
     const done = new Promise<void>((resolve) => {
       pipeMeter.outputPipe.on('data', () => {
         received++;
@@ -213,7 +213,7 @@ describe('PipeMeterTransform', () => {
     }
 
     await done;
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const metrics = pipeMeter.getMetrics();
     expect(metrics.totalMessages).toBe(messageCount);
@@ -227,7 +227,7 @@ describe('PipeMeterTransform', () => {
     pipeMeter.inputPipe.write(Buffer.from('buffer'));
     pipeMeter.inputPipe.write({ type: 'object' });
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const metrics = pipeMeter.getMetrics();
     expect(metrics.totalMessages).toBe(3);

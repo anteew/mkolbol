@@ -17,6 +17,6 @@ nodes:
 connections:
   - from: timer.output
     to: transform.input
-  
+
   - from: transform.output
     to: filesink.input

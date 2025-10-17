@@ -21,12 +21,12 @@ interface ModuleInfo {
 
 export async function generatePromptSnippet(): Promise<string> {
   const sections: string[] = [];
-  
+
   sections.push('# MKolbol Project State');
   sections.push('');
   sections.push('**Generated for LLM context**');
   sections.push('');
-  
+
   const topologySummary = await loadTopologySummary();
   sections.push('## Topology Summary');
   sections.push('');
@@ -34,7 +34,7 @@ export async function generatePromptSnippet(): Promise<string> {
   sections.push(JSON.stringify(topologySummary, null, 2));
   sections.push('```');
   sections.push('');
-  
+
   const recentErrors = await loadRecentErrors();
   if (recentErrors.length > 0) {
     sections.push('## Recent Errors');
@@ -44,7 +44,7 @@ export async function generatePromptSnippet(): Promise<string> {
     sections.push('```');
     sections.push('');
   }
-  
+
   const modules = await loadModuleList();
   sections.push('## Available Modules');
   sections.push('');
@@ -52,7 +52,7 @@ export async function generatePromptSnippet(): Promise<string> {
   sections.push(JSON.stringify(modules, null, 2));
   sections.push('```');
   sections.push('');
-  
+
   const buildStatus = await checkBuildStatus();
   sections.push('## Build Status');
   sections.push('');
@@ -60,20 +60,20 @@ export async function generatePromptSnippet(): Promise<string> {
   sections.push(JSON.stringify(buildStatus, null, 2));
   sections.push('```');
   sections.push('');
-  
+
   return sections.join('\n');
 }
 
 async function loadTopologySummary(): Promise<TopologySummary> {
   const snapshotPath = path.resolve(process.cwd(), 'reports', 'router-endpoints.json');
-  
+
   try {
     const data = await fs.readFile(snapshotPath, 'utf-8');
     const endpoints = JSON.parse(data);
-    
+
     const uniqueNodes = new Set<string>();
     let connectionCount = 0;
-    
+
     if (Array.isArray(endpoints)) {
       for (const ep of endpoints) {
         if (ep.id) {
@@ -83,7 +83,7 @@ async function loadTopologySummary(): Promise<TopologySummary> {
       }
       connectionCount = endpoints.length;
     }
-    
+
     return {
       nodes: uniqueNodes.size,
       connections: connectionCount,
@@ -100,39 +100,44 @@ async function loadTopologySummary(): Promise<TopologySummary> {
 
 async function loadRecentErrors(): Promise<ErrorEntry[]> {
   const errorLogPath = path.resolve(process.cwd(), '.mk', 'state', 'errors.json');
-  
+
   try {
     const data = await fs.readFile(errorLogPath, 'utf-8');
     const errors = JSON.parse(data);
-    
+
     if (Array.isArray(errors)) {
       return errors.slice(-5);
     }
   } catch {
     // No errors file
   }
-  
+
   return [];
 }
 
 async function loadModuleList(): Promise<ModuleInfo[]> {
   const modulesDir = path.resolve(process.cwd(), 'src', 'modules');
-  
+
   try {
     const entries = await fs.readdir(modulesDir);
     const modules: ModuleInfo[] = [];
-    
+
     for (const entry of entries) {
       if (entry.endsWith('.ts') && !entry.endsWith('.d.ts')) {
         const moduleName = entry.replace('.ts', '');
         let moduleType = 'transform';
-        
+
         if (moduleName.includes('sink') || moduleName.includes('output')) {
           moduleType = 'output';
-        } else if (moduleName.includes('source') || moduleName.includes('input') || moduleName.includes('timer') || moduleName.includes('keyboard')) {
+        } else if (
+          moduleName.includes('source') ||
+          moduleName.includes('input') ||
+          moduleName.includes('timer') ||
+          moduleName.includes('keyboard')
+        ) {
           moduleType = 'input';
         }
-        
+
         modules.push({
           name: moduleName,
           type: moduleType,
@@ -140,7 +145,7 @@ async function loadModuleList(): Promise<ModuleInfo[]> {
         });
       }
     }
-    
+
     modules.sort((a, b) => a.name.localeCompare(b.name));
     return modules;
   } catch {
@@ -150,7 +155,7 @@ async function loadModuleList(): Promise<ModuleInfo[]> {
 
 async function checkBuildStatus(): Promise<{ status: string; lastBuild?: string }> {
   const distPath = path.resolve(process.cwd(), 'dist');
-  
+
   try {
     const stats = await fs.stat(distPath);
     return {
@@ -166,7 +171,7 @@ async function checkBuildStatus(): Promise<{ status: string; lastBuild?: string 
 
 export async function isPromptDisabled(): Promise<boolean> {
   const flagPath = path.resolve(process.cwd(), '.mk', 'state', 'prompt-disabled');
-  
+
   try {
     await fs.access(flagPath);
     return true;
@@ -178,14 +183,14 @@ export async function isPromptDisabled(): Promise<boolean> {
 export async function disablePrompt(): Promise<void> {
   const flagPath = path.resolve(process.cwd(), '.mk', 'state', 'prompt-disabled');
   const stateDir = path.dirname(flagPath);
-  
+
   await fs.mkdir(stateDir, { recursive: true });
   await fs.writeFile(flagPath, new Date().toISOString(), 'utf-8');
 }
 
 export async function enablePrompt(): Promise<void> {
   const flagPath = path.resolve(process.cwd(), '.mk', 'state', 'prompt-disabled');
-  
+
   try {
     await fs.unlink(flagPath);
   } catch {

@@ -98,9 +98,8 @@ export class TraceCollector extends EventEmitter {
     allLatencies.sort((a, b) => a - b);
 
     const totalMessages = allLatencies.length;
-    const avgLatency = allLatencies.length > 0 
-      ? allLatencies.reduce((a, b) => a + b, 0) / allLatencies.length 
-      : 0;
+    const avgLatency =
+      allLatencies.length > 0 ? allLatencies.reduce((a, b) => a + b, 0) / allLatencies.length : 0;
     const p50Latency = this.percentile(allLatencies, 50);
     const p95Latency = this.percentile(allLatencies, 95);
     const p99Latency = this.percentile(allLatencies, 99);
@@ -174,10 +173,10 @@ export class TraceCollector extends EventEmitter {
 export async function captureTrace(
   topology: TopologyConfig,
   duration: number = 5000,
-  options: TraceOptions = {}
+  options: TraceOptions = {},
 ): Promise<TraceData> {
   const collector = new TraceCollector({ ...options, duration });
-  
+
   const kernel = new Kernel();
   const hostess = new Hostess();
   const stateManager = new StateManager(kernel);
@@ -186,8 +185,7 @@ export async function captureTrace(
   const unsubscribe = stateManager.subscribe((event) => {
     if (event.type === 'connected') {
       const connectionId = event.connection.id;
-      const startTime = Date.now();
-      
+
       collector.recordFlow(connectionId, 0);
     }
   });
@@ -200,10 +198,10 @@ export async function captureTrace(
 
     const sampleInterval = options.sampleInterval || 100;
     const samples = Math.floor(duration / sampleInterval);
-    
+
     for (let i = 0; i < samples; i++) {
       await new Promise((resolve) => setTimeout(resolve, sampleInterval));
-      
+
       for (const conn of topology.connections) {
         const connectionId = `${conn.from}→${conn.to}`;
         const latency = Math.random() * 10 + 1;
@@ -212,7 +210,7 @@ export async function captureTrace(
     }
 
     const traceData = collector.stop();
-    
+
     await executor.down();
     unsubscribe();
 
@@ -229,7 +227,7 @@ export function formatTraceOutput(data: TraceData, format: 'text' | 'json' = 'te
   }
 
   const lines: string[] = [];
-  
+
   lines.push('═══════════════════════════════════════════════════════');
   lines.push('                   TRACE ANALYSIS');
   lines.push('═══════════════════════════════════════════════════════');
@@ -238,7 +236,7 @@ export function formatTraceOutput(data: TraceData, format: 'text' | 'json' = 'te
   lines.push(`Total Messages: ${data.statistics.totalMessages}`);
   lines.push(`Throughput: ${data.statistics.throughput.toFixed(2)} msg/s`);
   lines.push('');
-  
+
   lines.push('─── Latency Percentiles ───────────────────────────────');
   lines.push(`  Average:  ${data.statistics.avgLatency.toFixed(2)}ms`);
   lines.push(`  p50:      ${data.statistics.p50Latency.toFixed(2)}ms`);
@@ -248,20 +246,22 @@ export function formatTraceOutput(data: TraceData, format: 'text' | 'json' = 'te
 
   if (data.bottlenecks.length > 0) {
     lines.push('─── Bottleneck Analysis ───────────────────────────────');
-    
-    const highSeverity = data.bottlenecks.filter(b => b.severity === 'high');
-    const mediumSeverity = data.bottlenecks.filter(b => b.severity === 'medium');
-    
+
+    const highSeverity = data.bottlenecks.filter((b) => b.severity === 'high');
+    const mediumSeverity = data.bottlenecks.filter((b) => b.severity === 'medium');
+
     if (highSeverity.length > 0) {
       lines.push('');
       lines.push('⚠ HIGH SEVERITY:');
       for (const b of highSeverity) {
         lines.push(`  ${b.connectionId}`);
-        lines.push(`    Avg: ${b.avgLatencyMs.toFixed(2)}ms | p95: ${b.p95LatencyMs.toFixed(2)}ms | p99: ${b.p99LatencyMs.toFixed(2)}ms`);
+        lines.push(
+          `    Avg: ${b.avgLatencyMs.toFixed(2)}ms | p95: ${b.p95LatencyMs.toFixed(2)}ms | p99: ${b.p99LatencyMs.toFixed(2)}ms`,
+        );
         lines.push(`    Throughput: ${b.throughput.toFixed(2)} msg/s`);
       }
     }
-    
+
     if (mediumSeverity.length > 0) {
       lines.push('');
       lines.push('⚡ MEDIUM SEVERITY:');
@@ -271,7 +271,7 @@ export function formatTraceOutput(data: TraceData, format: 'text' | 'json' = 'te
         lines.push(`    Throughput: ${b.throughput.toFixed(2)} msg/s`);
       }
     }
-    
+
     lines.push('');
   } else {
     lines.push('─── Bottlenecks ───────────────────────────────────────');
@@ -282,16 +282,16 @@ export function formatTraceOutput(data: TraceData, format: 'text' | 'json' = 'te
   lines.push('─── Timeline ──────────────────────────────────────────');
   const firstTimestamp = data.timings.length > 0 ? data.timings[0].timestamp : data.startTime;
   const recentTimings = data.timings.slice(-10);
-  
+
   for (const timing of recentTimings) {
     const relativeTime = (timing.timestamp - firstTimestamp).toFixed(0).padStart(6);
     lines.push(`  [+${relativeTime}ms] ${timing.connectionId} - ${timing.latencyMs.toFixed(2)}ms`);
   }
-  
+
   if (data.timings.length > 10) {
     lines.push(`  ... (${data.timings.length - 10} more entries)`);
   }
-  
+
   lines.push('');
   lines.push('═══════════════════════════════════════════════════════');
 

@@ -13,7 +13,10 @@ describe('Adapter Parity: Unix vs Worker [threads]', () => {
   let cleanupPaths: string[] = [];
 
   function getSocketPath(name: string): string {
-    const path = join(tmpdir(), `mkolbol-parity-${name}-${Date.now()}-${randomBytes(4).toString('hex')}.sock`);
+    const path = join(
+      tmpdir(),
+      `mkolbol-parity-${name}-${Date.now()}-${randomBytes(4).toString('hex')}.sock`,
+    );
     cleanupPaths.push(path);
     return path;
   }
@@ -30,648 +33,720 @@ describe('Adapter Parity: Unix vs Worker [threads]', () => {
   });
 
   describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('Pause/Resume Behavior', () => {
-    it('Unix adapter: pause/resume controls data flow', async () => {
-      const socketPath = getSocketPath('unix-pause');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
+    it(
+      'Unix adapter: pause/resume controls data flow',
+      async () => {
+        const socketPath = getSocketPath('unix-pause');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
 
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+        await serverAdapter.listen();
+        await clientAdapter.connect();
 
-      const serverPipe = serverAdapter.createDuplex({ highWaterMark: 1024 });
-      const clientPipe = clientAdapter.createDuplex({ highWaterMark: 1024 });
+        const serverPipe = serverAdapter.createDuplex({ highWaterMark: 1024 });
+        const clientPipe = clientAdapter.createDuplex({ highWaterMark: 1024 });
 
-      const receivedChunks: Buffer[] = [];
+        const receivedChunks: Buffer[] = [];
 
-      clientPipe.on('data', (chunk) => {
-        receivedChunks.push(Buffer.from(chunk));
-      });
+        clientPipe.on('data', (chunk) => {
+          receivedChunks.push(Buffer.from(chunk));
+        });
 
-      serverPipe.write(Buffer.from('chunk1'));
-      serverPipe.write(Buffer.from('chunk2'));
-      serverPipe.write(Buffer.from('chunk3'));
-      serverPipe.end();
-      
-      await new Promise<void>(resolve => clientPipe.once('end', resolve));
+        serverPipe.write(Buffer.from('chunk1'));
+        serverPipe.write(Buffer.from('chunk2'));
+        serverPipe.write(Buffer.from('chunk3'));
+        serverPipe.end();
 
-      expect(receivedChunks.length).toBeGreaterThanOrEqual(1);
-      const combined = Buffer.concat(receivedChunks).toString();
-      expect(combined).toContain('chunk1');
-      expect(combined).toContain('chunk2');
-      expect(combined).toContain('chunk3');
+        await new Promise<void>((resolve) => clientPipe.once('end', resolve));
 
-      serverAdapter.close();
-      clientAdapter.close();
-    }, testTimeout);
+        expect(receivedChunks.length).toBeGreaterThanOrEqual(1);
+        const combined = Buffer.concat(receivedChunks).toString();
+        expect(combined).toContain('chunk1');
+        expect(combined).toContain('chunk2');
+        expect(combined).toContain('chunk3');
 
-    it('Worker adapter: pause/resume controls data flow', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
+        serverAdapter.close();
+        clientAdapter.close();
+      },
+      testTimeout,
+    );
 
-      const pipe1 = adapter1.createDuplex({ highWaterMark: 1024 });
-      const pipe2 = adapter2.createDuplex({ highWaterMark: 1024 });
+    it(
+      'Worker adapter: pause/resume controls data flow',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
 
-      const receivedChunks: Buffer[] = [];
+        const pipe1 = adapter1.createDuplex({ highWaterMark: 1024 });
+        const pipe2 = adapter2.createDuplex({ highWaterMark: 1024 });
 
-      pipe2.on('data', (chunk) => {
-        receivedChunks.push(Buffer.from(chunk));
-      });
+        const receivedChunks: Buffer[] = [];
 
-      pipe1.write(Buffer.from('chunk1'));
-      pipe1.write(Buffer.from('chunk2'));
-      pipe1.write(Buffer.from('chunk3'));
-      pipe1.end();
-      
-      await new Promise<void>(resolve => pipe2.once('end', resolve));
+        pipe2.on('data', (chunk) => {
+          receivedChunks.push(Buffer.from(chunk));
+        });
 
-      expect(receivedChunks.length).toBeGreaterThanOrEqual(1);
-      const combined = Buffer.concat(receivedChunks).toString();
-      expect(combined).toContain('chunk1');
-      expect(combined).toContain('chunk2');
-      expect(combined).toContain('chunk3');
+        pipe1.write(Buffer.from('chunk1'));
+        pipe1.write(Buffer.from('chunk2'));
+        pipe1.write(Buffer.from('chunk3'));
+        pipe1.end();
 
-      port1.close();
-      port2.close();
-    }, testTimeout);
+        await new Promise<void>((resolve) => pipe2.once('end', resolve));
 
-    it('Unix adapter: write respects backpressure API', async () => {
-      const socketPath = getSocketPath('unix-backpressure');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
+        expect(receivedChunks.length).toBeGreaterThanOrEqual(1);
+        const combined = Buffer.concat(receivedChunks).toString();
+        expect(combined).toContain('chunk1');
+        expect(combined).toContain('chunk2');
+        expect(combined).toContain('chunk3');
 
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+        port1.close();
+        port2.close();
+      },
+      testTimeout,
+    );
 
-      const serverPipe = serverAdapter.createDuplex({ highWaterMark: 512 });
-      const clientPipe = clientAdapter.createDuplex({ highWaterMark: 512 });
+    it(
+      'Unix adapter: write respects backpressure API',
+      async () => {
+        const socketPath = getSocketPath('unix-backpressure');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
 
-      clientPipe.on('data', () => {});
+        await serverAdapter.listen();
+        await clientAdapter.connect();
 
-      const canContinue = serverPipe.write(Buffer.alloc(4096, 0xFF));
-      
-      serverPipe.end();
-      await new Promise<void>(resolve => clientPipe.once('end', resolve));
+        const serverPipe = serverAdapter.createDuplex({ highWaterMark: 512 });
+        const clientPipe = clientAdapter.createDuplex({ highWaterMark: 512 });
 
-      expect(typeof canContinue).toBe('boolean');
+        clientPipe.on('data', () => {});
 
-      serverAdapter.close();
-      clientAdapter.close();
-    }, testTimeout);
+        const canContinue = serverPipe.write(Buffer.alloc(4096, 0xff));
 
-    it('Worker adapter: write respects backpressure API', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
+        serverPipe.end();
+        await new Promise<void>((resolve) => clientPipe.once('end', resolve));
 
-      const pipe1 = adapter1.createDuplex({ highWaterMark: 512 });
-      const pipe2 = adapter2.createDuplex({ highWaterMark: 512 });
+        expect(typeof canContinue).toBe('boolean');
 
-      pipe2.on('data', () => {});
+        serverAdapter.close();
+        clientAdapter.close();
+      },
+      testTimeout,
+    );
 
-      const canContinue = pipe1.write(Buffer.alloc(4096, 0xFF));
-      
-      pipe1.end();
-      await new Promise<void>(resolve => pipe2.once('end', resolve));
+    it(
+      'Worker adapter: write respects backpressure API',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
 
-      expect(typeof canContinue).toBe('boolean');
+        const pipe1 = adapter1.createDuplex({ highWaterMark: 512 });
+        const pipe2 = adapter2.createDuplex({ highWaterMark: 512 });
 
-      port1.close();
-      port2.close();
-    }, testTimeout);
+        pipe2.on('data', () => {});
+
+        const canContinue = pipe1.write(Buffer.alloc(4096, 0xff));
+
+        pipe1.end();
+        await new Promise<void>((resolve) => pipe2.once('end', resolve));
+
+        expect(typeof canContinue).toBe('boolean');
+
+        port1.close();
+        port2.close();
+      },
+      testTimeout,
+    );
   });
 
   describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('End/Close Behavior', () => {
-    it('Unix adapter: end signal is propagated', async () => {
-      const socketPath = getSocketPath('unix-end');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
+    it(
+      'Unix adapter: end signal is propagated',
+      async () => {
+        const socketPath = getSocketPath('unix-end');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
 
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+        await serverAdapter.listen();
+        await clientAdapter.connect();
 
-      const serverPipe = serverAdapter.createDuplex();
-      const clientPipe = clientAdapter.createDuplex();
+        const serverPipe = serverAdapter.createDuplex();
+        const clientPipe = clientAdapter.createDuplex();
 
-      const received: Buffer[] = [];
-      clientPipe.on('data', (chunk) => {
-        received.push(Buffer.from(chunk));
-      });
+        const received: Buffer[] = [];
+        clientPipe.on('data', (chunk) => {
+          received.push(Buffer.from(chunk));
+        });
 
-      serverPipe.write(Buffer.from('data'));
-      serverPipe.end();
+        serverPipe.write(Buffer.from('data'));
+        serverPipe.end();
 
-      await new Promise<void>(resolve => clientPipe.once('end', resolve));
+        await new Promise<void>((resolve) => clientPipe.once('end', resolve));
 
-      expect(Buffer.concat(received).toString()).toContain('data');
+        expect(Buffer.concat(received).toString()).toContain('data');
 
-      serverAdapter.close();
-      clientAdapter.close();
-    }, testTimeout);
+        serverAdapter.close();
+        clientAdapter.close();
+      },
+      testTimeout,
+    );
 
-    it('Worker adapter: end signal is propagated', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
+    it(
+      'Worker adapter: end signal is propagated',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
 
-      const pipe1 = adapter1.createDuplex();
-      const pipe2 = adapter2.createDuplex();
+        const pipe1 = adapter1.createDuplex();
+        const pipe2 = adapter2.createDuplex();
 
-      const received: Buffer[] = [];
-      pipe2.on('data', (chunk) => {
-        received.push(Buffer.from(chunk));
-      });
+        const received: Buffer[] = [];
+        pipe2.on('data', (chunk) => {
+          received.push(Buffer.from(chunk));
+        });
 
-      pipe1.write(Buffer.from('data'));
-      pipe1.end();
+        pipe1.write(Buffer.from('data'));
+        pipe1.end();
 
-      await new Promise<void>(resolve => pipe2.once('end', resolve));
+        await new Promise<void>((resolve) => pipe2.once('end', resolve));
 
-      expect(Buffer.concat(received).toString()).toContain('data');
+        expect(Buffer.concat(received).toString()).toContain('data');
 
-      port1.close();
-      port2.close();
-    }, testTimeout);
+        port1.close();
+        port2.close();
+      },
+      testTimeout,
+    );
 
-    it('Unix adapter: end after writes delivers all data', async () => {
-      const socketPath = getSocketPath('unix-end-data');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
+    it(
+      'Unix adapter: end after writes delivers all data',
+      async () => {
+        const socketPath = getSocketPath('unix-end-data');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
 
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+        await serverAdapter.listen();
+        await clientAdapter.connect();
 
-      const serverPipe = serverAdapter.createDuplex();
-      const clientPipe = clientAdapter.createDuplex();
+        const serverPipe = serverAdapter.createDuplex();
+        const clientPipe = clientAdapter.createDuplex();
 
-      const receivedChunks: Buffer[] = [];
-      clientPipe.on('data', (chunk) => {
-        receivedChunks.push(Buffer.from(chunk));
-      });
+        const receivedChunks: Buffer[] = [];
+        clientPipe.on('data', (chunk) => {
+          receivedChunks.push(Buffer.from(chunk));
+        });
 
-      const testChunks = [
-        Buffer.from('chunk1'),
-        Buffer.from('chunk2'),
-        Buffer.from('chunk3'),
-      ];
+        const testChunks = [Buffer.from('chunk1'), Buffer.from('chunk2'), Buffer.from('chunk3')];
 
-      for (const chunk of testChunks) {
-        serverPipe.write(chunk);
-      }
-      serverPipe.end();
+        for (const chunk of testChunks) {
+          serverPipe.write(chunk);
+        }
+        serverPipe.end();
 
-      await new Promise<void>(resolve => clientPipe.once('end', resolve));
+        await new Promise<void>((resolve) => clientPipe.once('end', resolve));
 
-      const received = Buffer.concat(receivedChunks).toString();
-      const expected = Buffer.concat(testChunks).toString();
-      expect(received).toBe(expected);
+        const received = Buffer.concat(receivedChunks).toString();
+        const expected = Buffer.concat(testChunks).toString();
+        expect(received).toBe(expected);
 
-      serverAdapter.close();
-      clientAdapter.close();
-    }, testTimeout);
+        serverAdapter.close();
+        clientAdapter.close();
+      },
+      testTimeout,
+    );
 
-    it('Worker adapter: end after writes delivers all data', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
+    it(
+      'Worker adapter: end after writes delivers all data',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
 
-      const pipe1 = adapter1.createDuplex();
-      const pipe2 = adapter2.createDuplex();
+        const pipe1 = adapter1.createDuplex();
+        const pipe2 = adapter2.createDuplex();
 
-      const receivedChunks: Buffer[] = [];
-      pipe2.on('data', (chunk) => {
-        receivedChunks.push(Buffer.from(chunk));
-      });
+        const receivedChunks: Buffer[] = [];
+        pipe2.on('data', (chunk) => {
+          receivedChunks.push(Buffer.from(chunk));
+        });
 
-      const testChunks = [
-        Buffer.from('chunk1'),
-        Buffer.from('chunk2'),
-        Buffer.from('chunk3'),
-      ];
+        const testChunks = [Buffer.from('chunk1'), Buffer.from('chunk2'), Buffer.from('chunk3')];
 
-      for (const chunk of testChunks) {
-        pipe1.write(chunk);
-      }
-      pipe1.end();
+        for (const chunk of testChunks) {
+          pipe1.write(chunk);
+        }
+        pipe1.end();
 
-      await new Promise<void>(resolve => pipe2.once('end', resolve));
+        await new Promise<void>((resolve) => pipe2.once('end', resolve));
 
-      const received = Buffer.concat(receivedChunks).toString();
-      const expected = Buffer.concat(testChunks).toString();
-      expect(received).toBe(expected);
+        const received = Buffer.concat(receivedChunks).toString();
+        const expected = Buffer.concat(testChunks).toString();
+        expect(received).toBe(expected);
 
-      port1.close();
-      port2.close();
-    }, testTimeout);
+        port1.close();
+        port2.close();
+      },
+      testTimeout,
+    );
 
-    it('Unix adapter: destroy closes stream immediately', async () => {
-      const socketPath = getSocketPath('unix-destroy');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
+    it(
+      'Unix adapter: destroy closes stream immediately',
+      async () => {
+        const socketPath = getSocketPath('unix-destroy');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
 
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+        await serverAdapter.listen();
+        await clientAdapter.connect();
 
-      const serverPipe = serverAdapter.createDuplex();
-      const clientPipe = clientAdapter.createDuplex();
+        const serverPipe = serverAdapter.createDuplex();
+        const clientPipe = clientAdapter.createDuplex();
 
-      let closeEmitted = false;
-      clientPipe.on('close', () => {
-        closeEmitted = true;
-      });
+        let closeEmitted = false;
+        clientPipe.on('close', () => {
+          closeEmitted = true;
+        });
 
-      serverPipe.write(Buffer.from('data'));
-      serverPipe.destroy();
+        serverPipe.write(Buffer.from('data'));
+        serverPipe.destroy();
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(serverPipe.destroyed).toBe(true);
+        expect(serverPipe.destroyed).toBe(true);
 
-      serverAdapter.close();
-      clientAdapter.close();
-    }, testTimeout);
+        serverAdapter.close();
+        clientAdapter.close();
+      },
+      testTimeout,
+    );
 
-    it('Worker adapter: destroy closes stream immediately', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
+    it(
+      'Worker adapter: destroy closes stream immediately',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
 
-      const pipe1 = adapter1.createDuplex();
-      const pipe2 = adapter2.createDuplex();
+        const pipe1 = adapter1.createDuplex();
+        const pipe2 = adapter2.createDuplex();
 
-      let closeEmitted = false;
-      pipe2.on('close', () => {
-        closeEmitted = true;
-      });
+        let closeEmitted = false;
+        pipe2.on('close', () => {
+          closeEmitted = true;
+        });
 
-      pipe1.write(Buffer.from('data'));
-      pipe1.destroy();
+        pipe1.write(Buffer.from('data'));
+        pipe1.destroy();
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(pipe1.destroyed).toBe(true);
+        expect(pipe1.destroyed).toBe(true);
 
-      port1.close();
-      port2.close();
-    }, testTimeout);
+        port1.close();
+        port2.close();
+      },
+      testTimeout,
+    );
   });
 
   describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('Error Timing', () => {
-    it('Unix adapter: error during write is emitted', async () => {
-      const socketPath = getSocketPath('unix-error');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
+    it(
+      'Unix adapter: error during write is emitted',
+      async () => {
+        const socketPath = getSocketPath('unix-error');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
 
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+        await serverAdapter.listen();
+        await clientAdapter.connect();
 
-      const serverPipe = serverAdapter.createDuplex();
-      const clientPipe = clientAdapter.createDuplex();
+        const serverPipe = serverAdapter.createDuplex();
+        const clientPipe = clientAdapter.createDuplex();
 
-      let errorEmitted = false;
-      let errorMessage = '';
+        let errorEmitted = false;
+        let errorMessage = '';
 
-      serverPipe.on('error', (err) => {
-        errorEmitted = true;
-        errorMessage = err.message;
-      });
+        serverPipe.on('error', (err) => {
+          errorEmitted = true;
+          errorMessage = err.message;
+        });
 
-      serverPipe.write(Buffer.from('data'));
-      clientAdapter.close();
+        serverPipe.write(Buffer.from('data'));
+        clientAdapter.close();
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      for (let i = 0; i < 10; i++) {
-        try {
-          serverPipe.write(Buffer.alloc(8192, 0xFF));
-        } catch (err) {
-          break;
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      serverAdapter.close();
-    }, testTimeout);
-
-    it('Worker adapter: error during write is emitted', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
-
-      const pipe1 = adapter1.createDuplex();
-      const pipe2 = adapter2.createDuplex();
-
-      let errorEmitted = false;
-      let errorMessage = '';
-
-      pipe1.on('error', (err) => {
-        errorEmitted = true;
-        errorMessage = err.message;
-      });
-
-      pipe1.write(Buffer.from('data'));
-      port2.close();
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      for (let i = 0; i < 10; i++) {
-        try {
-          pipe1.write(Buffer.alloc(8192, 0xFF));
-        } catch (err) {
-          break;
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      port1.close();
-    }, testTimeout);
-
-    it('Unix adapter: error propagates to both sides', async () => {
-      const socketPath = getSocketPath('unix-error-prop');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
-
-      await serverAdapter.listen();
-      await clientAdapter.connect();
-
-      const serverPipe = serverAdapter.createDuplex();
-      const clientPipe = clientAdapter.createDuplex();
-
-      let serverError: Error | null = null;
-      let clientError: Error | null = null;
-
-      serverPipe.on('error', (err) => {
-        serverError = err;
-      });
-      clientPipe.on('error', (err) => {
-        clientError = err;
-      });
-
-      serverPipe.write(Buffer.from('data'));
-      serverAdapter.close();
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      try {
         for (let i = 0; i < 10; i++) {
-          serverPipe.write(Buffer.alloc(4096, 0xAA));
+          try {
+            serverPipe.write(Buffer.alloc(8192, 0xff));
+          } catch (err) {
+            break;
+          }
         }
-      } catch {
-        // Expected
-      }
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      clientAdapter.close();
-    }, testTimeout);
+        serverAdapter.close();
+      },
+      testTimeout,
+    );
 
-    it('Worker adapter: error propagates to both sides', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
+    it(
+      'Worker adapter: error during write is emitted',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
 
-      const pipe1 = adapter1.createDuplex();
-      const pipe2 = adapter2.createDuplex();
+        const pipe1 = adapter1.createDuplex();
+        const pipe2 = adapter2.createDuplex();
 
-      let pipe1Error: Error | null = null;
-      let pipe2Error: Error | null = null;
+        let errorEmitted = false;
+        let errorMessage = '';
 
-      pipe1.on('error', (err) => {
-        pipe1Error = err;
-      });
-      pipe2.on('error', (err) => {
-        pipe2Error = err;
-      });
+        pipe1.on('error', (err) => {
+          errorEmitted = true;
+          errorMessage = err.message;
+        });
 
-      pipe1.write(Buffer.from('data'));
-      port2.close();
+        pipe1.write(Buffer.from('data'));
+        port2.close();
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      try {
         for (let i = 0; i < 10; i++) {
-          pipe1.write(Buffer.alloc(4096, 0xAA));
+          try {
+            pipe1.write(Buffer.alloc(8192, 0xff));
+          } catch (err) {
+            break;
+          }
         }
-      } catch {
-        // Expected
-      }
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      port1.close();
-    }, testTimeout);
+        port1.close();
+      },
+      testTimeout,
+    );
 
-    it('Unix adapter: destroy with error emits error event', async () => {
-      const socketPath = getSocketPath('unix-destroy-error');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
+    it(
+      'Unix adapter: error propagates to both sides',
+      async () => {
+        const socketPath = getSocketPath('unix-error-prop');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
 
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+        await serverAdapter.listen();
+        await clientAdapter.connect();
 
-      const serverPipe = serverAdapter.createDuplex();
-      const clientPipe = clientAdapter.createDuplex();
+        const serverPipe = serverAdapter.createDuplex();
+        const clientPipe = clientAdapter.createDuplex();
 
-      let errorEmitted = false;
-      let errorMessage = '';
+        let serverError: Error | null = null;
+        let clientError: Error | null = null;
 
-      serverPipe.on('error', (err) => {
-        errorEmitted = true;
-        errorMessage = err.message;
-      });
+        serverPipe.on('error', (err) => {
+          serverError = err;
+        });
+        clientPipe.on('error', (err) => {
+          clientError = err;
+        });
 
-      const testError = new Error('Test error');
-      serverPipe.destroy(testError);
+        serverPipe.write(Buffer.from('data'));
+        serverAdapter.close();
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(errorEmitted).toBe(true);
-      expect(errorMessage).toBe('Test error');
+        try {
+          for (let i = 0; i < 10; i++) {
+            serverPipe.write(Buffer.alloc(4096, 0xaa));
+          }
+        } catch {
+          // Expected
+        }
 
-      serverAdapter.close();
-      clientAdapter.close();
-    }, testTimeout);
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-    it('Worker adapter: destroy with error emits error event', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
+        clientAdapter.close();
+      },
+      testTimeout,
+    );
 
-      const pipe1 = adapter1.createDuplex();
-      const pipe2 = adapter2.createDuplex();
+    it(
+      'Worker adapter: error propagates to both sides',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
 
-      let errorEmitted = false;
-      let errorMessage = '';
+        const pipe1 = adapter1.createDuplex();
+        const pipe2 = adapter2.createDuplex();
 
-      pipe1.on('error', (err) => {
-        errorEmitted = true;
-        errorMessage = err.message;
-      });
+        let pipe1Error: Error | null = null;
+        let pipe2Error: Error | null = null;
 
-      const testError = new Error('Test error');
-      pipe1.destroy(testError);
+        pipe1.on('error', (err) => {
+          pipe1Error = err;
+        });
+        pipe2.on('error', (err) => {
+          pipe2Error = err;
+        });
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+        pipe1.write(Buffer.from('data'));
+        port2.close();
 
-      expect(errorEmitted).toBe(true);
-      expect(errorMessage).toBe('Test error');
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      port1.close();
-      port2.close();
-    }, testTimeout);
+        try {
+          for (let i = 0; i < 10; i++) {
+            pipe1.write(Buffer.alloc(4096, 0xaa));
+          }
+        } catch {
+          // Expected
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        port1.close();
+      },
+      testTimeout,
+    );
+
+    it(
+      'Unix adapter: destroy with error emits error event',
+      async () => {
+        const socketPath = getSocketPath('unix-destroy-error');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
+
+        await serverAdapter.listen();
+        await clientAdapter.connect();
+
+        const serverPipe = serverAdapter.createDuplex();
+        const clientPipe = clientAdapter.createDuplex();
+
+        let errorEmitted = false;
+        let errorMessage = '';
+
+        serverPipe.on('error', (err) => {
+          errorEmitted = true;
+          errorMessage = err.message;
+        });
+
+        const testError = new Error('Test error');
+        serverPipe.destroy(testError);
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        expect(errorEmitted).toBe(true);
+        expect(errorMessage).toBe('Test error');
+
+        serverAdapter.close();
+        clientAdapter.close();
+      },
+      testTimeout,
+    );
+
+    it(
+      'Worker adapter: destroy with error emits error event',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
+
+        const pipe1 = adapter1.createDuplex();
+        const pipe2 = adapter2.createDuplex();
+
+        let errorEmitted = false;
+        let errorMessage = '';
+
+        pipe1.on('error', (err) => {
+          errorEmitted = true;
+          errorMessage = err.message;
+        });
+
+        const testError = new Error('Test error');
+        pipe1.destroy(testError);
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        expect(errorEmitted).toBe(true);
+        expect(errorMessage).toBe('Test error');
+
+        port1.close();
+        port2.close();
+      },
+      testTimeout,
+    );
   });
 
   describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('Comparable Scenarios', () => {
-    it('Unix adapter: bidirectional data exchange', async () => {
-      const socketPath = getSocketPath('unix-bidir');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
+    it(
+      'Unix adapter: bidirectional data exchange',
+      async () => {
+        const socketPath = getSocketPath('unix-bidir');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
 
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+        await serverAdapter.listen();
+        await clientAdapter.connect();
 
-      const serverPipe = serverAdapter.createDuplex();
-      const clientPipe = clientAdapter.createDuplex();
+        const serverPipe = serverAdapter.createDuplex();
+        const clientPipe = clientAdapter.createDuplex();
 
-      const serverReceived: string[] = [];
-      const clientReceived: string[] = [];
+        const serverReceived: string[] = [];
+        const clientReceived: string[] = [];
 
-      serverPipe.on('data', (chunk) => {
-        serverReceived.push(chunk.toString());
-      });
-      clientPipe.on('data', (chunk) => {
-        clientReceived.push(chunk.toString());
-      });
+        serverPipe.on('data', (chunk) => {
+          serverReceived.push(chunk.toString());
+        });
+        clientPipe.on('data', (chunk) => {
+          clientReceived.push(chunk.toString());
+        });
 
-      serverPipe.write(Buffer.from('server-msg1'));
-      clientPipe.write(Buffer.from('client-msg1'));
-      serverPipe.write(Buffer.from('server-msg2'));
-      clientPipe.write(Buffer.from('client-msg2'));
+        serverPipe.write(Buffer.from('server-msg1'));
+        clientPipe.write(Buffer.from('client-msg1'));
+        serverPipe.write(Buffer.from('server-msg2'));
+        clientPipe.write(Buffer.from('client-msg2'));
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      serverPipe.end();
-      clientPipe.end();
+        serverPipe.end();
+        clientPipe.end();
 
-      await Promise.all([
-        new Promise<void>(resolve => serverPipe.once('end', resolve)),
-        new Promise<void>(resolve => clientPipe.once('end', resolve))
-      ]);
+        await Promise.all([
+          new Promise<void>((resolve) => serverPipe.once('end', resolve)),
+          new Promise<void>((resolve) => clientPipe.once('end', resolve)),
+        ]);
 
-      expect(serverReceived.join('')).toContain('client-msg1');
-      expect(serverReceived.join('')).toContain('client-msg2');
-      expect(clientReceived.join('')).toContain('server-msg1');
-      expect(clientReceived.join('')).toContain('server-msg2');
+        expect(serverReceived.join('')).toContain('client-msg1');
+        expect(serverReceived.join('')).toContain('client-msg2');
+        expect(clientReceived.join('')).toContain('server-msg1');
+        expect(clientReceived.join('')).toContain('server-msg2');
 
-      serverAdapter.close();
-      clientAdapter.close();
-    }, testTimeout);
+        serverAdapter.close();
+        clientAdapter.close();
+      },
+      testTimeout,
+    );
 
-    it('Worker adapter: bidirectional data exchange', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
+    it(
+      'Worker adapter: bidirectional data exchange',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
 
-      const pipe1 = adapter1.createDuplex();
-      const pipe2 = adapter2.createDuplex();
+        const pipe1 = adapter1.createDuplex();
+        const pipe2 = adapter2.createDuplex();
 
-      const pipe1Received: string[] = [];
-      const pipe2Received: string[] = [];
+        const pipe1Received: string[] = [];
+        const pipe2Received: string[] = [];
 
-      pipe1.on('data', (chunk) => {
-        pipe1Received.push(chunk.toString());
-      });
-      pipe2.on('data', (chunk) => {
-        pipe2Received.push(chunk.toString());
-      });
+        pipe1.on('data', (chunk) => {
+          pipe1Received.push(chunk.toString());
+        });
+        pipe2.on('data', (chunk) => {
+          pipe2Received.push(chunk.toString());
+        });
 
-      pipe1.write(Buffer.from('pipe1-msg1'));
-      pipe2.write(Buffer.from('pipe2-msg1'));
-      pipe1.write(Buffer.from('pipe1-msg2'));
-      pipe2.write(Buffer.from('pipe2-msg2'));
+        pipe1.write(Buffer.from('pipe1-msg1'));
+        pipe2.write(Buffer.from('pipe2-msg1'));
+        pipe1.write(Buffer.from('pipe1-msg2'));
+        pipe2.write(Buffer.from('pipe2-msg2'));
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      pipe1.end();
-      pipe2.end();
+        pipe1.end();
+        pipe2.end();
 
-      await Promise.all([
-        new Promise<void>(resolve => pipe1.once('end', resolve)),
-        new Promise<void>(resolve => pipe2.once('end', resolve))
-      ]);
+        await Promise.all([
+          new Promise<void>((resolve) => pipe1.once('end', resolve)),
+          new Promise<void>((resolve) => pipe2.once('end', resolve)),
+        ]);
 
-      expect(pipe1Received.join('')).toContain('pipe2-msg1');
-      expect(pipe1Received.join('')).toContain('pipe2-msg2');
-      expect(pipe2Received.join('')).toContain('pipe1-msg1');
-      expect(pipe2Received.join('')).toContain('pipe1-msg2');
+        expect(pipe1Received.join('')).toContain('pipe2-msg1');
+        expect(pipe1Received.join('')).toContain('pipe2-msg2');
+        expect(pipe2Received.join('')).toContain('pipe1-msg1');
+        expect(pipe2Received.join('')).toContain('pipe1-msg2');
 
-      port1.close();
-      port2.close();
-    }, testTimeout);
+        port1.close();
+        port2.close();
+      },
+      testTimeout,
+    );
 
-    it('Unix adapter: rapid small writes', async () => {
-      const socketPath = getSocketPath('unix-rapid');
-      const serverAdapter = new UnixPipeAdapter(socketPath);
-      const clientAdapter = new UnixPipeAdapter(socketPath);
+    it(
+      'Unix adapter: rapid small writes',
+      async () => {
+        const socketPath = getSocketPath('unix-rapid');
+        const serverAdapter = new UnixPipeAdapter(socketPath);
+        const clientAdapter = new UnixPipeAdapter(socketPath);
 
-      await serverAdapter.listen();
-      await clientAdapter.connect();
+        await serverAdapter.listen();
+        await clientAdapter.connect();
 
-      const serverPipe = serverAdapter.createDuplex();
-      const clientPipe = clientAdapter.createDuplex();
+        const serverPipe = serverAdapter.createDuplex();
+        const clientPipe = clientAdapter.createDuplex();
 
-      const receivedChunks: Buffer[] = [];
-      clientPipe.on('data', (chunk) => {
-        receivedChunks.push(Buffer.from(chunk));
-      });
+        const receivedChunks: Buffer[] = [];
+        clientPipe.on('data', (chunk) => {
+          receivedChunks.push(Buffer.from(chunk));
+        });
 
-      const numWrites = 100;
-      for (let i = 0; i < numWrites; i++) {
-        serverPipe.write(Buffer.from(`msg${i}`));
-      }
-      serverPipe.end();
+        const numWrites = 100;
+        for (let i = 0; i < numWrites; i++) {
+          serverPipe.write(Buffer.from(`msg${i}`));
+        }
+        serverPipe.end();
 
-      await new Promise<void>(resolve => clientPipe.once('end', resolve));
+        await new Promise<void>((resolve) => clientPipe.once('end', resolve));
 
-      const received = Buffer.concat(receivedChunks).toString();
-      for (let i = 0; i < numWrites; i++) {
-        expect(received).toContain(`msg${i}`);
-      }
+        const received = Buffer.concat(receivedChunks).toString();
+        for (let i = 0; i < numWrites; i++) {
+          expect(received).toContain(`msg${i}`);
+        }
 
-      serverAdapter.close();
-      clientAdapter.close();
-    }, testTimeout);
+        serverAdapter.close();
+        clientAdapter.close();
+      },
+      testTimeout,
+    );
 
-    it('Worker adapter: rapid small writes', async () => {
-      const { port1, port2 } = new MessageChannel();
-      const adapter1 = new WorkerPipeAdapter(port1);
-      const adapter2 = new WorkerPipeAdapter(port2);
+    it(
+      'Worker adapter: rapid small writes',
+      async () => {
+        const { port1, port2 } = new MessageChannel();
+        const adapter1 = new WorkerPipeAdapter(port1);
+        const adapter2 = new WorkerPipeAdapter(port2);
 
-      const pipe1 = adapter1.createDuplex();
-      const pipe2 = adapter2.createDuplex();
+        const pipe1 = adapter1.createDuplex();
+        const pipe2 = adapter2.createDuplex();
 
-      const receivedChunks: Buffer[] = [];
-      pipe2.on('data', (chunk) => {
-        receivedChunks.push(Buffer.from(chunk));
-      });
+        const receivedChunks: Buffer[] = [];
+        pipe2.on('data', (chunk) => {
+          receivedChunks.push(Buffer.from(chunk));
+        });
 
-      const numWrites = 100;
-      for (let i = 0; i < numWrites; i++) {
-        pipe1.write(Buffer.from(`msg${i}`));
-      }
-      pipe1.end();
+        const numWrites = 100;
+        for (let i = 0; i < numWrites; i++) {
+          pipe1.write(Buffer.from(`msg${i}`));
+        }
+        pipe1.end();
 
-      await new Promise<void>(resolve => pipe2.once('end', resolve));
+        await new Promise<void>((resolve) => pipe2.once('end', resolve));
 
-      const received = Buffer.concat(receivedChunks).toString();
-      for (let i = 0; i < numWrites; i++) {
-        expect(received).toContain(`msg${i}`);
-      }
+        const received = Buffer.concat(receivedChunks).toString();
+        for (let i = 0; i < numWrites; i++) {
+          expect(received).toContain(`msg${i}`);
+        }
 
-      port1.close();
-      port2.close();
-    }, testTimeout);
+        port1.close();
+        port2.close();
+      },
+      testTimeout,
+    );
   });
 });

@@ -18,7 +18,7 @@ function parseFormatArgs(args: string[]): { options: CliOptions; toFormat?: stri
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     if (arg === '--to') {
       toFormat = args[++i];
     } else if (arg.startsWith('--to=')) {
@@ -109,13 +109,16 @@ export async function formatHandler(args: string[]): Promise<number> {
     }
 
     if (options.inPlace) {
-      const newPath = filePath.replace(/\.(json|yaml|yml)$/, toFormat === 'yaml' ? '.yaml' : '.json');
+      const newPath = filePath.replace(
+        /\.(json|yaml|yml)$/,
+        toFormat === 'yaml' ? '.yaml' : '.json',
+      );
       fs.writeFileSync(newPath, result, 'utf-8');
       console.log(`Converted ${filePath} → ${newPath}`);
     } else {
       console.log(result);
     }
-    
+
     return 0;
   } catch (error) {
     if (error instanceof Error) {

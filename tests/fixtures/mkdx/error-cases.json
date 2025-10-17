@@ -30,11 +30,13 @@
       "json": {
         "code": "SCHEMA_INVALID",
         "message": "invalid value for runMode",
-        "details": { "path": "$.topology.nodes[0].runMode", "expected": ["inproc","worker","process"] },
+        "details": {
+          "path": "$.topology.nodes[0].runMode",
+          "expected": ["inproc", "worker", "process"]
+        },
         "remediation": "set runMode to one of: inproc, worker, process",
         "docs": "https://mkolbol.dev/docs/schema#runMode"
       }
     }
   ]
 }
-

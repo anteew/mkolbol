@@ -12,14 +12,14 @@ mk logs [options]
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--module <name>` | Filter logs by module name (e.g., `kernel`, `router`, `executor`) |
-| `--level <level>` | Filter by log level: `error`, `warn`, `info`, or `debug` |
-| `--json` | Output logs in JSON format instead of human-readable |
-| `--follow` or `-f` | Follow log file in real-time (like `tail -f`) |
-| `--lines <n>` | Show last N lines (default: 50) |
-| `--help` | Show help message |
+| Option             | Description                                                       |
+| ------------------ | ----------------------------------------------------------------- |
+| `--module <name>`  | Filter logs by module name (e.g., `kernel`, `router`, `executor`) |
+| `--level <level>`  | Filter by log level: `error`, `warn`, `info`, or `debug`          |
+| `--json`           | Output logs in JSON format instead of human-readable              |
+| `--follow` or `-f` | Follow log file in real-time (like `tail -f`)                     |
+| `--lines <n>`      | Show last N lines (default: 50)                                   |
+| `--help`           | Show help message                                                 |
 
 ## Log Levels
 
@@ -205,12 +205,14 @@ mk logs --level warn --follow
 ### "Debug logging is not enabled"
 
 This means no log files were found. Generate logs by:
+
 - Running tests with `LAMINAR_DEBUG=1`
 - Running topologies with `DEBUG=1`
 
 ### No output shown
 
 Check that:
+
 - The `reports/` directory exists
 - There are `.jsonl` files in `reports/<suite>/`
 - Logs contain `debug.*` events
@@ -219,6 +221,7 @@ Check that:
 ### Logs are empty or filtered out
 
 Try:
+
 - Remove filters: `mk logs` (no options)
 - Lower the level: `mk logs --level debug`
 - Check available modules: `mk logs | grep -o '\[.*\]' | sort -u`

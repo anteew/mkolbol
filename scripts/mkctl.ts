@@ -20,7 +20,11 @@ const EXIT_CODES = {
 } as const;
 
 class MkctlError extends Error {
-  constructor(message: string, public readonly code: number, options?: ErrorOptions) {
+  constructor(
+    message: string,
+    public readonly code: number,
+    options?: ErrorOptions,
+  ) {
     super(message, options);
     this.name = 'MkctlError';
   }
@@ -69,7 +73,7 @@ LEARN MORE
 }
 
 async function main() {
-  const [,, cmd] = process.argv;
+  const [, , cmd] = process.argv;
 
   switch (cmd) {
     case 'endpoints': {
@@ -96,7 +100,7 @@ async function main() {
   }
 }
 
-main().catch(e => {
+main().catch((e) => {
   const code = handleException(e);
   process.exit(code);
 });
@@ -119,14 +123,20 @@ function parseRunArgs(args: string[]): RunArguments {
     if (token === '--file') {
       const next = args[i + 1];
       if (!next || next.startsWith('--')) {
-        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]', EXIT_CODES.USAGE);
+        throw new MkctlError(
+          'Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]',
+          EXIT_CODES.USAGE,
+        );
       }
       configPath = next;
       i++;
     } else if (token === '--duration') {
       const next = args[i + 1];
       if (!next || next.startsWith('--')) {
-        throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]', EXIT_CODES.USAGE);
+        throw new MkctlError(
+          'Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]',
+          EXIT_CODES.USAGE,
+        );
       }
       const parsed = Number.parseInt(next, 10);
       if (Number.isNaN(parsed) || parsed <= 0) {
@@ -141,7 +151,10 @@ function parseRunArgs(args: string[]): RunArguments {
       }
       const parsed = Number.parseInt(next, 10);
       if (Number.isNaN(parsed) || parsed <= 0) {
-        throw new MkctlError('--snapshot-interval must be a positive integer (seconds)', EXIT_CODES.USAGE);
+        throw new MkctlError(
+          '--snapshot-interval must be a positive integer (seconds)',
+          EXIT_CODES.USAGE,
+        );
       }
       snapshotIntervalMs = parsed * 1000;
       i++;
@@ -151,7 +164,10 @@ function parseRunArgs(args: string[]): RunArguments {
   }
 
   if (!configPath) {
-    throw new MkctlError('Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]', EXIT_CODES.USAGE);
+    throw new MkctlError(
+      'Usage: mkctl run --file <path> [--duration <seconds>] [--snapshot-interval <seconds>] [--dry-run]',
+      EXIT_CODES.USAGE,
+    );
   }
 
   return { configPath, durationMs, snapshotIntervalMs, dryRun };
@@ -205,7 +221,10 @@ interface EnhancedEndpoint extends EndpointSnapshot {
   ttlRemaining?: number;
 }
 
-async function loadEndpointSnapshot(): Promise<{ endpoints: EndpointSnapshot[]; source: 'router' | 'hostess' }> {
+async function loadEndpointSnapshot(): Promise<{
+  endpoints: EndpointSnapshot[];
+  source: 'router' | 'hostess';
+}> {
   const base = RUNTIME_DIR ? path.resolve(RUNTIME_DIR) : process.cwd();
   const routerSnapshotPath = path.resolve(base, 'reports', 'router-endpoints.json');
   try {
@@ -224,14 +243,16 @@ async function loadEndpointSnapshot(): Promise<{ endpoints: EndpointSnapshot[]; 
     const raw = await fs.readFile(hostessSnapshotPath, 'utf-8');
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      const endpoints = parsed.map((entry: any) => normalizeRouterEndpoint({
-        id: entry.id,
-        type: entry.type,
-        coordinates: entry.coordinates,
-        metadata: entry.metadata,
-        announcedAt: entry.announcedAt,
-        updatedAt: entry.updatedAt,
-      }));
+      const endpoints = parsed.map((entry: any) =>
+        normalizeRouterEndpoint({
+          id: entry.id,
+          type: entry.type,
+          coordinates: entry.coordinates,
+          metadata: entry.metadata,
+          announcedAt: entry.announcedAt,
+          updatedAt: entry.updatedAt,
+        }),
+      );
       return { endpoints, source: 'hostess' };
     }
   } catch {
@@ -296,9 +317,12 @@ function formatTTL(ttlMs: number | undefined): string {
 
 function getStatusIcon(status: LivenessStatus): string {
   switch (status) {
-    case 'healthy': return '✓';
-    case 'stale': return '⚠';
-    case 'expired': return '✗';
+    case 'healthy':
+      return '✓';
+    case 'stale':
+      return '⚠';
+    case 'expired':
+      return '✗';
   }
 }
 
@@ -358,7 +382,10 @@ function parseEndpointsArgs(args: string[]): EndpointsArguments {
   return { watch, interval, filters, json, runtimeDir };
 }
 
-function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: string; value: string }>): EndpointSnapshot[] {
+function applyFilters(
+  endpoints: EndpointSnapshot[],
+  filters: Array<{ key: string; value: string }>,
+): EndpointSnapshot[] {
   if (filters.length === 0) return endpoints;
 
   return endpoints.filter((endpoint) => {
@@ -366,7 +393,7 @@ function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: strin
       if (key === 'type' && endpoint.type !== value) return false;
       if (key === 'id' && !endpoint.id.includes(value)) return false;
       if (key === 'coordinates' && !endpoint.coordinates.includes(value)) return false;
-      
+
       if (key.startsWith('metadata.')) {
         const metaKey = key.substring(9);
         if (!endpoint.metadata || endpoint.metadata[metaKey] !== value) return false;
@@ -376,30 +403,38 @@ function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: strin
   });
 }
 
-function displayEndpoints(endpoints: EndpointSnapshot[], source: 'router' | 'hostess', showLiveness = false): void {
+function displayEndpoints(
+  endpoints: EndpointSnapshot[],
+  source: 'router' | 'hostess',
+  showLiveness = false,
+): void {
   if (endpoints.length === 0) {
     console.log('No endpoints match the filters.');
     return;
   }
 
-  console.log(`Registered Endpoints (${source === 'router' ? 'RoutingServer snapshot' : 'Hostess snapshot'})`);
+  console.log(
+    `Registered Endpoints (${source === 'router' ? 'RoutingServer snapshot' : 'Hostess snapshot'})`,
+  );
   console.log('');
 
   const now = Date.now();
   for (const endpoint of endpoints) {
-    const enhanced = showLiveness ? computeLiveness(endpoint, now) : { ...endpoint, status: 'healthy' as LivenessStatus, ttlRemaining: undefined };
-    
+    const enhanced = showLiveness
+      ? computeLiveness(endpoint, now)
+      : { ...endpoint, status: 'healthy' as LivenessStatus, ttlRemaining: undefined };
+
     console.log(`ID:          ${endpoint.id}`);
     console.log(`Type:        ${endpoint.type}`);
     console.log(`Coordinates: ${endpoint.coordinates}`);
-    
+
     if (showLiveness) {
       console.log(`Status:      ${getStatusIcon(enhanced.status)} ${enhanced.status}`);
       if (enhanced.ttlRemaining !== undefined) {
         console.log(`TTL:         ${formatTTL(enhanced.ttlRemaining)}`);
       }
     }
-    
+
     if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
       console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
     }
@@ -421,7 +456,7 @@ async function handleEndpointsCommand(args: string[]): Promise<void> {
 
   if (!watch) {
     const { endpoints, source } = await loadEndpointSnapshot();
-    
+
     if (endpoints.length === 0) {
       if (json) {
         console.log('[]');
@@ -432,10 +467,10 @@ async function handleEndpointsCommand(args: string[]): Promise<void> {
     }
 
     const filtered = applyFilters(endpoints, filters);
-    
+
     if (json) {
       const now = Date.now();
-      const enhanced = filtered.map(ep => {
+      const enhanced = filtered.map((ep) => {
         const { status, ttlRemaining } = computeLiveness(ep, now);
         return {
           ...ep,
@@ -473,7 +508,9 @@ async function handleEndpointsCommand(args: string[]): Promise<void> {
     const filtered = applyFilters(endpoints, filters);
 
     console.clear();
-    console.log(`[${formatTimestamp(Date.now())}] Watching endpoints (refresh every ${interval}s)...`);
+    console.log(
+      `[${formatTimestamp(Date.now())}] Watching endpoints (refresh every ${interval}s)...`,
+    );
     console.log('Press Ctrl+C to stop.\n');
 
     if (endpoints.length === 0) {
@@ -481,7 +518,7 @@ async function handleEndpointsCommand(args: string[]): Promise<void> {
     } else {
       if (json) {
         const now = Date.now();
-        const enhanced = filtered.map(ep => {
+        const enhanced = filtered.map((ep) => {
           const { status, ttlRemaining } = computeLiveness(ep, now);
           return {
             ...ep,
@@ -521,7 +558,7 @@ async function handleRunCommand(args: string[]): Promise<number> {
   } catch {
     throw new MkctlError(
       `Config file not found: ${configPath}\nHint: confirm the path or pick one from examples/configs.`,
-      EXIT_CODES.CONFIG_NOT_FOUND
+      EXIT_CODES.CONFIG_NOT_FOUND,
     );
   }
 
@@ -538,20 +575,20 @@ async function handleRunCommand(args: string[]): Promise<number> {
       'address "',
       'node "',
       '"nodes" must be an array',
-      '"connections" must be an array'
+      '"connections" must be an array',
     ];
-    const isValidationIssue = validationIndicators.some(pattern => message.includes(pattern));
+    const isValidationIssue = validationIndicators.some((pattern) => message.includes(pattern));
     if (isValidationIssue) {
       throw new MkctlError(
         `Configuration validation failed: ${message}\nHint: ensure nodes[] and connections[] are defined with unique IDs.`,
         EXIT_CODES.CONFIG_PARSE,
-        { cause: err }
+        { cause: err },
       );
     }
     throw new MkctlError(
       `Failed to read config ${configPath}: ${message}\nHint: validate that the file contains well-formed YAML or JSON.`,
       EXIT_CODES.CONFIG_PARSE,
-      { cause: err }
+      { cause: err },
     );
   }
 
@@ -574,7 +611,7 @@ async function handleRunCommand(args: string[]): Promise<number> {
     throw new MkctlError(
       `Configuration validation failed: ${message}\nHint: ensure nodes[] and connections[] are defined with unique IDs.`,
       EXIT_CODES.CONFIG_PARSE,
-      { cause: err }
+      { cause: err },
     );
   }
 
@@ -583,20 +620,20 @@ async function handleRunCommand(args: string[]): Promise<number> {
     await executor.up();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    
+
     // Check if this is a health check failure
     if (message.includes('Health check failed')) {
       throw new MkctlError(
         `Health check failed: ${message}\nHint: verify external process is responsive and health check configuration is correct.`,
         EXIT_CODES.RUNTIME,
-        { cause: err }
+        { cause: err },
       );
     }
-    
+
     throw new MkctlError(
       `Failed to start topology: ${message}\nHint: verify module names and external commands referenced by the config.`,
       EXIT_CODES.RUNTIME,
-      { cause: err }
+      { cause: err },
     );
   }
 
@@ -609,7 +646,9 @@ async function handleRunCommand(args: string[]): Promise<number> {
     snapshotTimer = setInterval(() => {
       snapshotCount++;
       writeRouterSnapshot(router).catch((err) => {
-        logError(`Failed to write snapshot ${snapshotCount}: ${err instanceof Error ? err.message : String(err)}`);
+        logError(
+          `Failed to write snapshot ${snapshotCount}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
     }, snapshotIntervalMs);
   }
@@ -621,7 +660,9 @@ async function handleRunCommand(args: string[]): Promise<number> {
   }
 
   await writeRouterSnapshot(router).catch((err) => {
-    logError(`Failed to write router snapshot: ${err instanceof Error ? err.message : String(err)}`);
+    logError(
+      `Failed to write router snapshot: ${err instanceof Error ? err.message : String(err)}`,
+    );
   });
 
   console.log('\nBringing topology down...');
@@ -632,7 +673,7 @@ async function handleRunCommand(args: string[]): Promise<number> {
     throw new MkctlError(
       `Failed while shutting down topology: ${message}\nHint: inspect module shutdown hooks or external process logs.`,
       EXIT_CODES.RUNTIME,
-      { cause: err }
+      { cause: err },
     );
   }
 

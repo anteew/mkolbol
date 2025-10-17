@@ -21,7 +21,7 @@ connections:
     it('should parse valid JSON', () => {
       const json = JSON.stringify({
         nodes: [{ id: 'n1', module: 'foo' }],
-        connections: [{ from: 'n1.out', to: 'n1.in' }]
+        connections: [{ from: 'n1.out', to: 'n1.in' }],
       });
       const config = loadConfig(json);
       expect(config.nodes).toHaveLength(1);
@@ -154,81 +154,99 @@ connections:
     });
 
     it('should reject non-array nodes', () => {
-      expect(() => validateTopology({ nodes: 'not-array', connections: [] }))
-        .toThrow('"nodes" must be an array');
+      expect(() => validateTopology({ nodes: 'not-array', connections: [] })).toThrow(
+        '"nodes" must be an array',
+      );
     });
 
     it('should reject non-array connections', () => {
-      expect(() => validateTopology({ nodes: [], connections: 'not-array' }))
-        .toThrow('"connections" must be an array');
+      expect(() => validateTopology({ nodes: [], connections: 'not-array' })).toThrow(
+        '"connections" must be an array',
+      );
     });
 
     it('should reject node without id', () => {
-      expect(() => validateTopology({
-        nodes: [{ module: 'foo' }],
-        connections: []
-      })).toThrow('Node at index 0 is missing required field "id"');
+      expect(() =>
+        validateTopology({
+          nodes: [{ module: 'foo' }],
+          connections: [],
+        }),
+      ).toThrow('Node at index 0 is missing required field "id"');
     });
 
     it('should reject node with non-string id', () => {
-      expect(() => validateTopology({
-        nodes: [{ id: 123, module: 'foo' }],
-        connections: []
-      })).toThrow('Node at index 0 has invalid "id" (must be a string)');
+      expect(() =>
+        validateTopology({
+          nodes: [{ id: 123, module: 'foo' }],
+          connections: [],
+        }),
+      ).toThrow('Node at index 0 has invalid "id" (must be a string)');
     });
 
     it('should reject node without module', () => {
-      expect(() => validateTopology({
-        nodes: [{ id: 'n1' }],
-        connections: []
-      })).toThrow('Node "n1" is missing required field "module"');
+      expect(() =>
+        validateTopology({
+          nodes: [{ id: 'n1' }],
+          connections: [],
+        }),
+      ).toThrow('Node "n1" is missing required field "module"');
     });
 
     it('should reject node with non-string module', () => {
-      expect(() => validateTopology({
-        nodes: [{ id: 'n1', module: 123 }],
-        connections: []
-      })).toThrow('Node "n1" has invalid "module" (must be a string)');
+      expect(() =>
+        validateTopology({
+          nodes: [{ id: 'n1', module: 123 }],
+          connections: [],
+        }),
+      ).toThrow('Node "n1" has invalid "module" (must be a string)');
     });
 
     it('should reject connection without from', () => {
-      expect(() => validateTopology({
-        nodes: [{ id: 'n1', module: 'foo' }],
-        connections: [{ to: 'n1.in' }]
-      })).toThrow('Connection at index 0 is missing required field "from"');
+      expect(() =>
+        validateTopology({
+          nodes: [{ id: 'n1', module: 'foo' }],
+          connections: [{ to: 'n1.in' }],
+        }),
+      ).toThrow('Connection at index 0 is missing required field "from"');
     });
 
     it('should reject connection without to', () => {
-      expect(() => validateTopology({
-        nodes: [{ id: 'n1', module: 'foo' }],
-        connections: [{ from: 'n1.out' }]
-      })).toThrow('Connection at index 0 is missing required field "to"');
+      expect(() =>
+        validateTopology({
+          nodes: [{ id: 'n1', module: 'foo' }],
+          connections: [{ from: 'n1.out' }],
+        }),
+      ).toThrow('Connection at index 0 is missing required field "to"');
     });
 
     it('should reject connection with non-string from', () => {
-      expect(() => validateTopology({
-        nodes: [{ id: 'n1', module: 'foo' }],
-        connections: [{ from: 123, to: 'n1.in' }]
-      })).toThrow('Connection at index 0 has invalid "from" (must be a string)');
+      expect(() =>
+        validateTopology({
+          nodes: [{ id: 'n1', module: 'foo' }],
+          connections: [{ from: 123, to: 'n1.in' }],
+        }),
+      ).toThrow('Connection at index 0 has invalid "from" (must be a string)');
     });
 
     it('should reject connection with non-string to', () => {
-      expect(() => validateTopology({
-        nodes: [{ id: 'n1', module: 'foo' }],
-        connections: [{ from: 'n1.out', to: 123 }]
-      })).toThrow('Connection at index 0 has invalid "to" (must be a string)');
+      expect(() =>
+        validateTopology({
+          nodes: [{ id: 'n1', module: 'foo' }],
+          connections: [{ from: 'n1.out', to: 123 }],
+        }),
+      ).toThrow('Connection at index 0 has invalid "to" (must be a string)');
     });
 
     it('should accept valid topology', () => {
-      expect(() => validateTopology({
-        nodes: [
-          { id: 'n1', module: 'foo' },
-          { id: 'n2', module: 'bar' }
-        ],
-        connections: [
-          { from: 'n1.out', to: 'n2.in' }
-        ]
-      })).not.toThrow();
+      expect(() =>
+        validateTopology({
+          nodes: [
+            { id: 'n1', module: 'foo' },
+            { id: 'n2', module: 'bar' },
+          ],
+          connections: [{ from: 'n1.out', to: 'n2.in' }],
+        }),
+      ).not.toThrow();
     });
   });
 });

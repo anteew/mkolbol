@@ -8,21 +8,22 @@
 
 The `mk` CLI provides commands for the complete development workflow:
 
-| Command | Purpose | Phase |
-|---------|---------|-------|
-| `mk init` | Initialize new mkolbol project | Scaffolding |
-| `mk run` | Execute topology configuration | Development |
-| `mk doctor` | Validate configuration and health | Validation |
-| `mk format` | Convert configs (JSON ↔ YAML) | Authoring |
-| `mk graph` | Visualize topology connections | Documentation |
-| `mk dev` | Hot reload development mode | Development |
-| `mk logs` | Query structured logs | Debugging |
-| `mk trace` | Analyze flow timing | Performance |
-| `mk build` | Compile and bundle artifacts | Build |
-| `mk package` | Create distributable tarball | Distribution |
-| `mk ci plan` | Generate CI configuration | CI/CD |
+| Command      | Purpose                           | Phase         |
+| ------------ | --------------------------------- | ------------- |
+| `mk init`    | Initialize new mkolbol project    | Scaffolding   |
+| `mk run`     | Execute topology configuration    | Development   |
+| `mk doctor`  | Validate configuration and health | Validation    |
+| `mk format`  | Convert configs (JSON ↔ YAML)    | Authoring     |
+| `mk graph`   | Visualize topology connections    | Documentation |
+| `mk dev`     | Hot reload development mode       | Development   |
+| `mk logs`    | Query structured logs             | Debugging     |
+| `mk trace`   | Analyze flow timing               | Performance   |
+| `mk build`   | Compile and bundle artifacts      | Build         |
+| `mk package` | Create distributable tarball      | Distribution  |
+| `mk ci plan` | Generate CI configuration         | CI/CD         |
 
 **Prerequisites:**
+
 - Node 20+ installed
 - mkolbol repository cloned and built (`npm install && npm run build`)
 - `MK_LOCAL_NODE=1` environment variable set (for development)
@@ -42,6 +43,7 @@ node dist/scripts/mk.js init hello-calculator
 ### Adding mk to PATH (Recommended)
 
 **Linux/macOS:**
+
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
 export PATH="/path/to/mkolbol/dist/scripts:$PATH"
@@ -53,6 +55,7 @@ mk --help       # → Shows mk help
 ```
 
 **Windows:**
+
 ```powershell
 # Add to PATH via System Properties → Environment Variables
 # Or create .cmd shim:
@@ -71,11 +74,13 @@ See **[Installation: mk Anywhere](../../README.md#installation-mk-anywhere-self-
 Initialize a new mkolbol project from a template.
 
 **Usage:**
+
 ```
 mk init [project-name] [--lang <ts|js>] [--preset <tty|stdio|interactive>] [--force]
 ```
 
 **Options:**
+
 - `project-name` — Directory name for new project (default: interactive prompt)
 - `--lang <ts|js>` — Language for scaffolded files (default: `ts`)
 - `--preset <name>` — Template preset to use (default: `tty`)
@@ -85,6 +90,7 @@ mk init [project-name] [--lang <ts|js>] [--preset <tty|stdio|interactive>] [--fo
 - `--force` — Overwrite existing directory (default: false)
 
 **What it creates:**
+
 ```
 project-name/
 ├── .mk/
@@ -115,6 +121,7 @@ mk init data-pipeline --lang ts --preset stdio
 ```
 
 **After init:**
+
 ```bash
 cd hello-calculator
 npm install /path/to/mkolbol-0.2.0.tgz  # Install mkolbol dependency
@@ -123,6 +130,7 @@ mk run --file mk.json --duration 10
 ```
 
 **See Also:**
+
 - **[Bootstrap Tutorial](./using-mkolbol-in-your-repo.md)** — Complete out-of-tree workflow
 - **[First Five Minutes](./first-five-minutes.md)** — End-to-end mk workflow
 
@@ -133,11 +141,13 @@ mk run --file mk.json --duration 10
 Execute a topology configuration file.
 
 **Usage:**
+
 ```
 mk run [--file <path>] [--duration <seconds>] [--dry-run] [--profile <name>] [--verbose]
 ```
 
 **Options:**
+
 - `--file <path>` — Config file (JSON or YAML). Default: `mk.json`
 - `--duration <seconds>` — How long to run topology. Default: `5`
 - `--dry-run` — Validate config without executing. Default: `false`
@@ -164,6 +174,7 @@ mk run --file mk.json --duration 10 --verbose
 ```
 
 **Exit Codes:**
+
 - `0` — Success
 - `64` — Usage error (invalid flags)
 - `65` — Config parse error
@@ -172,9 +183,11 @@ mk run --file mk.json --duration 10 --verbose
 - `130` — Interrupted (Ctrl+C)
 
 **Environment:**
+
 - `MK_LOCAL_NODE=1` — Required for development (disables network features)
 
 **See Also:**
+
 - **[Quickstart](./quickstart.md)** — Getting started with mkctl run
 - **[Wiring Guide](./wiring-and-tests.md)** — Complete config schema
 
@@ -185,17 +198,20 @@ mk run --file mk.json --duration 10 --verbose
 Validate configuration and perform health checks.
 
 **Usage:**
+
 ```
 mk doctor [--file <path>] [--module <id>] [--dry-run] [--verbose]
 ```
 
 **Options:**
+
 - `--file <path>` — Config file to validate. Default: `mk.json`
 - `--module <id>` — Check specific module only
 - `--dry-run` — Show what would be checked without executing
 - `--verbose` — Show detailed diagnostic output
 
 **What it checks:**
+
 - ✓ Config file syntax (JSON/YAML)
 - ✓ Schema validation (nodes, connections, params)
 - ✓ Module registry (all modules exist)
@@ -222,6 +238,7 @@ mk doctor --file mk.json --verbose
 ```
 
 **Output:**
+
 ```
 [✓] Config file valid (mk.json)
 [✓] All modules registered (3 modules)
@@ -235,6 +252,7 @@ mk doctor --file mk.json --verbose
 ```
 
 **Errors:**
+
 ```
 [✗] Port 4000 already in use
 Fix: Run: lsof -i :4000 && kill -9 <pid>
@@ -243,6 +261,7 @@ Code: PORT_IN_USE
 ```
 
 **See Also:**
+
 - **[Doctor Guide](./doctor.md)** — Complete troubleshooting reference
 - **[Troubleshooting](./troubleshooting.md)** — Common issues and fixes
 
@@ -253,11 +272,13 @@ Code: PORT_IN_USE
 Convert configuration files between JSON and YAML.
 
 **Usage:**
+
 ```
 mk format [--to <json|yaml>] [--from <path>] [--output <path>] [--dry-run]
 ```
 
 **Options:**
+
 - `--to <format>` — Target format (`json` or `yaml`). Required.
 - `--from <path>` — Source config file. Default: `mk.json`
 - `--output <path>` — Output file path. Default: inferred from source
@@ -282,12 +303,14 @@ mk format --to yaml --from config.json --output topology.yaml
 ```
 
 **Why YAML?**
+
 - More concise (no quotes on most values)
 - Comments supported (`# This is a comment`)
 - Multi-line strings easier
 - Industry standard for config
 
 **See Also:**
+
 - **[Wiring Guide](./wiring-and-tests.md#config-formats)** — JSON vs YAML comparison
 
 ---
@@ -297,11 +320,13 @@ mk format --to yaml --from config.json --output topology.yaml
 Visualize topology connections as ASCII or DOT format.
 
 **Usage:**
+
 ```
 mk graph [--file <path>] [--format <ascii|dot>] [--output <path>]
 ```
 
 **Options:**
+
 - `--file <path>` — Config file to visualize. Default: `mk.json`
 - `--format <type>` — Output format (`ascii` or `dot`). Default: `ascii`
 - `--output <path>` — Write to file instead of stdout
@@ -323,6 +348,7 @@ mk graph --file mk.json --format dot | dot -Tpng > topology.png
 ```
 
 **ASCII Output:**
+
 ```
 ┌──────────────┐
 │  calculator  │
@@ -337,6 +363,7 @@ mk graph --file mk.json --format dot | dot -Tpng > topology.png
 ```
 
 **DOT Output:**
+
 ```dot
 digraph topology {
   rankdir=LR;
@@ -357,11 +384,13 @@ Hot reload development mode (watch source files and restart topology on changes)
 **Status:** Planned (not yet implemented)
 
 **Usage:**
+
 ```
 mk dev [--file <path>] [--watch <glob>] [--debounce <ms>]
 ```
 
 **Options:**
+
 - `--file <path>` — Config file. Default: `mk.json`
 - `--watch <glob>` — Files to watch. Default: `src/**/*.{ts,js}`
 - `--debounce <ms>` — Restart delay. Default: `300`
@@ -380,6 +409,7 @@ mk dev --file mk.json --debounce 500
 ```
 
 **See Also:**
+
 - **[mk dev, logs, trace Guide](./mk-dev-logs-trace.md)** — Development ergonomics
 
 ---
@@ -391,11 +421,13 @@ Query structured logs with filters.
 **Status:** Planned (not yet implemented)
 
 **Usage:**
+
 ```
 mk logs [--file <path>] [--module <id>] [--level <level>] [--since <time>] [--follow]
 ```
 
 **Options:**
+
 - `--file <path>` — Log file. Default: `logs/*.jsonl`
 - `--module <id>` — Filter by module ID
 - `--level <level>` — Filter by level (`error`, `warn`, `info`, `debug`, `trace`)
@@ -422,6 +454,7 @@ mk logs --module calculator --level error --follow
 ```
 
 **See Also:**
+
 - **[mk dev, logs, trace Guide](./mk-dev-logs-trace.md)** — Development ergonomics
 
 ---
@@ -433,11 +466,13 @@ Analyze flow timing and latency.
 **Status:** Planned (not yet implemented)
 
 **Usage:**
+
 ```
 mk trace [--file <path>] [--duration <seconds>] [--threshold <ms>]
 ```
 
 **Options:**
+
 - `--file <path>` — Config file. Default: `mk.json`
 - `--duration <seconds>` — How long to trace. Default: `10`
 - `--threshold <ms>` — Highlight slow operations. Default: `100`
@@ -456,6 +491,7 @@ mk trace --file mk.json --threshold 50
 ```
 
 **Output:**
+
 ```
 Flow Timing (10s sample):
   calculator → tty-renderer    avg: 2.3ms  p95: 5.1ms  p99: 8.7ms
@@ -467,6 +503,7 @@ Slow Operations (>100ms):
 ```
 
 **See Also:**
+
 - **[mk dev, logs, trace Guide](./mk-dev-logs-trace.md)** — Development ergonomics
 
 ---
@@ -476,16 +513,19 @@ Slow Operations (>100ms):
 Compile TypeScript and bundle artifacts.
 
 **Usage:**
+
 ```
 mk build [--target <dev|production>] [--sourcemaps] [--verbose]
 ```
 
 **Options:**
+
 - `--target <name>` — Build target (`dev` or `production`). Default: `production`
 - `--sourcemaps` — Generate source maps. Default: `false`
 - `--verbose` — Show detailed build output
 
 **What it does:**
+
 1. Compiles `src/**/*.ts` → `dist/**/*.js`
 2. Bundles dependencies (if configured in `.mk/options.json`)
 3. Generates `dist/manifest.json` with provenance:
@@ -509,6 +549,7 @@ mk build --verbose
 ```
 
 **Output:**
+
 ```
 [mk] Building project...
 [mk] Compiling TypeScript → dist/
@@ -524,6 +565,7 @@ Artifacts:
 ```
 
 **Manifest Example:**
+
 ```json
 {
   "version": "0.1.0",
@@ -538,6 +580,7 @@ Artifacts:
 ```
 
 **See Also:**
+
 - **[First Five Minutes](./first-five-minutes.md#5-build-artifacts-1-minute)** — Complete workflow
 
 ---
@@ -547,16 +590,19 @@ Artifacts:
 Create distributable tarball with checksums.
 
 **Usage:**
+
 ```
 mk package [--output <path>] [--sign] [--with-sourcemaps]
 ```
 
 **Options:**
+
 - `--output <path>` — Output tarball path. Default: `<project>-<version>.tgz`
 - `--sign` — Sign with GPG. Default: `false`
 - `--with-sourcemaps` — Include source maps. Default: `false`
 
 **What it includes:**
+
 ```
 <project>-<version>.tgz
 ├── dist/                 # Compiled artifacts
@@ -585,6 +631,7 @@ mk package --with-sourcemaps
 ```
 
 **Install elsewhere:**
+
 ```bash
 # Copy tarball
 scp hello-calculator-0.1.0.tgz remote:/tmp/
@@ -598,6 +645,7 @@ mk run --file mk.json
 ```
 
 **See Also:**
+
 - **[First Five Minutes](./first-five-minutes.md#6-package-for-distribution-1-minute)** — Complete workflow
 - **[Distribution Matrix](./distribution.md)** — Installation methods
 
@@ -608,16 +656,19 @@ mk run --file mk.json
 Generate GitHub Actions CI configuration.
 
 **Usage:**
+
 ```
 mk ci plan [--output] [--with-laminar] [--env]
 ```
 
 **Options:**
+
 - `--output` — Write to `.github/workflows/test.yml`. Default: print to stdout
 - `--with-laminar` — Include Laminar test observability. Default: `false`
 - `--env` — Output as environment variables for sourcing
 
 **What it generates:**
+
 - GitHub Actions workflow with matrix testing
 - Test matrix from `.mk/options.json` (node versions, test lanes)
 - Dependency caching
@@ -642,6 +693,7 @@ echo $MATRIX_LANE  # → ["threads", "forks"]
 ```
 
 **Generated Workflow:**
+
 ```yaml
 name: Tests
 
@@ -652,8 +704,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: ["20", "24"]
-        lane: ["threads", "forks"]
+        node: ['20', '24']
+        lane: ['threads', 'forks']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -665,6 +717,7 @@ jobs:
 ```
 
 **See Also:**
+
 - **[CI Acceptance Smoke](./ci-acceptance-smoke.md)** — Complete CI guide
 - **[First Five Minutes](./first-five-minutes.md#7-generate-ci-config-1-minute)** — Complete workflow
 
@@ -674,14 +727,14 @@ jobs:
 
 These flags work with all commands:
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--help`, `-h` | Show command help | - |
-| `--version`, `-v` | Show version | - |
-| `--json` | Machine-readable JSON output | `false` |
-| `--no-color` | Disable ANSI colors | `false` |
-| `--verbose` | Show detailed output | `false` |
-| `--quiet` | Suppress non-error output | `false` |
+| Flag              | Description                  | Default |
+| ----------------- | ---------------------------- | ------- |
+| `--help`, `-h`    | Show command help            | -       |
+| `--version`, `-v` | Show version                 | -       |
+| `--json`          | Machine-readable JSON output | `false` |
+| `--no-color`      | Disable ANSI colors          | `false` |
+| `--verbose`       | Show detailed output         | `false` |
+| `--quiet`         | Suppress non-error output    | `false` |
 
 **Examples:**
 
@@ -708,12 +761,12 @@ mk build --quiet
 
 ## Environment Variables
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `MK_LOCAL_NODE` | Enable local node mode (required for development) | `0` |
-| `MK_DEBUG` | Enable debug output | `0` |
-| `MK_DEBUG_MODULES` | Debug specific modules (comma-separated) | - |
-| `MK_DEBUG_LEVEL` | Debug level (`error`, `warn`, `info`, `debug`, `trace`) | `info` |
+| Variable           | Purpose                                                 | Default |
+| ------------------ | ------------------------------------------------------- | ------- |
+| `MK_LOCAL_NODE`    | Enable local node mode (required for development)       | `0`     |
+| `MK_DEBUG`         | Enable debug output                                     | `0`     |
+| `MK_DEBUG_MODULES` | Debug specific modules (comma-separated)                | -       |
+| `MK_DEBUG_LEVEL`   | Debug level (`error`, `warn`, `info`, `debug`, `trace`) | `info`  |
 
 **Examples:**
 
@@ -733,6 +786,7 @@ MK_DEBUG_LEVEL=trace mk run --file mk.json
 ```
 
 **See Also:**
+
 - **[Debug Instrumentation](../../README.md#debug-instrumentation)** — Complete debug guide
 
 ---
@@ -741,15 +795,15 @@ MK_DEBUG_LEVEL=trace mk run --file mk.json
 
 Standard exit codes across all commands:
 
-| Code | Meaning | Example |
-|------|---------|---------|
-| `0` | Success | Command completed successfully |
-| `1` | General error | Unhandled exception |
-| `64` | Usage error | Invalid flags, missing arguments |
-| `65` | Config parse error | Invalid JSON/YAML syntax |
-| `66` | File not found | Config file missing |
-| `70` | Runtime error | Topology execution failed |
-| `130` | Interrupted | Ctrl+C (SIGINT) |
+| Code  | Meaning            | Example                          |
+| ----- | ------------------ | -------------------------------- |
+| `0`   | Success            | Command completed successfully   |
+| `1`   | General error      | Unhandled exception              |
+| `64`  | Usage error        | Invalid flags, missing arguments |
+| `65`  | Config parse error | Invalid JSON/YAML syntax         |
+| `66`  | File not found     | Config file missing              |
+| `70`  | Runtime error      | Topology execution failed        |
+| `130` | Interrupted        | Ctrl+C (SIGINT)                  |
 
 **Using exit codes in scripts:**
 
@@ -778,6 +832,7 @@ mk run --file mk.json --duration 30 || {
 All mk errors follow consistent format:
 
 **Human-readable:**
+
 ```
 [ERR] ERROR_CODE at <location> — brief description
 Fix: <actionable remediation>
@@ -786,6 +841,7 @@ Code: ERROR_CODE  Rerun: <exact command>
 ```
 
 **Machine-readable (with `--json`):**
+
 ```json
 {
   "code": "CONFIG_PARSE",
@@ -798,6 +854,7 @@ Code: ERROR_CODE  Rerun: <exact command>
 ```
 
 **See Also:**
+
 - **[mk DX Style Guide](./mk-dx-style.md)** — Complete error taxonomy
 
 ---
@@ -807,6 +864,7 @@ Code: ERROR_CODE  Rerun: <exact command>
 The CLI suggests typo corrections using Levenshtein distance ≤ 2:
 
 **Unknown command:**
+
 ```bash
 $ mk rnu
 [ERR] UNKNOWN_COMMAND — Unknown command "rnu"
@@ -815,6 +873,7 @@ Fix: Run: mk --help
 ```
 
 **Unknown flag:**
+
 ```bash
 $ mk run --flie mk.json
 [ERR] INVALID_ARGUMENT — Unknown flag "--flie"
@@ -823,6 +882,7 @@ Fix: Run: mk run --help
 ```
 
 **See Also:**
+
 - **[mk DX Style Guide](./mk-dx-style.md#did-you-mean-pattern)** — Implementation details
 
 ---
@@ -830,6 +890,7 @@ Fix: Run: mk run --help
 ## Quick Reference Card
 
 **Complete workflow:**
+
 ```bash
 # Initialize project
 mk init hello-calculator --lang ts --preset tty
@@ -869,6 +930,7 @@ mk ci plan --output
 **Cause:** mk not in PATH or not built
 
 **Fix:**
+
 ```bash
 # Option 1: Use full path
 node /path/to/mkolbol/dist/scripts/mk.js --help
@@ -886,6 +948,7 @@ npm run build
 **Cause:** Wrong path or file doesn't exist
 
 **Fix:**
+
 ```bash
 # Check current directory
 ls -la mk.json
@@ -902,6 +965,7 @@ mk init --force
 **Cause:** Another process using the port
 
 **Fix:**
+
 ```bash
 # Find process
 lsof -i :4000
@@ -918,6 +982,7 @@ kill -9 <pid>
 **Cause:** Typo in module name or module not in registry
 
 **Fix:**
+
 ```bash
 # Check spelling in mk.json
 # "module": "CalculatorServer" (exact case)

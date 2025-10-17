@@ -54,6 +54,7 @@ mk trace --file mk.json --top 10 --sort latency
 ### What It Does
 
 `mk dev` runs your topology with **file watch** enabled. When you edit:
+
 - **TypeScript/JavaScript module source** → recompiles and restarts the module (in-process)
 - **Configuration file** (mk.json or mk.yaml) → reloads and validates topology
 - **Package.json dependencies** → rebuilds, then restarts affected modules
@@ -126,12 +127,7 @@ Override in `.mk/options.json`:
 ```json
 {
   "dev": {
-    "watch": [
-      "src/**/*.ts",
-      "src/**/*.js",
-      "config/*.yaml",
-      "data/seeds/*.json"
-    ],
+    "watch": ["src/**/*.ts", "src/**/*.js", "config/*.yaml", "data/seeds/*.json"],
     "ignore": ["**/*.test.ts", "**/node_modules"]
   }
 }
@@ -256,6 +252,7 @@ mk logs --level info,debug --watch
 ```
 
 Levels (from most to least severe):
+
 - `error` — runtime failures, exceptions
 - `warning` — deprecations, slow operations, retries
 - `info` — normal operation, requests, module lifecycle
@@ -325,7 +322,7 @@ By default, logs use ISO 8601 UTC timestamps. Configure in `.mk/options.json`:
 ```json
 {
   "logs": {
-    "timezone": "local",        // local | UTC
+    "timezone": "local", // local | UTC
     "format": "iso|human|epoch"
   }
 }
@@ -501,12 +498,14 @@ mk trace --top 3 --sort latency
 **Problem**: File changes don't trigger reload.
 
 **Checklist**:
+
 1. Verify file path is correct: `mk dev --verbose` shows watched paths
 2. Ensure module is in `runMode: inproc` or `worker` (external processes don't hot-reload)
 3. Check file is in watched patterns in `.mk/options.json`
 4. On Mac: ensure Terminal has full disk access (System Preferences → Security & Privacy)
 
 **Fix**:
+
 ```bash
 # Force rebuild and restart all modules
 mk dev --reload-all
@@ -517,11 +516,13 @@ mk dev --reload-all
 **Problem**: Recompile fails silently; topology keeps running old version.
 
 **Fix**: Enable verbose logging
+
 ```bash
 mk dev --verbose
 ```
 
 Or check errors explicitly:
+
 ```bash
 mk doctor --section types
 ```
@@ -531,11 +532,13 @@ mk doctor --section types
 **Problem**: `mk logs --watch` shows nothing.
 
 **Checklist**:
+
 1. Is topology running? (`mk logs` requires `mk dev` or `mk run` to be active)
 2. Are modules outputting logs? (some modules may be silent)
 3. Check stdout/stderr redirection: is output captured?
 
 **Fix**:
+
 ```bash
 # Ensure topology is running
 mk dev &
@@ -548,6 +551,7 @@ mk logs --watch  # should now show output
 **Problem**: `mk logs --watch` is overwhelming.
 
 **Solutions**:
+
 ```bash
 # Filter to one module
 mk logs --module http-server --watch
@@ -564,6 +568,7 @@ mk logs --tail 50
 **Problem**: Tracing adds noticeable latency.
 
 **Solutions**:
+
 - Use `--duration` to limit capture window instead of `--watch`
 - Reduce sample rate: `mk trace --sample-rate 0.1` (trace 10% of messages)
 - Trace only specific modules: `mk trace --module parser`
@@ -573,10 +578,12 @@ mk logs --tail 50
 **Problem**: `mk trace` returns empty results.
 
 **Checklist**:
+
 1. Is topology running with messages flowing?
 2. Was capture duration long enough? (need at least 100 messages for meaningful stats)
 
 **Fix**:
+
 ```bash
 # Ensure topology is active
 mk dev &
@@ -610,11 +617,11 @@ export MK_TRACE_SAMPLE_RATE=0.5
 
 ## Quick Reference
 
-| Command | Purpose | Key Flags |
-|---------|---------|-----------|
-| `mk dev` | Hot reload on file changes | `--file`, `--duration`, `--verbose`, `--dry-run` |
-| `mk logs` | Stream & filter logs | `--module`, `--level`, `--pattern`, `--watch`, `--tail` |
-| `mk trace` | Analyze flow latency | `--duration`, `--top`, `--sort`, `--format`, `--watch` |
+| Command    | Purpose                    | Key Flags                                               |
+| ---------- | -------------------------- | ------------------------------------------------------- |
+| `mk dev`   | Hot reload on file changes | `--file`, `--duration`, `--verbose`, `--dry-run`        |
+| `mk logs`  | Stream & filter logs       | `--module`, `--level`, `--pattern`, `--watch`, `--tail` |
+| `mk trace` | Analyze flow latency       | `--duration`, `--top`, `--sort`, `--format`, `--watch`  |
 
 ---
 

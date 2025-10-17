@@ -5,7 +5,7 @@ import { EXIT_CODES } from './errors.js';
 export async function runHandler(args: string[]): Promise<number> {
   const dryRunIndex = args.indexOf('--dry-run');
   const isDryRun = dryRunIndex !== -1;
-  
+
   if (isDryRun) {
     args.splice(dryRunIndex, 1);
   }

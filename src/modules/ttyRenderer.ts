@@ -19,12 +19,12 @@ export class TTYRenderer {
 
   constructor(
     protected kernel: Kernel,
-    options?: TTYRendererOptions
+    options?: TTYRendererOptions,
   ) {
     this.options = {
       target: options?.target ?? 'stdout',
       rawMode: options?.rawMode ?? true,
-      stripAnsi: options?.stripAnsi ?? false
+      stripAnsi: options?.stripAnsi ?? false,
     };
 
     this.isTTY = this.options.target === 'stdout' && process.stdout.isTTY;
@@ -34,7 +34,7 @@ export class TTYRenderer {
       write: (chunk, _enc, cb) => {
         this.writeChunk(chunk);
         cb();
-      }
+      },
     });
 
     this.inputPipe = sink as unknown as Pipe;
@@ -75,7 +75,7 @@ export class TTYRenderer {
 
       this.fileStream = createWriteStream(this.options.target, {
         flags: 'a',
-        encoding: 'utf8'
+        encoding: 'utf8',
       });
 
       this.fileStream.on('error', (err: Error) => {

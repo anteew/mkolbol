@@ -11,10 +11,10 @@ This tutorial teaches you how to create your first custom server module for mkol
 
 ## Two Paths to Choose From
 
-| Path | Best For | Complexity | Language | Isolation |
-|------|----------|------------|----------|-----------|
-| **Transform (inproc)** | TypeScript/JavaScript, fast iteration, minimal overhead | Simple | TypeScript/JS only | None (same process) |
-| **External (process)** | Any language, maximum isolation, existing CLI tools | Medium | Any (Python, Go, Rust, etc.) | Full (separate process) |
+| Path                   | Best For                                                | Complexity | Language                     | Isolation               |
+| ---------------------- | ------------------------------------------------------- | ---------- | ---------------------------- | ----------------------- |
+| **Transform (inproc)** | TypeScript/JavaScript, fast iteration, minimal overhead | Simple     | TypeScript/JS only           | None (same process)     |
+| **External (process)** | Any language, maximum isolation, existing CLI tools     | Medium     | Any (Python, Go, Rust, etc.) | Full (separate process) |
 
 **Recommendation**: Start with Transform for learning, switch to External when you need multi-language support or process isolation.
 
@@ -69,14 +69,12 @@ export class UppercaseTransform {
       objectMode: true,
       transform(chunk, _encoding, callback) {
         // Convert chunk to string
-        const text = typeof chunk === 'string'
-          ? chunk
-          : chunk.toString('utf8');
+        const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
 
         // Transform and pass along
         const uppercased = text.toUpperCase();
         callback(null, uppercased);
-      }
+      },
     });
 
     // Wire internal pipeline: inputPipe -> transformer -> outputPipe
@@ -100,7 +98,7 @@ export class UppercaseTransform {
 
   constructor(
     private kernel: Kernel,
-    private hostess?: Hostess
+    private hostess?: Hostess,
   ) {
     this.inputPipe = kernel.createPipe({ objectMode: true });
     this.outputPipe = kernel.createPipe({ objectMode: true });
@@ -110,7 +108,7 @@ export class UppercaseTransform {
       transform(chunk, _encoding, callback) {
         const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
         callback(null, text.toUpperCase());
-      }
+      },
     });
 
     this.inputPipe.pipe(transformer).pipe(this.outputPipe);
@@ -131,18 +129,18 @@ export class UppercaseTransform {
       owner: 'user',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
         type: 'transform',
         accepts: ['text', 'string'],
         produces: ['text', 'string'],
-        features: ['uppercase', 'text-transform']
+        features: ['uppercase', 'text-transform'],
       },
       metadata: {
         description: 'Converts text to uppercase',
-        version: '1.0.0'
-      }
+        version: '1.0.0',
+      },
     });
 
     this.serverId = this.hostess.register(manifest);
@@ -198,7 +196,7 @@ async function main() {
   upper.inputPipe.write('this is a test');
 
   // Cleanup
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
   upper.shutdown();
 }
 
@@ -254,11 +252,14 @@ async function main() {
   source.emit('mkolbol is awesome');
 
   // Wait for processing
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   // Query Hostess
   const transforms = hostess.query({ type: 'transform', accepts: 'text' });
-  console.log('Found transforms:', transforms.map(e => e.servername));
+  console.log(
+    'Found transforms:',
+    transforms.map((e) => e.servername),
+  );
 
   transform.shutdown();
 }
@@ -267,6 +268,7 @@ main().catch(console.error);
 ```
 
 **Expected Output:**
+
 ```
 [UppercaseTransform] Registered with Hostess: localhost:uppercase-transform:0x1001:user:no:none:...
 [ConsoleSink] HELLO WORLD
@@ -318,6 +320,7 @@ if __name__ == '__main__':
 ```
 
 Make it executable:
+
 ```bash
 chmod +x scripts/echo-server.py
 ```
@@ -348,13 +351,13 @@ export class SimpleEchoWrapper extends ExternalServerWrapper {
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
         { name: 'output', type: 'local', direction: 'output' },
-        { name: 'error', type: 'local', direction: 'output' }
+        { name: 'error', type: 'local', direction: 'output' },
       ],
       capabilities: {
         type: 'transform',
         accepts: ['text'],
         produces: ['text'],
-        features: ['echo', 'python']
+        features: ['echo', 'python'],
       },
       command: 'python3',
       args: [path.resolve(process.cwd(), 'scripts/echo-server.py')],
@@ -363,7 +366,7 @@ export class SimpleEchoWrapper extends ExternalServerWrapper {
       ioMode: 'stdio',
       restart: 'on-failure',
       restartDelay: 1000,
-      maxRestarts: 3
+      maxRestarts: 3,
     };
 
     super(kernel, hostess, manifest);
@@ -417,7 +420,7 @@ async function main() {
   echo.inputPipe.write('This is line 2\n');
 
   // Wait for processing
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   // Graceful shutdown
   await echo.shutdown();
@@ -428,6 +431,7 @@ main().catch(console.error);
 ```
 
 **Expected Output:**
+
 ```
 Stderr: [SimpleEcho] Starting up...
 Output: [ECHO] Hello from TypeScript
@@ -481,11 +485,14 @@ async function main() {
   source.emit('test message 1');
   source.emit('test message 2');
 
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   // Query Hostess
   const pythonModules = hostess.query({ features: ['python'] });
-  console.log('Python modules:', pythonModules.map(e => e.servername));
+  console.log(
+    'Python modules:',
+    pythonModules.map((e) => e.servername),
+  );
 
   await echo.shutdown();
 }
@@ -521,6 +528,7 @@ cat reports/endpoints.json
 ```
 
 Example:
+
 ```json
 [
   {
@@ -590,6 +598,7 @@ After creating your module, verify it works:
 - [ ] `shutdown()` cleans up resources
 
 **Test command:**
+
 ```bash
 npm run build
 node dist/your-test-file.js
@@ -610,6 +619,7 @@ node dist/your-test-file.js
 - [ ] Restart policy works (test by killing the process)
 
 **Test command:**
+
 ```bash
 npm run build
 node dist/your-test-file.js
@@ -668,7 +678,7 @@ export class ReverseTransform {
         const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
         const reversed = text.split('').reverse().join('');
         cb(null, reversed);
-      }
+      },
     });
 
     this.inputPipe.pipe(transformer).pipe(this.outputPipe);
@@ -679,6 +689,7 @@ export class ReverseTransform {
 ### External Module: WordCount (Bash)
 
 **File: `scripts/word-count.sh`**
+
 ```bash
 #!/bin/bash
 echo "[WordCount] Starting..." >&2
@@ -692,6 +703,7 @@ echo "[WordCount] Stopping..." >&2
 ```
 
 **File: `src/modules/WordCountWrapper.ts`**
+
 ```typescript
 import { Kernel, Hostess, ExternalServerWrapper } from 'mkolbol';
 import type { ExternalServerManifest } from 'mkolbol/types';
@@ -709,13 +721,13 @@ export class WordCountWrapper extends ExternalServerWrapper {
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
         { name: 'output', type: 'local', direction: 'output' },
-        { name: 'error', type: 'local', direction: 'output' }
+        { name: 'error', type: 'local', direction: 'output' },
       ],
       capabilities: {
         type: 'transform',
         accepts: ['text'],
         produces: ['text'],
-        features: ['word-count', 'bash']
+        features: ['word-count', 'bash'],
       },
       command: path.resolve(process.cwd(), 'scripts/word-count.sh'),
       args: [],
@@ -724,7 +736,7 @@ export class WordCountWrapper extends ExternalServerWrapper {
       ioMode: 'stdio',
       restart: 'on-failure',
       restartDelay: 1000,
-      maxRestarts: 3
+      maxRestarts: 3,
     };
 
     super(kernel, hostess, manifest);
@@ -739,6 +751,7 @@ export class WordCountWrapper extends ExternalServerWrapper {
 After building your module programmatically, you can also load it from YAML/JSON configuration files using the ConfigLoader and Executor.
 
 See **[Wiring and Testing](./wiring-and-tests.md)** guide for:
+
 - How to write topology configs with external processes
 - Both `stdio` and `pty` I/O modes
 - Running tests in threads vs forks lanes

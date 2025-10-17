@@ -1,11 +1,13 @@
 # Rehydrate Notes
 
 ## Latest Sprint
+
 - **ID:** SB-MK-ROUTER-P1
 - **Timestamp:** 2025-10-16 04:17Z (see ampcode.log entry)
 - **Tasks:** T9601–T9605 (CI enforcement, RoutingServer P1, mkctl endpoints/docs)
 
 ## Deliverable Patches
+
 - `patches/DIFF_T9601_ci-process-enforce.patch`
 - `patches/DIFF_T9602_router-skeleton.patch`
 - `patches/DIFF_T9603_router-announcements.patch`
@@ -13,6 +15,7 @@
 - `patches/DIFF_T9605_router-docs.patch`
 
 ## Verification Commands
+
 ```bash
 npm run build
 npm run test:ci
@@ -24,12 +27,14 @@ npx vitest run --reporter=default \
 ```
 
 ## Key Artifacts
+
 - Router snapshot written by `mkctl run`: `reports/router-endpoints.json`
 - mkctl cookbook: `docs/devex/mkctl-cookbook.md`
 - Routing RFC: `docs/rfcs/stream-kernel/05-router.md`
 - Executor now forwards announcements via `setRoutingServer()`
 
 ## Checklist After Rehydrate
+
 1. Confirm patch files exist in `patches/`.
 2. Reinstall deps (`npm ci`) and rebuild (`npm run build`).
 3. Re-run verification commands above.

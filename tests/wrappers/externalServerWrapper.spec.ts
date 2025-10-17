@@ -30,18 +30,18 @@ describe('ExternalServerWrapper', () => {
       authMechanism: 'none',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
         type: 'transform',
         accepts: ['text'],
-        produces: ['text']
+        produces: ['text'],
       },
       command: '/bin/echo',
       args: ['hello world'],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'stdio'
+      ioMode: 'stdio',
     };
 
     wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
@@ -61,16 +61,16 @@ describe('ExternalServerWrapper', () => {
       authMechanism: 'none',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
-        type: 'transform'
+        type: 'transform',
       },
       command: '/bin/cat',
       args: [],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'stdio'
+      ioMode: 'stdio',
     };
 
     wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
@@ -80,8 +80,8 @@ describe('ExternalServerWrapper', () => {
     wrapper.outputPipe.on('data', (data) => output.push(data));
 
     wrapper.inputPipe.write('test data\n');
-    
-    await new Promise(resolve => setTimeout(resolve, 100));
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const result = Buffer.concat(output).toString();
     expect(result).toContain('test data');
@@ -95,27 +95,25 @@ describe('ExternalServerWrapper', () => {
       owner: 'test',
       auth: 'no',
       authMechanism: 'none',
-      terminals: [
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
+      terminals: [{ name: 'output', type: 'local', direction: 'output' }],
       capabilities: {
-        type: 'source'
+        type: 'source',
       },
       command: '/bin/sh',
       args: ['-c', 'echo $TEST_VAR'],
       env: { TEST_VAR: 'hello' },
       cwd: process.cwd(),
-      ioMode: 'stdio'
+      ioMode: 'stdio',
     };
 
     wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    
+
     const output: Buffer[] = [];
     wrapper.outputPipe.on('data', (data) => output.push(data));
 
     await wrapper.spawn();
-    
-    await new Promise(resolve => setTimeout(resolve, 200));
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     const result = Buffer.concat(output).toString();
     expect(result.trim()).toBe('hello');
@@ -129,25 +127,23 @@ describe('ExternalServerWrapper', () => {
       owner: 'test',
       auth: 'no',
       authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' }
-      ],
+      terminals: [{ name: 'input', type: 'local', direction: 'input' }],
       capabilities: {
-        type: 'output'
+        type: 'output',
       },
       command: '/bin/cat',
       args: [],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'stdio'
+      ioMode: 'stdio',
     };
 
     wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
     await wrapper.spawn();
 
     const servers = hostess.list();
-    const found = servers.find(s => s.servername === 'hostess-test');
-    
+    const found = servers.find((s) => s.servername === 'hostess-test');
+
     expect(found).toBeDefined();
     expect(found?.servername).toBe('hostess-test');
   });
@@ -162,13 +158,13 @@ describe('ExternalServerWrapper', () => {
       authMechanism: 'none',
       terminals: [],
       capabilities: {
-        type: 'source'
+        type: 'source',
       },
       command: '/bin/sleep',
       args: ['10'],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'stdio'
+      ioMode: 'stdio',
     };
 
     wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
@@ -191,7 +187,7 @@ describe('ExternalServerWrapper', () => {
       authMechanism: 'none',
       terminals: [],
       capabilities: {
-        type: 'source'
+        type: 'source',
       },
       command: '/bin/sh',
       args: ['-c', 'exit 1'],
@@ -200,13 +196,13 @@ describe('ExternalServerWrapper', () => {
       ioMode: 'stdio',
       restart: 'on-failure',
       restartDelay: 100,
-      maxRestarts: 2
+      maxRestarts: 2,
     };
 
     wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
     await wrapper.spawn();
 
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     expect(wrapper['restartCount']).toBeGreaterThan(0);
   }, 10000);
@@ -221,7 +217,7 @@ describe('ExternalServerWrapper', () => {
       authMechanism: 'none',
       terminals: [],
       capabilities: {
-        type: 'source'
+        type: 'source',
       },
       command: '/bin/sh',
       args: ['-c', 'exit 1'],
@@ -230,13 +226,13 @@ describe('ExternalServerWrapper', () => {
       ioMode: 'stdio',
       restart: 'never',
       restartDelay: 100,
-      maxRestarts: 3
+      maxRestarts: 3,
     };
 
     wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
     await wrapper.spawn();
 
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     expect(wrapper['restartCount']).toBe(0);
     expect(wrapper.isRunning()).toBe(false);
@@ -252,7 +248,7 @@ describe('ExternalServerWrapper', () => {
       authMechanism: 'none',
       terminals: [],
       capabilities: {
-        type: 'source'
+        type: 'source',
       },
       command: '/bin/sh',
       args: ['-c', 'exit 1'],
@@ -261,13 +257,13 @@ describe('ExternalServerWrapper', () => {
       ioMode: 'stdio',
       restart: 'always',
       restartDelay: 50,
-      maxRestarts: 2
+      maxRestarts: 2,
     };
 
     wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
     await wrapper.spawn();
 
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     expect(wrapper['restartCount']).toBe(2);
   }, 10000);
@@ -282,20 +278,20 @@ describe('ExternalServerWrapper', () => {
       authMechanism: 'none',
       terminals: [],
       capabilities: {
-        type: 'source'
+        type: 'source',
       },
       command: '/bin/sleep',
       args: ['5'],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'stdio'
+      ioMode: 'stdio',
     };
 
     wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
     await wrapper.spawn();
 
     const info = wrapper.getProcessInfo();
-    
+
     expect(info.pid).toBeGreaterThan(0);
     expect(info.uptime).toBeGreaterThanOrEqual(0);
     expect(info.memoryUsage).toBeGreaterThanOrEqual(0);

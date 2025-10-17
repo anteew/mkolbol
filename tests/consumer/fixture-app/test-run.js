@@ -26,25 +26,28 @@ async function runTest() {
   const hostess = new Hostess();
   const stateManager = new StateManager(kernel);
   const executor = new Executor(kernel, hostess, stateManager);
-  
+
   let success = false;
 
   try {
     console.log('[Consumer Test] Loading topology...');
     executor.load(config);
-    
+
     console.log('[Consumer Test] Starting topology...');
     await executor.up();
 
     // Wait for some output to be generated
     console.log('[Consumer Test] Running topology for 2 seconds...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Check if output file was created and has content
     if (existsSync(outputFile)) {
       const content = readFileSync(outputFile, 'utf8');
-      const lines = content.trim().split('\n').filter(l => l.length > 0);
-      
+      const lines = content
+        .trim()
+        .split('\n')
+        .filter((l) => l.length > 0);
+
       if (lines.length > 0) {
         console.log(`[Consumer Test] ✅ SUCCESS: Generated ${lines.length} events`);
         console.log(`[Consumer Test] Sample event: ${lines[0].substring(0, 100)}...`);

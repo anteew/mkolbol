@@ -12,8 +12,8 @@ export type CheckResult = {
 export type CheckSection = 'all' | 'toolchain' | 'environment';
 
 export async function runDoctorChecks(
-  verbose: boolean = false,
-  section: CheckSection = 'all'
+  _verbose: boolean = false,
+  section: CheckSection = 'all',
 ): Promise<CheckResult[]> {
   const results: CheckResult[] = [];
 
@@ -51,7 +51,8 @@ function checkNodeVersion(): CheckResult {
       name: 'Node.js version',
       status: 'fail',
       message: `${nodeVersion} (< 20)`,
-      remediation: 'Install Node.js 20 or later from https://nodejs.org/ or use nvm: nvm install 20',
+      remediation:
+        'Install Node.js 20 or later from https://nodejs.org/ or use nvm: nvm install 20',
     };
   }
 }
@@ -111,11 +112,11 @@ function checkGitRepository(): CheckResult {
 
 function checkBuildStatus(): CheckResult {
   const distPath = resolve(process.cwd(), 'dist');
-  
+
   if (existsSync(distPath)) {
     const mkPath = resolve(distPath, 'scripts/mk.js');
     const hasMk = existsSync(mkPath);
-    
+
     if (hasMk) {
       return {
         name: 'Build status',
@@ -142,7 +143,7 @@ function checkBuildStatus(): CheckResult {
 
 function checkDependencies(): CheckResult {
   const nodeModulesPath = resolve(process.cwd(), 'node_modules');
-  
+
   if (existsSync(nodeModulesPath)) {
     return {
       name: 'Dependencies',
@@ -162,7 +163,7 @@ function checkDependencies(): CheckResult {
 function checkTypeScriptCompilation(): CheckResult {
   try {
     execSync('npx tsc --version', { stdio: 'pipe' });
-    
+
     try {
       execSync('npx tsc --noEmit', { stdio: 'pipe', timeout: 10000 });
       return {
@@ -208,7 +209,7 @@ function checkToolchainPath(): CheckResult {
       message: `All binaries found: ${foundBins.join(', ')}`,
     };
   } else if (foundBins.length > 0) {
-    const missing = mkBins.filter(b => !foundBins.includes(b));
+    const missing = mkBins.filter((b) => !foundBins.includes(b));
     return {
       name: 'Toolchain PATH',
       status: 'warn',
@@ -296,7 +297,10 @@ function checkMkVersionConsistency(): CheckResult {
     try {
       const mkBinPath = resolve(process.cwd(), 'dist/scripts/mk.js');
       if (existsSync(mkBinPath)) {
-        binVersion = execSync('node dist/scripts/mk.js --version', { stdio: 'pipe', encoding: 'utf8' }).trim();
+        binVersion = execSync('node dist/scripts/mk.js --version', {
+          stdio: 'pipe',
+          encoding: 'utf8',
+        }).trim();
       }
     } catch {
       // Binary version check failed
@@ -325,7 +329,7 @@ function checkMkVersionConsistency(): CheckResult {
         remediation: 'Run: npm run build',
       };
     }
-  } catch (error) {
+  } catch {
     return {
       name: 'mk version consistency',
       status: 'fail',
@@ -377,45 +381,53 @@ function checkBinaryAccessibility(): CheckResult {
   }
 }
 
-export function formatCheckResults(results: CheckResult[], format: 'text' | 'json' = 'text'): string {
+export function formatCheckResults(
+  results: CheckResult[],
+  format: 'text' | 'json' = 'text',
+): string {
   if (format === 'json') {
-    const passCount = results.filter(r => r.status === 'pass').length;
-    const warnCount = results.filter(r => r.status === 'warn').length;
-    const failCount = results.filter(r => r.status === 'fail').length;
+    const passCount = results.filter((r) => r.status === 'pass').length;
+    const warnCount = results.filter((r) => r.status === 'warn').length;
+    const failCount = results.filter((r) => r.status === 'fail').length;
 
-    return JSON.stringify({
-      summary: {
-        total: results.length,
-        passed: passCount,
-        warnings: warnCount,
-        failed: failCount,
+    return JSON.stringify(
+      {
+        summary: {
+          total: results.length,
+          passed: passCount,
+          warnings: warnCount,
+          failed: failCount,
+        },
+        checks: results,
       },
-      checks: results,
-    }, null, 2);
+      null,
+      2,
+    );
   }
 
   const lines: string[] = [];
-  
+
   lines.push('\n🏥 mk doctor — Environment Diagnostics\n');
-  
+
   for (const result of results) {
     const icon = result.status === 'pass' ? '✓' : result.status === 'warn' ? '⚠' : '✗';
-    const statusColor = result.status === 'pass' ? '' : result.status === 'warn' ? ' (warning)' : ' (failed)';
-    
+    const statusColor =
+      result.status === 'pass' ? '' : result.status === 'warn' ? ' (warning)' : ' (failed)';
+
     lines.push(`${icon} ${result.name}: ${result.message}${statusColor}`);
-    
+
     if (result.remediation) {
       lines.push(`  → ${result.remediation}`);
     }
   }
-  
-  const passCount = results.filter(r => r.status === 'pass').length;
-  const warnCount = results.filter(r => r.status === 'warn').length;
-  const failCount = results.filter(r => r.status === 'fail').length;
-  
+
+  const passCount = results.filter((r) => r.status === 'pass').length;
+  const warnCount = results.filter((r) => r.status === 'warn').length;
+  const failCount = results.filter((r) => r.status === 'fail').length;
+
   lines.push('\n' + '─'.repeat(60));
   lines.push(`Summary: ${passCount} passed, ${warnCount} warnings, ${failCount} failed`);
-  
+
   if (failCount === 0 && warnCount === 0) {
     lines.push('✓ All checks passed!');
   } else if (failCount > 0) {
@@ -423,6 +435,6 @@ export function formatCheckResults(results: CheckResult[], format: 'text' | 'jso
   } else {
     lines.push('⚠ Some warnings detected. Review and fix if needed.');
   }
-  
+
   return lines.join('\n');
 }

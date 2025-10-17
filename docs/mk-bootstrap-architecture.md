@@ -111,7 +111,7 @@ examples/mk/init-templates/
 
 ```typescript
 // Configuration
-{ 
+{
   source: 'tarball',
   tarballPath: './mkolbol-0.2.0-rfc.tgz'  // Optional
 }
@@ -136,7 +136,7 @@ examples/mk/init-templates/
 
 ```typescript
 // Configuration
-{ 
+{
   source: 'git',
   gitTag: 'v0.2.0'  // Default: 'main'
 }

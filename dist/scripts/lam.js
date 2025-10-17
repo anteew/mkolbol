@@ -20,7 +20,6 @@ if (args.includes('--help') || args.includes('-h')) {
 }
 if (args[0] === 'version' || args[0] === '--version' || args[0] === '-v') {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const pkg = require('../package.json');
         console.log(pkg.version || 'unknown');
     }

@@ -104,20 +104,25 @@ export class RoutingServer {
       if (age > this.ttlMs) {
         stale.push(id);
         staleDetails.push({ id, age, type: endpoint.type });
-        debug.emit('router', 'sweep.stale', {
-          id,
-          type: endpoint.type,
-          age,
-          ttlMs: this.ttlMs,
-          lastUpdated: endpoint.updatedAt,
-          coordinates: endpoint.coordinates,
-        }, 'warn');
+        debug.emit(
+          'router',
+          'sweep.stale',
+          {
+            id,
+            type: endpoint.type,
+            age,
+            ttlMs: this.ttlMs,
+            lastUpdated: endpoint.updatedAt,
+            coordinates: endpoint.coordinates,
+          },
+          'warn',
+        );
       }
     }
 
     for (const id of stale) {
       this.endpoints.delete(id);
-      debug.emit('router', 'sweep.removed', { 
+      debug.emit('router', 'sweep.removed', {
         id,
         totalRemaining: this.endpoints.size,
       });

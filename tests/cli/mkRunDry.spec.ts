@@ -24,7 +24,7 @@ describe('mk run --dry-run', () => {
   });
 
   afterEach(() => {
-    tempFiles.forEach(file => {
+    tempFiles.forEach((file) => {
       try {
         if (existsSync(file)) {
           unlinkSync(file);
@@ -40,7 +40,7 @@ describe('mk run --dry-run', () => {
     const result = spawnSync('tsx', [mkPath, ...args], {
       encoding: 'utf8',
       cwd: join(__dirname, '../..'),
-      env: { ...process.env }
+      env: { ...process.env },
     });
     return result;
   }
@@ -48,7 +48,7 @@ describe('mk run --dry-run', () => {
   describe('argument parsing', () => {
     it('should error when topology file is missing', () => {
       const result = runMk(['run', '--dry-run']);
-      
+
       expect(result.status).toBe(EXIT_CODES.USAGE);
       expect(result.stderr).toContain('Missing topology file');
       expect(result.stderr).toContain('Usage: mk run <topology-file>');
@@ -56,7 +56,7 @@ describe('mk run --dry-run', () => {
 
     it('should error when config file does not exist', () => {
       const result = runMk(['run', '/nonexistent/config.yml', '--dry-run']);
-      
+
       expect(result.status).toBe(EXIT_CODES.CONFIG_NOT_FOUND);
       expect(result.stderr).toContain('Config file not found');
     });
@@ -110,10 +110,10 @@ connections: []
           {
             id: 'timer1',
             module: 'TimerSource',
-            params: { periodMs: 500 }
-          }
+            params: { periodMs: 500 },
+          },
         ],
-        connections: []
+        connections: [],
       };
       const configPath = join(testConfigDir, 'valid.json');
       writeFileSync(configPath, JSON.stringify(validConfig, null, 2));

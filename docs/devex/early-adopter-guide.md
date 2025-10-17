@@ -7,20 +7,26 @@ Welcome to mkolbol! This guide will get you up to speed in 5 minutes.
 **New to mkolbol?** Pick one of these entry points based on what you want to do:
 
 ### 🚀 **I want to see it in action** (5 min)
+
 Run a live topology demo without writing code:
+
 - **[Quickstart: mkctl run](./quickstart.md#quick-start-with-mkctl-recommended)** - Execute pre-built topologies from YAML
 - After it runs, inspect the RoutingServer snapshot with `mkctl endpoints`
 - **[Interactive Topology](./interactive-topology.md)** - Keyboard → PTY → Terminal demo
 - **[StdIO Path](./stdio-path.md)** - Non-interactive data pipeline (no terminal overhead)
 
 ### 🔨 **I want to build my first module** (20-30 min)
+
 Create and wire a custom server:
+
 - **[First Server Tutorial](./first-server-tutorial.md)** - Code your first Transform or External process
 - **[Wiring and Testing Guide](./wiring-and-tests.md)** - Configure topologies and test them
 - **[Acceptance Tests](./tests/devex/README.md)** - Validate your module works
 
 ### 🚢 **I want to deploy and observe** (15-20 min)
+
 Prepare modules for production:
+
 - **[Laminar Dev Workflow](./laminar-workflow.md)** - Test observability and debugging
 - **[Packaging Guide](./packaging.md)** - Bundle your modules into single executables
 - **[mkctl Cookbook](./mkctl-cookbook.md)** - Daily cheatsheet for `mkctl run` / `mkctl endpoints`
@@ -79,9 +85,9 @@ import { Kernel } from 'mkolbol';
 const kernel = new Kernel();
 
 // 2. Create modules (they create their own pipes via kernel)
-const timer = new TimerSource(kernel);    // Emits data periodically
-const upper = new UppercaseTransform(kernel);  // Transforms data
-const console = new ConsoleSink(kernel);  // Displays data
+const timer = new TimerSource(kernel); // Emits data periodically
+const upper = new UppercaseTransform(kernel); // Transforms data
+const console = new ConsoleSink(kernel); // Displays data
 
 // 3. Wire them up
 kernel.connect(timer.outputPipe, upper.inputPipe);
@@ -95,15 +101,16 @@ kernel.connect(upper.outputPipe, console.inputPipe);
 
 Every module falls into one of five categories:
 
-| Type | Purpose | Pipes | Examples |
-|------|---------|-------|----------|
-| **Input** | User input sources | Output only | KeyboardInput, VoiceInput, MCPInput |
-| **Source** | Bidirectional processes | Input + Output | PTY, DockerContainer, RemoteShell |
-| **Transform** | Process data in-flight | Input + Output | AnsiParser, Compressor, Encryptor |
-| **Output** | Display/record results | Input only | ScreenRenderer, MP4Recorder, Logger |
-| **Routing** | Manage multiple pipes | Many pipes | RoutingServer, LoadBalancer |
+| Type          | Purpose                 | Pipes          | Examples                            |
+| ------------- | ----------------------- | -------------- | ----------------------------------- |
+| **Input**     | User input sources      | Output only    | KeyboardInput, VoiceInput, MCPInput |
+| **Source**    | Bidirectional processes | Input + Output | PTY, DockerContainer, RemoteShell   |
+| **Transform** | Process data in-flight  | Input + Output | AnsiParser, Compressor, Encryptor   |
+| **Output**    | Display/record results  | Input only     | ScreenRenderer, MP4Recorder, Logger |
+| **Routing**   | Manage multiple pipes   | Many pipes     | RoutingServer, LoadBalancer         |
 
 **Example Flow**:
+
 ```
 KeyboardInput (input)
       ↓
@@ -128,15 +135,17 @@ Screen   Canvas  (both output)
 mkolbol supports four run modes, giving you flexibility for development, testing, and production:
 
 ### 1. inproc (In-Process)
+
 **What**: Module runs in the main Node.js process
 **When**: Development, lightweight transforms, minimal overhead
 **Tradeoff**: Fast but no isolation
 
 ```typescript
-const module = new UppercaseTransform(kernel);  // Runs in same process
+const module = new UppercaseTransform(kernel); // Runs in same process
 ```
 
 ### 2. worker (Worker Thread)
+
 **What**: Module runs in a separate V8 worker thread
 **When**: CPU-intensive work, need memory isolation, parallel processing
 **Tradeoff**: Some overhead, but isolated from main thread
@@ -147,6 +156,7 @@ nodes:
 ```
 
 ### 3. external (Process via stdio)
+
 **What**: Module runs as separate process, communicates over stdin/stdout
 **When**: Any executable, language-agnostic, maximum isolation
 **Tradeoff**: Process startup cost, but can use Python, Go, Rust, etc.
@@ -160,6 +170,7 @@ nodes:
 ```
 
 ### 4. pty (Pseudo-Terminal)
+
 **What**: Module runs as PTY process with terminal emulation
 **When**: Interactive shells, terminal applications, hijacking terminal I/O
 **Tradeoff**: Full terminal semantics, ANSI escape sequences
@@ -226,17 +237,19 @@ Legend:
 These three components work together to manage your system:
 
 ### Executor
+
 Orchestrates module lifecycle: load config → instantiate modules → wire connections → start/stop
 
 ```typescript
 const executor = new Executor(kernel, hostess, stateManager);
-executor.load(topologyConfig);  // Load YAML/JSON config
-await executor.up();             // Start all modules
+executor.load(topologyConfig); // Load YAML/JSON config
+await executor.up(); // Start all modules
 // ... system runs ...
-await executor.down();           // Graceful shutdown
+await executor.down(); // Graceful shutdown
 ```
 
 ### StateManager
+
 Tracks topology (nodes, connections) and emits events for HMI/monitoring
 
 ```typescript
@@ -249,6 +262,7 @@ stateManager.on('connected', ({ from, to }) => {
 ```
 
 ### Hostess
+
 Service registry with heartbeat monitoring and capability-based discovery
 
 ```typescript
@@ -302,23 +316,24 @@ npx lam trends --top 10
 ### Artifacts in CI
 
 GitHub Actions uploads two artifact bundles per Node version:
+
 - `laminar-reports-node-XX` - Contains `summary.jsonl`, case logs, digests
 - Download from the [Actions tab](https://github.com/anteew/mkolbol/actions)
 
 ## Glossary
 
-| Term | Definition |
-|------|------------|
-| **Kernel** | ~100 line core providing pipes, connections, and registry |
-| **Pipe** | Bidirectional data channel (Node.js Duplex stream) |
-| **Module** | Functional unit with input/output pipes (all semantics live here) |
-| **Executor** | Lifecycle manager: loads config, instantiates modules, manages start/stop |
-| **StateManager** | Topology tracker and event emitter for monitoring |
-| **Hostess** | Service registry with heartbeat and capability-based discovery |
-| **Run Mode** | Execution environment: inproc, worker, external, or pty |
-| **Endpoint** | Addressable module instance with type, coordinates, and metadata |
-| **Topology** | Configuration of nodes and connections (YAML/JSON) |
-| **Laminar** | Test observability framework with structured logging (JSONL) |
+| Term             | Definition                                                                |
+| ---------------- | ------------------------------------------------------------------------- |
+| **Kernel**       | ~100 line core providing pipes, connections, and registry                 |
+| **Pipe**         | Bidirectional data channel (Node.js Duplex stream)                        |
+| **Module**       | Functional unit with input/output pipes (all semantics live here)         |
+| **Executor**     | Lifecycle manager: loads config, instantiates modules, manages start/stop |
+| **StateManager** | Topology tracker and event emitter for monitoring                         |
+| **Hostess**      | Service registry with heartbeat and capability-based discovery            |
+| **Run Mode**     | Execution environment: inproc, worker, external, or pty                   |
+| **Endpoint**     | Addressable module instance with type, coordinates, and metadata          |
+| **Topology**     | Configuration of nodes and connections (YAML/JSON)                        |
+| **Laminar**      | Test observability framework with structured logging (JSONL)              |
 
 ## Packaging Walkthrough: Bundle Your First Module
 
@@ -339,7 +354,8 @@ cat scripts/build-bundle.mjs
 ```
 
 This script:
-- Takes your TypeScript source (src/*.ts)
+
+- Takes your TypeScript source (src/\*.ts)
 - Resolves all dependencies (mkolbol kernel, node_modules)
 - Bundles into a single JavaScript file
 - Produces `dist/runner.js` - your distributable executable
@@ -355,6 +371,7 @@ node scripts/build-bundle.mjs
 ```
 
 Expected output:
+
 ```
 ✓ Bundled successfully
 ✓ Output: dist/runner.js
@@ -371,6 +388,7 @@ node dist/runner.js --file ./my-config.yml --duration 10
 ```
 
 Your bundled application runs identically to the source:
+
 - Same module wiring
 - Same configuration loading
 - Same Laminar observability (if enabled)
@@ -395,16 +413,19 @@ See **[Laminar Workflow Guide](./laminar-workflow.md)** for complete observabili
 ### Bundling Tips
 
 **Size optimization:**
+
 - Use esbuild's `--minify` flag to reduce bundle size
 - Tree-shake unused dependencies with `--platform=node`
 - Consider splitting bundles if they exceed 50MB
 
 **Runtime configuration:**
+
 - Store configs in `/etc/myapp/` or `$XDG_CONFIG_HOME`
 - Pass config path as CLI argument (see `dist/runner.js --help`)
 - Embed default config in the bundle as fallback
 
 **Reproducible builds:**
+
 - Pin all versions in `package-lock.json`
 - Store the bundle script in version control
 - Document any environment variables required at runtime
@@ -441,6 +462,7 @@ npm run dev:merge   # Fan-in example
 See the **Quick Start: Choose Your Path** section near the top of this guide to pick your entry point. Each path includes links to everything you need.
 
 **Not sure which path?** Here's how to decide:
+
 - **Just want to explore?** → Choose **"I want to see it in action"**
 - **Ready to code?** → Choose **"I want to build my first module"**
 - **Building something real?** → Choose **"I want to deploy and observe"**

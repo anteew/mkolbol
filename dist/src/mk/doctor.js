@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import { existsSync, statSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-export async function runDoctorChecks(verbose = false, section = 'all') {
+export async function runDoctorChecks(_verbose = false, section = 'all') {
     const results = [];
     if (section === 'all' || section === 'environment') {
         results.push(checkNodeVersion());
@@ -306,7 +306,7 @@ function checkMkVersionConsistency() {
             };
         }
     }
-    catch (error) {
+    catch {
         return {
             name: 'mk version consistency',
             status: 'fail',

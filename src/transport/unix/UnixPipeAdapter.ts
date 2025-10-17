@@ -43,15 +43,11 @@ class UnixPipeAdapterDuplex extends Duplex {
     });
   }
 
-  _read(size: number): void {
+  _read(_size: number): void {
     this.socket.resume();
   }
 
-  _write(
-    chunk: any,
-    encoding: BufferEncoding,
-    callback: (error?: Error | null) => void
-  ): void {
+  _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
     const canContinue = this.socket.write(chunk, encoding);
 
     if (canContinue) {
@@ -67,10 +63,7 @@ class UnixPipeAdapterDuplex extends Duplex {
     });
   }
 
-  _destroy(
-    error: Error | null,
-    callback: (error?: Error | null) => void
-  ): void {
+  _destroy(error: Error | null, callback: (error?: Error | null) => void): void {
     this.isClosing = true;
     if (!this.socket.destroyed) {
       this.socket.destroy();

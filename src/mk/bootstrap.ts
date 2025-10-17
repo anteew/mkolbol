@@ -1,4 +1,4 @@
-import { mkdir, writeFile, copyFile, readFile, cp, readdir } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, cp, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +20,10 @@ interface TemplateManifest {
   scripts?: Record<string, string>;
 }
 
-export async function bootstrapProject(appDir: string, options: BootstrapOptions = {}): Promise<void> {
+export async function bootstrapProject(
+  appDir: string,
+  options: BootstrapOptions = {},
+): Promise<void> {
   const {
     yes = false,
     verbose = false,
@@ -34,7 +37,9 @@ export async function bootstrapProject(appDir: string, options: BootstrapOptions
   const projectName = appDir.split('/').pop() || appDir;
 
   if (existsSync(targetDir)) {
-    throw new Error(`Directory '${appDir}' already exists. Please choose a different name or remove the existing directory.`);
+    throw new Error(
+      `Directory '${appDir}' already exists. Please choose a different name or remove the existing directory.`,
+    );
   }
 
   if (verbose) {
@@ -59,7 +64,12 @@ export async function bootstrapProject(appDir: string, options: BootstrapOptions
 
   await cp(templatePath, targetDir, { recursive: true });
 
-  await updatePackageJson(targetDir, projectName, source, { verbose, gitTag, tarballPath, repoRoot });
+  await updatePackageJson(targetDir, projectName, source, {
+    verbose,
+    gitTag,
+    tarballPath,
+    repoRoot,
+  });
 
   await updateReadme(targetDir, appDir);
 
@@ -77,7 +87,7 @@ async function updatePackageJson(
   targetDir: string,
   projectName: string,
   source: 'tarball' | 'git' | 'local',
-  opts: { verbose?: boolean; gitTag?: string; tarballPath?: string; repoRoot: string }
+  opts: { verbose?: boolean; gitTag?: string; tarballPath?: string; repoRoot: string },
 ): Promise<void> {
   const pkgPath = join(targetDir, 'package.json');
   const pkgContent = await readFile(pkgPath, 'utf8');
@@ -91,7 +101,7 @@ async function updatePackageJson(
     if (opts.tarballPath) {
       mkolbolDependency = opts.tarballPath;
     } else {
-      const tarballs = (await readdir(opts.repoRoot)).filter(f => /^mkolbol-.*\.tgz$/.test(f));
+      const tarballs = (await readdir(opts.repoRoot)).filter((f) => /^mkolbol-.*\.tgz$/.test(f));
       if (tarballs.length === 0) {
         throw new Error('No mkolbol tarball found. Run `npm pack` in the mkolbol repo first.');
       }
@@ -125,7 +135,7 @@ async function updatePackageJson(
 
 async function updateReadme(targetDir: string, projectName: string): Promise<void> {
   const readmePath = join(targetDir, 'README.md');
-  
+
   if (existsSync(readmePath)) {
     const content = await readFile(readmePath, 'utf8');
     const updated = content
@@ -137,7 +147,7 @@ async function updateReadme(targetDir: string, projectName: string): Promise<voi
 
 async function installDependencies(
   targetDir: string,
-  opts: { yes?: boolean; verbose?: boolean }
+  opts: { yes?: boolean; verbose?: boolean },
 ): Promise<void> {
   if (!opts.yes) {
     return;

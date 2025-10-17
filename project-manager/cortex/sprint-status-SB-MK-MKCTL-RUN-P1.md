@@ -6,7 +6,7 @@
 
 **Goal:** Add `mkctl run` command to execute a topology from YAML/JSON.
 
-| Task ID | Description                               | Status    | Notes |
-|---------|-------------------------------------------|-----------|-------|
-| T8801   | mkctl run --file <config> (wrap config-runner) | Complete  |       |
-| T8802   | CLI tests + example configs for mkctl run   | Complete  |       |
+| Task ID | Description                                    | Status   | Notes |
+| ------- | ---------------------------------------------- | -------- | ----- |
+| T8801   | mkctl run --file <config> (wrap config-runner) | Complete |       |
+| T8802   | CLI tests + example configs for mkctl run      | Complete |       |

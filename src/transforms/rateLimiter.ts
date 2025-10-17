@@ -22,7 +22,7 @@ export class RateLimiterTransform {
 
   constructor(
     private kernel: Kernel,
-    options: RateLimiterOptions = {}
+    options: RateLimiterOptions = {},
   ) {
     this.capacity = options.capacity ?? 10;
     this.refillRate = options.refillRate ?? 1;
@@ -40,7 +40,7 @@ export class RateLimiterTransform {
         } else {
           this.pendingMessages.push({ chunk, callback: () => cb(null, chunk) });
         }
-      }
+      },
     });
 
     this.outputPipe = kernel.createPipe({ objectMode: true });

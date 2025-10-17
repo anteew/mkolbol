@@ -41,10 +41,10 @@
     "enabled": true,
     "config": "laminar.config.json",
     "digestRules": {
-      "budget": {"kb": 2},
+      "budget": { "kb": 2 },
       "rules": [
-        {"match": {"lvl": "error"}, "actions": [{"type": "include"}]},
-        {"match": {"evt": "assert.fail"}, "actions": [{"type": "slice", "window": 5}]}
+        { "match": { "lvl": "error" }, "actions": [{ "type": "include" }] },
+        { "match": { "evt": "assert.fail" }, "actions": [{ "type": "slice", "window": 5 }] }
       ]
     }
   },

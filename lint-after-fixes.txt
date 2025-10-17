@@ -1,0 +1,15 @@
+npm warn Unknown user config "always-auth". This will stop working in the next major version of npm.
+
+> mkolbol@0.2.0-rfc lint
+> eslint .
+
+
+/srv/repos0/mkolbol-vex/mkolbol/scripts/lam.ts
+  26:5  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+
+/srv/repos0/mkolbol-vex/mkolbol/src/pipes/adapters/WebSocketPipe.ts
+  4:15  warning  'Frame' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 2 problems (0 errors, 2 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

@@ -1,5 +1,5 @@
 import { watch, FSWatcher } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
 import type { TopologyConfig } from '../config/schema.js';
 import type { Executor } from '../executor/Executor.js';
 
@@ -17,12 +17,12 @@ export class DevWatcher {
   constructor(
     private executor: Executor,
     private topology: TopologyConfig,
-    private options: DevWatcherOptions = {}
+    private options: DevWatcherOptions = {},
   ) {}
 
   start(): void {
     const { verbose } = this.options;
-    
+
     if (verbose) {
       console.log('[mk dev] Starting file watchers...');
     }
@@ -63,7 +63,7 @@ export class DevWatcher {
       }
     }
     this.watchers.clear();
-    
+
     for (const timer of this.debounceTimers.values()) {
       clearTimeout(timer);
     }
@@ -72,7 +72,7 @@ export class DevWatcher {
 
   private watchModule(nodeId: string, modulePath: string): void {
     try {
-      const watcher = watch(modulePath, (eventType, filename) => {
+      const watcher = watch(modulePath, (eventType, _filename) => {
         if (eventType === 'change') {
           this.handleFileChange(nodeId, modulePath);
         }
@@ -88,7 +88,10 @@ export class DevWatcher {
         console.log(`[mk dev] Watching ${modulePath} for node ${nodeId}`);
       }
     } catch (error) {
-      console.error(`[mk dev] Failed to watch ${modulePath}:`, error instanceof Error ? error.message : String(error));
+      console.error(
+        `[mk dev] Failed to watch ${modulePath}:`,
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
@@ -110,7 +113,7 @@ export class DevWatcher {
 
   private async reloadModule(nodeId: string, modulePath: string): Promise<void> {
     console.log(`\n[mk dev] Module ${nodeId} changed, reloading...`);
-    
+
     try {
       // Clear Node.js module cache for the module
       const absolutePath = resolve(modulePath);
@@ -120,27 +123,30 @@ export class DevWatcher {
 
       // Restart the node via Executor
       await this.executor.restartNode(nodeId);
-      
+
       console.log(`[mk dev] ✓ Module ${nodeId} reloaded successfully`);
-      
+
       if (this.options.onReload) {
         this.options.onReload(nodeId, modulePath);
       }
     } catch (error) {
-      console.error(`[mk dev] ✗ Failed to reload ${nodeId}:`, error instanceof Error ? error.message : String(error));
+      console.error(
+        `[mk dev] ✗ Failed to reload ${nodeId}:`,
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
   private resolveModulePath(moduleName: string): string | null {
     // Map of known module names to their paths
     const moduleMap: Record<string, string> = {
-      'TimerSource': './src/modules/timer.ts',
-      'UppercaseTransform': './src/modules/uppercase.ts',
-      'ConsoleSink': './src/modules/consoleSink.ts',
-      'FilesystemSink': './src/modules/filesystem-sink.ts',
-      'PipeMeterTransform': './src/transforms/pipeMeter.ts',
-      'RateLimiterTransform': './src/transforms/rateLimiter.ts',
-      'TeeTransform': './src/transforms/tee.ts',
+      TimerSource: './src/modules/timer.ts',
+      UppercaseTransform: './src/modules/uppercase.ts',
+      ConsoleSink: './src/modules/consoleSink.ts',
+      FilesystemSink: './src/modules/filesystem-sink.ts',
+      PipeMeterTransform: './src/transforms/pipeMeter.ts',
+      RateLimiterTransform: './src/transforms/rateLimiter.ts',
+      TeeTransform: './src/transforms/tee.ts',
     };
 
     const relativePath = moduleMap[moduleName];
@@ -156,7 +162,7 @@ export class DevWatcher {
 export function watchModules(
   executor: Executor,
   topology: TopologyConfig,
-  options?: DevWatcherOptions
+  options?: DevWatcherOptions,
 ): DevWatcher {
   const watcher = new DevWatcher(executor, topology, options);
   watcher.start();

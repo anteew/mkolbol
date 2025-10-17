@@ -27,7 +27,10 @@ try {
 
   // Read summary.jsonl
   const summaryContent = fs.readFileSync(SUMMARY_PATH, 'utf-8');
-  const lines = summaryContent.trim().split('\n').filter(line => line.length > 0);
+  const lines = summaryContent
+    .trim()
+    .split('\n')
+    .filter((line) => line.length > 0);
 
   // Parse entries
   let environment = null;
@@ -67,9 +70,10 @@ try {
   // Write to file
   fs.writeFileSync(REPRO_OUTPUT_PATH, markdown, 'utf-8');
 
-  console.log(`[Laminar] Generated repro hints for ${failures.length} failed test(s) → ${REPRO_OUTPUT_PATH}`);
+  console.log(
+    `[Laminar] Generated repro hints for ${failures.length} failed test(s) → ${REPRO_OUTPUT_PATH}`,
+  );
   process.exit(0);
-
 } catch (err) {
   console.error(`[Laminar] Error generating repro hints: ${err.message}`);
   process.exit(1);
@@ -182,7 +186,7 @@ ${JSON.stringify(environment || {}, null, 2)}
 
 4. **Use Laminar digest for deep analysis:**
    \`\`\`bash
-   npm run lam -- digest --cases "${failures.map(f => f.testName.replace(/[^a-zA-Z0-9-_]/g, '_')).join(',')}"
+   npm run lam -- digest --cases "${failures.map((f) => f.testName.replace(/[^a-zA-Z0-9-_]/g, '_')).join(',')}"
    \`\`\`
 
 ---

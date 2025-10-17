@@ -8,7 +8,11 @@ const kernel = new Kernel();
 const state = new StateManager(kernel);
 state.subscribe((e) => console.log('[event]', e));
 
-state.addNode({ id: 'timer-1', name: 'Timer', terminals: [{ name: 'output', direction: 'output' }] });
+state.addNode({
+  id: 'timer-1',
+  name: 'Timer',
+  terminals: [{ name: 'output', direction: 'output' }],
+});
 state.addNode({
   id: 'upper-1',
   name: 'Upper',

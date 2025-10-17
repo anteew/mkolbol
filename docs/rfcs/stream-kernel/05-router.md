@@ -37,7 +37,7 @@ router.announce({
   id: 'node:timer1',
   type: 'inproc',
   coordinates: 'node:timer1',
-  metadata: { module: 'TimerSource', runMode: 'inproc' }
+  metadata: { module: 'TimerSource', runMode: 'inproc' },
 });
 
 router.list();

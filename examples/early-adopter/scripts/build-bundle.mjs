@@ -49,8 +49,8 @@ const config = {
   // IMPORTANT: Native modules like node-pty must be external
   // Add any other native modules or large dependencies here
   external: [
-    'node-pty',      // Native PTY module (must be installed separately)
-    'fsevents',      // macOS file watching (optional, platform-specific)
+    'node-pty', // Native PTY module (must be installed separately)
+    'fsevents', // macOS file watching (optional, platform-specific)
     // CUSTOMIZE: Add other externals as needed:
     // 'yaml',       // Uncomment to keep yaml external (smaller bundle, but requires npm install)
   ],
@@ -104,7 +104,6 @@ async function build() {
     console.log('  npm run start:bundle');
     console.log('\nIMPORTANT: External dependencies must be installed:');
     console.log('  npm install node-pty');
-
   } catch (error) {
     console.error('\nBuild failed:', error);
     process.exit(1);

@@ -1,4 +1,4 @@
-import { Writable, Transform } from 'stream';
+import { Transform } from 'stream';
 import { createWriteStream, WriteStream, fsync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { dirname } from 'path';
@@ -26,7 +26,7 @@ export class FilesystemSink {
 
   constructor(
     protected kernel: Kernel,
-    options: FilesystemSinkOptions
+    options: FilesystemSinkOptions,
   ) {
     this.options = {
       path: options.path,
@@ -35,7 +35,7 @@ export class FilesystemSink {
       highWaterMark: options.highWaterMark ?? 16384,
       fsync: options.fsync ?? 'auto',
       format: options.format ?? 'raw',
-      includeTimestamp: options.includeTimestamp ?? false
+      includeTimestamp: options.includeTimestamp ?? false,
     };
 
     this._inputPipe = kernel.createPipe();
@@ -53,7 +53,7 @@ export class FilesystemSink {
           const data = chunk.toString();
           const line = JSON.stringify({ ts, data }) + '\n';
           callback(null, line);
-        }
+        },
       });
     } else if (this.options.includeTimestamp) {
       let buffer = '';
@@ -63,7 +63,7 @@ export class FilesystemSink {
           buffer += chunk.toString();
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
-          const output = lines.map(line => `${ts} ${line}\n`).join('');
+          const output = lines.map((line) => `${ts} ${line}\n`).join('');
           callback(null, output);
         },
         flush: (callback) => {
@@ -73,18 +73,23 @@ export class FilesystemSink {
           } else {
             callback();
           }
-        }
+        },
       });
     }
     return new Transform({
       transform: (chunk, encoding, callback) => {
         callback(null, chunk);
-      }
+      },
     });
   }
 
   async start(): Promise<void> {
-    debug.emit('filesystem-sink', 'start', { path: this.options.path, mode: this.options.mode }, 'info');
+    debug.emit(
+      'filesystem-sink',
+      'start',
+      { path: this.options.path, mode: this.options.mode },
+      'info',
+    );
 
     // Ensure directory exists
     const dir = dirname(this.options.path);
@@ -95,7 +100,7 @@ export class FilesystemSink {
     this.fileStream = createWriteStream(this.options.path, {
       flags,
       encoding: this.options.encoding,
-      highWaterMark: this.options.highWaterMark
+      highWaterMark: this.options.highWaterMark,
     });
 
     // Create format transform if needed
@@ -110,23 +115,33 @@ export class FilesystemSink {
     this._inputPipe.on('data', (chunk) => {
       this.writeCount++;
       this.byteCount += chunk.length;
-      
-      debug.emit('filesystem-sink', 'write', {
-        path: this.options.path,
-        bytes: chunk.length,
-        totalWrites: this.writeCount,
-        totalBytes: this.byteCount
-      }, 'trace');
+
+      debug.emit(
+        'filesystem-sink',
+        'write',
+        {
+          path: this.options.path,
+          bytes: chunk.length,
+          totalWrites: this.writeCount,
+          totalBytes: this.byteCount,
+        },
+        'trace',
+      );
 
       if (this.options.fsync === 'always' && this.fileStream) {
         const fd = (this.fileStream as any).fd;
         if (typeof fd === 'number') {
           fsync(fd, (err) => {
             if (err) {
-              debug.emit('filesystem-sink', 'fsync-error', {
-                path: this.options.path,
-                error: err.message
-              }, 'error');
+              debug.emit(
+                'filesystem-sink',
+                'fsync-error',
+                {
+                  path: this.options.path,
+                  error: err.message,
+                },
+                'error',
+              );
             }
           });
         }
@@ -134,37 +149,57 @@ export class FilesystemSink {
     });
 
     this._inputPipe.on('end', () => {
-      debug.emit('filesystem-sink', 'input-end', {
-        path: this.options.path,
-        totalWrites: this.writeCount,
-        totalBytes: this.byteCount
-      }, 'info');
+      debug.emit(
+        'filesystem-sink',
+        'input-end',
+        {
+          path: this.options.path,
+          totalWrites: this.writeCount,
+          totalBytes: this.byteCount,
+        },
+        'info',
+      );
     });
 
     this.fileStream.on('error', (err) => {
-      debug.emit('filesystem-sink', 'error', {
-        path: this.options.path,
-        error: err.message
-      }, 'error');
+      debug.emit(
+        'filesystem-sink',
+        'error',
+        {
+          path: this.options.path,
+          error: err.message,
+        },
+        'error',
+      );
 
       console.error(`[FilesystemSink] Error writing to ${this.options.path}:`, err);
     });
 
     this.fileStream.on('finish', () => {
-      debug.emit('filesystem-sink', 'finish', {
-        path: this.options.path,
-        totalWrites: this.writeCount,
-        totalBytes: this.byteCount
-      }, 'info');
+      debug.emit(
+        'filesystem-sink',
+        'finish',
+        {
+          path: this.options.path,
+          totalWrites: this.writeCount,
+          totalBytes: this.byteCount,
+        },
+        'info',
+      );
     });
   }
 
   async stop(): Promise<void> {
-    debug.emit('filesystem-sink', 'stop', {
-      path: this.options.path,
-      totalWrites: this.writeCount,
-      totalBytes: this.byteCount
-    }, 'info');
+    debug.emit(
+      'filesystem-sink',
+      'stop',
+      {
+        path: this.options.path,
+        totalWrites: this.writeCount,
+        totalBytes: this.byteCount,
+      },
+      'info',
+    );
 
     if (!this.fileStream) {
       return;
@@ -172,9 +207,14 @@ export class FilesystemSink {
 
     return new Promise((resolve, reject) => {
       this.fileStream!.once('finish', () => {
-        debug.emit('filesystem-sink', 'stopped', {
-          path: this.options.path
-        }, 'info');
+        debug.emit(
+          'filesystem-sink',
+          'stopped',
+          {
+            path: this.options.path,
+          },
+          'info',
+        );
         this.fileStream = undefined;
         resolve();
       });
@@ -191,7 +231,7 @@ export class FilesystemSink {
   getStats(): { writeCount: number; byteCount: number } {
     return {
       writeCount: this.writeCount,
-      byteCount: this.byteCount
+      byteCount: this.byteCount,
     };
   }
 }

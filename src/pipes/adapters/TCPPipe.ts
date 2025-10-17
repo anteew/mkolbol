@@ -37,7 +37,7 @@ export class TCPPipeClient extends Duplex {
     this.socket.write(FrameCodec.encode(frame), cb);
   }
 
-  _read(): void {}
+  _read(_size?: number): void {}
 
   private handleData(chunk: Buffer): void {
     this.buffer = Buffer.concat([this.buffer, chunk]);
@@ -77,14 +77,14 @@ export class TCPPipeServer {
       this.server.on('error', reject);
       this.server.listen(this.options.port, () => {
         const addr = this.server!.address();
-        resolve((addr && typeof addr === 'object') ? addr.port : this.options.port);
+        resolve(addr && typeof addr === 'object' ? addr.port : this.options.port);
       });
     });
   }
 
   close(): Promise<void> {
     return new Promise((resolve) => {
-      this.connections.forEach(s => s.end());
+      this.connections.forEach((s) => s.end());
       this.connections.clear();
       if (this.server) this.server.close(() => resolve());
       else resolve();
@@ -107,7 +107,7 @@ class TCPServerPipe extends Duplex {
     this.socket.write(FrameCodec.encode(FrameCodec.createDataFrame(chunk, this.sequenceId++)), cb);
   }
 
-  _read(): void {}
+  _read(_size?: number): void {}
 
   private handleData(chunk: Buffer): void {
     this.buffer = Buffer.concat([this.buffer, chunk]);

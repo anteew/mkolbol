@@ -1,5 +1,5 @@
 import { createWriteStream, existsSync, createReadStream } from 'node:fs';
-import { mkdir, chmod, access, constants as fsConstants, readFile } from 'node:fs/promises';
+import { mkdir, access, constants as fsConstants, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { execSync } from 'node:child_process';
@@ -23,7 +23,7 @@ export async function downloadRelease(tag: string, options: FetchOptions = {}): 
 
   if (existsSync(cachedPath) && !options.forceDownload) {
     console.log(`Using cached tarball: ${cachedPath}`);
-    
+
     if (options.verify) {
       const isValid = await verifyTarball(cachedPath, hashPath);
       if (!isValid) {
@@ -31,15 +31,15 @@ export async function downloadRelease(tag: string, options: FetchOptions = {}): 
       }
       console.log('✓ SHA-256 verification passed');
     }
-    
+
     return cachedPath;
   }
 
   const { tarballUrl, sha256Url } = await getReleaseTarballInfo(normalizedTag);
-  
+
   await mkdir(cacheDir, { recursive: true });
   await downloadFile(tarballUrl, cachedPath);
-  
+
   if (sha256Url) {
     try {
       const hashContent = await downloadText(sha256Url);
@@ -48,7 +48,9 @@ export async function downloadRelease(tag: string, options: FetchOptions = {}): 
       const preview = (hashContent || '').trim().slice(0, 16);
       if (preview.length > 0) console.log(`✓ SHA-256 hash saved: ${preview}...`);
     } catch (e) {
-      console.warn(`⚠ Failed to download SHA-256 file: ${e instanceof Error ? e.message : String(e)}`);
+      console.warn(
+        `⚠ Failed to download SHA-256 file: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   } else {
     console.warn('⚠ No SHA-256 hash available from GitHub release');
@@ -73,7 +75,7 @@ export async function verifyTarball(tarballPath: string, hashPath: string): Prom
 
   const expectedHash = (await readFile(hashPath, 'utf8')).trim();
   const actualHash = await calculateSHA256(tarballPath);
-  
+
   return expectedHash === actualHash;
 }
 
@@ -81,7 +83,7 @@ export async function calculateSHA256(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash('sha256');
     const stream = createReadStream(filePath);
-    
+
     stream.on('data', (chunk) => hash.update(chunk));
     stream.on('end', () => resolve(hash.digest('hex')));
     stream.on('error', reject);
@@ -100,7 +102,7 @@ export async function installTarball(tarballPath: string): Promise<void> {
   }
 
   console.log(`Installing from ${tarballPath}...`);
-  
+
   try {
     execSync(`npm install "${tarballPath}"`, {
       stdio: 'inherit',
@@ -108,86 +110,115 @@ export async function installTarball(tarballPath: string): Promise<void> {
     });
     console.log('Installation complete');
   } catch (error) {
-    throw new Error(`Installation failed: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Installation failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
-async function getReleaseTarballInfo(tag: string): Promise<{ tarballUrl: string; sha256Url?: string }> {
+async function getReleaseTarballInfo(
+  tag: string,
+): Promise<{ tarballUrl: string; sha256Url?: string }> {
   return new Promise((resolve, reject) => {
     const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`;
-    
-    https.get(apiUrl, {
-      headers: {
-        'User-Agent': 'mkolbol-fetch',
-        'Accept': 'application/vnd.github+json',
-      },
-    }, (res) => {
-      if (res.statusCode === 404) {
-        reject(new Error(`Release ${tag} not found`));
-        return;
-      }
-      
-      if (res.statusCode !== 200) {
-        reject(new Error(`GitHub API returned status ${res.statusCode}`));
-        return;
-      }
 
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          const release = JSON.parse(data);
-          const tgzAsset = release.assets?.find((asset: any) => 
-            asset.name.endsWith('.tgz') || asset.name.endsWith('.tar.gz')
-          );
-
-          if (!tgzAsset) {
-            reject(new Error(`No .tgz asset found for release ${tag}`));
+    https
+      .get(
+        apiUrl,
+        {
+          headers: {
+            'User-Agent': 'mkolbol-fetch',
+            Accept: 'application/vnd.github+json',
+          },
+        },
+        (res) => {
+          if (res.statusCode === 404) {
+            reject(new Error(`Release ${tag} not found`));
             return;
           }
 
-          const sha256Asset = release.assets?.find((asset: any) => 
-            asset.name === `${tgzAsset.name}.sha256` || asset.name.endsWith('.sha256')
-          );
+          if (res.statusCode !== 200) {
+            reject(new Error(`GitHub API returned status ${res.statusCode}`));
+            return;
+          }
 
-          resolve({
-            tarballUrl: tgzAsset.browser_download_url,
-            sha256Url: sha256Asset?.browser_download_url,
+          let data = '';
+          res.on('data', (chunk) => {
+            data += chunk;
           });
-        } catch (error) {
-          reject(new Error(`Failed to parse release data: ${error instanceof Error ? error.message : String(error)}`));
-        }
-      });
-    }).on('error', reject);
+          res.on('end', () => {
+            try {
+              const release = JSON.parse(data);
+              const tgzAsset = release.assets?.find(
+                (asset: any) => asset.name.endsWith('.tgz') || asset.name.endsWith('.tar.gz'),
+              );
+
+              if (!tgzAsset) {
+                reject(new Error(`No .tgz asset found for release ${tag}`));
+                return;
+              }
+
+              const sha256Asset = release.assets?.find(
+                (asset: any) =>
+                  asset.name === `${tgzAsset.name}.sha256` || asset.name.endsWith('.sha256'),
+              );
+
+              resolve({
+                tarballUrl: tgzAsset.browser_download_url,
+                sha256Url: sha256Asset?.browser_download_url,
+              });
+            } catch (error) {
+              reject(
+                new Error(
+                  `Failed to parse release data: ${error instanceof Error ? error.message : String(error)}`,
+                ),
+              );
+            }
+          });
+        },
+      )
+      .on('error', reject);
   });
 }
 
 async function getLatestReleaseTag(): Promise<string> {
   return new Promise((resolve, reject) => {
     const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
-    
-    https.get(apiUrl, {
-      headers: {
-        'User-Agent': 'mkolbol-fetch',
-        'Accept': 'application/vnd.github+json',
-      },
-    }, (res) => {
-      if (res.statusCode !== 200) {
-        reject(new Error(`Failed to fetch latest release: status ${res.statusCode}`));
-        return;
-      }
 
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          const release = JSON.parse(data);
-          resolve(release.tag_name);
-        } catch (error) {
-          reject(new Error(`Failed to parse latest release: ${error instanceof Error ? error.message : String(error)}`));
-        }
-      });
-    }).on('error', reject);
+    https
+      .get(
+        apiUrl,
+        {
+          headers: {
+            'User-Agent': 'mkolbol-fetch',
+            Accept: 'application/vnd.github+json',
+          },
+        },
+        (res) => {
+          if (res.statusCode !== 200) {
+            reject(new Error(`Failed to fetch latest release: status ${res.statusCode}`));
+            return;
+          }
+
+          let data = '';
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          res.on('end', () => {
+            try {
+              const release = JSON.parse(data);
+              resolve(release.tag_name);
+            } catch (error) {
+              reject(
+                new Error(
+                  `Failed to parse latest release: ${error instanceof Error ? error.message : String(error)}`,
+                ),
+              );
+            }
+          });
+        },
+      )
+      .on('error', reject);
   });
 }
 
@@ -196,36 +227,46 @@ async function downloadFile(url: string, outputPath: string): Promise<void> {
   await mkdir(dir, { recursive: true });
 
   return new Promise((resolve, reject) => {
-    https.get(url, {
-      headers: {
-        'User-Agent': 'mkolbol-fetch',
-      },
-    }, async (res) => {
-      if (res.statusCode === 302 || res.statusCode === 301) {
-        if (res.headers.location) {
-          await downloadFile(res.headers.location, outputPath);
-          resolve();
-        } else {
-          reject(new Error('Redirect without location header'));
-        }
-        return;
-      }
+    https
+      .get(
+        url,
+        {
+          headers: {
+            'User-Agent': 'mkolbol-fetch',
+          },
+        },
+        async (res) => {
+          if (res.statusCode === 302 || res.statusCode === 301) {
+            if (res.headers.location) {
+              await downloadFile(res.headers.location, outputPath);
+              resolve();
+            } else {
+              reject(new Error('Redirect without location header'));
+            }
+            return;
+          }
 
-      if (res.statusCode !== 200) {
-        reject(new Error(`Download failed with status ${res.statusCode}`));
-        return;
-      }
+          if (res.statusCode !== 200) {
+            reject(new Error(`Download failed with status ${res.statusCode}`));
+            return;
+          }
 
-      const fileStream = createWriteStream(outputPath);
-      
-      try {
-        await pipeline(res, fileStream);
-        console.log(`Downloaded to ${outputPath}`);
-        resolve();
-      } catch (error) {
-        reject(new Error(`Download failed: ${error instanceof Error ? error.message : String(error)}`));
-      }
-    }).on('error', reject);
+          const fileStream = createWriteStream(outputPath);
+
+          try {
+            await pipeline(res, fileStream);
+            console.log(`Downloaded to ${outputPath}`);
+            resolve();
+          } catch (error) {
+            reject(
+              new Error(
+                `Download failed: ${error instanceof Error ? error.message : String(error)}`,
+              ),
+            );
+          }
+        },
+      )
+      .on('error', reject);
   });
 }
 
@@ -236,24 +277,32 @@ async function writeFile(path: string, content: string): Promise<void> {
 
 async function downloadText(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    https.get(url, {
-      headers: { 'User-Agent': 'mkolbol-fetch' },
-    }, (res) => {
-      if (res.statusCode === 302 || res.statusCode === 301) {
-        const loc = res.headers.location;
-        if (!loc) return reject(new Error('Redirect without location header'));
-        downloadText(loc).then(resolve).catch(reject);
-        return;
-      }
-      if (res.statusCode !== 200) {
-        reject(new Error(`Download failed with status ${res.statusCode}`));
-        return;
-      }
-      let data = '';
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => resolve(data));
-      res.on('error', reject);
-    }).on('error', reject);
+    https
+      .get(
+        url,
+        {
+          headers: { 'User-Agent': 'mkolbol-fetch' },
+        },
+        (res) => {
+          if (res.statusCode === 302 || res.statusCode === 301) {
+            const loc = res.headers.location;
+            if (!loc) return reject(new Error('Redirect without location header'));
+            downloadText(loc).then(resolve).catch(reject);
+            return;
+          }
+          if (res.statusCode !== 200) {
+            reject(new Error(`Download failed with status ${res.statusCode}`));
+            return;
+          }
+          let data = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          res.on('end', () => resolve(data));
+          res.on('error', reject);
+        },
+      )
+      .on('error', reject);
   });
 }

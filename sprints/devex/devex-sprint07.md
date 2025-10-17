@@ -2,7 +2,7 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "DX-A", "parallel": true,  "tasks": ["D9701", "D9702"] },
+    { "id": "DX-A", "parallel": true, "tasks": ["D9701", "D9702"] },
     { "id": "DX-B", "parallel": false, "depends_on": ["DX-A"], "tasks": ["D9703"] }
   ],
   "tasks": [
@@ -39,10 +39,11 @@
 Goal: Make the first visit frictionless with a one-screen overview, sharp anchors, working links, and verified examples.
 
 Constraints
+
 - Docs/examples only; no kernel changes.
 
 Verification Commands
+
 ```bash
 npm run build
 ```
-

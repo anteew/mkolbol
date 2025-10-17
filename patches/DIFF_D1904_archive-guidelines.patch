@@ -1,0 +1,25 @@
+diff --git a/archives/README.md b/archives/README.md
+new file mode 100644
+index 0000000..cbdcc23
+--- /dev/null
++++ b/archives/README.md
+@@ -0,0 +1,19 @@
++# Archives Directory
++
++This directory is used for storing archived files that are too large or infrequently accessed to keep in the main workspace.
++
++## Log Rotation
++
++Heavy log files should be rotated to this directory to keep the repository clean:
++
++- Move large log files (>1MB or older than 7 days) to `archives/`
++- Use timestamped filenames: `{filename}.{timestamp}.{ext}`
++- Example: `ampcode.log.2025-10-17T194426Z`
++
++## Git Ignore
++
++This directory is included in `.prettierignore` to skip formatting checks on archived content.
++
++## Cleanup
++
++Periodically review and remove old archived files that are no longer needed.

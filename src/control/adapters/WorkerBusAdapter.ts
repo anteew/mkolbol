@@ -23,12 +23,12 @@ export class WorkerBusAdapter implements BusAdapter {
     if (!t) {
       t = new PassThrough({ objectMode: true });
       this.topics.set(name, t);
-      
+
       t.on('data', (data: any) => {
         this.port.postMessage({
           type: 'publish',
           topic: name,
-          data
+          data,
         } as PortMessage);
       });
 
@@ -36,7 +36,7 @@ export class WorkerBusAdapter implements BusAdapter {
         this.subscriptions.add(name);
         this.port.postMessage({
           type: 'subscribe',
-          topic: name
+          topic: name,
         } as PortMessage);
       }
     }
@@ -44,7 +44,6 @@ export class WorkerBusAdapter implements BusAdapter {
   }
 
   private handleMessage(msg: PortMessage): void {
-    
     if (msg.type === 'publish') {
       const stream = this.topics.get(msg.topic);
       if (stream && msg.data !== undefined) {
@@ -58,10 +57,10 @@ export class WorkerBusAdapter implements BusAdapter {
       this.subscriptions.delete(topic);
       this.port.postMessage({
         type: 'unsubscribe',
-        topic
+        topic,
       } as PortMessage);
     }
-    
+
     const stream = this.topics.get(topic);
     if (stream) {
       stream.end();

@@ -21,10 +21,7 @@
       "MK_PROCESS_EXPERIMENTAL=1 npm run test:pty",
       "node dist/scripts/mkctl.js run --file examples/configs/external-stdio.yaml --duration 1"
     ],
-    "laminar": [
-      "npm run lam -- summary",
-      "npm run lam -- trends --top 10"
-    ]
+    "laminar": ["npm run lam -- summary", "npm run lam -- trends --top 10"]
   },
   "next_candidates": [
     "Local Node v1.0 acceptance",

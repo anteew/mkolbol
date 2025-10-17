@@ -6,9 +6,9 @@
 
 **Goal:** Allow early adopters to declare external servers in config (YAML/JSON) and run them via Executor.
 
-| Task ID | Description                               | Status    | Notes |
-|---------|-------------------------------------------|-----------|-------|
-| T8401   | Config schema: add process/external params| Complete  |       |
-| T8402   | Loader + Executor mapping for ExternalProcess| Complete  |       |
-| T8403   | Examples+tests: external from config      | Complete  |       |
-| T8404   | Docs touch-up: wiring guide & README links| Complete  |       |
+| Task ID | Description                                   | Status   | Notes |
+| ------- | --------------------------------------------- | -------- | ----- |
+| T8401   | Config schema: add process/external params    | Complete |       |
+| T8402   | Loader + Executor mapping for ExternalProcess | Complete |       |
+| T8403   | Examples+tests: external from config          | Complete |       |
+| T8404   | Docs touch-up: wiring guide & README links    | Complete |       |

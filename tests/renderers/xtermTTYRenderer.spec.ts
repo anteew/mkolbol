@@ -41,4 +41,3 @@ describe('XtermTTYRenderer', () => {
     expect(output).toContain('\u001b[?1049l'); // leave alt buffer
   });
 });
-

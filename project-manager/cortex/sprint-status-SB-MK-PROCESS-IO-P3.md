@@ -6,11 +6,11 @@
 
 **Goal:** Harden the process I/O capabilities of the microkernel.
 
-| Task ID | Description                               | Status    | Notes |
-|---------|-------------------------------------------|-----------|-------|
-| T6301   | UnixPipeAdapter (Duplex over UDS)         | Complete  |       |
-| T6302   | UnixControlAdapter (heartbeats + pub/sub) | Complete  |       |
-| T6303   | Executor(process) wiring + cutover        | Complete  |       |
-| T6304   | Integration tests (gated)                 | Complete  |       |
-| T6305   | Parity vs Worker                          | Complete  |       |
-| T6306   | Docs                                      | Complete  |       |
+| Task ID | Description                               | Status   | Notes |
+| ------- | ----------------------------------------- | -------- | ----- |
+| T6301   | UnixPipeAdapter (Duplex over UDS)         | Complete |       |
+| T6302   | UnixControlAdapter (heartbeats + pub/sub) | Complete |       |
+| T6303   | Executor(process) wiring + cutover        | Complete |       |
+| T6304   | Integration tests (gated)                 | Complete |       |
+| T6305   | Parity vs Worker                          | Complete |       |
+| T6306   | Docs                                      | Complete |       |

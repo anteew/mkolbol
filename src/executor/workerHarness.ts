@@ -15,20 +15,16 @@ interface WorkerConfig {
 
 async function bootWorker() {
   const config = workerData as WorkerConfig;
-  
+
   if (!parentPort) {
     throw new Error('workerHarness must run inside a Worker');
   }
 
   const kernel = new Kernel();
-  
-  const controlBus = new ControlBus(
-    new WorkerBusAdapter(config.controlPort)
-  );
 
-  const ModuleConstructor = await import(config.modulePath).then(
-    (m) => m[Object.keys(m)[0]]
-  );
+  const controlBus = new ControlBus(new WorkerBusAdapter(config.controlPort));
+
+  const ModuleConstructor = await import(config.modulePath).then((m) => m[Object.keys(m)[0]]);
 
   const moduleParams = Object.values(config.params || {});
   const moduleInstance = new ModuleConstructor(kernel, ...moduleParams);
@@ -52,7 +48,7 @@ async function bootWorker() {
     type: 'worker.ready',
     id: config.nodeId,
     ts: Date.now(),
-    payload: { nodeId: config.nodeId }
+    payload: { nodeId: config.nodeId },
   });
 
   parentPort.on('message', (msg) => {

@@ -49,13 +49,13 @@ Environment
 
 Reference flows (P0 demos)
 
-1) Dual render: Wrap `bash` via PTYServerWrapper. Fan out stdout to:
+1. Dual render: Wrap `bash` via PTYServerWrapper. Fan out stdout to:
    - Passthrough renderer (stdout) for regular terminal
    - Braille/text transform module that logs to console (placeholder for real braille device)
 
-2) Optional: Headless canvas snapshot (post-P0 candidate). Route output → ANSI parser → headless render; emit PNG buffers on sideband.
+2. Optional: Headless canvas snapshot (post-P0 candidate). Route output → ANSI parser → headless render; emit PNG buffers on sideband.
 
-3) Programmatic input: An “agent input” module sends `ls -la\n` (or similar) into the PTY input after observing initial output, demonstrating control injection.
+3. Programmatic input: An “agent input” module sends `ls -la\n` (or similar) into the PTY input after observing initial output, demonstrating control injection.
 
 Sideband examples
 

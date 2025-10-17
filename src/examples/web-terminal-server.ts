@@ -27,7 +27,7 @@ async function main() {
     terminals: [
       { name: 'input', type: 'local', direction: 'input' },
       { name: 'output', type: 'local', direction: 'output' },
-      { name: 'error', type: 'local', direction: 'output' }
+      { name: 'error', type: 'local', direction: 'output' },
     ],
     capabilities: { type: 'source', accepts: [], produces: [] },
     command: 'bash',
@@ -35,7 +35,7 @@ async function main() {
     env: process.env,
     cwd: process.cwd(),
     ioMode: 'pty',
-    restart: 'never'
+    restart: 'never',
   } as ExternalServerManifest);
 
   await pty.spawn();
@@ -94,4 +94,3 @@ main().catch((err) => {
   console.error('[web-terminal] Error:', err);
   process.exit(1);
 });
-

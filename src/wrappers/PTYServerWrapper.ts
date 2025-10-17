@@ -10,16 +10,12 @@ export class PTYServerWrapper extends ExternalServerWrapper {
   private terminalSize: { cols: number; rows: number };
   private dataDisposable?: { dispose: () => void };
 
-  constructor(
-    kernel: Kernel,
-    hostess: Hostess,
-    manifest: ExternalServerManifest
-  ) {
+  constructor(kernel: Kernel, hostess: Hostess, manifest: ExternalServerManifest) {
     super(kernel, hostess, manifest);
-    
+
     this.terminalSize = {
       cols: manifest.initialCols || 80,
-      rows: manifest.initialRows || 24
+      rows: manifest.initialRows || 24,
     };
   }
 
@@ -40,21 +36,31 @@ export class PTYServerWrapper extends ExternalServerWrapper {
       rows: this.terminalSize.rows,
       cwd: this.manifest.cwd,
       env,
-      encoding: (this.manifest.encoding || 'utf8') as any
+      encoding: (this.manifest.encoding || 'utf8') as any,
     });
 
     this.spawnTime = Date.now();
 
-    debug.emit('pty', 'server.started', { 
-      servername: this.manifest.servername, 
-      pid: this.ptyProcess.pid 
-    }, 'info');
+    debug.emit(
+      'pty',
+      'server.started',
+      {
+        servername: this.manifest.servername,
+        pid: this.ptyProcess.pid,
+      },
+      'info',
+    );
 
     this.dataDisposable = this.ptyProcess.onData((data) => {
-      debug.emit('pty', 'server.output', { 
-        servername: this.manifest.servername, 
-        bytes: data.length 
-      }, 'trace');
+      debug.emit(
+        'pty',
+        'server.output',
+        {
+          servername: this.manifest.servername,
+          bytes: data.length,
+        },
+        'trace',
+      );
       this._outputPipe.write(data);
     });
 
@@ -68,10 +74,15 @@ export class PTYServerWrapper extends ExternalServerWrapper {
 
     this._inputPipe.on('data', (data) => {
       if (this.ptyProcess) {
-        debug.emit('pty', 'server.input', { 
-          servername: this.manifest.servername, 
-          bytes: data.length 
-        }, 'trace');
+        debug.emit(
+          'pty',
+          'server.input',
+          {
+            servername: this.manifest.servername,
+            bytes: data.length,
+          },
+          'trace',
+        );
         this.ptyProcess.write(data.toString());
       }
     });
@@ -88,8 +99,8 @@ export class PTYServerWrapper extends ExternalServerWrapper {
       metadata: {
         cols: this.terminalSize.cols,
         rows: this.terminalSize.rows,
-        terminalType: this.manifest.terminalType || 'xterm-256color'
-      }
+        terminalType: this.manifest.terminalType || 'xterm-256color',
+      },
     });
   }
 
@@ -97,7 +108,7 @@ export class PTYServerWrapper extends ExternalServerWrapper {
     if (!this.ptyProcess) {
       throw new Error('PTY process not running');
     }
-    
+
     this.terminalSize = { cols, rows };
     this.ptyProcess.resize(cols, rows);
   }
@@ -108,23 +119,22 @@ export class PTYServerWrapper extends ExternalServerWrapper {
     debug.emit('pty', 'server.stopping', { servername: this.manifest.servername }, 'info');
 
     this.explicitShutdown = true;
-    
+
     if (this.dataDisposable) {
       this.dataDisposable.dispose();
       this.dataDisposable = undefined;
     }
-    
+
     const pty = this.ptyProcess;
     this.ptyProcess = undefined;
-    
+
     try {
       pty.kill('SIGKILL');
-    } catch (err) {
-    }
-    
+    } catch {}
+
     debug.emit('pty', 'server.stopped', { servername: this.manifest.servername }, 'info');
-    
-    await new Promise(resolve => setTimeout(resolve, timeout));
+
+    await new Promise((resolve) => setTimeout(resolve, timeout));
   }
 
   sendSignal(signal: string): void {
@@ -151,17 +161,17 @@ export class PTYServerWrapper extends ExternalServerWrapper {
       pid: this.ptyProcess.pid,
       uptime,
       memoryUsage,
-      cpuUsage
+      cpuUsage,
     };
   }
 
   async restart(): Promise<void> {
     await this.shutdown();
-    
+
     if (this.manifest.restartDelay) {
-      await new Promise(resolve => setTimeout(resolve, this.manifest.restartDelay));
+      await new Promise((resolve) => setTimeout(resolve, this.manifest.restartDelay));
     }
-    
+
     this.restartCount++;
     await this.spawn();
   }

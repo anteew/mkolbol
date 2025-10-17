@@ -13,7 +13,7 @@ function runCommand(cmd: string, options = {}): string {
     return execSync(cmd, {
       encoding: 'utf8',
       stdio: ['inherit', 'pipe', 'inherit'],
-      ...options
+      ...options,
     });
   } catch (error: any) {
     return error.stdout || '';
@@ -48,9 +48,9 @@ function main() {
   if (fs.existsSync(indexPath)) {
     try {
       const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
-      const hasFailures = Array.isArray(index?.artifacts) && 
-        index.artifacts.some((a: any) => a.status === 'fail');
-      
+      const hasFailures =
+        Array.isArray(index?.artifacts) && index.artifacts.some((a: any) => a.status === 'fail');
+
       if (hasFailures) {
         const digest = runCommand('npm run lam -- digest');
         fs.writeFileSync(path.join(reportsDir, 'LAMINAR_DIGEST.txt'), digest, 'utf8');
@@ -72,13 +72,9 @@ function main() {
     const feedbackContent = fs.readFileSync(latestFeedback, 'utf8');
     const ptyFeedback = feedbackContent.replace(
       '# Laminar Dogfooding Feedback',
-      '# Laminar PTY/Forks Lane Dogfooding Feedback'
+      '# Laminar PTY/Forks Lane Dogfooding Feedback',
     );
-    fs.writeFileSync(
-      path.join(reportsDir, 'LAMINAR_PTY_FEEDBACK.txt'),
-      ptyFeedback,
-      'utf8'
-    );
+    fs.writeFileSync(path.join(reportsDir, 'LAMINAR_PTY_FEEDBACK.txt'), ptyFeedback, 'utf8');
   }
 
   console.log('\n✅ Dogfood PTY complete!');

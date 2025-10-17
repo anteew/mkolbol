@@ -23,7 +23,7 @@ export class MkError extends Error {
   public readonly docs?: string;
 
   constructor(definition: MkErrorDefinition, context?: ErrorContext) {
-    const fullMessage = context?.details 
+    const fullMessage = context?.details
       ? `${definition.message}: ${JSON.stringify(context.details)}`
       : definition.message;
     super(fullMessage);
@@ -146,45 +146,49 @@ export function formatError(error: MkError | Error, format: ErrorFormat = 'text'
     if (error instanceof MkError) {
       return JSON.stringify(error.toJSON(), null, 2);
     }
-    return JSON.stringify({
-      code: 'UNKNOWN_ERROR',
-      message: error.message,
-      remediation: 'Check logs for more details',
-    }, null, 2);
+    return JSON.stringify(
+      {
+        code: 'UNKNOWN_ERROR',
+        message: error.message,
+        remediation: 'Check logs for more details',
+      },
+      null,
+      2,
+    );
   }
 
   if (error instanceof MkError) {
     const parts = [`[ERR] ${error.code}`];
-    
+
     if (error.context?.file) {
       const location = [error.context.file];
       if (error.context.line) location.push(String(error.context.line));
       if (error.context.column) location.push(String(error.context.column));
       parts.push(`at ${location.join(':')}`);
     }
-    
+
     if (error.context?.path) {
       parts.push(`at ${error.context.path}`);
     }
-    
+
     parts.push(`— ${error.message}`);
-    
+
     let output = parts.join(' ');
-    
+
     if (error.context?.expected) {
       output += `\n  Expected: ${error.context.expected.join(', ')}`;
     }
-    
+
     if (error.context?.actual) {
       output += `\n  Actual: ${error.context.actual}`;
     }
-    
+
     output += `\n  Fix: ${error.remediation}`;
-    
+
     if (error.docs) {
       output += `\n  Docs: ${error.docs}`;
     }
-    
+
     return output;
   }
 

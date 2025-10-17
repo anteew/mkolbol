@@ -84,59 +84,63 @@ describe('Acceptance: Stream I/O and Backpressure', () => {
    *   - Empty output → Data not flowing
    *   - Data mismatch → Transformation incorrect
    */
-  it('should handle input → output roundtrip', async () => {
-    // CUSTOMIZE: Update manifest for your server
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'test-io-server',
-      classHex: '0xIO',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat', // CUSTOMIZE: Replace with your command
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should handle input → output roundtrip',
+    async () => {
+      // CUSTOMIZE: Update manifest for your server
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'test-io-server',
+        classHex: '0xIO',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat', // CUSTOMIZE: Replace with your command
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    // Set up output collection
-    const outputPromise = new Promise<string>((resolve) => {
-      const chunks: Buffer[] = [];
-      wrapper.outputPipe.on('data', (data) => {
-        chunks.push(Buffer.from(data));
+      // Set up output collection
+      const outputPromise = new Promise<string>((resolve) => {
+        const chunks: Buffer[] = [];
+        wrapper.outputPipe.on('data', (data) => {
+          chunks.push(Buffer.from(data));
+        });
+        wrapper.outputPipe.once('end', () => {
+          resolve(Buffer.concat(chunks).toString());
+        });
       });
-      wrapper.outputPipe.once('end', () => {
-        resolve(Buffer.concat(chunks).toString());
-      });
-    });
 
-    // CUSTOMIZE: Update test input for your server
-    const testInput = 'hello acceptance test\n';
-    wrapper.inputPipe.write(testInput);
-    wrapper.inputPipe.end(); // CRITICAL: Must call end() or test will hang
+      // CUSTOMIZE: Update test input for your server
+      const testInput = 'hello acceptance test\n';
+      wrapper.inputPipe.write(testInput);
+      wrapper.inputPipe.end(); // CRITICAL: Must call end() or test will hang
 
-    // Wait for output
-    const output = await outputPromise;
+      // Wait for output
+      const output = await outputPromise;
 
-    // CUSTOMIZE: Update expected output based on your server's transform
-    // Examples:
-    //   - Echo server: expect(output).toBe('[ECHO] hello acceptance test\n');
-    //   - Uppercase server: expect(output).toBe('HELLO ACCEPTANCE TEST\n');
-    //   - Pass-through (cat): expect(output).toBe(testInput);
-    expect(output).toBe(testInput); // cat echoes input
-  }, testTimeout);
+      // CUSTOMIZE: Update expected output based on your server's transform
+      // Examples:
+      //   - Echo server: expect(output).toBe('[ECHO] hello acceptance test\n');
+      //   - Uppercase server: expect(output).toBe('HELLO ACCEPTANCE TEST\n');
+      //   - Pass-through (cat): expect(output).toBe(testInput);
+      expect(output).toBe(testInput); // cat echoes input
+    },
+    testTimeout,
+  );
 
   /**
    * TEST 2: Multiple Sequential Messages
@@ -147,64 +151,68 @@ describe('Acceptance: Stream I/O and Backpressure', () => {
    *   - Wrong order → Buffering issue
    *   - Timeout → Server stalled
    */
-  it('should handle multiple sequential messages', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'test-sequential-server',
-      classHex: '0xSEQ',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should handle multiple sequential messages',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'test-sequential-server',
+        classHex: '0xSEQ',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    const outputChunks: Buffer[] = [];
-    wrapper.outputPipe.on('data', (data) => {
-      outputChunks.push(Buffer.from(data));
-    });
+      const outputChunks: Buffer[] = [];
+      wrapper.outputPipe.on('data', (data) => {
+        outputChunks.push(Buffer.from(data));
+      });
 
-    // CUSTOMIZE: Update messages for your server
-    const messages = ['message1\n', 'message2\n', 'message3\n'];
+      // CUSTOMIZE: Update messages for your server
+      const messages = ['message1\n', 'message2\n', 'message3\n'];
 
-    // Write all messages
-    for (const msg of messages) {
-      wrapper.inputPipe.write(msg);
-    }
-    wrapper.inputPipe.end();
+      // Write all messages
+      for (const msg of messages) {
+        wrapper.inputPipe.write(msg);
+      }
+      wrapper.inputPipe.end();
 
-    // Wait for all output
-    await new Promise<void>((resolve) => {
-      wrapper.outputPipe.once('end', resolve);
-    });
+      // Wait for all output
+      await new Promise<void>((resolve) => {
+        wrapper.outputPipe.once('end', resolve);
+      });
 
-    const received = Buffer.concat(outputChunks).toString();
+      const received = Buffer.concat(outputChunks).toString();
 
-    // Verify all messages were processed
-    for (const msg of messages) {
-      expect(received).toContain(msg.trim());
-    }
+      // Verify all messages were processed
+      for (const msg of messages) {
+        expect(received).toContain(msg.trim());
+      }
 
-    // CUSTOMIZE: If your server transforms messages, adjust this check
-    // Example for uppercase server:
-    //   expect(received).toContain('MESSAGE1');
-    //   expect(received).toContain('MESSAGE2');
-    //   expect(received).toContain('MESSAGE3');
-  }, testTimeout);
+      // CUSTOMIZE: If your server transforms messages, adjust this check
+      // Example for uppercase server:
+      //   expect(received).toContain('MESSAGE1');
+      //   expect(received).toContain('MESSAGE2');
+      //   expect(received).toContain('MESSAGE3');
+    },
+    testTimeout,
+  );
 
   /**
    * TEST 3: Backpressure Handling
@@ -215,75 +223,79 @@ describe('Acceptance: Stream I/O and Backpressure', () => {
    *   - Data mismatch → Data loss under backpressure
    *   - Timeout → Deadlock in drain handling
    */
-  it('should handle backpressure with drain events', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'test-backpressure-server',
-      classHex: '0xBP',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should handle backpressure with drain events',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'test-backpressure-server',
+        classHex: '0xBP',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    // CUSTOMIZE: Adjust chunk size/count if your server has different buffer limits
-    const chunkSize = 64 * 1024; // 64KB chunks
-    const numChunks = 50; // 3.2MB total
-    const testData: Buffer[] = [];
+      // CUSTOMIZE: Adjust chunk size/count if your server has different buffer limits
+      const chunkSize = 64 * 1024; // 64KB chunks
+      const numChunks = 50; // 3.2MB total
+      const testData: Buffer[] = [];
 
-    for (let i = 0; i < numChunks; i++) {
-      testData.push(Buffer.alloc(chunkSize, i % 256));
-    }
-
-    const receivedChunks: Buffer[] = [];
-    let drainEvents = 0;
-
-    wrapper.outputPipe.on('data', (chunk) => {
-      receivedChunks.push(Buffer.from(chunk));
-    });
-
-    // Write chunks and respect backpressure
-    for (let i = 0; i < testData.length; i++) {
-      const canContinue = wrapper.inputPipe.write(testData[i]);
-      if (!canContinue) {
-        drainEvents++;
-        // CRITICAL: Wait for drain before continuing
-        await new Promise<void>((resolve) => {
-          wrapper.inputPipe.once('drain', resolve);
-        });
+      for (let i = 0; i < numChunks; i++) {
+        testData.push(Buffer.alloc(chunkSize, i % 256));
       }
-    }
-    wrapper.inputPipe.end();
 
-    // Wait for all output
-    await new Promise<void>((resolve) => {
-      wrapper.outputPipe.once('end', resolve);
-    });
+      const receivedChunks: Buffer[] = [];
+      let drainEvents = 0;
 
-    // Verify data integrity
-    const receivedBuffer = Buffer.concat(receivedChunks);
-    const expectedBuffer = Buffer.concat(testData);
-    expect(receivedBuffer.length).toBe(expectedBuffer.length);
-    expect(receivedBuffer.equals(expectedBuffer)).toBe(true);
+      wrapper.outputPipe.on('data', (chunk) => {
+        receivedChunks.push(Buffer.from(chunk));
+      });
 
-    // Verify backpressure occurred
-    expect(drainEvents).toBeGreaterThan(0);
-  }, testTimeout);
+      // Write chunks and respect backpressure
+      for (let i = 0; i < testData.length; i++) {
+        const canContinue = wrapper.inputPipe.write(testData[i]);
+        if (!canContinue) {
+          drainEvents++;
+          // CRITICAL: Wait for drain before continuing
+          await new Promise<void>((resolve) => {
+            wrapper.inputPipe.once('drain', resolve);
+          });
+        }
+      }
+      wrapper.inputPipe.end();
+
+      // Wait for all output
+      await new Promise<void>((resolve) => {
+        wrapper.outputPipe.once('end', resolve);
+      });
+
+      // Verify data integrity
+      const receivedBuffer = Buffer.concat(receivedChunks);
+      const expectedBuffer = Buffer.concat(testData);
+      expect(receivedBuffer.length).toBe(expectedBuffer.length);
+      expect(receivedBuffer.equals(expectedBuffer)).toBe(true);
+
+      // Verify backpressure occurred
+      expect(drainEvents).toBeGreaterThan(0);
+    },
+    testTimeout,
+  );
 
   /**
    * TEST 4: Error Propagation
@@ -293,57 +305,61 @@ describe('Acceptance: Stream I/O and Backpressure', () => {
    *   - No error caught → Error handling missing
    *   - Uncaught exception → Error not properly handled
    */
-  it('should propagate pipe errors', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'test-error-server',
-      classHex: '0xERR',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should propagate pipe errors',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'test-error-server',
+        classHex: '0xERR',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    let errorCaught = false;
-    let clientError = false;
+      let errorCaught = false;
+      let clientError = false;
 
-    wrapper.inputPipe.on('error', (err) => {
-      errorCaught = true;
-    });
+      wrapper.inputPipe.on('error', (err) => {
+        errorCaught = true;
+      });
 
-    wrapper.outputPipe.on('error', (err) => {
-      clientError = true;
-    });
+      wrapper.outputPipe.on('error', (err) => {
+        clientError = true;
+      });
 
-    // Write some data
-    wrapper.inputPipe.write(Buffer.alloc(1024, 0xAA));
+      // Write some data
+      wrapper.inputPipe.write(Buffer.alloc(1024, 0xaa));
 
-    // Simulate error by destroying the pipe
-    wrapper.inputPipe.destroy(new Error('Simulated pipe error'));
+      // Simulate error by destroying the pipe
+      wrapper.inputPipe.destroy(new Error('Simulated pipe error'));
 
-    // Wait for error propagation
-    await new Promise<void>((resolve) => {
-      setTimeout(() => resolve(), 500);
-    });
+      // Wait for error propagation
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 500);
+      });
 
-    // Verify error was caught
-    expect(errorCaught).toBe(true);
-  }, testTimeout);
+      // Verify error was caught
+      expect(errorCaught).toBe(true);
+    },
+    testTimeout,
+  );
 
   /**
    * TEST 5: Empty Input Handling
@@ -353,52 +369,56 @@ describe('Acceptance: Stream I/O and Backpressure', () => {
    *   - Timeout → Server expects data before closing
    *   - Crash → Empty input not handled
    */
-  it.skipIf(!process.env.MK_DEVEX_EXECUTOR)('should handle empty input gracefully', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'test-empty-server',
-      classHex: '0xEMPTY',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it.skipIf(!process.env.MK_DEVEX_EXECUTOR)(
+    'should handle empty input gracefully',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'test-empty-server',
+        classHex: '0xEMPTY',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    const outputPromise = new Promise<string>((resolve) => {
-      const chunks: Buffer[] = [];
-      wrapper.outputPipe.on('data', (data) => {
-        chunks.push(Buffer.from(data));
+      const outputPromise = new Promise<string>((resolve) => {
+        const chunks: Buffer[] = [];
+        wrapper.outputPipe.on('data', (data) => {
+          chunks.push(Buffer.from(data));
+        });
+        wrapper.outputPipe.once('end', () => {
+          resolve(Buffer.concat(chunks).toString());
+        });
       });
-      wrapper.outputPipe.once('end', () => {
-        resolve(Buffer.concat(chunks).toString());
-      });
-    });
 
-    // Close input immediately without writing
-    wrapper.inputPipe.end();
+      // Close input immediately without writing
+      wrapper.inputPipe.end();
 
-    // Wait for output to close
-    const output = await outputPromise;
+      // Wait for output to close
+      const output = await outputPromise;
 
-    // Should produce empty output
-    expect(output).toBe('');
-    expect(wrapper.isRunning()).toBe(false); // Process should have exited
-  }, testTimeout);
+      // Should produce empty output
+      expect(output).toBe('');
+      expect(wrapper.isRunning()).toBe(false); // Process should have exited
+    },
+    testTimeout,
+  );
 
   /**
    * TEST 6: Large Message Handling
@@ -408,61 +428,65 @@ describe('Acceptance: Stream I/O and Backpressure', () => {
    *   - Data truncated → Buffer size too small
    *   - Timeout → Blocking on large message
    */
-  it('should handle large single message', async () => {
-    const manifest: ExternalServerManifest = {
-      fqdn: 'localhost',
-      servername: 'test-large-server',
-      classHex: '0xLARGE',
-      owner: 'devex',
-      auth: 'no',
-      authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
-      ],
-      capabilities: {
-        type: 'transform'
-      },
-      command: '/bin/cat',
-      args: [],
-      env: {},
-      cwd: process.cwd(),
-      ioMode: 'stdio',
-      restart: 'never'
-    };
+  it(
+    'should handle large single message',
+    async () => {
+      const manifest: ExternalServerManifest = {
+        fqdn: 'localhost',
+        servername: 'test-large-server',
+        classHex: '0xLARGE',
+        owner: 'devex',
+        auth: 'no',
+        authMechanism: 'none',
+        terminals: [
+          { name: 'input', type: 'local', direction: 'input' },
+          { name: 'output', type: 'local', direction: 'output' },
+        ],
+        capabilities: {
+          type: 'transform',
+        },
+        command: '/bin/cat',
+        args: [],
+        env: {},
+        cwd: process.cwd(),
+        ioMode: 'stdio',
+        restart: 'never',
+      };
 
-    wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-    await wrapper.spawn();
+      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+      await wrapper.spawn();
 
-    const outputPromise = new Promise<Buffer>((resolve) => {
-      const chunks: Buffer[] = [];
-      wrapper.outputPipe.on('data', (data) => {
-        chunks.push(Buffer.from(data));
+      const outputPromise = new Promise<Buffer>((resolve) => {
+        const chunks: Buffer[] = [];
+        wrapper.outputPipe.on('data', (data) => {
+          chunks.push(Buffer.from(data));
+        });
+        wrapper.outputPipe.once('end', () => {
+          resolve(Buffer.concat(chunks));
+        });
       });
-      wrapper.outputPipe.once('end', () => {
-        resolve(Buffer.concat(chunks));
-      });
-    });
 
-    // CUSTOMIZE: Adjust size based on your server's limits
-    const largeMessage = Buffer.alloc(1024 * 1024, 0xFF); // 1MB
+      // CUSTOMIZE: Adjust size based on your server's limits
+      const largeMessage = Buffer.alloc(1024 * 1024, 0xff); // 1MB
 
-    // Write large message with backpressure handling
-    const canContinue = wrapper.inputPipe.write(largeMessage);
-    if (!canContinue) {
-      await new Promise<void>((resolve) => {
-        wrapper.inputPipe.once('drain', resolve);
-      });
-    }
-    wrapper.inputPipe.end();
+      // Write large message with backpressure handling
+      const canContinue = wrapper.inputPipe.write(largeMessage);
+      if (!canContinue) {
+        await new Promise<void>((resolve) => {
+          wrapper.inputPipe.once('drain', resolve);
+        });
+      }
+      wrapper.inputPipe.end();
 
-    // Wait for output
-    const output = await outputPromise;
+      // Wait for output
+      const output = await outputPromise;
 
-    // Verify complete message received
-    expect(output.length).toBe(largeMessage.length);
-    expect(output.equals(largeMessage)).toBe(true);
-  }, testTimeout);
+      // Verify complete message received
+      expect(output.length).toBe(largeMessage.length);
+      expect(output.equals(largeMessage)).toBe(true);
+    },
+    testTimeout,
+  );
 });
 
 /**

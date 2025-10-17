@@ -6,7 +6,7 @@ import { createHash } from 'crypto';
 import { readFileSync, existsSync, mkdirSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-export async function buildHandler(args) {
+export async function buildHandler(_args) {
     const startTime = performance.now();
     try {
         const projectRoot = process.cwd();

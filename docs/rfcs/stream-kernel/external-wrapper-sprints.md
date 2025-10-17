@@ -13,16 +13,16 @@ This document outlines the implementation sprints for the External Server Wrappe
 
 ## Sprint Overview
 
-| Sprint | Duration | Focus Area | Key Deliverables |
-|--------|----------|------------|------------------|
-| 1 | 5-7 days | External Wrapper Core | `ExternalServerWrapper` base class, Hostess registration |
-| 2 | 5-7 days | PTY Wrapper Foundation | `PTYServerWrapper`, node-pty integration, basic passthrough |
-| 3 | 5-7 days | Multi-Modal Output Foundation | Passthrough renderer, ANSI parser, split() integration |
-| 4 | 7-10 days | Advanced Renderers | TTS, MP4, MCP, Screenshot, WebRTC renderers |
-| 5 | 5-7 days | npm Package Integration | npm wrapper patterns, dependency management, examples |
-| 6 | 5-7 days | C Program/Binary Wrappers | C program patterns, executable discovery, cross-platform |
-| 7 | 5-7 days | Process Lifecycle & Supervision | Health monitoring, restart policies, graceful shutdown |
-| 8 | 5-7 days | Protocol Translation (Optional) | Translation layer framework, standard adapters |
+| Sprint | Duration  | Focus Area                      | Key Deliverables                                            |
+| ------ | --------- | ------------------------------- | ----------------------------------------------------------- |
+| 1      | 5-7 days  | External Wrapper Core           | `ExternalServerWrapper` base class, Hostess registration    |
+| 2      | 5-7 days  | PTY Wrapper Foundation          | `PTYServerWrapper`, node-pty integration, basic passthrough |
+| 3      | 5-7 days  | Multi-Modal Output Foundation   | Passthrough renderer, ANSI parser, split() integration      |
+| 4      | 7-10 days | Advanced Renderers              | TTS, MP4, MCP, Screenshot, WebRTC renderers                 |
+| 5      | 5-7 days  | npm Package Integration         | npm wrapper patterns, dependency management, examples       |
+| 6      | 5-7 days  | C Program/Binary Wrappers       | C program patterns, executable discovery, cross-platform    |
+| 7      | 5-7 days  | Process Lifecycle & Supervision | Health monitoring, restart policies, graceful shutdown      |
+| 8      | 5-7 days  | Protocol Translation (Optional) | Translation layer framework, standard adapters              |
 
 ## Sprint 1: External Wrapper Core
 
@@ -30,6 +30,7 @@ This document outlines the implementation sprints for the External Server Wrappe
 **Goal:** Implement basic external server wrapper with Hostess registration
 
 ### Prerequisites
+
 - Core kernel implemented (RFC 02)
 - Executor server implemented (RFC 10)
 - Hostess server implemented (RFC 08)
@@ -37,6 +38,7 @@ This document outlines the implementation sprints for the External Server Wrappe
 ### Deliverables
 
 #### 1. `ExternalServerWrapper` Base Class
+
 ```typescript
 // src/wrappers/ExternalServerWrapper.ts
 export class ExternalServerWrapper implements Server {
@@ -44,38 +46,52 @@ export class ExternalServerWrapper implements Server {
   outputPipe: Pipe;
   manifest: ServerManifest;
   private process: ChildProcess | null = null;
-  
+
   constructor(kernel: Kernel, manifest: ServerManifest) {
     this.inputPipe = kernel.createPipe();
     this.outputPipe = kernel.createPipe();
     this.manifest = manifest;
   }
-  
-  async spawn(): Promise<void> { /* ... */ }
-  async shutdown(): Promise<void> { /* ... */ }
-  async restart(): Promise<void> { /* ... */ }
-  isRunning(): boolean { /* ... */ }
-  getProcessInfo(): ProcessInfo { /* ... */ }
+
+  async spawn(): Promise<void> {
+    /* ... */
+  }
+  async shutdown(): Promise<void> {
+    /* ... */
+  }
+  async restart(): Promise<void> {
+    /* ... */
+  }
+  isRunning(): boolean {
+    /* ... */
+  }
+  getProcessInfo(): ProcessInfo {
+    /* ... */
+  }
 }
 ```
 
 #### 2. Environment Variable & CLI Argument Handling
-- Standard environment variables (MKOLBOL_*)
+
+- Standard environment variables (MKOLBOL\_\*)
 - Template string replacement in arguments
 - Environment variable merging with user-provided values
 
 #### 3. Simple stdio Wrapping
+
 - Non-PTY process spawning
 - stdin/stdout/stderr pipe connections
 - Process exit handling
 
 #### 4. Hostess Registration
+
 - Server manifest format
 - Registration on spawn
 - Heartbeat mechanism
 - Deregistration on shutdown
 
 #### 5. Server Manifest Schema
+
 ```typescript
 interface ServerManifest {
   name: string;
@@ -97,6 +113,7 @@ interface ServerManifest {
 ```
 
 ### Unit Tests
+
 ```typescript
 describe('ExternalServerWrapper', () => {
   it('should spawn external process');
@@ -110,6 +127,7 @@ describe('ExternalServerWrapper', () => {
 ```
 
 ### Integration Tests
+
 ```typescript
 describe('ExternalServerWrapper Integration', () => {
   it('should register with Hostess on spawn');
@@ -120,6 +138,7 @@ describe('ExternalServerWrapper Integration', () => {
 ```
 
 ### Success Criteria
+
 - ✅ Wrap a simple Node.js script that reads/writes stdio
 - ✅ Script registers with Hostess automatically
 - ✅ Environment variables passed correctly
@@ -129,13 +148,14 @@ describe('ExternalServerWrapper Integration', () => {
 - ✅ All integration tests passing
 
 ### Example Usage
+
 ```typescript
 const wrapper = new ExternalServerWrapper(kernel, {
   name: 'echo-server',
   command: 'cat',
   args: [],
   ioMode: 'stdio',
-  env: { LOG_LEVEL: 'info' }
+  env: { LOG_LEVEL: 'info' },
 });
 
 await wrapper.spawn();
@@ -151,41 +171,53 @@ wrapper.inputPipe.write('Hello, World!');
 **Goal:** Implement PTY wrapper for interactive terminal applications
 
 ### Prerequisites
+
 - Sprint 1 completed (ExternalServerWrapper)
 - node-pty package installed
 
 ### Deliverables
 
 #### 1. `PTYServerWrapper` Class
+
 ```typescript
 // src/wrappers/PTYServerWrapper.ts
 export class PTYServerWrapper extends ExternalServerWrapper {
   ptyProcess: IPty;
   terminalSize: { cols: number; rows: number };
-  
-  async spawn(): Promise<void> { /* ... */ }
-  resize(cols: number, rows: number): void { /* ... */ }
-  sendSignal(signal: string): void { /* ... */ }
+
+  async spawn(): Promise<void> {
+    /* ... */
+  }
+  resize(cols: number, rows: number): void {
+    /* ... */
+  }
+  sendSignal(signal: string): void {
+    /* ... */
+  }
 }
 ```
 
 #### 2. node-pty Integration
+
 - PTY process spawning
 - Terminal type configuration (xterm-256color)
 - Initial terminal size
 - Character encoding (utf8/binary)
 
 #### 3. Basic ANSI Passthrough (tmux-like)
+
 - Raw ANSI data piping
 - No parsing or interpretation
 - Direct stdout rendering
 
 #### 4. Terminal Resize Handling
+
 - SIGWINCH signal handling
 - Dynamic resize via `ptyProcess.resize()`
 - Resize event propagation to renderers
 
 #### 5. PTY Manifest Extensions
+
 ```typescript
 interface PTYManifest extends ServerManifest {
   ioMode: 'pty';
@@ -200,6 +232,7 @@ interface PTYManifest extends ServerManifest {
 ```
 
 ### Unit Tests
+
 ```typescript
 describe('PTYServerWrapper', () => {
   it('should spawn PTY process');
@@ -211,6 +244,7 @@ describe('PTYServerWrapper', () => {
 ```
 
 ### Integration Tests
+
 ```typescript
 describe('PTYServerWrapper Integration', () => {
   it('should register PTY server with Hostess');
@@ -220,6 +254,7 @@ describe('PTYServerWrapper Integration', () => {
 ```
 
 ### Success Criteria
+
 - ✅ Wrap bash in PTY
 - ✅ Keyboard input → wrapper → shell works
 - ✅ Shell output → wrapper → screen works
@@ -230,6 +265,7 @@ describe('PTYServerWrapper Integration', () => {
 - ✅ All integration tests passing
 
 ### Example Usage
+
 ```typescript
 const bashPTY = new PTYServerWrapper(kernel, {
   name: 'bash-session',
@@ -237,7 +273,7 @@ const bashPTY = new PTYServerWrapper(kernel, {
   terminalType: 'xterm-256color',
   initialCols: 80,
   initialRows: 24,
-  ioMode: 'pty'
+  ioMode: 'pty',
 });
 
 await bashPTY.spawn();
@@ -258,17 +294,19 @@ kernel.connect(bashPTY.output, screen.input);
 **Goal:** Enable splitting PTY output to multiple renderers
 
 ### Prerequisites
+
 - Sprint 2 completed (PTYServerWrapper)
 - Kernel's split() primitive implemented
 
 ### Deliverables
 
 #### 1. Passthrough Renderer
+
 ```typescript
 // src/renderers/PassthroughRenderer.ts
 export class PassthroughRenderer {
   inputPipe: Pipe;
-  
+
   constructor(kernel: Kernel) {
     this.inputPipe = kernel.createPipe();
     this.inputPipe.on('data', (data) => {
@@ -279,6 +317,7 @@ export class PassthroughRenderer {
 ```
 
 #### 2. ANSI Parser Module
+
 ```typescript
 // src/parsers/ANSIParser.ts
 export class ANSIParser {
@@ -289,11 +328,12 @@ export class ANSIParser {
 ```
 
 #### 3. Logger Renderer
+
 ```typescript
 // src/renderers/LoggerRenderer.ts
 export class LoggerRenderer {
   inputPipe: Pipe;
-  
+
   constructor(kernel: Kernel, logFile: string) {
     this.inputPipe = kernel.createPipe();
     this.inputPipe.on('data', (data) => {
@@ -304,11 +344,13 @@ export class LoggerRenderer {
 ```
 
 #### 4. Split Integration Examples
+
 - One PTY → multiple renderers
 - Example: bash → [passthrough, logger]
 - Example: vim → [passthrough, recorder]
 
 #### 5. Terminal State Tracking
+
 ```typescript
 interface TerminalState {
   cells: Cell[][];
@@ -323,6 +365,7 @@ interface TerminalState {
 ```
 
 ### Unit Tests
+
 ```typescript
 describe('PassthroughRenderer', () => {
   it('should render raw ANSI to stdout');
@@ -342,6 +385,7 @@ describe('LoggerRenderer', () => {
 ```
 
 ### Integration Tests
+
 ```typescript
 describe('Multi-Modal Output', () => {
   it('should split PTY output to 2+ renderers');
@@ -351,6 +395,7 @@ describe('Multi-Modal Output', () => {
 ```
 
 ### Success Criteria
+
 - ✅ One PTY source fans out to multiple renderers using split()
 - ✅ Passthrough renderer works correctly
 - ✅ Logger renderer captures all output
@@ -360,23 +405,21 @@ describe('Multi-Modal Output', () => {
 - ✅ All integration tests passing
 
 ### Example Usage
+
 ```typescript
 const kernel = new Kernel();
 
 const bashPTY = new PTYServerWrapper(kernel, {
   name: 'bash',
   shell: 'bash',
-  ioMode: 'pty'
+  ioMode: 'pty',
 });
 
 const passthrough = new PassthroughRenderer(kernel);
 const logger = new LoggerRenderer(kernel, '/tmp/session.log');
 
 // Split output to both renderers
-kernel.split(bashPTY.output, [
-  passthrough.input,
-  logger.input
-]);
+kernel.split(bashPTY.output, [passthrough.input, logger.input]);
 
 await bashPTY.spawn();
 // Now bash output goes to screen AND log file
@@ -390,26 +433,35 @@ await bashPTY.spawn();
 **Goal:** Implement TTS, MP4, MCP, Screenshot, and WebRTC renderers
 
 ### Prerequisites
+
 - Sprint 3 completed (Multi-Modal Output Foundation)
 - ANSI parser implemented
 
 ### Deliverables
 
 #### 1. Text-to-Speech Renderer
+
 ```typescript
 // src/renderers/TextToSpeechRenderer.ts
 export class TextToSpeechRenderer {
   inputPipe: Pipe;
   private parser: ANSIParser;
   private prevState: TerminalState;
-  
-  constructor(kernel: Kernel, options: TTSOptions) { /* ... */ }
-  private detectChanges(prev: TerminalState, curr: TerminalState) { /* ... */ }
-  private speak(text: string): void { /* ... */ }
+
+  constructor(kernel: Kernel, options: TTSOptions) {
+    /* ... */
+  }
+  private detectChanges(prev: TerminalState, curr: TerminalState) {
+    /* ... */
+  }
+  private speak(text: string): void {
+    /* ... */
+  }
 }
 ```
 
 **Features:**
+
 - Detect text changes in terminal
 - Describe cursor movements
 - Read menu changes aloud
@@ -417,21 +469,31 @@ export class TextToSpeechRenderer {
 - Configurable verbosity
 
 #### 2. MP4 Recorder
+
 ```typescript
 // src/renderers/MP4Recorder.ts
 export class MP4Recorder {
   inputPipe: Pipe;
   private canvas: OffscreenCanvas;
   private encoder: VideoEncoder;
-  
-  constructor(kernel: Kernel, options: MP4Options) { /* ... */ }
-  private renderToCanvas(state: TerminalState): void { /* ... */ }
-  private captureFrame(): void { /* ... */ }
-  async save(filename: string): Promise<void> { /* ... */ }
+
+  constructor(kernel: Kernel, options: MP4Options) {
+    /* ... */
+  }
+  private renderToCanvas(state: TerminalState): void {
+    /* ... */
+  }
+  private captureFrame(): void {
+    /* ... */
+  }
+  async save(filename: string): Promise<void> {
+    /* ... */
+  }
 }
 ```
 
 **Features:**
+
 - Render ANSI to off-screen canvas
 - Capture frames at configurable FPS (default: 30)
 - Encode as H.264/MP4
@@ -439,21 +501,31 @@ export class MP4Recorder {
 - Configurable resolution
 
 #### 3. MCP Renderer (LLM-Friendly)
+
 ```typescript
 // src/renderers/MCPRenderer.ts
 export class MCPRenderer {
   inputPipe: Pipe;
   outputPipe: Pipe;
   private parser: ANSIParser;
-  
-  constructor(kernel: Kernel) { /* ... */ }
-  private formatForLLM(state: TerminalState): any { /* ... */ }
-  private extractPlainText(state: TerminalState): string { /* ... */ }
-  private detectSections(state: TerminalState): Section[] { /* ... */ }
+
+  constructor(kernel: Kernel) {
+    /* ... */
+  }
+  private formatForLLM(state: TerminalState): any {
+    /* ... */
+  }
+  private extractPlainText(state: TerminalState): string {
+    /* ... */
+  }
+  private detectSections(state: TerminalState): Section[] {
+    /* ... */
+  }
 }
 ```
 
 **Features:**
+
 - Strip ANSI codes
 - Extract plain text
 - Detect UI sections (menu, status bar, content)
@@ -462,19 +534,27 @@ export class MCPRenderer {
 - JSON output format
 
 #### 4. Screenshot Renderer
+
 ```typescript
 // src/renderers/ScreenshotRenderer.ts
 export class ScreenshotRenderer {
   inputPipe: Pipe;
   private canvas: OffscreenCanvas;
-  
-  constructor(kernel: Kernel, options: ScreenshotOptions) { /* ... */ }
-  async captureScreenshot(): Promise<Buffer> { /* ... */ }
-  async saveScreenshot(filename: string): Promise<void> { /* ... */ }
+
+  constructor(kernel: Kernel, options: ScreenshotOptions) {
+    /* ... */
+  }
+  async captureScreenshot(): Promise<Buffer> {
+    /* ... */
+  }
+  async saveScreenshot(filename: string): Promise<void> {
+    /* ... */
+  }
 }
 ```
 
 **Features:**
+
 - Capture terminal state as PNG
 - Manual or periodic screenshots
 - Configurable interval
@@ -482,20 +562,28 @@ export class ScreenshotRenderer {
 - Multiple format support (PNG, JPEG)
 
 #### 5. WebRTC Renderer
+
 ```typescript
 // src/renderers/WebRTCRenderer.ts
 export class WebRTCRenderer {
   inputPipe: Pipe;
   private peerConnection: RTCPeerConnection;
   private canvas: OffscreenCanvas;
-  
-  constructor(kernel: Kernel) { /* ... */ }
-  private renderToCanvas(state: TerminalState): void { /* ... */ }
-  async connect(remoteOffer: RTCSessionDescriptionInit): Promise<RTCSessionDescriptionInit> { /* ... */ }
+
+  constructor(kernel: Kernel) {
+    /* ... */
+  }
+  private renderToCanvas(state: TerminalState): void {
+    /* ... */
+  }
+  async connect(remoteOffer: RTCSessionDescriptionInit): Promise<RTCSessionDescriptionInit> {
+    /* ... */
+  }
 }
 ```
 
 **Features:**
+
 - Stream terminal to remote viewers
 - Real-time rendering
 - Low latency (target: <100ms)
@@ -503,6 +591,7 @@ export class WebRTCRenderer {
 - STUN/TURN server integration
 
 ### Unit Tests
+
 ```typescript
 describe('TextToSpeechRenderer', () => {
   it('should detect text changes');
@@ -534,6 +623,7 @@ describe('WebRTCRenderer', () => {
 ```
 
 ### Integration Tests
+
 ```typescript
 describe('Advanced Renderers Integration', () => {
   it('should use Claude Code with all renderers simultaneously');
@@ -543,6 +633,7 @@ describe('Advanced Renderers Integration', () => {
 ```
 
 ### Success Criteria
+
 - ✅ Claude Code wrapper → [passthrough, TTS, MP4, MCP] all working
 - ✅ TTS describes UI changes audibly
 - ✅ MP4 records full session as video
@@ -554,6 +645,7 @@ describe('Advanced Renderers Integration', () => {
 - ✅ All integration tests passing
 
 ### Example Usage
+
 ```typescript
 const kernel = new Kernel();
 
@@ -563,7 +655,7 @@ const claudeCode = new PTYServerWrapper(kernel, {
   terminalType: 'xterm-256color',
   initialCols: 120,
   initialRows: 40,
-  ioMode: 'pty'
+  ioMode: 'pty',
 });
 
 // All renderers
@@ -574,13 +666,7 @@ const mcp = new MCPRenderer(kernel);
 const webrtc = new WebRTCRenderer(kernel);
 
 // Split to all renderers
-kernel.split(claudeCode.output, [
-  passthrough.input,
-  tts.input,
-  mp4.input,
-  mcp.input,
-  webrtc.input
-]);
+kernel.split(claudeCode.output, [passthrough.input, tts.input, mp4.input, mcp.input, webrtc.input]);
 
 await claudeCode.spawn();
 
@@ -600,11 +686,13 @@ await claudeCode.spawn();
 **Goal:** Define patterns for wrapping npm packages as servers
 
 ### Prerequisites
+
 - Sprint 1 completed (ExternalServerWrapper)
 
 ### Deliverables
 
 #### 1. npm Wrapper Patterns Documentation
+
 - How to wrap npm CLI tools
 - How to wrap npm servers
 - Package discovery (node_modules/.bin)
@@ -612,7 +700,9 @@ await claudeCode.spawn();
 - Environment setup
 
 #### 2. npm CLI Tool Example
+
 Wrap an existing npm CLI tool:
+
 ```typescript
 const cliWrapper = new ExternalServerWrapper(kernel, {
   name: 'prettier-server',
@@ -620,12 +710,14 @@ const cliWrapper = new ExternalServerWrapper(kernel, {
   args: ['node_modules/.bin/prettier', '--stdin-filepath', 'file.js'],
   env: {},
   cwd: process.cwd(),
-  ioMode: 'stdio'
+  ioMode: 'stdio',
 });
 ```
 
 #### 3. npm Server Example
+
 Wrap an npm package that provides a server:
+
 ```typescript
 const sqlServer = new ExternalServerWrapper(kernel, {
   name: 'sqlite-server',
@@ -633,23 +725,25 @@ const sqlServer = new ExternalServerWrapper(kernel, {
   args: ['node_modules/.bin/sqlite-server', '--db', 'data.db'],
   env: {
     MAX_CONNECTIONS: '10',
-    LOG_LEVEL: 'info'
+    LOG_LEVEL: 'info',
   },
   cwd: '/opt/db',
   ioMode: 'stdio',
   terminals: [
     { name: 'query', direction: 'input', protocol: 'sql' },
-    { name: 'results', direction: 'output', protocol: 'json' }
-  ]
+    { name: 'results', direction: 'output', protocol: 'json' },
+  ],
 });
 ```
 
 #### 4. Package.json Integration
+
 - How to declare wrapper as dependency
 - How to include in build process
 - How to distribute wrapped servers
 
 #### 5. Wrapper Factory Pattern
+
 ```typescript
 class NPMWrapperFactory {
   static createWrapper(packageName: string, config: NPMWrapperConfig): ExternalServerWrapper {
@@ -659,19 +753,21 @@ class NPMWrapperFactory {
       command: 'node',
       args: [binPath, ...config.args],
       env: config.env,
-      ioMode: config.ioMode || 'stdio'
+      ioMode: config.ioMode || 'stdio',
     });
   }
 }
 ```
 
 ### Documentation Deliverables
+
 - `docs/guides/wrapping-npm-packages.md`
 - Example: Wrapping prettier
 - Example: Wrapping a SQL server npm package
 - Example: Wrapping a REST API npm package
 
 ### Success Criteria
+
 - ✅ Third-party npm package runs as first-class mkolbol server
 - ✅ Wrapper discovers package in node_modules
 - ✅ Dependencies resolved correctly
@@ -680,6 +776,7 @@ class NPMWrapperFactory {
 - ✅ Wrapper factory pattern working
 
 ### Example npm Packages to Wrap
+
 1. **prettier** (CLI tool)
 2. **better-sqlite3** (database)
 3. **express** (web server)
@@ -694,18 +791,22 @@ class NPMWrapperFactory {
 **Goal:** Define patterns for wrapping C programs and arbitrary binaries
 
 ### Prerequisites
+
 - Sprint 1 completed (ExternalServerWrapper)
 
 ### Deliverables
 
 #### 1. C Program Wrapper Patterns Documentation
+
 - Executable discovery (PATH, absolute paths)
 - Library dependency handling (LD_LIBRARY_PATH)
 - Cross-platform considerations
 - Binary permissions
 
 #### 2. Simple C Program Example
+
 Wrap a simple C program:
+
 ```typescript
 const catWrapper = new ExternalServerWrapper(kernel, {
   name: 'cat-server',
@@ -713,51 +814,62 @@ const catWrapper = new ExternalServerWrapper(kernel, {
   args: [],
   env: {},
   cwd: '/tmp',
-  ioMode: 'stdio'
+  ioMode: 'stdio',
 });
 ```
 
 #### 3. ImageMagick Example
+
 Wrap ImageMagick for image processing:
+
 ```typescript
 const imageProcessor = new ExternalServerWrapper(kernel, {
   name: 'image-processor',
   command: '/usr/bin/convert',
   args: [
-    '-',              // Read from stdin
-    '-resize', '800x600',
-    '-quality', '85',
-    'png:-'          // Write to stdout
+    '-', // Read from stdin
+    '-resize',
+    '800x600',
+    '-quality',
+    '85',
+    'png:-', // Write to stdout
   ],
   env: {},
   cwd: '/tmp',
   ioMode: 'stdio',
   terminals: [
     { name: 'input', direction: 'input', protocol: 'image-binary' },
-    { name: 'output', direction: 'output', protocol: 'image-binary' }
-  ]
+    { name: 'output', direction: 'output', protocol: 'image-binary' },
+  ],
 });
 ```
 
 #### 4. ffmpeg Example
+
 Wrap ffmpeg for video processing:
+
 ```typescript
 const ffmpegWrapper = new ExternalServerWrapper(kernel, {
   name: 'video-transcoder',
   command: '/usr/bin/ffmpeg',
   args: [
-    '-i', 'pipe:0',           // Read from stdin
-    '-c:v', 'libx264',
-    '-preset', 'fast',
-    '-f', 'mp4',
-    'pipe:1'                  // Write to stdout
+    '-i',
+    'pipe:0', // Read from stdin
+    '-c:v',
+    'libx264',
+    '-preset',
+    'fast',
+    '-f',
+    'mp4',
+    'pipe:1', // Write to stdout
   ],
   env: {},
-  ioMode: 'stdio'
+  ioMode: 'stdio',
 });
 ```
 
 #### 5. Executable Discovery Utility
+
 ```typescript
 class ExecutableDiscovery {
   static findExecutable(name: string): string | null {
@@ -775,6 +887,7 @@ class ExecutableDiscovery {
 ```
 
 ### Documentation Deliverables
+
 - `docs/guides/wrapping-c-programs.md`
 - Example: Wrapping cat/grep/sed
 - Example: Wrapping ImageMagick
@@ -782,6 +895,7 @@ class ExecutableDiscovery {
 - Cross-platform guide (Linux/macOS/Windows)
 
 ### Success Criteria
+
 - ✅ Arbitrary C executable runs as first-class mkolbol server
 - ✅ Executable discovery works
 - ✅ Library dependencies handled
@@ -790,6 +904,7 @@ class ExecutableDiscovery {
 - ✅ Examples for various C programs working
 
 ### Example C Programs to Wrap
+
 1. **cat/grep/sed** (text processing)
 2. **ImageMagick** (image processing)
 3. **ffmpeg** (video processing)
@@ -804,12 +919,14 @@ class ExecutableDiscovery {
 **Goal:** Implement health monitoring, restart policies, and supervision
 
 ### Prerequisites
+
 - Sprint 1 completed (ExternalServerWrapper)
 - Executor server implemented
 
 ### Deliverables
 
 #### 1. Health Monitoring
+
 ```typescript
 class HealthMonitor {
   checkHealth(wrapper: ExternalServerWrapper): HealthStatus {
@@ -819,53 +936,54 @@ class HealthMonitor {
       uptime: wrapper.getProcessInfo().uptime,
       memoryUsage: wrapper.getProcessInfo().memoryUsage,
       cpuUsage: wrapper.getProcessInfo().cpuUsage,
-      healthy: this.isHealthy(wrapper)
+      healthy: this.isHealthy(wrapper),
     };
   }
-  
+
   private isHealthy(wrapper: ExternalServerWrapper): boolean {
     // Custom health check logic
-    return wrapper.isRunning() && 
-           wrapper.getProcessInfo().uptime > 0;
+    return wrapper.isRunning() && wrapper.getProcessInfo().uptime > 0;
   }
 }
 ```
 
 #### 2. Restart Policies
+
 ```typescript
 class RestartPolicy {
   shouldRestart(wrapper: ExternalServerWrapper, exitCode: number): boolean {
     const { restart, restartCount, maxRestarts } = wrapper.manifest;
-    
+
     if (restart === 'never') return false;
     if (restart === 'always') return restartCount < maxRestarts;
     if (restart === 'on-failure') {
       return exitCode !== 0 && restartCount < maxRestarts;
     }
-    
+
     return false;
   }
 }
 ```
 
 #### 3. Graceful Shutdown
+
 ```typescript
 class ExternalServerWrapper {
   async shutdown(timeout: number = 5000): Promise<void> {
     if (!this.isRunning()) return;
-    
+
     // Try graceful shutdown first (SIGTERM)
     this.sendSignal('SIGTERM');
-    
+
     // Wait for process to exit
     const exited = await this.waitForExit(timeout);
-    
+
     if (!exited) {
       // Force kill (SIGKILL)
       this.sendSignal('SIGKILL');
       await this.waitForExit(1000);
     }
-    
+
     // Deregister from Hostess
     await this.deregisterFromHostess();
   }
@@ -873,38 +991,39 @@ class ExternalServerWrapper {
 ```
 
 #### 4. Supervisor Module
+
 ```typescript
 class Supervisor {
   private wrappers: Map<string, ExternalServerWrapper> = new Map();
   private healthMonitor: HealthMonitor;
   private restartPolicy: RestartPolicy;
-  
+
   constructor(kernel: Kernel) {
     this.healthMonitor = new HealthMonitor();
     this.restartPolicy = new RestartPolicy();
-    
+
     // Check health periodically
     setInterval(() => this.checkAllHealth(), 5000);
   }
-  
+
   register(wrapper: ExternalServerWrapper): void {
     this.wrappers.set(wrapper.manifest.uuid, wrapper);
   }
-  
+
   private async checkAllHealth(): Promise<void> {
     for (const [uuid, wrapper] of this.wrappers) {
       const health = this.healthMonitor.checkHealth(wrapper);
-      
+
       if (!health.healthy) {
         console.log(`Wrapper ${wrapper.manifest.name} unhealthy, considering restart...`);
-        
+
         if (this.restartPolicy.shouldRestart(wrapper, health.exitCode || 0)) {
           await this.restart(wrapper);
         }
       }
     }
   }
-  
+
   private async restart(wrapper: ExternalServerWrapper): Promise<void> {
     console.log(`Restarting ${wrapper.manifest.name}...`);
     await wrapper.restart();
@@ -913,16 +1032,17 @@ class Supervisor {
 ```
 
 #### 5. Integration with Executor
+
 ```typescript
 class Executor {
   private supervisor: Supervisor;
-  
+
   constructor(kernel: Kernel, hostess: Hostess) {
     this.kernel = kernel;
     this.hostess = hostess;
     this.supervisor = new Supervisor(kernel);
   }
-  
+
   async spawnWrapper(wrapper: ExternalServerWrapper): Promise<void> {
     await wrapper.spawn();
     await this.hostess.register(wrapper.manifest);
@@ -932,6 +1052,7 @@ class Executor {
 ```
 
 ### Unit Tests
+
 ```typescript
 describe('HealthMonitor', () => {
   it('should check wrapper health');
@@ -953,6 +1074,7 @@ describe('Supervisor', () => {
 ```
 
 ### Success Criteria
+
 - ✅ Wrapped process crashes → auto-restarts → Hostess re-registration
 - ✅ Health monitoring detects unhealthy processes
 - ✅ Restart policies work correctly (always, on-failure, never)
@@ -962,6 +1084,7 @@ describe('Supervisor', () => {
 - ✅ All unit tests passing
 
 ### Example Usage
+
 ```typescript
 const wrapper = new ExternalServerWrapper(kernel, {
   name: 'unstable-server',
@@ -969,7 +1092,7 @@ const wrapper = new ExternalServerWrapper(kernel, {
   args: ['app.js'],
   restart: 'on-failure',
   restartDelay: 5000,
-  maxRestarts: 3
+  maxRestarts: 3,
 });
 
 const supervisor = new Supervisor(kernel);
@@ -987,11 +1110,13 @@ supervisor.register(wrapper);
 **Goal:** Build framework for protocol translation layers
 
 ### Prerequisites
+
 - Sprint 1 completed (ExternalServerWrapper)
 
 ### Deliverables
 
 #### 1. Translation Layer Interface
+
 ```typescript
 interface Translator {
   toExternal(mkolbolData: any): any;
@@ -1003,17 +1128,17 @@ class TranslationLayer {
   outputPipe: Pipe;
   private externalWrapper: ExternalServerWrapper;
   private translator: Translator;
-  
+
   constructor(wrapper: ExternalServerWrapper, translator: Translator) {
     this.externalWrapper = wrapper;
     this.translator = translator;
-    
+
     // mkolbol → external
     this.inputPipe.on('data', (data) => {
       const translated = this.translator.toExternal(data);
       wrapper.inputPipe.write(translated);
     });
-    
+
     // external → mkolbol
     wrapper.outputPipe.on('data', (data) => {
       const translated = this.translator.fromExternal(data);
@@ -1024,12 +1149,13 @@ class TranslationLayer {
 ```
 
 #### 2. JSON Translator
+
 ```typescript
 class JSONTranslator implements Translator {
   toExternal(mkolbolData: any): string {
     return JSON.stringify(mkolbolData);
   }
-  
+
   fromExternal(externalData: Buffer): any {
     return JSON.parse(externalData.toString());
   }
@@ -1037,61 +1163,66 @@ class JSONTranslator implements Translator {
 ```
 
 #### 3. HTTP Translator
+
 ```typescript
 class HTTPTranslator implements Translator {
   toExternal(mkolbolData: any): string {
     // Convert mkolbol message to HTTP request
-    return `POST / HTTP/1.1\r\n` +
-           `Content-Type: application/json\r\n` +
-           `Content-Length: ${JSON.stringify(mkolbolData.body).length}\r\n` +
-           `\r\n` +
-           JSON.stringify(mkolbolData.body);
+    return (
+      `POST / HTTP/1.1\r\n` +
+      `Content-Type: application/json\r\n` +
+      `Content-Length: ${JSON.stringify(mkolbolData.body).length}\r\n` +
+      `\r\n` +
+      JSON.stringify(mkolbolData.body)
+    );
   }
-  
+
   fromExternal(externalData: Buffer): any {
     // Parse HTTP response
     const response = this.parseHTTPResponse(externalData.toString());
     return {
       statusCode: response.statusCode,
       headers: response.headers,
-      body: JSON.parse(response.body)
+      body: JSON.parse(response.body),
     };
   }
 }
 ```
 
 #### 4. SQL Translator
+
 ```typescript
 class SQLTranslator implements Translator {
   toExternal(mkolbolData: any): string {
     // Convert mkolbol query to SQL
     return mkolbolData.query;
   }
-  
+
   fromExternal(externalData: Buffer): any {
     // Parse SQL result
     return {
       rows: this.parseResults(externalData),
-      rowCount: this.countRows(externalData)
+      rowCount: this.countRows(externalData),
     };
   }
 }
 ```
 
 #### 5. Protobuf Translator
+
 ```typescript
 class ProtobufTranslator implements Translator {
   private schema: any;
-  
+
   constructor(schemaPath: string) {
     this.schema = this.loadSchema(schemaPath);
   }
-  
+
   toExternal(mkolbolData: any): Buffer {
     // Encode as protobuf
     return this.schema.encode(mkolbolData);
   }
-  
+
   fromExternal(externalData: Buffer): any {
     // Decode protobuf
     return this.schema.decode(externalData);
@@ -1100,12 +1231,14 @@ class ProtobufTranslator implements Translator {
 ```
 
 ### Documentation Deliverables
+
 - `docs/guides/protocol-translation.md`
 - Example: Wrapping REST API as stream server
 - Example: Wrapping database with custom protocol
 - Example: Wrapping gRPC service
 
 ### Unit Tests
+
 ```typescript
 describe('TranslationLayer', () => {
   it('should translate bidirectionally');
@@ -1124,6 +1257,7 @@ describe('HTTPTranslator', () => {
 ```
 
 ### Success Criteria
+
 - ✅ HTTP API wrapped as stream server with translation
 - ✅ Translation layer transparent to other servers
 - ✅ Standard translators work correctly
@@ -1132,6 +1266,7 @@ describe('HTTPTranslator', () => {
 - ✅ All unit tests passing
 
 ### Example Usage
+
 ```typescript
 // Wrap REST API with translation
 const restAPI = new ExternalServerWrapper(kernel, {
@@ -1139,7 +1274,7 @@ const restAPI = new ExternalServerWrapper(kernel, {
   command: 'node',
   args: ['api-server.js'],
   env: { PORT: '3000' },
-  ioMode: 'socket'
+  ioMode: 'socket',
 });
 
 const httpTranslator = new HTTPTranslator();
@@ -1164,7 +1299,7 @@ graph TD
     S6[Sprint 6: C Programs]
     S7[Sprint 7: Lifecycle]
     S8[Sprint 8: Translation]
-    
+
     S1 --> S2
     S1 --> S5
     S1 --> S6
@@ -1177,6 +1312,7 @@ graph TD
 **Critical Path:** Sprint 1 → Sprint 2 → Sprint 3 → Sprint 4 (28-34 days)
 
 **Parallel Work Opportunities:**
+
 - Sprint 5 (npm) can start after Sprint 1
 - Sprint 6 (C programs) can start after Sprint 1
 - Sprint 7 (lifecycle) can start after Sprint 1
@@ -1219,26 +1355,31 @@ graph TD
 ## Success Metrics
 
 ### Sprint 1-2 (Core Functionality)
+
 - ✅ Wrap 3+ different external executables
 - ✅ All examples pass integration tests
 - ✅ Hostess registration working
 
 ### Sprint 3-4 (Multi-Modal)
+
 - ✅ Claude Code with 5 renderers simultaneously
 - ✅ No dropped frames/data
 - ✅ All renderers produce correct output
 
 ### Sprint 5-6 (Integration Patterns)
+
 - ✅ 5+ npm packages wrapped successfully
 - ✅ 5+ C programs wrapped successfully
 - ✅ Documentation clear and complete
 
 ### Sprint 7 (Reliability)
+
 - ✅ Process crashes recovered automatically
 - ✅ Health monitoring detects issues within 5s
 - ✅ Graceful shutdown completes within 5s
 
 ### Sprint 8 (Translation)
+
 - ✅ 3+ protocol translators working
 - ✅ Translation transparent to other servers
 - ✅ Custom translator framework usable
@@ -1248,18 +1389,21 @@ graph TD
 ## Post-Sprint Activities
 
 ### Documentation
+
 - Update main README with wrapper examples
 - Create quickstart guide
 - Write tutorial videos/screencasts
 - Document best practices
 
 ### Testing
+
 - Performance benchmarks
 - Load testing (many wrappers)
 - Cross-platform validation
 - Long-running stability tests
 
 ### Community
+
 - Blog posts about architecture
 - Conference talks
 - Open-source release

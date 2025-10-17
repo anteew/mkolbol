@@ -91,7 +91,7 @@ export class PTYServerWrapper extends ExternalServerWrapper {
         try {
             pty.kill('SIGKILL');
         }
-        catch (err) {
+        catch {
         }
         debug.emit('pty', 'server.stopped', { servername: this.manifest.servername }, 'info');
         await new Promise(resolve => setTimeout(resolve, timeout));

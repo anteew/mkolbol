@@ -23,7 +23,7 @@ async function main() {
   await executor.up();
 
   console.log('Topology running. Press Ctrl+C to stop.');
-  
+
   setTimeout(async () => {
     console.log('\nShutting down...');
     await executor.down();

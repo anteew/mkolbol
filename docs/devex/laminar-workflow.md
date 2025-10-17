@@ -32,6 +32,7 @@ npm install --save-dev github:anteew/Laminar
 ```
 
 **No private npm registry needed.** This approach works for:
+
 - Local development
 - CI/CD pipelines (GitHub Actions, GitLab CI, etc.)
 - Team collaboration without publishing infrastructure
@@ -67,11 +68,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     reporters: [
-      'default',  // Keep console output
-      './node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js'
+      'default', // Keep console output
+      './node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js',
     ],
     // ... other config
-  }
+  },
 });
 ```
 
@@ -95,6 +96,7 @@ npm run test:pty # For fork-based tests (if applicable)
 ```
 
 **What happens:**
+
 - Tests execute normally with console output
 - Laminar reporter writes structured events to `reports/` directory
 - Each test case gets its own `.jsonl` file with full execution trace
@@ -109,6 +111,7 @@ npm run lam -- summary
 ```
 
 **Example output:**
+
 ```
 Test Summary (42 tests):
 ✓ 38 passed
@@ -137,6 +140,7 @@ npm run lam -- trends --top 10
 ```
 
 **Example output:**
+
 ```
 Top Failure Trends (last 100 runs):
 
@@ -235,6 +239,7 @@ One-line JSON per test with status and metadata:
 ```
 
 Fields:
+
 - `status`: "pass" | "fail" | "skip"
 - `duration`: milliseconds
 - `location`: file path and line number
@@ -254,6 +259,7 @@ Structured event stream for each test case:
 ```
 
 Fields:
+
 - `ts`: timestamp (milliseconds since epoch)
 - `lvl`: log level (debug, info, warn, error)
 - `case`: test case identifier
@@ -312,9 +318,9 @@ name: Tests with Laminar
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -376,12 +382,14 @@ After CI run completes:
    - Download `laminar-reports.zip`
 
 2. **Extract locally:**
+
    ```bash
    unzip laminar-reports.zip -d ci-reports/
    cd ci-reports/
    ```
 
 3. **Analyze failures:**
+
    ```bash
    # View summary
    cat LAMINAR_SUMMARY.txt
@@ -396,11 +404,13 @@ After CI run completes:
 ### Sharing Results
 
 **Option 1: CI Artifacts (Recommended)**
+
 - GitHub Actions automatically retains artifacts for 90 days
 - Team members download from Actions UI
 - No external storage needed
 
 **Option 2: Archive to Cloud Storage**
+
 ```yaml
 - name: Archive reports to S3
   if: always()
@@ -409,6 +419,7 @@ After CI run completes:
 ```
 
 **Option 3: Attach to PR Comments**
+
 ```yaml
 - name: Post summary to PR
   if: github.event_name == 'pull_request' && always()
@@ -432,12 +443,14 @@ After CI run completes:
 #### 1. Command not found: lam
 
 **Symptom:**
+
 ```
 bash: lam: command not found
 ```
 
 **Solution:**
 Use `npx` or npm script:
+
 ```bash
 # Option 1: npx
 npx @agent_vega/laminar --help
@@ -460,12 +473,14 @@ Tests run but no `reports/` directory appears.
 **Causes & Solutions:**
 
 1. **Reporter not configured**
+
    ```bash
    # Verify reporter is in vitest command:
    npx vitest run --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
    ```
 
 2. **Reporter path incorrect**
+
    ```bash
    # Check that Laminar is installed:
    ls node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js
@@ -486,6 +501,7 @@ Tests run but no `reports/` directory appears.
 `reports/summary.jsonl` exists but is empty or missing test results.
 
 **Solution:**
+
 - Ensure tests actually ran (check console output)
 - Verify reporter was active (look for "Laminar reporter" in output)
 - Check for errors in test framework initialization
@@ -497,6 +513,7 @@ Artifact paths reference different directory than expected.
 
 **Solution:**
 Laminar uses the directory where tests run. Ensure consistent working directory:
+
 ```bash
 # In CI:
 - name: Run tests
@@ -511,6 +528,7 @@ Laminar uses the directory where tests run. Ensure consistent working directory:
    - Issues: https://github.com/anteew/Laminar/issues
 
 2. **Review existing artifacts:**
+
    ```bash
    # Check index.json for manifest
    cat reports/index.json | jq .
@@ -520,6 +538,7 @@ Laminar uses the directory where tests run. Ensure consistent working directory:
    ```
 
 3. **Enable debug output:**
+
    ```bash
    DEBUG=laminar* npm test
    ```
@@ -537,6 +556,7 @@ Laminar uses the directory where tests run. Ensure consistent working directory:
 Once comfortable with basic workflow, explore:
 
 1. **Custom digest rules** - Filter and slice logs with precision
+
    ```bash
    # Configure in laminar.config.json (if using standalone Laminar)
    npm run lam -- rules get
@@ -544,17 +564,20 @@ Once comfortable with basic workflow, explore:
    ```
 
 2. **Repro bundles** - Package failures for sharing
+
    ```bash
    npm run lam -- repro --bundle
    npm run lam -- repro --bundle --case kernel.spec/connect_moves_data_1_1
    ```
 
 3. **Digest diffs** - Compare failures across runs
+
    ```bash
    npm run lam -- diff reports/run1.digest.json reports/run2.digest.json
    ```
 
 4. **Flake detection** - Identify non-deterministic tests
+
    ```bash
    npm run lam -- run --flake-detect --flake-runs 5
    ```
@@ -583,6 +606,7 @@ Protect sensitive data in logs:
 ```
 
 Laminar includes built-in secret detection for:
+
 - API keys (AWS, Stripe, etc.)
 - JWT tokens
 - Database connection strings
@@ -600,6 +624,7 @@ Laminar includes built-in secret detection for:
 5. **Iterate** on test failures with self-service logs
 
 **ROI benefits:**
+
 - Faster debugging (structured logs vs. raw console output)
 - Historical trends (identify regressions early)
 - Self-service (no need to ask maintainers for logs)

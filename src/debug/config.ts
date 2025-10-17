@@ -20,8 +20,8 @@ function parseModules(envVar: string | undefined): Set<string> {
   return new Set(
     envVar
       .split(',')
-      .map(m => m.trim())
-      .filter(m => m.length > 0)
+      .map((m) => m.trim())
+      .filter((m) => m.length > 0),
   );
 }
 

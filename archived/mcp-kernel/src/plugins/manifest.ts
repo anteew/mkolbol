@@ -1,10 +1,14 @@
-import { PluginManifest, ToolDescriptor, ResourceDescriptor } from "../types";
-import { Router } from "../kernel/router";
+import { PluginManifest, ToolDescriptor, ResourceDescriptor } from '../types';
+import { Router } from '../kernel/router';
 
-export function registerManifest(router: Router, manifest: PluginManifest, impl: {
-  tools?: Record<string, (params: any, session: any) => Promise<any>>,
-  resources?: Record<string, (uri: string, session: any) => Promise<any>>
-}) {
+export function registerManifest(
+  router: Router,
+  manifest: PluginManifest,
+  impl: {
+    tools?: Record<string, (params: any, session: any) => Promise<any>>;
+    resources?: Record<string, (uri: string, session: any) => Promise<any>>;
+  },
+) {
   for (const t of manifest.tools ?? []) {
     const h = impl.tools?.[t.name];
     if (!h) continue;

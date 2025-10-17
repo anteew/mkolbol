@@ -20,6 +20,7 @@ Early adopters face friction when starting with mkolbol. The current workflow re
 7. Configuring CI for testing
 
 This takes 30-60 minutes and is error-prone. New users must:
+
 - Study existing examples to understand project structure
 - Copy-paste boilerplate from documentation
 - Manually configure build tooling
@@ -65,21 +66,23 @@ A CLI scaffolder that generates a complete, working mkolbol module project. User
 
 ### Option Analysis
 
-| Approach | Command | Pros | Cons |
-|----------|---------|------|------|
-| **A: npm create** | `npm create mkolbol@latest my-project` | Standard npm convention, familiar to users, auto-installs latest | Requires separate package `create-mkolbol` |
-| **B: npx** | `npx mkolbol-create my-project` | Simpler to publish, one package | Less discoverable, manual version management |
-| **C: Integrated** | `npx mkolbol init` | Ships with main package, no extra install | Bloats main package, version coupling |
+| Approach          | Command                                | Pros                                                             | Cons                                         |
+| ----------------- | -------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| **A: npm create** | `npm create mkolbol@latest my-project` | Standard npm convention, familiar to users, auto-installs latest | Requires separate package `create-mkolbol`   |
+| **B: npx**        | `npx mkolbol-create my-project`        | Simpler to publish, one package                                  | Less discoverable, manual version management |
+| **C: Integrated** | `npx mkolbol init`                     | Ships with main package, no extra install                        | Bloats main package, version coupling        |
 
 ### Recommendation: Option A (`npm create mkolbol`)
 
 **Rationale:**
+
 - Industry standard pattern (Vite, Next.js, React all use `npm create`)
 - Auto-fetches latest version without user intervention
 - Clear separation: `mkolbol` = runtime, `create-mkolbol` = scaffolder
 - Better discoverability via npm registry search
 
 **Implementation:**
+
 - Publish separate package: `create-mkolbol`
 - Entry point: `index.js` with shebang
 - Users invoke: `npm create mkolbol@latest`
@@ -158,6 +161,7 @@ my-awesome-module/
 #### 1. `package.json`
 
 **Transform variant:**
+
 ```json
 {
   "name": "my-awesome-module",
@@ -213,7 +217,7 @@ export class MyAwesomeModule {
         // TODO: Implement your transformation logic here
         const output = chunk; // Replace with actual transformation
         callback(null, output);
-      }
+      },
     });
 
     this.inputPipe.pipe(transformer).pipe(this.outputPipe);
@@ -249,7 +253,7 @@ describe('MyAwesomeModule', () => {
 
     module.inputPipe.write('test');
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     expect(received.length).toBeGreaterThan(0);
   });
@@ -295,22 +299,26 @@ A mkolbol transform module generated with `npm create mkolbol`.
 ## Getting Started
 
 ### Install Dependencies
+
 \`\`\`bash
 npm install
 \`\`\`
 
 ### Build
+
 \`\`\`bash
 npm run build
 \`\`\`
 
 ### Test
+
 \`\`\`bash
 npm test
-npm run test:watch  # Watch mode
+npm run test:watch # Watch mode
 \`\`\`
 
 ### Run Example
+
 \`\`\`bash
 npm run dev
 \`\`\`
@@ -346,19 +354,21 @@ MIT
 **Requirement:** All dependencies use exact versions (no `^` or `~`).
 
 **Rationale:**
+
 - Deterministic builds across environments
 - Avoid breakage from transitive dependency updates
 - Users can manually upgrade after reviewing changes
 
 **Implementation:**
+
 ```json
 {
   "dependencies": {
-    "mkolbol": "0.2.0"  // NOT "^0.2.0"
+    "mkolbol": "0.2.0" // NOT "^0.2.0"
   },
   "devDependencies": {
-    "typescript": "5.6.2",  // Exact version
-    "vitest": "1.6.0"       // Exact version
+    "typescript": "5.6.2", // Exact version
+    "vitest": "1.6.0" // Exact version
   }
 }
 ```
@@ -368,11 +378,13 @@ MIT
 **Requirement:** Same inputs produce identical output every time.
 
 **No:**
+
 - Randomized IDs or timestamps in generated code
 - Non-deterministic ordering of imports/exports
 - Environment-dependent paths
 
 **Yes:**
+
 - Fixed file structure
 - Alphabetical import ordering
 - Absolute paths resolved at runtime, not generation time
@@ -384,11 +396,13 @@ MIT
 **Requirement:** Generated projects cannot modify mkolbol kernel internals.
 
 **Enforcement:**
+
 - Templates import from `mkolbol` as a library
 - No direct kernel source file modifications
 - Documentation emphasizes "build on top, not inside"
 
 **Violation example (prohibited):**
+
 ```typescript
 // BAD: Modifying kernel internals
 import { Kernel } from 'mkolbol';
@@ -396,12 +410,13 @@ Kernel.prototype.myCustomMethod = function() { ... };
 ```
 
 **Correct approach:**
+
 ```typescript
 // GOOD: Building on kernel APIs
 import { Kernel } from 'mkolbol';
 export class MyModule {
   constructor(kernel: Kernel) {
-    this.pipe = kernel.createPipe();  // Use public APIs
+    this.pipe = kernel.createPipe(); // Use public APIs
   }
 }
 ```
@@ -409,17 +424,20 @@ export class MyModule {
 ### 4. Convention Adherence
 
 **Naming:**
+
 - PascalCase for class names: `MyAwesomeModule`
 - camelCase for file names: `myAwesomeModule.spec.ts`
 - Descriptive pipe names: `inputPipe`, `outputPipe`, `errorPipe`
 
 **Directory Structure:**
+
 - `src/` for source code
 - `tests/` for test files (NOT `__tests__` or `spec/`)
 - `dist/` for compiled output
 - `.github/workflows/` for CI
 
 **TypeScript:**
+
 - Strict mode enabled
 - ES modules (`"type": "module"`)
 - Source maps for debugging
@@ -431,20 +449,24 @@ export class MyModule {
 ### Technology Choice
 
 **CLI Framework:** [Commander.js](https://github.com/tj/commander.js)
+
 - Industry standard (used by Vite, Angular CLI, Create React App)
 - Lightweight, minimal dependencies
 - Well-documented
 
 **Prompts:** [prompts](https://github.com/terkelg/prompts)
+
 - Lightweight, aesthetic, cancellable
 - Better UX than inquirer (smaller, faster)
 
 **Template Engine:** String interpolation + file system operations
+
 - No complex templating (Mustache, Handlebars) needed
 - Simple variable substitution in template files
 - Easier to maintain, debug
 
 **File Operations:** Node.js `fs` module
+
 - Native, zero dependencies for this part
 - Sufficient for copying files, replacing placeholders
 
@@ -485,6 +507,7 @@ create-mkolbol/
 4. **Documentation:** Scaffolder README lists kernel compatibility matrix
 
 **Example:**
+
 ```json
 // create-mkolbol/package.json
 {
@@ -497,6 +520,7 @@ create-mkolbol/
 ```
 
 **Process:**
+
 1. mkolbol kernel releases v0.3.0
 2. CI runs: `npm create mkolbol@latest test-project && cd test-project && npm test`
 3. If tests fail, open issue: "Scaffolder templates incompatible with v0.3.0"
@@ -520,6 +544,7 @@ create-mkolbol/
 - **Template quality:** Generated code passes linting, tests, and CI without modification
 
 **How to measure:**
+
 - Telemetry: Optional anonymous ping on successful generation (opt-in)
 - Surveys: Periodic feedback forms in README
 - GitHub metrics: Issues tagged `scaffolder`, discussion activity
@@ -535,6 +560,7 @@ create-mkolbol/
 **Impact:** High - users get bad first impression, churn increases.
 
 **Mitigation:**
+
 - CI pipeline runs scaffolder against latest kernel on every commit
 - Automated tests: scaffold project → build → run tests → verify
 - Version compatibility matrix in documentation
@@ -551,6 +577,7 @@ create-mkolbol/
 **Impact:** Medium - maintenance burden, bugs, slow iteration.
 
 **Mitigation:**
+
 - Strict scope: P1 = 2 templates only (Transform, External)
 - Feature requests go to backlog (P2/P3)
 - YAGNI principle: only implement when users ask repeatedly
@@ -567,12 +594,14 @@ create-mkolbol/
 **Impact:** Medium - scaffolder generates broken projects until updated.
 
 **Mitigation:**
+
 - Quarterly dependency review (check changelogs)
 - Test matrix: Node 20, 22, 24 (current LTS + next)
 - Document upgrade path in scaffolder README
 - Pin to LTS versions by default
 
 **Process:**
+
 - Dependabot alerts → review → test → bump version → release
 
 ---
@@ -584,11 +613,13 @@ create-mkolbol/
 **Goal:** Support Python, Go, Rust external modules.
 
 **Template additions:**
+
 - `external-python/` - Uses `ExternalServerWrapper` + Python script
 - `external-go/` - Compiles Go binary, wraps in TypeScript
 - `external-rust/` - Similar pattern
 
 **UX:**
+
 ```bash
 ? Server type:
   ○ Transform (TypeScript, in-process)
@@ -607,11 +638,13 @@ create-mkolbol/
 **Goal:** Generate routing modules, middleware, protocol adapters.
 
 **Templates:**
+
 - `routing-server/` - Service mesh routing example
 - `mcp-adapter/` - MCP protocol wrapper
 - `middleware/` - Auth, logging, metrics
 
 **UX:**
+
 ```bash
 ? Module category:
   ○ Basic (Transform/External)
@@ -629,6 +662,7 @@ create-mkolbol/
 **Goal:** Production-ready templates with Docker, K8s, monitoring.
 
 **Includes:**
+
 - Dockerfile + docker-compose.yml
 - Kubernetes manifests
 - Prometheus metrics exporter
@@ -653,6 +687,7 @@ create-mkolbol/
 6. **Mitigations in place:** CI checks, version pinning, quarterly audits
 
 **Implementation Effort:** 1 developer, 3-5 days
+
 - Day 1: CLI setup (Commander, prompts)
 - Day 2: Transform template + tests
 - Day 3: External template + tests
@@ -660,6 +695,7 @@ create-mkolbol/
 - Day 5: Integration tests, polish, publish
 
 **Approval Criteria:**
+
 - [ ] CLI generates valid project (npm install, build, test all pass)
 - [ ] Both templates (Transform, External) tested
 - [ ] CI workflow runs successfully on GitHub Actions
@@ -748,6 +784,7 @@ $ npm run dev
 ```
 
 **User now has:**
+
 - Working module skeleton
 - Passing tests
 - Runnable example

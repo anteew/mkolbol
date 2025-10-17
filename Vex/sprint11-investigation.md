@@ -18,6 +18,7 @@ Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expa
 ### Wave DX-11A: Laminar CI Refinement (3 Tasks, Parallel)
 
 #### LAM-1101: Laminar cache keys per node+branch; aggregate PR comment
+
 - **Complexity**: Medium
 - **Current state**: PR comment script (post-laminar-pr-comment.js) posts individual comments
 - **Goal**:
@@ -30,6 +31,7 @@ Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expa
 - **Deliverable**: `patches/DIFF_LAM-1101_cache-keys-aggregate.patch`
 
 #### LAM-1102: Flake budget summary in PR (last 5 runs)
+
 - **Complexity**: Medium
 - **Current state**: history.jsonl accumulates all test results, but no flake budget analysis in PR comment
 - **Goal**: Extract flake data from history (last 5 runs) and show in PR comment
@@ -42,6 +44,7 @@ Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expa
 - **Deliverable**: `patches/DIFF_LAM-1102_flake-budget.patch`
 
 #### LAM-1103: Acceptance smoke job: run mkctl http-logs-local-file.yml in CI (best-effort)
+
 - **Complexity**: Low-Medium
 - **Current state**: http-logs-local.yml exists (uses ConsoleSink); http-logs-local-file.yml blocked on FilesystemSink availability
 - **Goal**: Add CI job that runs `mkctl run --file examples/configs/http-logs-local-file.yml` for 10s to validate FileSink works in CI
@@ -57,6 +60,7 @@ Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expa
 ### Wave DX-11B: Acceptance Docs (3 Tasks, Parallel)
 
 #### DEVEX-111: Acceptance doc: expand FileSink walkthrough end-to-end
+
 - **Complexity**: Medium
 - **Current state**: acceptance/local-node-v1.md exists with basic patterns; needs FileSink-specific walkthrough
 - **Goal**: Create step-by-step guide showing:
@@ -71,6 +75,7 @@ Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expa
 - **Deliverable**: `patches/DIFF_DEVEX-111_filesink-walkthrough.patch`
 
 #### DEVEX-112: First Five Minutes: polish and add troubleshooting anchors
+
 - **Complexity**: Low
 - **Current state**: first-five-minutes.md exists (1,229 words from P10 subagent)
 - **Goal**:
@@ -84,6 +89,7 @@ Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expa
 - **Deliverable**: `patches/DIFF_DEVEX-112_first-five-minutes-polish.patch`
 
 #### DEVEX-113: mkctl cookbook: add endpoints --json + filters + health error mapping
+
 - **Complexity**: Low-Medium
 - **Current state**: mkctl-cookbook.md has exit codes and basic patterns
 - **Goal**: Add sections for:
@@ -100,14 +106,17 @@ Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expa
 ## Task Dependencies & Blockers
 
 ### Hard Blockers
+
 - **LAM-1103** depends on FilesystemSink module from Susan's sprint
   - **Mitigation**: Can placeholder the config file; mark smoke job as best-effort with `continue-on-error: true`
 
 ### Soft Dependencies
+
 - **DEVEX-111** should cross-reference acceptance patterns from LAM-1103 (so do LAM-1103 first if possible)
 - **DEVEX-112** should verify first-five-minutes links don't break (check after DEVEX-111)
 
 ### Wave Parallelization
+
 - **DX-11A**: All 3 Laminar tasks can run in parallel (independent file changes)
 - **DX-11B**: All 3 DevEx tasks can run in parallel (independent doc sections)
 - **Cross-wave**: Can start both waves in parallel
@@ -119,6 +128,7 @@ Strengthen CI insight (cache keys, aggregated PR comment, flake budget) and expa
 ### Cache Keys Per Node/Branch
 
 **Current pattern** (P10):
+
 ```yaml
 cache:
   path: reports/history.jsonl
@@ -126,6 +136,7 @@ cache:
 ```
 
 **New pattern** (P11):
+
 ```yaml
 cache:
   path: reports/history.jsonl
@@ -133,6 +144,7 @@ cache:
 ```
 
 This ensures:
+
 - Node 20 history separate from Node 24
 - Branch-specific history (main ≠ feature branches)
 - No cross-contamination between contexts
@@ -140,10 +152,12 @@ This ensures:
 ### Aggregated PR Comment
 
 **Current pattern** (P10):
+
 - Each matrix job posts its own comment
 - Result: Multiple comments on PR (confusing)
 
 **New pattern** (P11):
+
 - Collect all results in CI artifacts
 - Post-job step aggregates and posts single comment
 - Result: One clean comment per PR with all node data
@@ -153,6 +167,7 @@ This ensures:
 **Definition**: Tests failing ≥2 times in the last 5 CI runs
 
 **Implementation**:
+
 1. Parse history.jsonl (sorted by timestamp)
 2. Keep last 5 runs only
 3. Count failures per test name
@@ -186,14 +201,17 @@ MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
 ## Known Risks & Mitigations
 
 ### Risk 1: FilesystemSink not delivered on time (LAM-1103 blocker)
+
 - **Mitigation**: Create placeholder config with comments; mark smoke job as best-effort
 - **Fallback**: Deploy LAM-1101, LAM-1102, other DevEx tasks; defer smoke job to P12
 
 ### Risk 2: Multiple PR comments still posted (aggregation logic fails)
+
 - **Mitigation**: Test with dual-node matrix locally before CI
 - **Fallback**: Revert to per-node comments; note as technical debt
 
 ### Risk 3: Flake budget calculation too slow or memory-intensive
+
 - **Mitigation**: Limit history parsing to last 100 runs (not all-time)
 - **Fallback**: Show summary count only (don't list individual flaky tests)
 
@@ -202,15 +220,18 @@ MK_PROCESS_EXPERIMENTAL=1 npm run test:pty
 ## Sprint Autonomy Notes
 
 From devex.md:
+
 > "You continue to own 'Laminar and test strategy improvements.' You may run mini-sprints; create `Vex/minisprints/vex-sprint11-ms1.md` and log updates in `Vex/devex.log`."
 
 **What this means**:
+
 - I can decide execution order of tasks
 - Can propose sub-tasks or refactoring if it accelerates Local Node v1.0
 - Should create mini-sprint docs for complex feature work
 - Log decisions and learnings in devex.log for future reference
 
 **Outstanding items to sweep from P10**:
+
 - Check Vex/sprint10-investigation.md for any deferred or partially-complete work
 - Pull into P11 if it accelerates goals
 
@@ -219,21 +240,25 @@ From devex.md:
 ## Execution Plan
 
 ### Phase 1: Investigation & Setup (5 min)
+
 1. Verify current state of P10 artifacts (cache behavior, PR comments)
 2. Check if FilesystemSink is available in repo
 3. Review first-five-minutes.md prose for quality
 
 ### Phase 2: LAM Tasks (Parallel, ~60 min)
+
 1. **LAM-1101** (~20 min): Implement per-node/branch cache keys + aggregation logic
 2. **LAM-1102** (~25 min): Implement flake budget calculation and PR comment section
 3. **LAM-1103** (~15 min): Create smoke job config (or placeholder if FileSink not ready)
 
 ### Phase 3: DEVEX Tasks (Parallel, ~40 min)
+
 1. **DEVEX-111** (~15 min): Expand FileSink walkthrough (cross-ref LAM-1103 if available)
 2. **DEVEX-112** (~15 min): Polish first-five-minutes + add troubleshooting anchors
 3. **DEVEX-113** (~10 min): Add cookbook sections for endpoints --json and health mapping
 
 ### Phase 4: Integration & Verification (15 min)
+
 1. Run full verification suite (`npm run build`, `npm run test:ci`, `npm run test:pty`)
 2. Check cross-doc links and anchors
 3. Update ampcode.log with comprehensive report

@@ -22,7 +22,7 @@ export class KeyboardInput extends EventEmitter {
     }
 
     this.originalMode = process.stdin.isRaw;
-    
+
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(true);
     }

@@ -11,7 +11,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
   describe('Printable Characters', () => {
     it('should parse ASCII printable characters', () => {
       const state = parser.parse(Buffer.from('Hello World!'));
-      
+
       expect(state.cells[0][0].char).toBe('H');
       expect(state.cells[0][1].char).toBe('e');
       expect(state.cells[0][2].char).toBe('l');
@@ -26,7 +26,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should parse special characters', () => {
       parser.parse(Buffer.from('Test@#$%^&*()'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][4].char).toBe('@');
       expect(state.cells[0][5].char).toBe('#');
       expect(state.cells[0][6].char).toBe('$');
@@ -36,7 +36,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should parse digits and punctuation', () => {
       parser.parse(Buffer.from('0123456789.,;:'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('0');
       expect(state.cells[0][9].char).toBe('9');
       expect(state.cells[0][10].char).toBe('.');
@@ -48,7 +48,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle line feed (LF)', () => {
       parser.parse(Buffer.from('Line1\nLine2'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('L');
       expect(state.cells[1][0].char).toBe('L');
       expect(state.cursorY).toBe(1);
@@ -58,7 +58,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle carriage return (CR)', () => {
       parser.parse(Buffer.from('ABC\rDEF'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('D');
       expect(state.cells[0][1].char).toBe('E');
       expect(state.cells[0][2].char).toBe('F');
@@ -68,7 +68,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CRLF sequence', () => {
       parser.parse(Buffer.from('First\r\nSecond'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('F');
       expect(state.cells[1][0].char).toBe('S');
       expect(state.cursorY).toBe(1);
@@ -78,7 +78,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle tab (TAB)', () => {
       parser.parse(Buffer.from('A\tB'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][8].char).toBe('B');
       expect(state.cursorX).toBe(9);
@@ -87,7 +87,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle multiple tabs', () => {
       parser.parse(Buffer.from('\tA\tB\tC'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][8].char).toBe('A');
       expect(state.cells[0][16].char).toBe('B');
       expect(state.cells[0][24].char).toBe('C');
@@ -96,7 +96,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle backspace (BS)', () => {
       parser.parse(Buffer.from('ABC\bD'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][1].char).toBe('B');
       expect(state.cells[0][2].char).toBe('D');
@@ -106,7 +106,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle backspace at column 0', () => {
       parser.parse(Buffer.from('\bX'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('X');
       expect(state.cursorX).toBe(1);
     });
@@ -116,7 +116,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle foreground color codes (30-37)', () => {
       parser.parse(Buffer.from('\x1b[31mRed'));
       const state = parser.getState();
-      
+
       expect(state.currentFg).toBe('#800000');
       expect(state.cells[0][0].fg).toBe('#800000');
       expect(state.cells[0][1].fg).toBe('#800000');
@@ -132,7 +132,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
         { code: 34, rgb: '#000080' },
         { code: 35, rgb: '#800080' },
         { code: 36, rgb: '#008080' },
-        { code: 37, rgb: '#c0c0c0' }
+        { code: 37, rgb: '#c0c0c0' },
       ];
 
       colors.forEach(({ code, rgb }) => {
@@ -147,7 +147,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle background color codes (40-47)', () => {
       parser.parse(Buffer.from('\x1b[41mBG'));
       const state = parser.getState();
-      
+
       expect(state.currentBg).toBe('#800000');
       expect(state.cells[0][0].bg).toBe('#800000');
       expect(state.cells[0][1].bg).toBe('#800000');
@@ -156,7 +156,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle bright foreground colors (90-97)', () => {
       parser.parse(Buffer.from('\x1b[91mBrightRed'));
       const state = parser.getState();
-      
+
       expect(state.currentFg).toBe('#ff0000');
       expect(state.cells[0][0].fg).toBe('#ff0000');
     });
@@ -164,7 +164,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle bright background colors (100-107)', () => {
       parser.parse(Buffer.from('\x1b[101mBrightBG'));
       const state = parser.getState();
-      
+
       expect(state.currentBg).toBe('#ff0000');
       expect(state.cells[0][0].bg).toBe('#ff0000');
     });
@@ -172,7 +172,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle SGR reset (m with no params)', () => {
       parser.parse(Buffer.from('\x1b[31;41mColored\x1b[mNormal'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].fg).toBe('#800000');
       expect(state.cells[0][0].bg).toBe('#800000');
       expect(state.cells[0][7].fg).toBe(null);
@@ -182,7 +182,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle SGR reset with explicit 0', () => {
       parser.parse(Buffer.from('\x1b[31mRed\x1b[0mNormal'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].fg).toBe('#800000');
       expect(state.cells[0][3].fg).toBe(null);
       expect(state.currentFg).toBe(null);
@@ -192,7 +192,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle multiple SGR parameters', () => {
       parser.parse(Buffer.from('\x1b[32;44mText'));
       const state = parser.getState();
-      
+
       expect(state.currentFg).toBe('#008000');
       expect(state.currentBg).toBe('#000080');
       expect(state.cells[0][0].fg).toBe('#008000');
@@ -204,7 +204,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CUP (Cursor Position) H command', () => {
       parser.parse(Buffer.from('\x1b[5;10HX'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(4);
       expect(state.cursorX).toBe(10);
       expect(state.cells[4][9].char).toBe('X');
@@ -213,7 +213,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CUP f command', () => {
       parser.parse(Buffer.from('\x1b[3;7fY'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(2);
       expect(state.cursorX).toBe(7);
       expect(state.cells[2][6].char).toBe('Y');
@@ -222,7 +222,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CUP with default parameters', () => {
       parser.parse(Buffer.from('ABC\x1b[HZ'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(0);
       expect(state.cursorX).toBe(1);
       expect(state.cells[0][0].char).toBe('Z');
@@ -231,7 +231,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CUU (Cursor Up)', () => {
       parser.parse(Buffer.from('Line1\nLine2\x1b[AX'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(0);
       expect(state.cells[0][5].char).toBe('X');
     });
@@ -239,21 +239,21 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CUU with count parameter', () => {
       parser.parse(Buffer.from('\n\n\n\x1b[3AX'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(0);
     });
 
     it('should handle CUU boundary (no move above row 0)', () => {
       parser.parse(Buffer.from('\x1b[10AX'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(0);
     });
 
     it('should handle CUD (Cursor Down)', () => {
       parser.parse(Buffer.from('\x1b[BX'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(1);
       expect(state.cells[1][0].char).toBe('X');
     });
@@ -261,21 +261,21 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CUD with count parameter', () => {
       parser.parse(Buffer.from('\x1b[5BX'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(5);
     });
 
     it('should handle CUD boundary (no move below last row)', () => {
       parser.parse(Buffer.from('\x1b[50BX'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(23);
     });
 
     it('should handle CUF (Cursor Forward)', () => {
       parser.parse(Buffer.from('\x1b[5CX'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(6);
       expect(state.cells[0][5].char).toBe('X');
     });
@@ -283,14 +283,14 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CUF with count parameter', () => {
       parser.parse(Buffer.from('\x1b[10CX'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(11);
     });
 
     it('should handle CUF boundary (no move beyond last column)', () => {
       parser.parse(Buffer.from('\x1b[100CX'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(0);
       expect(state.cursorY).toBe(1);
     });
@@ -298,7 +298,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CUB (Cursor Back)', () => {
       parser.parse(Buffer.from('ABCDE\x1b[3DX'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(3);
       expect(state.cells[0][2].char).toBe('X');
     });
@@ -306,21 +306,21 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle CUB with count parameter', () => {
       parser.parse(Buffer.from('0123456789\x1b[7DX'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(4);
     });
 
     it('should handle CUB boundary (no move before column 0)', () => {
       parser.parse(Buffer.from('ABC\x1b[10DX'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(1);
     });
 
     it('should handle CHA (Cursor Horizontal Absolute) G command', () => {
       parser.parse(Buffer.from('ABCDEFGH\x1b[5GX'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(5);
       expect(state.cells[0][4].char).toBe('X');
     });
@@ -331,7 +331,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       parser.parse(Buffer.from('Line1\nLine2\nLine3'));
       parser.parse(Buffer.from('\x1b[2;3H\x1b[0J'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('L');
       expect(state.cells[1][0].char).toBe('L');
       expect(state.cells[1][1].char).toBe('i');
@@ -343,7 +343,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       parser.parse(Buffer.from('Line1\nLine2\nLine3'));
       parser.parse(Buffer.from('\x1b[2;3H\x1b[1J'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe(' ');
       expect(state.cells[1][0].char).toBe(' ');
       expect(state.cells[1][2].char).toBe(' ');
@@ -355,7 +355,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       parser.parse(Buffer.from('ABCDEFGH\nIJKLMNOP'));
       parser.parse(Buffer.from('\x1b[2J'));
       const state = parser.getState();
-      
+
       for (let y = 0; y < state.rows; y++) {
         for (let x = 0; x < state.cols; x++) {
           expect(state.cells[y][x].char).toBe(' ');
@@ -366,7 +366,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle EL 0 (erase from cursor to end of line)', () => {
       parser.parse(Buffer.from('ABCDEFGH\x1b[4G\x1b[0K'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][1].char).toBe('B');
       expect(state.cells[0][2].char).toBe('C');
@@ -377,7 +377,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle EL 1 (erase from start of line to cursor)', () => {
       parser.parse(Buffer.from('ABCDEFGH\x1b[5G\x1b[1K'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe(' ');
       expect(state.cells[0][3].char).toBe(' ');
       expect(state.cells[0][4].char).toBe(' ');
@@ -388,7 +388,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle EL 2 (erase entire line)', () => {
       parser.parse(Buffer.from('ABCDEFGH\x1b[1G\x1b[2K'));
       const state = parser.getState();
-      
+
       for (let x = 0; x < state.cols; x++) {
         expect(state.cells[0][x].char).toBe(' ');
       }
@@ -397,7 +397,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle EL with default parameter (same as EL 0)', () => {
       parser.parse(Buffer.from('ABCDEFGH\x1b[4G\x1b[K'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][2].char).toBe('C');
       expect(state.cells[0][3].char).toBe(' ');
@@ -411,7 +411,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       let state = parser.getState();
       expect(state.cursorX).toBe(3);
       expect(state.cursorY).toBe(0);
-      
+
       parser.parse(Buffer.from('DEF'));
       state = parser.getState();
       expect(state.cursorX).toBe(6);
@@ -422,7 +422,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       parser.parse(Buffer.from('\x1b[32mGreen'));
       parser.parse(Buffer.from('More'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].fg).toBe('#008000');
       expect(state.cells[0][4].fg).toBe('#008000');
       expect(state.cells[0][5].fg).toBe('#008000');
@@ -433,7 +433,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       parser.parse(Buffer.from('\x1b[33mYellow'));
       parser.parse(Buffer.from('\x1b[44mWithBG'));
       const state = parser.getState();
-      
+
       expect(state.currentFg).toBe('#808000');
       expect(state.currentBg).toBe('#000080');
       expect(state.cells[0][6].fg).toBe('#808000');
@@ -443,7 +443,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should track cell attributes correctly', () => {
       parser.parse(Buffer.from('\x1b[35;45mText'));
       const state = parser.getState();
-      
+
       for (let i = 0; i < 4; i++) {
         expect(state.cells[0][i].char).toBeTruthy();
         expect(state.cells[0][i].fg).toBe('#800080');
@@ -456,7 +456,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle invalid escape sequence gracefully', () => {
       parser.parse(Buffer.from('\x1bXYZ'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThanOrEqual(0);
       expect(state.cursorY).toBe(0);
     });
@@ -465,7 +465,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       parser.parse(Buffer.from('ABC\x1b'));
       parser.parse(Buffer.from('[31mRed'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][1].char).toBe('B');
       expect(state.cells[0][2].char).toBe('C');
@@ -474,7 +474,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle escape sequence with missing parameters', () => {
       parser.parse(Buffer.from('\x1b[HX'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(0);
       expect(state.cursorX).toBe(1);
       expect(state.cells[0][0].char).toBe('X');
@@ -483,7 +483,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle empty SGR sequence', () => {
       parser.parse(Buffer.from('\x1b[31mRed\x1b[mNormal'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].fg).toBe('#800000');
       expect(state.cells[0][3].fg).toBe(null);
     });
@@ -492,7 +492,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       const longLine = 'A'.repeat(85);
       parser.parse(Buffer.from(longLine));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(1);
       expect(state.cursorX).toBe(5);
       expect(state.cells[0][79].char).toBe('A');
@@ -504,7 +504,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
         parser.parse(Buffer.from(`Line${i}\n`));
       }
       const state = parser.getState();
-      
+
       expect(state.scrollback.length).toBeGreaterThan(0);
       expect(state.cursorY).toBe(23);
     });
@@ -513,7 +513,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       parser.parse(Buffer.from('ABC'));
       parser.parse(Buffer.from('\x1b[1G\x1b[31mX'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('X');
       expect(state.cells[0][0].fg).toBe('#800000');
       expect(state.cells[0][1].char).toBe('B');
@@ -523,7 +523,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle consecutive control characters', () => {
       parser.parse(Buffer.from('A\n\r\n\rB'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cursorY).toBeGreaterThanOrEqual(1);
     });
@@ -531,21 +531,21 @@ describe('ANSIParser - P1 Core Sequences', () => {
     it('should handle tab at end of line', () => {
       parser.parse(Buffer.from('X'.repeat(77) + '\tY'));
       const state = parser.getState();
-      
+
       expect(state.cursorY).toBe(1);
     });
 
     it('should handle escape sequence with semicolon but no params', () => {
       parser.parse(Buffer.from('\x1b[;HX'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('X');
     });
 
     it('should handle OSC sequences (ignored)', () => {
       parser.parse(Buffer.from('A\x1b]0;Title\x07B'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][1].char).toBe('B');
     });
@@ -556,7 +556,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       parser.parse(Buffer.from('\x1b[31;44mText\x1b[5;10H'));
       parser.reset();
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(0);
       expect(state.cursorY).toBe(0);
       expect(state.currentFg).toBe(null);
@@ -568,7 +568,7 @@ describe('ANSIParser - P1 Core Sequences', () => {
       parser.parse(Buffer.from('Test'));
       parser.reset();
       const state = parser.getState();
-      
+
       expect(state.rows).toBe(24);
       expect(state.cols).toBe(80);
     });
@@ -585,7 +585,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
   describe('UTF-8 Multi-byte Sequences', () => {
     it('should parse 2-byte UTF-8 characters (Latin Extended)', () => {
       const state = parser.parse(Buffer.from('Café'));
-      
+
       expect(state.cells[0][0].char).toBe('C');
       expect(state.cells[0][1].char).toBe('a');
       expect(state.cells[0][2].char).toBe('f');
@@ -595,7 +595,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should parse 2-byte UTF-8 characters (Cyrillic)', () => {
       const state = parser.parse(Buffer.from('Привет'));
-      
+
       expect(state.cells[0][0].char).toBe('П');
       expect(state.cells[0][1].char).toBe('р');
       expect(state.cells[0][2].char).toBe('и');
@@ -607,7 +607,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should parse 3-byte UTF-8 characters (CJK)', () => {
       const state = parser.parse(Buffer.from('日本語'));
-      
+
       expect(state.cells[0][0].char).toBe('日');
       expect(state.cells[0][1].char).toBe('本');
       expect(state.cells[0][2].char).toBe('語');
@@ -616,7 +616,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should parse 3-byte UTF-8 characters (Hangul)', () => {
       const state = parser.parse(Buffer.from('한글'));
-      
+
       expect(state.cells[0][0].char).toBe('한');
       expect(state.cells[0][1].char).toBe('글');
       expect(state.cursorX).toBe(2);
@@ -624,7 +624,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should parse 4-byte UTF-8 characters (emoji)', () => {
       const state = parser.parse(Buffer.from('Test🎉End'));
-      
+
       expect(state.cells[0][0].char).toBe('T');
       expect(state.cells[0][1].char).toBe('e');
       expect(state.cells[0][2].char).toBe('s');
@@ -636,7 +636,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should handle mixed ASCII and UTF-8', () => {
       const state = parser.parse(Buffer.from('Hello世界World'));
-      
+
       expect(state.cells[0][0].char).toBe('H');
       expect(state.cells[0][5].char).toBe('世');
       expect(state.cells[0][6].char).toBe('界');
@@ -646,7 +646,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should handle UTF-8 with ANSI colors', () => {
       const state = parser.parse(Buffer.from('\x1b[31m日本\x1b[0m語'));
-      
+
       expect(state.cells[0][0].char).toBe('日');
       expect(state.cells[0][0].fg).toBe('#800000');
       expect(state.cells[0][1].char).toBe('本');
@@ -659,7 +659,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
   describe('Wide Character Handling', () => {
     it('should handle Chinese characters (CJK)', () => {
       const state = parser.parse(Buffer.from('中文测试'));
-      
+
       expect(state.cells[0][0].char).toBe('中');
       expect(state.cells[0][1].char).toBe('文');
       expect(state.cells[0][2].char).toBe('测');
@@ -669,7 +669,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should handle Japanese Hiragana and Katakana', () => {
       const state = parser.parse(Buffer.from('ひらがなカタカナ'));
-      
+
       expect(state.cells[0][0].char).toBe('ひ');
       expect(state.cells[0][1].char).toBe('ら');
       expect(state.cells[0][2].char).toBe('が');
@@ -680,7 +680,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should handle emoji sequences', () => {
       const state = parser.parse(Buffer.from('🔥💻🚀'));
-      
+
       // Emoji may render as replacement characters depending on parser implementation
       expect(state.cells[0][0].char).toMatch(/[🔥�]/);
       expect(state.cursorX).toBeGreaterThan(0);
@@ -688,7 +688,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should handle fullwidth alphanumeric', () => {
       const state = parser.parse(Buffer.from('ＡＢＣ１２３'));
-      
+
       expect(state.cells[0][0].char).toBe('Ａ');
       expect(state.cells[0][1].char).toBe('Ｂ');
       expect(state.cells[0][2].char).toBe('Ｃ');
@@ -699,7 +699,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should handle wide chars with line wrapping', () => {
       const line = '中'.repeat(85);
       const state = parser.parse(Buffer.from(line));
-      
+
       expect(state.cursorY).toBe(1);
       expect(state.cells[0][79].char).toBe('中');
       expect(state.cells[1][0].char).toBe('中');
@@ -707,7 +707,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should handle mixed narrow and wide characters', () => {
       const state = parser.parse(Buffer.from('A日B本C'));
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][1].char).toBe('日');
       expect(state.cells[0][2].char).toBe('B');
@@ -721,7 +721,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should parse OSC title sequence with BEL terminator', () => {
       parser.parse(Buffer.from('Before\x1b]0;Window Title\x07After'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('B');
       expect(state.cells[0][6].char).toBe('A');
       expect(state.cursorX).toBe(11);
@@ -730,7 +730,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should parse OSC title sequence with ST terminator', () => {
       parser.parse(Buffer.from('Start\x1b]0;Title\x1b\\End'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('S');
       // ST terminator handling may vary - just verify some content is parsed
       expect(state.cursorX).toBeGreaterThan(5);
@@ -739,7 +739,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should parse OSC 0 (icon and window title)', () => {
       parser.parse(Buffer.from('X\x1b]0;My Title\x07Y'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('X');
       expect(state.cells[0][1].char).toBe('Y');
     });
@@ -747,7 +747,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should parse OSC 1 (icon title only)', () => {
       parser.parse(Buffer.from('A\x1b]1;Icon\x07B'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][1].char).toBe('B');
     });
@@ -755,7 +755,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should parse OSC 2 (window title only)', () => {
       parser.parse(Buffer.from('M\x1b]2;Window\x07N'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('M');
       expect(state.cells[0][1].char).toBe('N');
     });
@@ -763,7 +763,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should parse OSC with semicolons in payload', () => {
       parser.parse(Buffer.from('P\x1b]0;Title;With;Semicolons\x07Q'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('P');
       expect(state.cells[0][1].char).toBe('Q');
     });
@@ -771,7 +771,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should handle multiple OSC sequences', () => {
       parser.parse(Buffer.from('\x1b]0;First\x07A\x1b]2;Second\x07B'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][1].char).toBe('B');
     });
@@ -779,7 +779,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should handle OSC with ANSI sequences', () => {
       parser.parse(Buffer.from('\x1b[31m\x1b]0;Title\x07Red'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('R');
       expect(state.cells[0][0].fg).toBe('#800000');
     });
@@ -790,7 +790,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
       parser.parse(Buffer.from('\x1b[31;44mColored\x1b[10;10HText'));
       parser.parse(Buffer.from('\x1bHc'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThanOrEqual(0);
       expect(state.cursorY).toBeGreaterThanOrEqual(0);
     });
@@ -799,7 +799,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
       parser.parse(Buffer.from('\x1b[31;42;1mBold Red on Green'));
       parser.reset();
       const state = parser.getState();
-      
+
       expect(state.currentFg).toBe(null);
       expect(state.currentBg).toBe(null);
     });
@@ -810,7 +810,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
       }
       parser.reset();
       const state = parser.getState();
-      
+
       expect(state.scrollback.length).toBe(0);
       expect(state.cells[0][0].char).toBe(' ');
     });
@@ -819,7 +819,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
       parser.parse(Buffer.from('\x1b[20;50H'));
       parser.reset();
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(0);
       expect(state.cursorY).toBe(0);
     });
@@ -829,7 +829,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
       const stateBefore = parser.getState();
       parser.reset();
       const stateAfter = parser.getState();
-      
+
       expect(stateAfter.rows).toBe(stateBefore.rows);
       expect(stateAfter.cols).toBe(stateBefore.cols);
     });
@@ -841,7 +841,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
         parser.parse(Buffer.from(`Line${i}\n`));
       }
       const state = parser.getState();
-      
+
       expect(state.scrollback.length).toBeGreaterThan(0);
       expect(state.scrollback[0][0].char).toBe('L');
     });
@@ -852,7 +852,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
         parser.parse(Buffer.from(`Line${i}\n`));
       }
       const state = parser.getState();
-      
+
       expect(state.scrollback.length).toBeGreaterThan(0);
       expect(state.scrollback[0][0].char).toBe('F');
       expect(state.scrollback[0][1].char).toBe('i');
@@ -864,7 +864,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
         parser.parse(Buffer.from(`Line${i}\n`));
       }
       const state = parser.getState();
-      
+
       expect(state.scrollback[0][0].fg).toBe('#800000');
     });
 
@@ -873,7 +873,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
         parser.parse(Buffer.from(`Scroll${i}\n`));
       }
       const state = parser.getState();
-      
+
       expect(state.scrollback.length).toBeGreaterThanOrEqual(26);
       expect(state.cursorY).toBe(23);
     });
@@ -885,7 +885,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
         parser.parse(Buffer.from(`Line${i}\n`));
       }
       const state = parser.getState();
-      
+
       expect(state.scrollback[0][0].char).toBe('F');
       expect(state.scrollback[1][0].char).toBe('S');
     });
@@ -897,7 +897,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
       const scrollbackBefore = parser.getState().scrollback.length;
       parser.parse(Buffer.from('\x1b[2J'));
       const state = parser.getState();
-      
+
       // ED 2 clears display but behavior with scrollback varies by implementation
       expect(state.cells[0][0].char).toBe(' ');
     });
@@ -908,7 +908,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
         parser.parse(Buffer.from(`Line${i}\n`));
       }
       const state = parser.getState();
-      
+
       expect(state.scrollback[0][0].char).toBe('日');
       expect(state.scrollback[0][1].char).toBe('本');
     });
@@ -918,7 +918,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should capture full terminal state', () => {
       parser.parse(Buffer.from('\x1b[31mRed\nBlue\x1b[34mText'));
       const state = parser.getState();
-      
+
       expect(state.cells).toBeDefined();
       expect(state.cursorX).toBeDefined();
       expect(state.cursorY).toBeDefined();
@@ -930,7 +930,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should preserve exact cell content', () => {
       parser.parse(Buffer.from('ABC\x1b[31mDEF\x1b[0mGHI'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
       expect(state.cells[0][0].fg).toBe(null);
       expect(state.cells[0][3].char).toBe('D');
@@ -942,7 +942,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should capture cursor position accurately', () => {
       parser.parse(Buffer.from('Line1\nLine2\nLine3'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBe(5);
       expect(state.cursorY).toBe(2);
     });
@@ -950,7 +950,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should capture current SGR state', () => {
       parser.parse(Buffer.from('\x1b[32;43mText'));
       const state = parser.getState();
-      
+
       expect(state.currentFg).toBe('#008000');
       expect(state.currentBg).toBe('#808000');
     });
@@ -960,7 +960,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
         parser.parse(Buffer.from(`Line${i}\n`));
       }
       const state = parser.getState();
-      
+
       expect(state.scrollback.length).toBeGreaterThan(0);
       expect(Array.isArray(state.scrollback)).toBe(true);
       expect(Array.isArray(state.scrollback[0])).toBe(true);
@@ -968,7 +968,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
 
     it('should handle snapshot of empty buffer', () => {
       const state = parser.getState();
-      
+
       expect(state.cells).toBeDefined();
       expect(state.cells.length).toBe(24);
       expect(state.cells[0].length).toBe(80);
@@ -980,7 +980,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
       const state1 = parser.getState();
       parser.parse(Buffer.from('Second'));
       const state2 = parser.getState();
-      
+
       expect(state2.cells[0][0].char).toBe('F');
       expect(state2.cells[0][5].char).toBe('S');
       expect(state2.cursorX).toBe(11);
@@ -989,7 +989,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should export with metadata preserved', () => {
       parser.parse(Buffer.from('\x1b[35mMagenta Text'));
       const state = parser.getState();
-      
+
       expect(state.rows).toBe(24);
       expect(state.cols).toBe(80);
       expect(state.cells[0][0].fg).toBe('#800080');
@@ -1002,7 +1002,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
         parser.parse(Buffer.from(`日本${i}\n`));
       }
       const state = parser.getState();
-      
+
       expect(state.scrollback.length).toBeGreaterThan(0);
       expect(state.scrollback[0][0].char).toBe('日');
     });
@@ -1010,7 +1010,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should handle colors with wide characters', () => {
       parser.parse(Buffer.from('\x1b[31m中文\x1b[32m測試'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('中');
       expect(state.cells[0][0].fg).toBe('#800000');
       expect(state.cells[0][2].char).toBe('測');
@@ -1020,7 +1020,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should handle OSC followed by CSI', () => {
       parser.parse(Buffer.from('\x1b]0;Title\x07\x1b[31mRed'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('R');
       expect(state.cells[0][0].fg).toBe('#800000');
     });
@@ -1028,7 +1028,7 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
     it('should handle emoji in colored text', () => {
       parser.parse(Buffer.from('\x1b[33m🎉Party\x1b[0m'));
       const state = parser.getState();
-      
+
       // Emoji may render as replacement character
       expect(state.cells[0][0].char).toMatch(/[🎉�]/);
       expect(state.cells[0][0].fg).toBe('#808000');
@@ -1040,12 +1040,12 @@ describe('ANSIParser - P2 Advanced Sequences', () => {
       parser1.parse(Buffer.from('Test'));
       parser1.reset();
       const state1 = parser1.getState();
-      
+
       const parser2 = new ANSIParser(24, 80);
       parser2.parse(Buffer.from('Test'));
       parser2.reset();
       const state2 = parser2.getState();
-      
+
       expect(state1.cursorX).toBe(state2.cursorX);
       expect(state1.cursorY).toBe(state2.cursorY);
       expect(state1.currentFg).toBe(state2.currentFg);
@@ -1066,7 +1066,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should parse 256-color foreground (38;5;n) without crashing', () => {
       parser.parse(Buffer.from('\x1b[38;5;196mBrightRed'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('B');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1074,7 +1074,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should parse 256-color background (48;5;n) without crashing', () => {
       parser.parse(Buffer.from('\x1b[48;5;21mDeepBlue'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('D');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1093,7 +1093,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should parse 256-color with 216 color cube (16-231) without crashing', () => {
       parser.parse(Buffer.from('\x1b[38;5;196mCubeColor'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('C');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1101,7 +1101,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should parse 256-color with grayscale (232-255) without crashing', () => {
       parser.parse(Buffer.from('\x1b[38;5;244mGray'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('G');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1109,7 +1109,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should handle both 256-color foreground and background without crashing', () => {
       parser.parse(Buffer.from('\x1b[38;5;196;48;5;21mColorful'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('C');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1117,7 +1117,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should handle 256-color with SGR reset', () => {
       parser.parse(Buffer.from('\x1b[38;5;196mColor\x1b[0mReset'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('C');
       expect(state.cells[0][5].char).toBe('R');
       expect(state.currentFg).toBe(null);
@@ -1129,7 +1129,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should parse truecolor foreground (38;2;r;g;b) without crashing', () => {
       parser.parse(Buffer.from('\x1b[38;2;255;128;64mOrange'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('O');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1137,7 +1137,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should parse truecolor background (48;2;r;g;b) without crashing', () => {
       parser.parse(Buffer.from('\x1b[48;2;32;64;128mBlue'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('B');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1148,7 +1148,7 @@ describe('ANSIParser - P3 Extended Features', () => {
         { r: 0, g: 255, b: 0 },
         { r: 0, g: 0, b: 255 },
         { r: 255, g: 255, b: 255 },
-        { r: 0, g: 0, b: 0 }
+        { r: 0, g: 0, b: 0 },
       ];
 
       tests.forEach(({ r, g, b }) => {
@@ -1162,7 +1162,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should handle both truecolor foreground and background without crashing', () => {
       parser.parse(Buffer.from('\x1b[38;2;255;100;50;48;2;10;20;30mText'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('T');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1170,7 +1170,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should handle truecolor with SGR reset', () => {
       parser.parse(Buffer.from('\x1b[38;2;128;64;32mColor\x1b[0mReset'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('C');
       expect(state.cells[0][5].char).toBe('R');
       expect(state.currentFg).toBe(null);
@@ -1180,7 +1180,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should handle truecolor with wide characters', () => {
       parser.parse(Buffer.from('\x1b[38;2;200;100;50m日本'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('日');
       expect(state.cells[0][1].char).toBe('本');
       expect(state.cursorX).toBeGreaterThan(0);
@@ -1189,7 +1189,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should handle mix of basic colors and truecolor without crashing', () => {
       parser.parse(Buffer.from('\x1b[31mRed\x1b[38;2;128;128;255mPurple'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('R');
       expect(state.cells[0][0].fg).toBe('#800000');
       expect(state.cells[0][3].char).toBe('P');
@@ -1200,7 +1200,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should handle resize from constructor', () => {
       const smallParser = new ANSIParser(10, 40);
       const state = smallParser.getState();
-      
+
       expect(state.rows).toBe(10);
       expect(state.cols).toBe(40);
       expect(state.cells.length).toBe(10);
@@ -1210,11 +1210,11 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should preserve content after resize (larger)', () => {
       parser.parse(Buffer.from('Test'));
       const oldState = parser.getState();
-      
+
       const newParser = new ANSIParser(30, 100);
       newParser.parse(Buffer.from('Test'));
       const newState = newParser.getState();
-      
+
       expect(newState.rows).toBe(30);
       expect(newState.cols).toBe(100);
       expect(newState.cells[0][0].char).toBe('T');
@@ -1222,11 +1222,11 @@ describe('ANSIParser - P3 Extended Features', () => {
 
     it('should handle resize to smaller dimensions', () => {
       parser.parse(Buffer.from('A'.repeat(100)));
-      
+
       const smallParser = new ANSIParser(10, 40);
       smallParser.parse(Buffer.from('A'.repeat(100)));
       const state = smallParser.getState();
-      
+
       expect(state.rows).toBe(10);
       expect(state.cols).toBe(40);
       expect(state.cursorY).toBeGreaterThanOrEqual(0);
@@ -1234,10 +1234,10 @@ describe('ANSIParser - P3 Extended Features', () => {
 
     it('should reset cursor on dimension change', () => {
       parser.parse(Buffer.from('\x1b[10;50HText'));
-      
+
       const newParser = new ANSIParser(15, 60);
       const state = newParser.getState();
-      
+
       expect(state.cursorX).toBe(0);
       expect(state.cursorY).toBe(0);
     });
@@ -1246,11 +1246,11 @@ describe('ANSIParser - P3 Extended Features', () => {
       const p1 = new ANSIParser(20, 100);
       p1.parse(Buffer.from('Test'));
       const s1 = p1.getState();
-      
+
       const p2 = new ANSIParser(20, 100);
       p2.parse(Buffer.from('Test'));
       const s2 = p2.getState();
-      
+
       expect(s1.rows).toBe(s2.rows);
       expect(s1.cols).toBe(s2.cols);
       expect(s1.cursorX).toBe(s2.cursorX);
@@ -1261,7 +1261,7 @@ describe('ANSIParser - P3 Extended Features', () => {
       const largeParser = new ANSIParser(200, 500);
       largeParser.parse(Buffer.from('X'));
       const state = largeParser.getState();
-      
+
       expect(state.rows).toBe(200);
       expect(state.cols).toBe(500);
       expect(state.cells[0][0].char).toBe('X');
@@ -1271,7 +1271,7 @@ describe('ANSIParser - P3 Extended Features', () => {
       const tinyParser = new ANSIParser(1, 1);
       tinyParser.parse(Buffer.from('AB'));
       const state = tinyParser.getState();
-      
+
       expect(state.rows).toBe(1);
       expect(state.cols).toBe(1);
       expect(state.cells[0]).toBeDefined();
@@ -1283,70 +1283,70 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should parse DECSET mode 7 (auto-wrap mode)', () => {
       parser.parse(Buffer.from('\x1b[?7h'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThanOrEqual(0);
     });
 
     it('should parse DECRST mode 7 (disable auto-wrap)', () => {
       parser.parse(Buffer.from('\x1b[?7l'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThanOrEqual(0);
     });
 
     it('should parse DECSET mode 1 (application cursor keys)', () => {
       parser.parse(Buffer.from('\x1b[?1h'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThanOrEqual(0);
     });
 
     it('should parse DECRST mode 1 (normal cursor keys)', () => {
       parser.parse(Buffer.from('\x1b[?1l'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThanOrEqual(0);
     });
 
     it('should parse DECSET mode 1049 (alternate screen buffer)', () => {
       parser.parse(Buffer.from('Primary\x1b[?1049h'));
       const state = parser.getState();
-      
+
       expect(state.cells).toBeDefined();
     });
 
     it('should parse DECRST mode 1049 (restore primary screen)', () => {
       parser.parse(Buffer.from('\x1b[?1049hAlt\x1b[?1049l'));
       const state = parser.getState();
-      
+
       expect(state.cells).toBeDefined();
     });
 
     it('should parse DECSET mode 25 (show cursor)', () => {
       parser.parse(Buffer.from('\x1b[?25h'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThanOrEqual(0);
     });
 
     it('should parse DECRST mode 25 (hide cursor)', () => {
       parser.parse(Buffer.from('\x1b[?25l'));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThanOrEqual(0);
     });
 
     it('should handle multiple DEC mode switches', () => {
       parser.parse(Buffer.from('\x1b[?7h\x1b[?1h\x1b[?25l'));
       const state = parser.getState();
-      
+
       expect(state.cells).toBeDefined();
     });
 
     it('should maintain content across mode changes', () => {
       parser.parse(Buffer.from('Test\x1b[?1049hAlt\x1b[?1049l'));
       const state = parser.getState();
-      
+
       expect(state.cells).toBeDefined();
     });
   });
@@ -1356,7 +1356,7 @@ describe('ANSIParser - P3 Extended Features', () => {
       const colorText = Array(100).fill('\x1b[38;5;196mX\x1b[0m').join('');
       parser.parse(Buffer.from(colorText));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThan(0);
     });
 
@@ -1364,14 +1364,14 @@ describe('ANSIParser - P3 Extended Features', () => {
       const colorText = Array(100).fill('\x1b[38;2;255;128;64mX\x1b[0m').join('');
       parser.parse(Buffer.from(colorText));
       const state = parser.getState();
-      
+
       expect(state.cursorX).toBeGreaterThan(0);
     });
 
     it('should handle mixed color modes without crashing', () => {
       parser.parse(Buffer.from('\x1b[31m\x1b[38;5;196m\x1b[38;2;255;0;0mRed'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('R');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1379,7 +1379,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should handle invalid 256-color parameters gracefully', () => {
       parser.parse(Buffer.from('\x1b[38;5;999mText'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('T');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1387,7 +1387,7 @@ describe('ANSIParser - P3 Extended Features', () => {
     it('should handle invalid truecolor parameters gracefully', () => {
       parser.parse(Buffer.from('\x1b[38;2;256;256;256mText'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('T');
       expect(state.cursorX).toBeGreaterThan(0);
     });
@@ -1396,21 +1396,21 @@ describe('ANSIParser - P3 Extended Features', () => {
       parser.parse(Buffer.from('A\x1b[38;2;255'));
       parser.parse(Buffer.from(';128;64mB'));
       const state = parser.getState();
-      
+
       expect(state.cells[0][0].char).toBe('A');
     });
 
     it('should maintain determinism with complex sequences', () => {
       const input = '\x1b[38;2;200;100;50m日本\x1b[?7h\x1b[48;5;21mTest\x1b[0m';
-      
+
       const p1 = new ANSIParser(24, 80);
       p1.parse(Buffer.from(input));
       const s1 = p1.getState();
-      
+
       const p2 = new ANSIParser(24, 80);
       p2.parse(Buffer.from(input));
       const s2 = p2.getState();
-      
+
       expect(s1.cursorX).toBe(s2.cursorX);
       expect(s1.cursorY).toBe(s2.cursorY);
       expect(s1.cells[0][0].char).toBe(s2.cells[0][0].char);
@@ -1422,12 +1422,12 @@ describe('ANSIParser - P3 Extended Features', () => {
       p1.parse(Buffer.from('\x1b[38;2;255;0;0mRed\x1b[0m'));
       p1.parse(Buffer.from('\x1b[38;5;196mRed2\x1b[0m'));
       const s1 = p1.getState();
-      
+
       const p2 = new ANSIParser(24, 80);
       p2.parse(Buffer.from('\x1b[38;2;255;0;0mRed\x1b[0m'));
       p2.parse(Buffer.from('\x1b[38;5;196mRed2\x1b[0m'));
       const s2 = p2.getState();
-      
+
       expect(s1.currentFg).toBe(s2.currentFg);
       expect(s1.currentBg).toBe(s2.currentBg);
     });

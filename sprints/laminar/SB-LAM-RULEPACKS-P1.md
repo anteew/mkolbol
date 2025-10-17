@@ -2,7 +2,7 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "RP-A", "parallel": true,  "tasks": ["T2801", "T2802"] },
+    { "id": "RP-A", "parallel": true, "tasks": ["T2801", "T2802"] },
     { "id": "RP-B", "parallel": false, "depends_on": ["RP-A"], "tasks": ["T2803"] }
   ],
   "tasks": [
@@ -37,4 +37,3 @@
 # Laminar Rule Packs P1 — Defaults + Redaction Presets
 
 **Goal**: Ship curated rule packs and safe-by-default redaction presets to reduce setup friction and protect secrets in agent-visible outputs.
-

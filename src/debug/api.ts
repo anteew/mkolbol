@@ -29,12 +29,7 @@ class Debug {
     return LEVEL_VALUES[level] <= config.levelValue;
   }
 
-  emit(
-    module: string,
-    event: string,
-    payload?: unknown,
-    level: DebugLevel = 'debug'
-  ): void {
+  emit(module: string, event: string, payload?: unknown, level: DebugLevel = 'debug'): void {
     if (!this.shouldEmit(module, level)) return;
 
     const debugEvent: DebugEvent = {

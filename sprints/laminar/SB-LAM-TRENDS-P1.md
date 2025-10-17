@@ -2,7 +2,7 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "TR-A", "parallel": true,  "tasks": ["T2901", "T2902"] },
+    { "id": "TR-A", "parallel": true, "tasks": ["T2901", "T2902"] },
     { "id": "TR-B", "parallel": false, "depends_on": ["TR-A"], "tasks": ["T2903"] }
   ],
   "tasks": [
@@ -37,4 +37,3 @@
 # Laminar Trends P1 — Fingerprints + Trends
 
 **Goal**: Group recurring failures, maintain a simple history ledger, and surface trend summaries via CLI.
-

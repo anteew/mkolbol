@@ -5,6 +5,7 @@
 ## Installation & Distribution Note
 
 If your PR involves changes to installation, packaging, or distribution:
+
 - **Prefer tarball path** (see [Distribution Matrix](docs/devex/distribution.md))
 - Test installation via: `npm install ./mkolbol-X.Y.Z.tar.gz`
 - Document in [Releases Guide](docs/devex/releases.md) if creating a release
@@ -53,6 +54,7 @@ Please review the [Developer Experience Style Guide](../../docs/devex/mk-dx-styl
 - [ ] **CI/CD**: All CI checks pass; no new warnings
 
 **DX Resources:**
+
 - 📖 [First Five Minutes](../../docs/devex/first-five-minutes.md) — New to mkolbol?
 - 🔧 [Using mkolbol in Your Repo](../../docs/devex/using-mkolbol-in-your-repo.md) — Integrating mkolbol
 - 🎓 [Hello Calculator Tutorial](../../docs/devex/hello-calculator.md) — Build your first topology
@@ -70,4 +72,3 @@ Please review the [Developer Experience Style Guide](../../docs/devex/mk-dx-styl
 - [ ] Commit messages follow conventional commits (feat:, fix:, docs:, etc.)
 - [ ] No unrelated changes included
 - [ ] No debug code or console.logs left behind
-

@@ -4,7 +4,12 @@ import { StateManager } from '../state/StateManager.js';
 import { ModuleRegistry } from './moduleRegistry.js';
 import { ExternalServerWrapper } from '../wrappers/ExternalServerWrapper.js';
 import type { TopologyConfig, NodeConfig } from '../config/schema.js';
-import type { ServerManifest, ExternalServerManifest, IOMode, RoutingAnnouncement } from '../types.js';
+import type {
+  ServerManifest,
+  ExternalServerManifest,
+  IOMode,
+  RoutingAnnouncement,
+} from '../types.js';
 import { Worker, MessageChannel } from 'node:worker_threads';
 import type { ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -51,15 +56,15 @@ export class Executor {
   private heartbeatConfig: HeartbeatConfig = {
     timeout: 10000,
     maxMissed: 3,
-    checkInterval: 5000
+    checkInterval: 5000,
   };
   private cutoverConfig: CutoverConfig = {
     drainTimeout: 8000,
-    killTimeout: 5000
+    killTimeout: 5000,
   };
   private routerHeartbeatConfig: RouterHeartbeatConfig = {
     enabled: false,
-    intervalMs: 10000
+    intervalMs: 10000,
   };
   private heartbeatTimer?: NodeJS.Timeout;
 
@@ -67,7 +72,7 @@ export class Executor {
     private kernel: Kernel,
     private hostess: Hostess,
     private stateManager: StateManager,
-    logger?: TestLogger
+    logger?: TestLogger,
   ) {
     this.moduleRegistry = new ModuleRegistry();
     this.logger = logger;
@@ -114,12 +119,16 @@ export class Executor {
       if (!instance) continue;
 
       if (instance.module.outputPipe) {
-        const statePipe = this.stateManager.createPipe(`${nodeConfig.id}.output`, { objectMode: true });
+        const statePipe = this.stateManager.createPipe(`${nodeConfig.id}.output`, {
+          objectMode: true,
+        });
         instance.module.outputPipe.pipe(statePipe);
       }
 
       if (instance.module.inputPipe) {
-        const statePipe = this.stateManager.createPipe(`${nodeConfig.id}.input`, { objectMode: true });
+        const statePipe = this.stateManager.createPipe(`${nodeConfig.id}.input`, {
+          objectMode: true,
+        });
         statePipe.pipe(instance.module.inputPipe);
       }
     }
@@ -129,7 +138,7 @@ export class Executor {
       this.logger?.emit('edge.connect', {
         lvl: 'debug',
         id: `${conn.from}->${conn.to}`,
-        payload: { from: conn.from, to: conn.to }
+        payload: { from: conn.from, to: conn.to },
       });
     }
 
@@ -173,22 +182,27 @@ export class Executor {
     if (!proc) return;
 
     const drainStartTime = Date.now();
-    debug.emit('executor', 'process.drain', { 
+    debug.emit('executor', 'process.drain', {
       nodeId: instance.id,
       drainTimeout: this.cutoverConfig.drainTimeout,
       killTimeout: this.cutoverConfig.killTimeout,
-      timestamp: drainStartTime
+      timestamp: drainStartTime,
     });
 
     const drainPromise = new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
         const elapsed = Date.now() - drainStartTime;
-        debug.emit('executor', 'process.drain.timeout', { 
-          nodeId: instance.id,
-          elapsed,
-          configuredTimeout: this.cutoverConfig.drainTimeout,
-          timestamp: Date.now()
-        }, 'warn');
+        debug.emit(
+          'executor',
+          'process.drain.timeout',
+          {
+            nodeId: instance.id,
+            elapsed,
+            configuredTimeout: this.cutoverConfig.drainTimeout,
+            timestamp: Date.now(),
+          },
+          'warn',
+        );
         resolve();
       }, this.cutoverConfig.drainTimeout);
 
@@ -199,7 +213,7 @@ export class Executor {
           debug.emit('executor', 'process.drain.complete', {
             nodeId: instance.id,
             elapsed,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
           resolve();
         });
@@ -207,7 +221,7 @@ export class Executor {
         clearTimeout(timeout);
         debug.emit('executor', 'process.drain.skipped', {
           nodeId: instance.id,
-          reason: 'no-output-pipe'
+          reason: 'no-output-pipe',
         });
         resolve();
       }
@@ -223,19 +237,24 @@ export class Executor {
       const killTimer = setTimeout(() => {
         if (proc && !proc.killed) {
           proc.kill('SIGKILL');
-          debug.emit('executor', 'process.force-kill', { 
-            nodeId: instance.id,
-            killTimeout: this.cutoverConfig.killTimeout,
-            timestamp: Date.now()
-          }, 'warn');
+          debug.emit(
+            'executor',
+            'process.force-kill',
+            {
+              nodeId: instance.id,
+              killTimeout: this.cutoverConfig.killTimeout,
+              timestamp: Date.now(),
+            },
+            'warn',
+          );
         }
       }, this.cutoverConfig.killTimeout);
 
       proc.once('exit', () => {
         clearTimeout(killTimer);
-        debug.emit('executor', 'process.teardown.complete', { 
+        debug.emit('executor', 'process.teardown.complete', {
           nodeId: instance.id,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
         resolve();
       });
@@ -299,10 +318,10 @@ export class Executor {
       newInstance.module.start();
     }
 
-    debug.emit('executor', 'cutover.drain-old', { 
-      oldNodeId, 
+    debug.emit('executor', 'cutover.drain-old', {
+      oldNodeId,
       drainTimeout: this.cutoverConfig.drainTimeout,
-      timestamp: Date.now() 
+      timestamp: Date.now(),
     });
 
     if (oldInstance.module.outputPipe) {
@@ -310,12 +329,17 @@ export class Executor {
       await new Promise<void>((resolve) => {
         const timeout = setTimeout(() => {
           const elapsed = Date.now() - drainStartTime;
-          debug.emit('executor', 'cutover.drain.timeout', { 
-            oldNodeId,
-            elapsed,
-            configuredTimeout: this.cutoverConfig.drainTimeout,
-            timestamp: Date.now()
-          }, 'warn');
+          debug.emit(
+            'executor',
+            'cutover.drain.timeout',
+            {
+              oldNodeId,
+              elapsed,
+              configuredTimeout: this.cutoverConfig.drainTimeout,
+              timestamp: Date.now(),
+            },
+            'warn',
+          );
           resolve();
         }, this.cutoverConfig.drainTimeout);
 
@@ -325,7 +349,7 @@ export class Executor {
           debug.emit('executor', 'cutover.drain.complete', {
             oldNodeId,
             elapsed,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
           resolve();
         });
@@ -340,11 +364,19 @@ export class Executor {
       }
     }
 
-    debug.emit('executor', 'cutover.switch-connections', { oldNodeId, newNodeId, timestamp: Date.now() });
+    debug.emit('executor', 'cutover.switch-connections', {
+      oldNodeId,
+      newNodeId,
+      timestamp: Date.now(),
+    });
 
     const topology = this.stateManager.getTopology();
-    const outgoingConnections = topology.connections.filter(c => c.from.startsWith(`${oldNodeId}.`));
-    const incomingConnections = topology.connections.filter(c => c.to.some(t => t.startsWith(`${oldNodeId}.`)));
+    const outgoingConnections = topology.connections.filter((c) =>
+      c.from.startsWith(`${oldNodeId}.`),
+    );
+    const incomingConnections = topology.connections.filter((c) =>
+      c.to.some((t) => t.startsWith(`${oldNodeId}.`)),
+    );
 
     for (const conn of outgoingConnections) {
       const fromTerminal = conn.from.split('.')[1];
@@ -355,7 +387,7 @@ export class Executor {
     }
 
     for (const conn of incomingConnections) {
-      const oldToAddrs = conn.to.filter(t => t.startsWith(`${oldNodeId}.`));
+      const oldToAddrs = conn.to.filter((t) => t.startsWith(`${oldNodeId}.`));
       for (const oldToAddr of oldToAddrs) {
         const toTerminal = oldToAddr.split('.')[1];
         const newTo = `${newNodeId}.${toTerminal}`;
@@ -384,10 +416,10 @@ export class Executor {
 
     this.modules.delete(oldNodeId);
 
-    debug.emit('executor', 'cutover.complete', { 
-      oldNodeId, 
-      newNodeId, 
-      timestamp: Date.now() 
+    debug.emit('executor', 'cutover.complete', {
+      oldNodeId,
+      newNodeId,
+      timestamp: Date.now(),
     });
   }
 
@@ -405,10 +437,10 @@ export class Executor {
       terminals: [
         { name: 'input', direction: 'input' as const },
         { name: 'output', direction: 'output' as const },
-        { name: 'error', direction: 'output' as const }
+        { name: 'error', direction: 'output' as const },
       ],
       capabilities: manifest.capabilities.features || [],
-      location: 'local'
+      location: 'local',
     });
 
     return wrapper;
@@ -447,12 +479,12 @@ export class Executor {
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
         { name: 'output', type: 'local', direction: 'output' },
-        { name: 'error', type: 'local', direction: 'output' }
+        { name: 'error', type: 'local', direction: 'output' },
       ],
       capabilities: {
         type: 'transform',
         accepts: [],
-        produces: []
+        produces: [],
       },
       command,
       args,
@@ -462,7 +494,7 @@ export class Executor {
       restart: params.restart,
       restartDelay: params.restartDelay,
       maxRestarts: params.maxRestarts,
-      healthCheck: params.healthCheck
+      healthCheck: params.healthCheck,
     };
 
     const wrapper = new ExternalServerWrapper(this.kernel, this.hostess, manifest);
@@ -471,7 +503,7 @@ export class Executor {
     this.modules.set(nodeConfig.id, {
       id: nodeConfig.id,
       module: wrapper,
-      config: nodeConfig
+      config: nodeConfig,
     });
 
     // Store wrapper reference for test access
@@ -490,8 +522,8 @@ export class Executor {
         runMode: 'process',
         command,
         args,
-        ioMode
-      }
+        ioMode,
+      },
     });
     this.announceRoutingEndpoint(nodeConfig.id, identity, {
       id: identity,
@@ -502,8 +534,8 @@ export class Executor {
         runMode: 'process',
         command,
         args,
-        ioMode
-      }
+        ioMode,
+      },
     });
 
     this.stateManager.addNode({
@@ -512,10 +544,10 @@ export class Executor {
       terminals: [
         { name: 'input', direction: 'input' as const },
         { name: 'output', direction: 'output' as const },
-        { name: 'error', direction: 'output' as const }
+        { name: 'error', direction: 'output' as const },
       ],
       capabilities: [],
-      location: 'process'
+      location: 'process',
     });
   }
 
@@ -530,7 +562,7 @@ export class Executor {
     // Default process-mode path: use stdio pipes. This satisfies
     // processMode.spec expectations (simple external process lifecycle).
     const proc = spawn(command, args, {
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
     const module = {
@@ -542,7 +574,7 @@ export class Executor {
       id: nodeConfig.id,
       module,
       config: nodeConfig,
-      process: proc
+      process: proc,
     });
 
     let lastHeartbeat = Date.now();
@@ -561,23 +593,33 @@ export class Executor {
         const elapsed = Date.now() - lastHeartbeat;
         if (elapsed > hbTimeout) {
           missedCount++;
-          debug.emit('executor', 'process.heartbeat.missed', {
-            nodeId: nodeConfig.id,
-            elapsed,
-            missedCount,
-            maxMissed: hbMaxMissed,
-            heartbeatTimeout: hbTimeout,
-            timestamp: Date.now()
-          }, 'warn');
-          if (missedCount >= hbMaxMissed) {
-            debug.emit('executor', 'process.heartbeat.timeout', {
+          debug.emit(
+            'executor',
+            'process.heartbeat.missed',
+            {
               nodeId: nodeConfig.id,
               elapsed,
               missedCount,
               maxMissed: hbMaxMissed,
               heartbeatTimeout: hbTimeout,
-              timestamp: Date.now()
-            }, 'error');
+              timestamp: Date.now(),
+            },
+            'warn',
+          );
+          if (missedCount >= hbMaxMissed) {
+            debug.emit(
+              'executor',
+              'process.heartbeat.timeout',
+              {
+                nodeId: nodeConfig.id,
+                elapsed,
+                missedCount,
+                maxMissed: hbMaxMissed,
+                heartbeatTimeout: hbTimeout,
+                timestamp: Date.now(),
+              },
+              'error',
+            );
             proc.kill('SIGTERM');
             if (heartbeatInterval) clearInterval(heartbeatInterval);
           }
@@ -585,7 +627,7 @@ export class Executor {
           debug.emit('executor', 'process.heartbeat.recovered', {
             nodeId: nodeConfig.id,
             previousMissedCount: missedCount,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
           missedCount = 0;
         }
@@ -606,8 +648,8 @@ export class Executor {
       capabilities: {
         type: this.getModuleType(nodeConfig.module),
         accepts: [],
-        produces: []
-      }
+        produces: [],
+      },
     };
     const identity = this.hostess.register(manifest);
 
@@ -618,8 +660,8 @@ export class Executor {
         module: nodeConfig.module,
         runMode: 'process',
         command,
-        args
-      }
+        args,
+      },
     });
     this.announceRoutingEndpoint(nodeConfig.id, identity, {
       id: identity,
@@ -629,8 +671,8 @@ export class Executor {
         module: nodeConfig.module,
         runMode: 'process',
         command,
-        args
-      }
+        args,
+      },
     });
 
     this.stateManager.addNode({
@@ -638,12 +680,17 @@ export class Executor {
       name: nodeConfig.module,
       terminals: terminalsForStateManager,
       capabilities: [],
-      location: 'process'
+      location: 'process',
     });
 
     proc.on('error', (err) => {
       console.error(`[Executor] Process error for ${nodeConfig.id}:`, err);
-      debug.emit('executor', 'process.error', { nodeId: nodeConfig.id, error: err.message }, 'error');
+      debug.emit(
+        'executor',
+        'process.error',
+        { nodeId: nodeConfig.id, error: err.message },
+        'error',
+      );
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     });
 
@@ -667,7 +714,7 @@ export class Executor {
     this.modules.set(nodeConfig.id, {
       id: nodeConfig.id,
       module,
-      config: nodeConfig
+      config: nodeConfig,
     });
 
     const terminalsForHostess = this.inferTerminalsForHostess(module);
@@ -684,8 +731,8 @@ export class Executor {
       capabilities: {
         type: this.getModuleType(nodeConfig.module),
         accepts: [],
-        produces: []
-      }
+        produces: [],
+      },
     };
     const identity = this.hostess.register(manifest);
 
@@ -694,8 +741,8 @@ export class Executor {
       coordinates: `node:${nodeConfig.id}`,
       metadata: {
         module: nodeConfig.module,
-        runMode: 'inproc'
-      }
+        runMode: 'inproc',
+      },
     });
     this.announceRoutingEndpoint(nodeConfig.id, identity, {
       id: identity,
@@ -703,8 +750,8 @@ export class Executor {
       coordinates: `node:${nodeConfig.id}`,
       metadata: {
         module: nodeConfig.module,
-        runMode: 'inproc'
-      }
+        runMode: 'inproc',
+      },
     });
 
     this.stateManager.addNode({
@@ -712,7 +759,7 @@ export class Executor {
       name: nodeConfig.module,
       terminals: terminalsForStateManager,
       capabilities: [],
-      location: 'local'
+      location: 'local',
     });
   }
 
@@ -735,10 +782,11 @@ export class Executor {
         inputPort: inputPort2,
         outputPort: outputPort2,
       },
-      transferList: [controlPort2, inputPort2, outputPort2]
+      transferList: [controlPort2, inputPort2, outputPort2],
     });
 
-    const WorkerPipeAdapter = (await import('../transport/worker/WorkerPipeAdapter.js')).WorkerPipeAdapter;
+    const WorkerPipeAdapter = (await import('../transport/worker/WorkerPipeAdapter.js'))
+      .WorkerPipeAdapter;
     const inputPipe = new WorkerPipeAdapter(inputPort1).createDuplex({ objectMode: true });
     const outputPipe = new WorkerPipeAdapter(outputPort1).createDuplex({ objectMode: true });
 
@@ -751,10 +799,11 @@ export class Executor {
       id: nodeConfig.id,
       module,
       config: nodeConfig,
-      worker
+      worker,
     });
 
-    const WorkerBusAdapter = (await import('../control/adapters/WorkerBusAdapter.js')).WorkerBusAdapter;
+    const WorkerBusAdapter = (await import('../control/adapters/WorkerBusAdapter.js'))
+      .WorkerBusAdapter;
     const workerControlBus = new WorkerBusAdapter(controlPort1);
 
     await new Promise<void>((resolve) => {
@@ -762,12 +811,15 @@ export class Executor {
       const handler = (msg: any) => {
         if (msg && msg.type === 'worker.ready') {
           console.log(`[Executor] Worker ready: ${nodeConfig.id}`);
-          debug.emit('executor', 'worker.ready', { nodeId: nodeConfig.id, module: nodeConfig.module });
+          debug.emit('executor', 'worker.ready', {
+            nodeId: nodeConfig.id,
+            module: nodeConfig.module,
+          });
           this.logger?.emit('worker.ready', {
             lvl: 'info',
             id: nodeConfig.id,
             path: modulePath,
-            payload: { module: nodeConfig.module }
+            payload: { module: nodeConfig.module },
           });
           topic.off('data', handler);
           resolve();
@@ -790,8 +842,8 @@ export class Executor {
       capabilities: {
         type: this.getModuleType(nodeConfig.module),
         accepts: [],
-        produces: []
-      }
+        produces: [],
+      },
     };
     const identity = this.hostess.register(manifest);
 
@@ -800,8 +852,8 @@ export class Executor {
       coordinates: `node:${nodeConfig.id}`,
       metadata: {
         module: nodeConfig.module,
-        runMode: 'worker'
-      }
+        runMode: 'worker',
+      },
     });
     this.announceRoutingEndpoint(nodeConfig.id, identity, {
       id: identity,
@@ -809,8 +861,8 @@ export class Executor {
       coordinates: `node:${nodeConfig.id}`,
       metadata: {
         module: nodeConfig.module,
-        runMode: 'worker'
-      }
+        runMode: 'worker',
+      },
     });
 
     this.stateManager.addNode({
@@ -818,12 +870,17 @@ export class Executor {
       name: nodeConfig.module,
       terminals: terminalsForStateManager,
       capabilities: [],
-      location: 'worker'
+      location: 'worker',
     });
 
     worker.on('error', (err) => {
       console.error(`[Executor] Worker error for ${nodeConfig.id}:`, err);
-      debug.emit('executor', 'worker.error', { nodeId: nodeConfig.id, error: err.message }, 'error');
+      debug.emit(
+        'executor',
+        'worker.error',
+        { nodeId: nodeConfig.id, error: err.message },
+        'error',
+      );
     });
 
     worker.on('exit', (code) => {
@@ -833,12 +890,16 @@ export class Executor {
         lvl: 'info',
         id: nodeConfig.id,
         path: modulePath,
-        payload: { module: nodeConfig.module, exitCode: code }
+        payload: { module: nodeConfig.module, exitCode: code },
       });
     });
   }
 
-  private announceRoutingEndpoint(nodeId: string, endpointId: string, announcement: RoutingAnnouncement): void {
+  private announceRoutingEndpoint(
+    nodeId: string,
+    endpointId: string,
+    announcement: RoutingAnnouncement,
+  ): void {
     const previous = this.routingIndex.get(nodeId);
     if (previous && previous !== endpointId) {
       this.routingServer?.withdraw(previous);
@@ -854,13 +915,13 @@ export class Executor {
 
   private getModulePath(moduleName: string): string {
     const moduleMap: Record<string, string> = {
-      'TimerSource': '../modules/timer.js',
-      'UppercaseTransform': '../modules/uppercase.js',
-      'ConsoleSink': '../modules/consoleSink.js',
-      'FilesystemSink': '../modules/filesystem-sink.js',
-      'PipeMeterTransform': '../transforms/pipeMeter.js',
-      'RateLimiterTransform': '../transforms/rateLimiter.js',
-      'TeeTransform': '../transforms/tee.js',
+      TimerSource: '../modules/timer.js',
+      UppercaseTransform: '../modules/uppercase.js',
+      ConsoleSink: '../modules/consoleSink.js',
+      FilesystemSink: '../modules/filesystem-sink.js',
+      PipeMeterTransform: '../transforms/pipeMeter.js',
+      RateLimiterTransform: '../transforms/rateLimiter.js',
+      TeeTransform: '../transforms/tee.js',
     };
     const relativePath = moduleMap[moduleName];
     if (!relativePath) {
@@ -870,7 +931,11 @@ export class Executor {
   }
 
   private inferTerminalsForHostess(module: any) {
-    const terminals: Array<{ name: string; type: 'local'; direction: 'input' | 'output' | 'multiplexer' | 'combiner' }> = [];
+    const terminals: Array<{
+      name: string;
+      type: 'local';
+      direction: 'input' | 'output' | 'multiplexer' | 'combiner';
+    }> = [];
     if (module.inputPipe) {
       terminals.push({ name: 'input', type: 'local', direction: 'input' });
     }
@@ -898,7 +963,9 @@ export class Executor {
     return '0x0000';
   }
 
-  private getModuleType(moduleName: string): 'input' | 'source' | 'transform' | 'output' | 'routing' {
+  private getModuleType(
+    moduleName: string,
+  ): 'input' | 'source' | 'transform' | 'output' | 'routing' {
     if (moduleName.includes('Source') || moduleName.includes('Timer')) return 'source';
     if (moduleName.includes('Transform') || moduleName.includes('Uppercase')) return 'transform';
     if (moduleName.includes('Sink') || moduleName.includes('Console')) return 'output';
@@ -907,14 +974,14 @@ export class Executor {
 
   private startRouterHeartbeats(): void {
     if (this.heartbeatTimer) return;
-    
+
     this.heartbeatTimer = setInterval(() => {
       this.sendRouterHeartbeats();
     }, this.routerHeartbeatConfig.intervalMs);
 
     debug.emit('executor', 'router-heartbeat.start', {
       intervalMs: this.routerHeartbeatConfig.intervalMs,
-      endpointCount: this.routingIndex.size
+      endpointCount: this.routingIndex.size,
     });
   }
 
@@ -933,20 +1000,25 @@ export class Executor {
       const instance = this.modules.get(nodeId);
       if (!instance) continue;
 
-      const endpoint = this.routingServer.list().find(ep => ep.id === endpointId);
+      const endpoint = this.routingServer.list().find((ep) => ep.id === endpointId);
       if (!endpoint) continue;
 
       this.routingServer.announce({
         id: endpointId,
         type: endpoint.type,
         coordinates: endpoint.coordinates,
-        metadata: endpoint.metadata
+        metadata: endpoint.metadata,
       });
 
-      debug.emit('executor', 'router-heartbeat.sent', {
-        nodeId,
-        endpointId
-      }, 'debug');
+      debug.emit(
+        'executor',
+        'router-heartbeat.sent',
+        {
+          nodeId,
+          endpointId,
+        },
+        'debug',
+      );
     }
   }
 }
