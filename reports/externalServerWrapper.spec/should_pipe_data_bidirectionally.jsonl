@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-{"ts":1760727435103,"lvl":"info","case":"should pipe data bidirectionally","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760727435104,"lvl":"info","case":"should pipe data bidirectionally","phase":"execution","evt":"test.run"}
-{"ts":1760727435105,"lvl":"info","case":"should pipe data bidirectionally","phase":"teardown","evt":"case.end","payload":{"duration":207,"status":"passed"}}
-=======
-{"ts":1760727843212,"lvl":"info","case":"should pipe data bidirectionally","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760727843213,"lvl":"info","case":"should pipe data bidirectionally","phase":"execution","evt":"test.run"}
-{"ts":1760727843214,"lvl":"info","case":"should pipe data bidirectionally","phase":"teardown","evt":"case.end","payload":{"duration":230,"status":"passed"}}
->>>>>>> origin/main
+{"ts":1760736914832,"lvl":"info","case":"should pipe data bidirectionally","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760736914833,"lvl":"info","case":"should pipe data bidirectionally","phase":"execution","evt":"test.run"}
+{"ts":1760736914834,"lvl":"info","case":"should pipe data bidirectionally","phase":"teardown","evt":"case.end","payload":{"duration":231,"status":"passed"}}

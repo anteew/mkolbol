@@ -22,7 +22,7 @@ async function main() {
         terminals: [
             { name: 'input', type: 'local', direction: 'input' },
             { name: 'output', type: 'local', direction: 'output' },
-            { name: 'error', type: 'local', direction: 'output' }
+            { name: 'error', type: 'local', direction: 'output' },
         ],
         capabilities: { type: 'source', accepts: [], produces: [] },
         command: 'bash',
@@ -30,7 +30,7 @@ async function main() {
         env: process.env,
         cwd: process.cwd(),
         ioMode: 'pty',
-        restart: 'never'
+        restart: 'never',
     });
     await pty.spawn();
     // WebSocket: browser <-> PTY

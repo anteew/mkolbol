@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildServerIdentity } from '../types.js';
+import { buildServerIdentity, } from '../types.js';
 import { createEvent } from '../logging/TestEvent.js';
 import { createLogger } from '../logging/logger.js';
 import { debug } from '../debug/api.js';
@@ -20,7 +20,13 @@ export class Hostess {
             const suite = process.env.LAMINAR_SUITE || 'debug';
             const caseName = (process.env.LAMINAR_CASE || 'hostess').replace(/[^a-zA-Z0-9-_]/g, '_');
             const logger = createLogger(suite, caseName);
-            this.logger = (evt) => logger.emit(evt.evt, { payload: evt.payload, id: evt.id, corr: evt.corr, phase: evt.phase, lvl: evt.lvl });
+            this.logger = (evt) => logger.emit(evt.evt, {
+                payload: evt.payload,
+                id: evt.id,
+                corr: evt.corr,
+                phase: evt.phase,
+                lvl: evt.lvl,
+            });
         }
     }
     register(entry) {
@@ -32,7 +38,7 @@ export class Hostess {
             owner: entry.owner,
             auth: entry.auth,
             authMechanism: entry.authMechanism,
-            uuid
+            uuid,
         });
         const inUse = {};
         for (const t of entry.terminals)
@@ -48,23 +54,28 @@ export class Hostess {
             authMechanism: entry.authMechanism,
             uuid,
             terminals: entry.terminals.slice(),
-            capabilities: { ...entry.capabilities, accepts: entry.capabilities.accepts?.slice(), produces: entry.capabilities.produces?.slice(), features: entry.capabilities.features?.slice() },
+            capabilities: {
+                ...entry.capabilities,
+                accepts: entry.capabilities.accepts?.slice(),
+                produces: entry.capabilities.produces?.slice(),
+                features: entry.capabilities.features?.slice(),
+            },
             metadata: entry.metadata ? { ...entry.metadata } : undefined,
             lastHeartbeat: Date.now(),
             inUse,
-            available: this.computeAvailable(inUse)
+            available: this.computeAvailable(inUse),
         };
         this.guestBook.set(identity, gbe);
         this.logger?.(createEvent('hostess:register', 'hostess', {
             id: identity,
-            payload: { fqdn: entry.fqdn, servername: entry.servername, uuid }
+            payload: { fqdn: entry.fqdn, servername: entry.servername, uuid },
         }));
         debug.emit('hostess', 'register', {
             identity,
             fqdn: entry.fqdn,
             servername: entry.servername,
             uuid,
-            terminals: entry.terminals.length
+            terminals: entry.terminals.length,
         });
         return identity;
     }
@@ -74,7 +85,7 @@ export class Hostess {
             return;
         entry.lastHeartbeat = Date.now();
         this.logger?.(createEvent('hostess:heartbeat', 'hostess', {
-            id: serverId
+            id: serverId,
         }));
         debug.emit('hostess', 'heartbeat', { serverId });
     }
@@ -88,7 +99,7 @@ export class Hostess {
         entry.available = this.computeAvailable(entry.inUse) && this.isLive(entry);
         this.logger?.(createEvent('hostess:markInUse', 'hostess', {
             id: serverId,
-            payload: { terminalName, connectomeId }
+            payload: { terminalName, connectomeId },
         }));
         debug.emit('hostess', 'markInUse', { serverId, terminalName, connectomeId });
     }
@@ -120,7 +131,7 @@ export class Hostess {
             }
             if (filter.features && filter.features.length) {
                 const feats = entry.capabilities.features ?? [];
-                const hasAll = filter.features.every(f => feats.includes(f));
+                const hasAll = filter.features.every((f) => feats.includes(f));
                 if (!hasAll)
                     continue;
             }
@@ -139,9 +150,13 @@ export class Hostess {
         this.endpoints.set(id, endpoint);
         this.logger?.(createEvent('hostess:registerEndpoint', 'hostess', {
             id,
-            payload: { type: endpoint.type, coordinates: endpoint.coordinates }
+            payload: { type: endpoint.type, coordinates: endpoint.coordinates },
         }));
-        debug.emit('hostess', 'registerEndpoint', { id, type: endpoint.type, coordinates: endpoint.coordinates });
+        debug.emit('hostess', 'registerEndpoint', {
+            id,
+            type: endpoint.type,
+            coordinates: endpoint.coordinates,
+        });
         try {
             this.writeEndpointsSnapshot();
         }
@@ -177,14 +192,14 @@ export class Hostess {
         return Date.now() - entry.lastHeartbeat <= this.evictionThresholdMs;
     }
     computeAvailable(inUse) {
-        return Object.values(inUse).some(v => v === undefined);
+        return Object.values(inUse).some((v) => v === undefined);
     }
     writeEndpointsSnapshot() {
         const snapshotDir = path.resolve(process.cwd(), 'reports');
         const snapshotPath = path.join(snapshotDir, 'endpoints.json');
         const endpointsArray = Array.from(this.endpoints.entries()).map(([id, endpoint]) => ({
             id,
-            ...endpoint
+            ...endpoint,
         }));
         fs.mkdirSync(snapshotDir, { recursive: true });
         fs.writeFileSync(snapshotPath, JSON.stringify(endpointsArray, null, 2));

@@ -26,7 +26,12 @@ export async function bootstrapProject(appDir, options = {}) {
         console.log(`[bootstrap] Copying template from: ${templatePath}`);
     }
     await cp(templatePath, targetDir, { recursive: true });
-    await updatePackageJson(targetDir, projectName, source, { verbose, gitTag, tarballPath, repoRoot });
+    await updatePackageJson(targetDir, projectName, source, {
+        verbose,
+        gitTag,
+        tarballPath,
+        repoRoot,
+    });
     await updateReadme(targetDir, appDir);
     await installDependencies(targetDir, { yes, verbose });
     console.log(`\n✓ Project '${appDir}' bootstrapped successfully!`);
@@ -47,7 +52,7 @@ async function updatePackageJson(targetDir, projectName, source, opts) {
             mkolbolDependency = opts.tarballPath;
         }
         else {
-            const tarballs = (await readdir(opts.repoRoot)).filter(f => /^mkolbol-.*\.tgz$/.test(f));
+            const tarballs = (await readdir(opts.repoRoot)).filter((f) => /^mkolbol-.*\.tgz$/.test(f));
             if (tarballs.length === 0) {
                 throw new Error('No mkolbol tarball found. Run `npm pack` in the mkolbol repo first.');
             }

@@ -4,14 +4,7 @@ const DEFAULT_OPTIONS = {
     maxArgLength: 100,
     redactSecrets: true,
 };
-const SECRET_PATTERNS = [
-    /password/i,
-    /secret/i,
-    /token/i,
-    /key/i,
-    /auth/i,
-    /credential/i,
-];
+const SECRET_PATTERNS = [/password/i, /secret/i, /token/i, /key/i, /auth/i, /credential/i];
 function shouldRedactKey(key) {
     return SECRET_PATTERNS.some((pattern) => pattern.test(key));
 }

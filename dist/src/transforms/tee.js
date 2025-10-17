@@ -32,7 +32,7 @@ export class TeeTransform {
                     outputPipe.end();
                 }
                 callback();
-            }
+            },
         });
         this.inputPipe.pipe(this.transformer);
     }

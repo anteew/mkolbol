@@ -40,7 +40,13 @@ export class TopologyController {
         this.bus.publish(this.eventsTopic, frame);
     }
     err(correlationId, message) {
-        const frame = { kind: 'err', type: 'error', ts: Date.now(), correlationId, payload: { message } };
+        const frame = {
+            kind: 'err',
+            type: 'error',
+            ts: Date.now(),
+            correlationId,
+            payload: { message },
+        };
         this.bus.publish(this.eventsTopic, frame);
     }
     handleCommand(frame) {
@@ -53,7 +59,7 @@ export class TopologyController {
                 evt: 'cmd-received',
                 id,
                 corr: frame.correlationId,
-                payload: { type, payload }
+                payload: { type, payload },
             });
             switch (type) {
                 case 'declare-node': {
@@ -65,7 +71,7 @@ export class TopologyController {
                         case: 'topology-controller',
                         evt: 'cmd-applied',
                         id,
-                        payload: { type, node: payload }
+                        payload: { type, node: payload },
                     });
                     break;
                 }
@@ -78,7 +84,7 @@ export class TopologyController {
                         case: 'topology-controller',
                         evt: 'cmd-applied',
                         id,
-                        payload: { type, from: payload.from, to: payload.to }
+                        payload: { type, from: payload.from, to: payload.to },
                     });
                     break;
                 }
@@ -91,7 +97,7 @@ export class TopologyController {
                         case: 'topology-controller',
                         evt: 'cmd-applied',
                         id,
-                        payload: { type, source: payload.source, destinations: payload.destinations }
+                        payload: { type, source: payload.source, destinations: payload.destinations },
                     });
                     break;
                 }
@@ -104,20 +110,26 @@ export class TopologyController {
                         case: 'topology-controller',
                         evt: 'cmd-applied',
                         id,
-                        payload: { type, sources: payload.sources, destination: payload.destination }
+                        payload: { type, sources: payload.sources, destination: payload.destination },
                     });
                     break;
                 }
                 case 'snapshot': {
                     const topo = this.state.getTopology();
-                    this.bus.publish(this.eventsTopic, { kind: 'event', type: 'topology.snapshot', ts: Date.now(), correlationId: id, payload: topo });
+                    this.bus.publish(this.eventsTopic, {
+                        kind: 'event',
+                        type: 'topology.snapshot',
+                        ts: Date.now(),
+                        correlationId: id,
+                        payload: topo,
+                    });
                     this.loggerHook?.({
                         ts: Date.now(),
                         lvl: 'debug',
                         case: 'topology-controller',
                         evt: 'snapshot',
                         id,
-                        payload: topo
+                        payload: topo,
                     });
                     break;
                 }
@@ -129,7 +141,7 @@ export class TopologyController {
                         case: 'topology-controller',
                         evt: 'error',
                         id,
-                        payload: { message: `Unknown command type: ${type}` }
+                        payload: { message: `Unknown command type: ${type}` },
                     });
                 }
             }
@@ -142,7 +154,7 @@ export class TopologyController {
                 case: 'topology-controller',
                 evt: 'error',
                 id: frame.id,
-                payload: { message: e?.message ?? String(e) }
+                payload: { message: e?.message ?? String(e) },
             });
         }
     }

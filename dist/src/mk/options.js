@@ -6,7 +6,7 @@ function findGitRoot(startDir) {
         const root = execSync('git rev-parse --show-toplevel', {
             cwd: startDir,
             encoding: 'utf-8',
-            stdio: ['pipe', 'pipe', 'ignore']
+            stdio: ['pipe', 'pipe', 'ignore'],
         }).trim();
         return root;
     }
@@ -103,8 +103,8 @@ export function getOptionsPrecedence(config = {}) {
     const optionsFiles = findOptionsFiles(cwd);
     const precedence = [
         'CLI flags (--option value)',
-        ...optionsFiles.map(f => `.mk/options.json (${f})`),
-        'Defaults'
+        ...optionsFiles.map((f) => `.mk/options.json (${f})`),
+        'Defaults',
     ];
     return precedence;
 }

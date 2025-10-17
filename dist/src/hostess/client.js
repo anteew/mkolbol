@@ -9,7 +9,7 @@ export function buildServerManifest(params) {
         terminals: params.terminals,
         capabilities: params.capabilities,
         metadata: params.metadata,
-        uuid: params.uuid
+        uuid: params.uuid,
     };
 }
 export function registerWithHostess(hostess, manifest) {

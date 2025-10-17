@@ -1,3 +1,3 @@
-{"ts":1760731407799,"lvl":"info","case":"captures race conditions","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760731407800,"lvl":"info","case":"captures race conditions","phase":"execution","evt":"test.run"}
-{"ts":1760731407801,"lvl":"info","case":"captures race conditions","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760736912882,"lvl":"info","case":"captures race conditions","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760736912883,"lvl":"info","case":"captures race conditions","phase":"execution","evt":"test.run"}
+{"ts":1760736912884,"lvl":"info","case":"captures race conditions","phase":"teardown","evt":"case.end","payload":{"duration":26,"status":"passed"}}

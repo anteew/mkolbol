@@ -10,5 +10,9 @@ kernel.merge([fast.outputPipe, slow.outputPipe], merged);
 kernel.connect(merged, sink.inputPipe);
 fast.start();
 slow.start();
-setTimeout(() => { fast.stop(); slow.stop(); console.log('Done.'); }, 2000);
+setTimeout(() => {
+    fast.stop();
+    slow.stop();
+    console.log('Done.');
+}, 2000);
 //# sourceMappingURL=merge-topology.js.map

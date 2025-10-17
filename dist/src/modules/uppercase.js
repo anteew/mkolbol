@@ -11,7 +11,7 @@ export class UppercaseTransform {
             transform(chunk, _enc, cb) {
                 const s = typeof chunk === 'string' ? chunk : JSON.stringify(chunk);
                 cb(null, s.toUpperCase());
-            }
+            },
         });
         this.outputPipe = kernel.createPipe({ objectMode: true });
         this.inputPipe.pipe(transformer).pipe(this.outputPipe);

@@ -128,7 +128,7 @@ export function scaffold(options = {}) {
     if (fs.existsSync(gitignorePath)) {
         const gitignoreContent = fs.readFileSync(gitignorePath, 'utf-8');
         const entries = gitignoreContent.split('\n');
-        const needsReports = !entries.some(line => line.trim() === 'reports/' || line.trim() === 'reports');
+        const needsReports = !entries.some((line) => line.trim() === 'reports/' || line.trim() === 'reports');
         if (needsReports) {
             const updatedContent = gitignoreContent.trimEnd() + '\nreports/\n';
             fs.writeFileSync(gitignorePath, updatedContent, 'utf-8');

@@ -27,7 +27,7 @@ connections:
   - from: tee1.output
     to: console1.input
   - from: tee1.output
-    to: file1.input`
+    to: file1.input`,
     },
     {
         name: 'rate-limit',
@@ -51,7 +51,7 @@ connections:
   - from: source1.output
     to: limiter1.input
   - from: limiter1.output
-    to: sink1.input`
+    to: sink1.input`,
     },
     {
         name: 'http-logs-jsonl',
@@ -79,7 +79,7 @@ connections:
   - from: http1.output
     to: meter1.input
   - from: meter1.output
-    to: log1.input`
+    to: log1.input`,
     },
     {
         name: 'transform-chain',
@@ -104,7 +104,7 @@ connections:
   - from: upper1.output
     to: meter1.input
   - from: meter1.output
-    to: sink1.input`
+    to: sink1.input`,
     },
     {
         name: 'health-check',
@@ -127,8 +127,8 @@ connections:
     module: ConsoleSink
 connections:
   - from: service1.output
-    to: sink1.input`
-    }
+    to: sink1.input`,
+    },
 ];
 export function listRecipes() {
     console.log('Available Recipes:\n');
@@ -142,10 +142,10 @@ export function listRecipes() {
     console.log(`Use 'mk recipes --show <name>' to see full topology configuration.`);
 }
 export function showRecipe(name) {
-    const recipe = RECIPES.find(r => r.name === name);
+    const recipe = RECIPES.find((r) => r.name === name);
     if (!recipe) {
         console.error(`Recipe not found: ${name}`);
-        console.error(`\nAvailable recipes: ${RECIPES.map(r => r.name).join(', ')}`);
+        console.error(`\nAvailable recipes: ${RECIPES.map((r) => r.name).join(', ')}`);
         process.exit(1);
     }
     console.log(`# Recipe: ${recipe.name}\n`);

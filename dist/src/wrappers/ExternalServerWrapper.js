@@ -59,12 +59,12 @@ export class ExternalServerWrapper {
         this.process = spawn(this.manifest.command, this.manifest.args, {
             cwd: this.manifest.cwd,
             env,
-            stdio: this.manifest.ioMode === 'stdio' ? ['pipe', 'pipe', 'pipe'] : 'pipe'
+            stdio: this.manifest.ioMode === 'stdio' ? ['pipe', 'pipe', 'pipe'] : 'pipe',
         });
         this.spawnTime = Date.now();
         debug.emit('external', 'server.started', {
             servername: this.manifest.servername,
-            pid: this.process.pid
+            pid: this.process.pid,
         }, 'info');
         if (!this.process.stdin || !this.process.stdout || !this.process.stderr) {
             throw new Error('Failed to get process stdio streams');
@@ -72,7 +72,7 @@ export class ExternalServerWrapper {
         this._inputPipe.on('data', (chunk) => {
             debug.emit('external', 'server.input', {
                 servername: this.manifest.servername,
-                bytes: chunk.length
+                bytes: chunk.length,
             }, 'trace');
         });
         this._inputPipe.pipe(this.process.stdin);
@@ -80,7 +80,7 @@ export class ExternalServerWrapper {
             this.captureOutput(chunk, 'stdout');
             debug.emit('external', 'server.output', {
                 servername: this.manifest.servername,
-                bytes: chunk.length
+                bytes: chunk.length,
             }, 'trace');
         });
         this.process.stdout.pipe(this._outputPipe);
@@ -88,7 +88,7 @@ export class ExternalServerWrapper {
             this.captureOutput(chunk, 'stderr');
             debug.emit('external', 'server.error', {
                 servername: this.manifest.servername,
-                bytes: chunk.length
+                bytes: chunk.length,
             }, 'trace');
         });
         this.process.stderr.pipe(this._errorPipe);
@@ -110,16 +110,16 @@ export class ExternalServerWrapper {
         debug.emit('external', 'server.restarting', {
             servername: this.manifest.servername,
             attempt: this.restartCount + 1,
-            maxRestarts: this.manifest.maxRestarts
+            maxRestarts: this.manifest.maxRestarts,
         }, 'info');
         await this.shutdown();
         const backoffDelay = this.calculateBackoffDelay();
         debug.emit('external', 'server.backoff', {
             servername: this.manifest.servername,
             delayMs: backoffDelay,
-            attempt: this.restartCount + 1
+            attempt: this.restartCount + 1,
         }, 'info');
-        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
         this.restartCount++;
         this.clearCapture();
         await this.spawn();
@@ -168,7 +168,7 @@ export class ExternalServerWrapper {
             pid: this.process.pid,
             uptime,
             memoryUsage,
-            cpuUsage
+            cpuUsage,
         };
     }
     sendSignal(signal) {
@@ -184,12 +184,11 @@ export class ExternalServerWrapper {
             coordinates: `${this.manifest.command} ${this.manifest.args.join(' ')}`,
             metadata: {
                 cwd: this.manifest.cwd,
-                ioMode: this.manifest.ioMode
-            }
+                ioMode: this.manifest.ioMode,
+            },
         });
     }
-    async deregisterFromHostess() {
-    }
+    async deregisterFromHostess() { }
     handleExit(code, signal) {
         this.lastExitCode = code;
         this.lastSignal = signal;
@@ -199,7 +198,7 @@ export class ExternalServerWrapper {
             exitCode: code,
             signal,
             exitType: exitInfo.type,
-            exitMessage: exitInfo.message
+            exitMessage: exitInfo.message,
         }, exitInfo.level);
         console.log(`Process ${this.manifest.servername} exited: ${exitInfo.message}`);
         this.process = undefined;
@@ -209,7 +208,7 @@ export class ExternalServerWrapper {
         }
         if (this.shouldRestart(code)) {
             console.log(`Restarting ${this.manifest.servername} (attempt ${this.restartCount + 1}/${this.manifest.maxRestarts})`);
-            this.restart().catch(err => {
+            this.restart().catch((err) => {
                 console.error(`Failed to restart ${this.manifest.servername}:`, err);
             });
         }
@@ -219,21 +218,21 @@ export class ExternalServerWrapper {
             return {
                 type: 'signal',
                 message: `killed by signal ${signal}`,
-                level: 'warn'
+                level: 'warn',
             };
         }
         if (code === null) {
             return {
                 type: 'unknown',
                 message: 'exited with unknown status',
-                level: 'warn'
+                level: 'warn',
             };
         }
         if (code === 0) {
             return {
                 type: 'success',
                 message: 'exited successfully (code 0)',
-                level: 'info'
+                level: 'info',
             };
         }
         // Common exit codes
@@ -245,13 +244,13 @@ export class ExternalServerWrapper {
             128: 'invalid exit argument',
             130: 'terminated by Ctrl+C (SIGINT)',
             137: 'killed (SIGKILL)',
-            143: 'terminated (SIGTERM)'
+            143: 'terminated (SIGTERM)',
         };
         const description = exitCodeMap[code] || `unknown error code ${code}`;
         return {
             type: 'failure',
             message: `exited with code ${code} (${description})`,
-            level: 'error'
+            level: 'error',
         };
     }
     shouldRestart(exitCode) {
@@ -317,7 +316,7 @@ export class ExternalServerWrapper {
                 servername: this.manifest.servername,
                 type: config.type,
                 attempt,
-                maxRetries: retries
+                maxRetries: retries,
             }, 'info');
             try {
                 if (config.type === 'command') {
@@ -328,7 +327,7 @@ export class ExternalServerWrapper {
                 }
                 debug.emit('external', 'healthcheck.success', {
                     servername: this.manifest.servername,
-                    attempt
+                    attempt,
                 }, 'info');
                 return;
             }
@@ -338,14 +337,14 @@ export class ExternalServerWrapper {
                     servername: this.manifest.servername,
                     attempt,
                     error: error instanceof Error ? error.message : String(error),
-                    willRetry: !isLastAttempt
+                    willRetry: !isLastAttempt,
                 }, isLastAttempt ? 'error' : 'warn');
                 if (isLastAttempt) {
                     throw new Error(`Health check failed for ${this.manifest.servername} after ${retries} attempts: ${error instanceof Error ? error.message : String(error)}`);
                 }
                 // Exponential backoff between retries
                 const backoffDelay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-                await new Promise(resolve => setTimeout(resolve, backoffDelay));
+                await new Promise((resolve) => setTimeout(resolve, backoffDelay));
             }
         }
     }
@@ -356,14 +355,14 @@ export class ExternalServerWrapper {
         const execPromise = execAsync(command, {
             cwd: this.manifest.cwd,
             env: { ...process.env, ...this.manifest.env },
-            timeout
+            timeout,
         });
         try {
             const result = await Promise.race([execPromise, timeoutPromise]);
             if (result.stderr) {
                 debug.emit('external', 'healthcheck.command.stderr', {
                     servername: this.manifest.servername,
-                    stderr: result.stderr
+                    stderr: result.stderr,
                 }, 'trace');
             }
         }
@@ -380,7 +379,7 @@ export class ExternalServerWrapper {
         try {
             const response = await fetch(url, {
                 signal: controller.signal,
-                method: 'GET'
+                method: 'GET',
             });
             if (!response.ok) {
                 throw new Error(`HTTP health check returned status ${response.status}`);

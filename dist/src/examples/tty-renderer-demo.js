@@ -20,7 +20,7 @@ async function main() {
         authMechanism: 'none',
         terminals: [
             { name: 'input', type: 'local', direction: 'input' },
-            { name: 'output', type: 'local', direction: 'output' }
+            { name: 'output', type: 'local', direction: 'output' },
         ],
         capabilities: { type: 'transform' },
         command: '/bin/bash',

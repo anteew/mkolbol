@@ -188,7 +188,7 @@ function checkToolchainPath() {
         };
     }
     else if (foundBins.length > 0) {
-        const missing = mkBins.filter(b => !foundBins.includes(b));
+        const missing = mkBins.filter((b) => !foundBins.includes(b));
         return {
             name: 'Toolchain PATH',
             status: 'warn',
@@ -276,7 +276,10 @@ function checkMkVersionConsistency() {
         try {
             const mkBinPath = resolve(process.cwd(), 'dist/scripts/mk.js');
             if (existsSync(mkBinPath)) {
-                binVersion = execSync('node dist/scripts/mk.js --version', { stdio: 'pipe', encoding: 'utf8' }).trim();
+                binVersion = execSync('node dist/scripts/mk.js --version', {
+                    stdio: 'pipe',
+                    encoding: 'utf8',
+                }).trim();
             }
         }
         catch {
@@ -360,9 +363,9 @@ function checkBinaryAccessibility() {
 }
 export function formatCheckResults(results, format = 'text') {
     if (format === 'json') {
-        const passCount = results.filter(r => r.status === 'pass').length;
-        const warnCount = results.filter(r => r.status === 'warn').length;
-        const failCount = results.filter(r => r.status === 'fail').length;
+        const passCount = results.filter((r) => r.status === 'pass').length;
+        const warnCount = results.filter((r) => r.status === 'warn').length;
+        const failCount = results.filter((r) => r.status === 'fail').length;
         return JSON.stringify({
             summary: {
                 total: results.length,
@@ -383,9 +386,9 @@ export function formatCheckResults(results, format = 'text') {
             lines.push(`  → ${result.remediation}`);
         }
     }
-    const passCount = results.filter(r => r.status === 'pass').length;
-    const warnCount = results.filter(r => r.status === 'warn').length;
-    const failCount = results.filter(r => r.status === 'fail').length;
+    const passCount = results.filter((r) => r.status === 'pass').length;
+    const warnCount = results.filter((r) => r.status === 'warn').length;
+    const failCount = results.filter((r) => r.status === 'fail').length;
     lines.push('\n' + '─'.repeat(60));
     lines.push(`Summary: ${passCount} passed, ${warnCount} warnings, ${failCount} failed`);
     if (failCount === 0 && warnCount === 0) {

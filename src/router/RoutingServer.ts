@@ -1,5 +1,7 @@
 import { debug } from '../debug/api.js';
 import type { RoutingAnnouncement, RoutingEndpoint } from '../types.js';
+import type { RouterEvent, RouterEventCallback } from '../types/router.js';
+import { EventEmitter } from 'events';
 
 export interface RoutingServerConfig {
   ttlMs?: number;
@@ -12,7 +14,7 @@ export interface SweeperMetrics {
   lastSweepTime: number | null;
 }
 
-export class RoutingServer {
+export class RoutingServer extends EventEmitter {
   private endpoints = new Map<string, RoutingEndpoint>();
   private ttlMs: number;
   private sweepIntervalMs: number;
@@ -22,8 +24,10 @@ export class RoutingServer {
     totalRemoved: 0,
     lastSweepTime: null,
   };
+  private subscribers = new Set<RouterEventCallback>();
 
   constructor(config?: RoutingServerConfig) {
+    super();
     this.ttlMs = config?.ttlMs ?? 30000;
     this.sweepIntervalMs = config?.sweepIntervalMs ?? 10000;
   }
@@ -56,14 +60,29 @@ export class RoutingServer {
           expiresAt,
         };
 
+    const isNew = !existing;
     this.endpoints.set(id, endpoint);
     debug.emit('router', 'announce', { id, type, coordinates, metadata });
+    
+    this.emitEvent({
+      type: isNew ? 'added' : 'updated',
+      endpoint: { ...endpoint },
+      timestamp: now
+    });
   }
 
   withdraw(id: string): void {
     if (!id) return;
+    const endpoint = this.endpoints.get(id);
     if (this.endpoints.delete(id)) {
       debug.emit('router', 'withdraw', { id });
+      if (endpoint) {
+        this.emitEvent({
+          type: 'removed',
+          endpoint: { ...endpoint },
+          timestamp: Date.now()
+        });
+      }
     }
   }
 
@@ -148,5 +167,19 @@ export class RoutingServer {
       totalRemoved: this.sweeperMetrics.totalRemoved,
       lastSweepTime: this.sweeperMetrics.lastSweepTime,
     };
+  }
+
+  subscribe(callback: RouterEventCallback): () => void {
+    this.subscribers.add(callback);
+    return () => this.unsubscribe(callback);
+  }
+
+  unsubscribe(callback: RouterEventCallback): void {
+    this.subscribers.delete(callback);
+  }
+
+  private emitEvent(event: RouterEvent): void {
+    this.subscribers.forEach(cb => cb(event));
+    this.emit('routerEvent', event);
   }
 }

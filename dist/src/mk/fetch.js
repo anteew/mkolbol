@@ -95,10 +95,11 @@ export async function installTarball(tarballPath) {
 async function getReleaseTarballInfo(tag) {
     return new Promise((resolve, reject) => {
         const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`;
-        https.get(apiUrl, {
+        https
+            .get(apiUrl, {
             headers: {
                 'User-Agent': 'mkolbol-fetch',
-                'Accept': 'application/vnd.github+json',
+                Accept: 'application/vnd.github+json',
             },
         }, (res) => {
             if (res.statusCode === 404) {
@@ -110,7 +111,9 @@ async function getReleaseTarballInfo(tag) {
                 return;
             }
             let data = '';
-            res.on('data', (chunk) => { data += chunk; });
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
             res.on('end', () => {
                 try {
                     const release = JSON.parse(data);
@@ -129,16 +132,18 @@ async function getReleaseTarballInfo(tag) {
                     reject(new Error(`Failed to parse release data: ${error instanceof Error ? error.message : String(error)}`));
                 }
             });
-        }).on('error', reject);
+        })
+            .on('error', reject);
     });
 }
 async function getLatestReleaseTag() {
     return new Promise((resolve, reject) => {
         const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
-        https.get(apiUrl, {
+        https
+            .get(apiUrl, {
             headers: {
                 'User-Agent': 'mkolbol-fetch',
-                'Accept': 'application/vnd.github+json',
+                Accept: 'application/vnd.github+json',
             },
         }, (res) => {
             if (res.statusCode !== 200) {
@@ -146,7 +151,9 @@ async function getLatestReleaseTag() {
                 return;
             }
             let data = '';
-            res.on('data', (chunk) => { data += chunk; });
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
             res.on('end', () => {
                 try {
                     const release = JSON.parse(data);
@@ -156,14 +163,16 @@ async function getLatestReleaseTag() {
                     reject(new Error(`Failed to parse latest release: ${error instanceof Error ? error.message : String(error)}`));
                 }
             });
-        }).on('error', reject);
+        })
+            .on('error', reject);
     });
 }
 async function downloadFile(url, outputPath) {
     const dir = dirname(outputPath);
     await mkdir(dir, { recursive: true });
     return new Promise((resolve, reject) => {
-        https.get(url, {
+        https
+            .get(url, {
             headers: {
                 'User-Agent': 'mkolbol-fetch',
             },
@@ -191,7 +200,8 @@ async function downloadFile(url, outputPath) {
             catch (error) {
                 reject(new Error(`Download failed: ${error instanceof Error ? error.message : String(error)}`));
             }
-        }).on('error', reject);
+        })
+            .on('error', reject);
     });
 }
 async function writeFile(path, content) {
@@ -200,7 +210,8 @@ async function writeFile(path, content) {
 }
 async function downloadText(url) {
     return new Promise((resolve, reject) => {
-        https.get(url, {
+        https
+            .get(url, {
             headers: { 'User-Agent': 'mkolbol-fetch' },
         }, (res) => {
             if (res.statusCode === 302 || res.statusCode === 301) {
@@ -216,10 +227,13 @@ async function downloadText(url) {
             }
             let data = '';
             res.setEncoding('utf8');
-            res.on('data', (chunk) => { data += chunk; });
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
             res.on('end', () => resolve(data));
             res.on('error', reject);
-        }).on('error', reject);
+        })
+            .on('error', reject);
     });
 }
 //# sourceMappingURL=fetch.js.map

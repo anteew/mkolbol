@@ -5,14 +5,18 @@ export class ANSIParser {
     }
     createEmptyState(rows, cols) {
         return {
-            cells: Array(rows).fill(null).map(() => Array(cols).fill(null).map(() => ({ char: ' ', fg: null, bg: null }))),
+            cells: Array(rows)
+                .fill(null)
+                .map(() => Array(cols)
+                .fill(null)
+                .map(() => ({ char: ' ', fg: null, bg: null }))),
             cursorX: 0,
             cursorY: 0,
             rows,
             cols,
             scrollback: [],
             currentFg: null,
-            currentBg: null
+            currentBg: null,
         };
     }
     parse(data) {
@@ -49,7 +53,7 @@ export class ANSIParser {
                     this.state.cells[this.state.cursorY][this.state.cursorX] = {
                         char: char,
                         fg: this.state.currentFg,
-                        bg: this.state.currentBg
+                        bg: this.state.currentBg,
                     };
                 }
                 this.state.cursorX++;
@@ -80,10 +84,10 @@ export class ANSIParser {
             const cmd = i < str.length ? str[i] : '';
             return {
                 type: 'csi',
-                params: params ? params.split(';').map(p => parseInt(p) || 0) : [],
+                params: params ? params.split(';').map((p) => parseInt(p) || 0) : [],
                 cmd: cmd,
                 length: i - start + 1,
-                raw: str.substring(start, i + 1)
+                raw: str.substring(start, i + 1),
             };
         }
         else if (str[i] === ']') {
@@ -98,7 +102,7 @@ export class ANSIParser {
             return {
                 type: 'osc',
                 length: i - start + 1,
-                raw: str.substring(start, i + 1)
+                raw: str.substring(start, i + 1),
             };
         }
         return { type: 'unknown', length: 2 };
@@ -165,10 +169,22 @@ export class ANSIParser {
     }
     ansiColorToRGB(color) {
         const colors = [
-            '#000000', '#800000', '#008000', '#808000',
-            '#000080', '#800080', '#008080', '#c0c0c0',
-            '#808080', '#ff0000', '#00ff00', '#ffff00',
-            '#0000ff', '#ff00ff', '#00ffff', '#ffffff'
+            '#000000',
+            '#800000',
+            '#008000',
+            '#808000',
+            '#000080',
+            '#800080',
+            '#008080',
+            '#c0c0c0',
+            '#808080',
+            '#ff0000',
+            '#00ff00',
+            '#ffff00',
+            '#0000ff',
+            '#ff00ff',
+            '#00ffff',
+            '#ffffff',
         ];
         return colors[color] || '#ffffff';
     }

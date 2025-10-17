@@ -26,7 +26,7 @@ export class PipeMeterTransform {
                 const size = this.calculateSize(chunk);
                 this.totalBytes += size;
                 cb(null, chunk);
-            }
+            },
         });
         this.outputPipe = kernel.createPipe({ objectMode: true });
         this.inputPipe.pipe(transformer).pipe(this.outputPipe);

@@ -1,11 +1,11 @@
 export function generateJsonGraph(topology) {
-    const nodes = topology.nodes.map(node => ({
+    const nodes = topology.nodes.map((node) => ({
         id: node.id,
         module: node.module,
         params: node.params,
         runMode: node.runMode || 'inproc',
     }));
-    const edges = topology.connections.map(conn => ({
+    const edges = topology.connections.map((conn) => ({
         from: conn.from,
         to: conn.to,
         type: conn.type || 'direct',
@@ -23,20 +23,20 @@ export function generateJsonGraph(topology) {
 export function generateAsciiGraph(topology) {
     const lines = [];
     const nodeMap = new Map();
-    topology.nodes.forEach(node => nodeMap.set(node.id, node));
+    topology.nodes.forEach((node) => nodeMap.set(node.id, node));
     lines.push('┌─────────────────────────────────────────┐');
     lines.push('│         Topology Graph                  │');
     lines.push('└─────────────────────────────────────────┘');
     lines.push('');
     lines.push('Nodes:');
-    topology.nodes.forEach(node => {
+    topology.nodes.forEach((node) => {
         const runMode = node.runMode || 'inproc';
         const icon = runMode === 'worker' ? '⚙' : runMode === 'process' ? '⚡' : '○';
         lines.push(`  ${icon} ${node.id} [${node.module}]`);
         if (node.params && Object.keys(node.params).length > 0) {
             const params = JSON.stringify(node.params, null, 2)
                 .split('\n')
-                .map(line => '      ' + line)
+                .map((line) => '      ' + line)
                 .join('\n');
             lines.push(params);
         }
@@ -44,17 +44,17 @@ export function generateAsciiGraph(topology) {
     lines.push('');
     lines.push('Connections:');
     const connectionsByNode = new Map();
-    topology.connections.forEach(conn => {
+    topology.connections.forEach((conn) => {
         const fromNode = conn.from.split('.')[0];
         if (!connectionsByNode.has(fromNode)) {
             connectionsByNode.set(fromNode, []);
         }
         connectionsByNode.get(fromNode).push(conn);
     });
-    topology.nodes.forEach(node => {
+    topology.nodes.forEach((node) => {
         const connections = connectionsByNode.get(node.id);
         if (connections && connections.length > 0) {
-            connections.forEach(conn => {
+            connections.forEach((conn) => {
                 const arrow = conn.type === 'split' ? '═╤═>' : conn.type === 'merge' ? '═╧═>' : '───>';
                 lines.push(`  ${conn.from} ${arrow} ${conn.to}`);
             });

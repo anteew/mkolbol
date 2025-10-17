@@ -109,13 +109,13 @@ export class DevWatcher {
     resolveModulePath(moduleName) {
         // Map of known module names to their paths
         const moduleMap = {
-            'TimerSource': './src/modules/timer.ts',
-            'UppercaseTransform': './src/modules/uppercase.ts',
-            'ConsoleSink': './src/modules/consoleSink.ts',
-            'FilesystemSink': './src/modules/filesystem-sink.ts',
-            'PipeMeterTransform': './src/transforms/pipeMeter.ts',
-            'RateLimiterTransform': './src/transforms/rateLimiter.ts',
-            'TeeTransform': './src/transforms/tee.ts',
+            TimerSource: './src/modules/timer.ts',
+            UppercaseTransform: './src/modules/uppercase.ts',
+            ConsoleSink: './src/modules/consoleSink.ts',
+            FilesystemSink: './src/modules/filesystem-sink.ts',
+            PipeMeterTransform: './src/transforms/pipeMeter.ts',
+            RateLimiterTransform: './src/transforms/rateLimiter.ts',
+            TeeTransform: './src/transforms/tee.ts',
         };
         const relativePath = moduleMap[moduleName];
         if (!relativePath) {

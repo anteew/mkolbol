@@ -89,7 +89,7 @@ async function main() {
             return;
     }
 }
-main().catch(e => {
+main().catch((e) => {
     const code = handleException(e);
     process.exit(code);
 });
@@ -255,9 +255,12 @@ function formatTTL(ttlMs) {
 }
 function getStatusIcon(status) {
     switch (status) {
-        case 'healthy': return '✓';
-        case 'stale': return '⚠';
-        case 'expired': return '✗';
+        case 'healthy':
+            return '✓';
+        case 'stale':
+            return '⚠';
+        case 'expired':
+            return '✗';
     }
 }
 function parseEndpointsArgs(args) {
@@ -338,7 +341,9 @@ function displayEndpoints(endpoints, source, showLiveness = false) {
     console.log('');
     const now = Date.now();
     for (const endpoint of endpoints) {
-        const enhanced = showLiveness ? computeLiveness(endpoint, now) : { ...endpoint, status: 'healthy', ttlRemaining: undefined };
+        const enhanced = showLiveness
+            ? computeLiveness(endpoint, now)
+            : { ...endpoint, status: 'healthy', ttlRemaining: undefined };
         console.log(`ID:          ${endpoint.id}`);
         console.log(`Type:        ${endpoint.type}`);
         console.log(`Coordinates: ${endpoint.coordinates}`);
@@ -379,7 +384,7 @@ async function handleEndpointsCommand(args) {
         const filtered = applyFilters(endpoints, filters);
         if (json) {
             const now = Date.now();
-            const enhanced = filtered.map(ep => {
+            const enhanced = filtered.map((ep) => {
                 const { status, ttlRemaining } = computeLiveness(ep, now);
                 return {
                     ...ep,
@@ -420,7 +425,7 @@ async function handleEndpointsCommand(args) {
         else {
             if (json) {
                 const now = Date.now();
-                const enhanced = filtered.map(ep => {
+                const enhanced = filtered.map((ep) => {
                     const { status, ttlRemaining } = computeLiveness(ep, now);
                     return {
                         ...ep,
@@ -470,9 +475,9 @@ async function handleRunCommand(args) {
             'address "',
             'node "',
             '"nodes" must be an array',
-            '"connections" must be an array'
+            '"connections" must be an array',
         ];
-        const isValidationIssue = validationIndicators.some(pattern => message.includes(pattern));
+        const isValidationIssue = validationIndicators.some((pattern) => message.includes(pattern));
         if (isValidationIssue) {
             throw new MkctlError(`Configuration validation failed: ${message}\nHint: ensure nodes[] and connections[] are defined with unique IDs.`, EXIT_CODES.CONFIG_PARSE, { cause: err });
         }

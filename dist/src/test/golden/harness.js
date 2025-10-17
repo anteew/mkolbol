@@ -2,7 +2,10 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 const DEFAULT_MASKS = [
     { pattern: /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, replacement: '<TIMESTAMP>' },
-    { pattern: /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, replacement: '<UUID>' },
+    {
+        pattern: /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+        replacement: '<UUID>',
+    },
     { pattern: /\d{13,}/g, replacement: '<TIMESTAMP_MS>' },
 ];
 export class GoldenHarness {
