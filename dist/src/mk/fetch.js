@@ -1,17 +1,68 @@
-import { createWriteStream, existsSync } from 'node:fs';
-import { mkdir, access, constants as fsConstants } from 'node:fs/promises';
+import { createWriteStream, existsSync, createReadStream } from 'node:fs';
+import { mkdir, access, constants as fsConstants, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { execSync } from 'node:child_process';
+import { homedir } from 'node:os';
 import https from 'node:https';
+import crypto from 'node:crypto';
 const GITHUB_OWNER = 'anteew';
 const GITHUB_REPO = 'mkolbol';
-export async function downloadRelease(tag) {
-    const tarballUrl = await getReleaseTarballUrl(tag);
-    const fileName = `mkolbol-${tag}.tgz`;
-    const outputPath = join(process.cwd(), fileName);
-    await downloadFile(tarballUrl, outputPath);
-    return outputPath;
+export async function downloadRelease(tag, options = {}) {
+    const normalizedTag = tag === 'latest' ? await getLatestReleaseTag() : tag;
+    const cacheDir = join(homedir(), '.mk', 'toolchains', normalizedTag);
+    const cachedPath = join(cacheDir, 'mkolbol.tgz');
+    const hashPath = join(cacheDir, 'mkolbol.tgz.sha256');
+    if (existsSync(cachedPath) && !options.forceDownload) {
+        console.log(`Using cached tarball: ${cachedPath}`);
+        if (options.verify) {
+            const isValid = await verifyTarball(cachedPath, hashPath);
+            if (!isValid) {
+                throw new Error('SHA-256 verification failed for cached tarball');
+            }
+            console.log('✓ SHA-256 verification passed');
+        }
+        return cachedPath;
+    }
+    const { tarballUrl, sha256 } = await getReleaseTarballInfo(normalizedTag);
+    await mkdir(cacheDir, { recursive: true });
+    await downloadFile(tarballUrl, cachedPath);
+    if (sha256) {
+        await createReadStream(cachedPath)
+            .pipe(createWriteStream(hashPath));
+        const hashContent = sha256 + '\n';
+        await writeFile(hashPath, hashContent);
+        console.log(`✓ SHA-256 hash saved: ${sha256.slice(0, 16)}...`);
+    }
+    else {
+        console.warn('⚠ No SHA-256 hash available from GitHub release');
+    }
+    if (options.verify) {
+        const isValid = await verifyTarball(cachedPath, hashPath);
+        if (!isValid) {
+            throw new Error('SHA-256 verification failed');
+        }
+        console.log('✓ SHA-256 verification passed');
+    }
+    return cachedPath;
+}
+export async function verifyTarball(tarballPath, hashPath) {
+    if (!existsSync(hashPath)) {
+        console.warn('⚠ No hash file found for verification');
+        return false;
+    }
+    const expectedHash = (await readFile(hashPath, 'utf8')).trim();
+    const actualHash = await calculateSHA256(tarballPath);
+    return expectedHash === actualHash;
+}
+export async function calculateSHA256(filePath) {
+    return new Promise((resolve, reject) => {
+        const hash = crypto.createHash('sha256');
+        const stream = createReadStream(filePath);
+        stream.on('data', (chunk) => hash.update(chunk));
+        stream.on('end', () => resolve(hash.digest('hex')));
+        stream.on('error', reject);
+    });
 }
 export async function installTarball(tarballPath) {
     if (!existsSync(tarballPath)) {
@@ -35,10 +86,9 @@ export async function installTarball(tarballPath) {
         throw new Error(`Installation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
-async function getReleaseTarballUrl(tag) {
-    const normalizedTag = tag === 'latest' ? await getLatestReleaseTag() : tag;
+async function getReleaseTarballInfo(tag) {
     return new Promise((resolve, reject) => {
-        const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${normalizedTag}`;
+        const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`;
         https.get(apiUrl, {
             headers: {
                 'User-Agent': 'mkolbol-fetch',
@@ -46,7 +96,7 @@ async function getReleaseTarballUrl(tag) {
             },
         }, (res) => {
             if (res.statusCode === 404) {
-                reject(new Error(`Release ${normalizedTag} not found`));
+                reject(new Error(`Release ${tag} not found`));
                 return;
             }
             if (res.statusCode !== 200) {
@@ -60,10 +110,14 @@ async function getReleaseTarballUrl(tag) {
                     const release = JSON.parse(data);
                     const tgzAsset = release.assets?.find((asset) => asset.name.endsWith('.tgz') || asset.name.endsWith('.tar.gz'));
                     if (!tgzAsset) {
-                        reject(new Error(`No .tgz asset found for release ${normalizedTag}`));
+                        reject(new Error(`No .tgz asset found for release ${tag}`));
                         return;
                     }
-                    resolve(tgzAsset.browser_download_url);
+                    const sha256Asset = release.assets?.find((asset) => asset.name === `${tgzAsset.name}.sha256` || asset.name.endsWith('.sha256'));
+                    resolve({
+                        tarballUrl: tgzAsset.browser_download_url,
+                        sha256: sha256Asset?.browser_download_url,
+                    });
                 }
                 catch (error) {
                     reject(new Error(`Failed to parse release data: ${error instanceof Error ? error.message : String(error)}`));
@@ -133,5 +187,9 @@ async function downloadFile(url, outputPath) {
             }
         }).on('error', reject);
     });
+}
+async function writeFile(path, content) {
+    const { writeFile: fsWriteFile } = await import('node:fs/promises');
+    await fsWriteFile(path, content, 'utf8');
 }
 //# sourceMappingURL=fetch.js.map

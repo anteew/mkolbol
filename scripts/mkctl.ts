@@ -194,7 +194,16 @@ type EndpointSnapshot = {
   metadata?: Record<string, any>;
   announcedAt?: number;
   updatedAt?: number;
+  expiresAt?: number;
+  ttlMs?: number;
 };
+
+type LivenessStatus = 'healthy' | 'stale' | 'expired';
+
+interface EnhancedEndpoint extends EndpointSnapshot {
+  status: LivenessStatus;
+  ttlRemaining?: number;
+}
 
 async function loadEndpointSnapshot(): Promise<{ endpoints: EndpointSnapshot[]; source: 'router' | 'hostess' }> {
   const base = RUNTIME_DIR ? path.resolve(RUNTIME_DIR) : process.cwd();
@@ -240,6 +249,8 @@ function normalizeRouterEndpoint(entry: any): EndpointSnapshot {
     metadata: entry && typeof entry.metadata === 'object' ? entry.metadata : undefined,
     announcedAt: typeof entry?.announcedAt === 'number' ? entry.announcedAt : undefined,
     updatedAt: typeof entry?.updatedAt === 'number' ? entry.updatedAt : undefined,
+    expiresAt: typeof entry?.expiresAt === 'number' ? entry.expiresAt : undefined,
+    ttlMs: typeof entry?.ttlMs === 'number' ? entry.ttlMs : undefined,
   };
 }
 
@@ -248,6 +259,47 @@ function formatTimestamp(value?: number): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'n/a';
   return date.toISOString();
+}
+
+function computeLiveness(endpoint: EndpointSnapshot, now: number): EnhancedEndpoint {
+  const DEFAULT_TTL = 30000;
+  const STALE_THRESHOLD = 0.7;
+
+  let status: LivenessStatus = 'healthy';
+  let ttlRemaining: number | undefined;
+
+  if (endpoint.updatedAt !== undefined) {
+    const ttl = endpoint.ttlMs ?? DEFAULT_TTL;
+    const age = now - endpoint.updatedAt;
+    ttlRemaining = Math.max(0, ttl - age);
+
+    if (age >= ttl) {
+      status = 'expired';
+    } else if (age >= ttl * STALE_THRESHOLD) {
+      status = 'stale';
+    }
+  }
+
+  return {
+    ...endpoint,
+    status,
+    ttlRemaining,
+  };
+}
+
+function formatTTL(ttlMs: number | undefined): string {
+  if (ttlMs === undefined) return 'n/a';
+  const seconds = Math.ceil(ttlMs / 1000);
+  if (seconds < 0) return '0s';
+  return `${seconds}s`;
+}
+
+function getStatusIcon(status: LivenessStatus): string {
+  switch (status) {
+    case 'healthy': return '✓';
+    case 'stale': return '⚠';
+    case 'expired': return '✗';
+  }
 }
 
 interface EndpointsArguments {
@@ -324,7 +376,7 @@ function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: strin
   });
 }
 
-function displayEndpoints(endpoints: EndpointSnapshot[], source: 'router' | 'hostess'): void {
+function displayEndpoints(endpoints: EndpointSnapshot[], source: 'router' | 'hostess', showLiveness = false): void {
   if (endpoints.length === 0) {
     console.log('No endpoints match the filters.');
     return;
@@ -333,10 +385,21 @@ function displayEndpoints(endpoints: EndpointSnapshot[], source: 'router' | 'hos
   console.log(`Registered Endpoints (${source === 'router' ? 'RoutingServer snapshot' : 'Hostess snapshot'})`);
   console.log('');
 
+  const now = Date.now();
   for (const endpoint of endpoints) {
+    const enhanced = showLiveness ? computeLiveness(endpoint, now) : { ...endpoint, status: 'healthy' as LivenessStatus, ttlRemaining: undefined };
+    
     console.log(`ID:          ${endpoint.id}`);
     console.log(`Type:        ${endpoint.type}`);
     console.log(`Coordinates: ${endpoint.coordinates}`);
+    
+    if (showLiveness) {
+      console.log(`Status:      ${getStatusIcon(enhanced.status)} ${enhanced.status}`);
+      if (enhanced.ttlRemaining !== undefined) {
+        console.log(`TTL:         ${formatTTL(enhanced.ttlRemaining)}`);
+      }
+    }
+    
     if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
       console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
     }
@@ -371,7 +434,16 @@ async function handleEndpointsCommand(args: string[]): Promise<void> {
     const filtered = applyFilters(endpoints, filters);
     
     if (json) {
-      console.log(JSON.stringify(filtered, null, 2));
+      const now = Date.now();
+      const enhanced = filtered.map(ep => {
+        const { status, ttlRemaining } = computeLiveness(ep, now);
+        return {
+          ...ep,
+          status,
+          ttlRemaining,
+        };
+      });
+      console.log(JSON.stringify(enhanced, null, 2));
     } else {
       displayEndpoints(filtered, source);
     }
@@ -407,7 +479,20 @@ async function handleEndpointsCommand(args: string[]): Promise<void> {
     if (endpoints.length === 0) {
       console.log('No endpoints registered.');
     } else {
-      displayEndpoints(filtered, source);
+      if (json) {
+        const now = Date.now();
+        const enhanced = filtered.map(ep => {
+          const { status, ttlRemaining } = computeLiveness(ep, now);
+          return {
+            ...ep,
+            status,
+            ttlRemaining,
+          };
+        });
+        console.log(JSON.stringify(enhanced, null, 2));
+      } else {
+        displayEndpoints(filtered, source, true);
+      }
     }
 
     await new Promise((resolve) => setTimeout(resolve, interval * 1000));

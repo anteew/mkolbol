@@ -650,6 +650,194 @@ echo "Cache key: $CACHE_KEY_NODE_MODULES_20"
 
 ---
 
+## TTL Expiry Soak Test (Router Heartbeats)
+
+### Overview
+
+The TTL soak test is a **non-gating, best-effort** test that validates router heartbeat and endpoint expiry behavior under sustained message load. It runs as part of the `mk-acceptance.ts` script and CI acceptance-smoke job.
+
+### Test Architecture
+
+```yaml
+Test Configuration:
+  ├─ Duration: 10 seconds sustained load
+  ├─ Message Rate: ~1000 messages/second (100 msgs every 100ms)
+  ├─ Modules: ExternalProcess → PipeMeterTransform → FilesystemSink
+  └─ Router: Heartbeat/TTL tracking enabled (MK_LOCAL_NODE=1)
+
+Validation Checks:
+  ✅ Topology runs successfully under load
+  ✅ Data throughput sustained (≥10 messages)
+  ✅ Router endpoints tracked with heartbeat metadata
+  ✅ Stale endpoint detection metadata present
+```
+
+### What It Tests
+
+**1. Sustained Load Handling**
+- Topology processes ~10,000 messages over 10 seconds
+- Verifies no crashes, deadlocks, or dropped connections
+- Measures data throughput via FilesystemSink output
+
+**2. Router Heartbeat Mechanism**
+- Endpoints registered and tracked in router snapshot
+- Heartbeat/TTL metadata recorded for each endpoint
+- Validates infrastructure for stale endpoint eviction
+
+**3. TTL Expiry Readiness**
+- Confirms presence of `lastHeartbeat` and `ttlMs` fields
+- Verifies router can identify stale endpoints (future feature)
+- Tests endpoint snapshot persistence under load
+
+### Configuration
+
+The test creates a dynamic topology with high message volume:
+
+```yaml
+nodes:
+  - id: source
+    module: ExternalProcess
+    params:
+      command: node
+      args:
+        - -e
+        - "setInterval(() => { 
+             for(let i=0; i<100; i++) 
+               console.log('msg-' + Date.now() + '-' + i); 
+           }, 100);"
+      ioMode: stdio
+      
+  - id: meter
+    module: PipeMeterTransform
+    params:
+      emitInterval: 1000
+      
+  - id: sink
+    module: FilesystemSink
+    params:
+      path: reports/ttl-soak.jsonl
+```
+
+**Why this config?**
+- **High volume**: 100 messages every 100ms = 1000 msg/sec
+- **Observable**: JSONL output provides line count for throughput measurement
+- **Realistic**: Stresses pipe buffers, router tracking, and file I/O
+- **Isolated**: Uses temporary test topology in reports/ directory
+
+### Validation Logic
+
+**Check 1: Topology Started**
+```typescript
+if (!logOutput.includes('Topology running') && !logOutput.includes('Starting')) {
+  throw new Error('Topology did not start successfully');
+}
+```
+
+**Check 2: Data Throughput**
+```typescript
+const lineCount = outputContent.split('\n').filter(l => l.trim()).length;
+if (lineCount < 10) {
+  throw new Error(`Insufficient data throughput (${lineCount} lines)`);
+}
+```
+
+**Check 3: Router Heartbeat Metadata**
+```typescript
+const hasHeartbeatData = endpoints.some((ep: any) => 
+  ep.lastHeartbeat !== undefined || ep.ttlMs !== undefined
+);
+```
+
+### CI Integration
+
+The TTL soak test runs as part of the `acceptance-smoke` job:
+
+```yaml
+acceptance-smoke:
+  name: Acceptance Smoke Test (FilesystemSink)
+  runs-on: ubuntu-latest
+  continue-on-error: true  # Non-gating
+  
+  steps:
+    - name: Run acceptance tests
+      run: npm run test:acceptance
+      # Includes mk-acceptance.ts which runs TTL soak test
+```
+
+Results are aggregated in the acceptance test report:
+- `reports/mk-acceptance-results.md` — Full test results with TTL soak
+- Test duration and throughput metrics logged
+- Router endpoint snapshot saved as artifact
+
+### Debugging TTL Soak Failures
+
+**If topology fails to start:**
+```bash
+# Check build artifacts
+npm run build
+
+# Run manually with verbose output
+timeout 12 node dist/scripts/mkctl.js run \
+  --file reports/ttl-soak-topology.yml \
+  --duration 10
+```
+
+**If throughput is low:**
+```bash
+# Check JSONL output
+wc -l reports/ttl-soak.jsonl
+head -n 20 reports/ttl-soak.jsonl
+
+# Verify ExternalProcess is emitting
+# Should see ~1000 messages per second
+```
+
+**If router metadata missing:**
+```bash
+# Check endpoint snapshot
+cat reports/router-endpoints.json | jq '.[] | {id, lastHeartbeat, ttlMs}'
+
+# Verify MK_LOCAL_NODE mode enabled
+export MK_LOCAL_NODE=1
+# (Local Node mode uses in-process RoutingServer with heartbeats)
+```
+
+### Local Reproduction
+
+```bash
+# 1. Build the project
+npm run build
+
+# 2. Run TTL soak test manually
+timeout 12 node dist/scripts/mkctl.js run \
+  --file reports/ttl-soak-topology.yml \
+  --duration 10
+
+# 3. Verify outputs
+wc -l reports/ttl-soak.jsonl
+cat reports/router-endpoints.json | jq '.'
+
+# 4. Check throughput
+echo "Messages processed: $(wc -l < reports/ttl-soak.jsonl)"
+echo "Expected: ~10,000 messages (1000/sec * 10 sec)"
+```
+
+### Non-Gating Rationale
+
+The TTL soak test is **non-gating** because:
+
+1. **Infrastructure readiness test** — Validates heartbeat plumbing exists, not functional eviction
+2. **Performance sensitive** — Throughput varies by CI runner (CPU, I/O)
+3. **Future-proofing** — Tests metadata for not-yet-implemented stale endpoint eviction
+4. **Best-effort validation** — Failure indicates potential issues but doesn't block PRs
+
+When stale endpoint eviction is fully implemented, this test can be extended to:
+- Stop sending heartbeats mid-run
+- Verify endpoints removed after TTL expires
+- Test routing failover when endpoints become stale
+
+---
+
 ## Related Documentation
 
 - **[Doctor Guide](./doctor.md)** — Troubleshooting mkctl errors and health checks

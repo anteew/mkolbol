@@ -222,6 +222,70 @@ jobs:
           # Record results as JSONL for aggregation
           echo "{\"type\":\"acceptance\",\"topology\":$TOPOLOGY_PASS,\"filesink\":$FILESINK_PASS,\"endpoints\":$ENDPOINTS_PASS,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$TEST_RESULT_FILE"
 
+      - name: TTL expiry soak test (non-gating)
+        continue-on-error: true
+        env:
+          MK_LOCAL_NODE: '1'
+        run: |
+          echo "▶ Running TTL soak test under load..."
+          
+          # Create topology for soak test
+          mkdir -p reports
+          cat > reports/ttl-soak-topology.yml << 'EOF'
+          nodes:
+            - id: source
+              module: ExternalProcess
+              params:
+                command: node
+                args:
+                  - -e
+                  - "setInterval(() => { for(let i=0; i<100; i++) console.log('msg-' + Date.now() + '-' + i); }, 100);"
+                ioMode: stdio
+                restart: never
+                
+            - id: meter
+              module: PipeMeterTransform
+              params:
+                emitInterval: 1000
+                
+            - id: sink
+              module: FilesystemSink
+              params:
+                path: reports/ttl-soak.jsonl
+                format: jsonl
+                mode: append
+                
+          connections:
+            - from: source.output
+              to: meter.input
+            - from: meter.output
+              to: sink.input
+          EOF
+          
+          # Run topology for 10 seconds with high message volume
+          timeout 12 node dist/scripts/mkctl.js run \
+            --file reports/ttl-soak-topology.yml \
+            --duration 10 \
+            > /tmp/ttl-soak.log 2>&1 || true
+          
+          # Validate throughput
+          if [ -f reports/ttl-soak.jsonl ]; then
+            SOAK_LINES=$(wc -l < reports/ttl-soak.jsonl)
+            echo "✅ TTL soak test: $SOAK_LINES messages processed under load"
+            
+            if [ "$SOAK_LINES" -lt 10 ]; then
+              echo "⚠️  Warning: Low throughput in soak test ($SOAK_LINES lines)"
+            fi
+          else
+            echo "⚠️  TTL soak test: No output file created"
+          fi
+          
+          # Check router heartbeat metadata
+          if [ -f reports/router-endpoints.json ]; then
+            echo "✅ Router endpoints snapshot available for TTL tracking"
+            jq '.[] | select(.lastHeartbeat != null or .ttlMs != null) | {id, lastHeartbeat, ttlMs}' reports/router-endpoints.json | head -n 10 || true
+          fi
+
       - name: Upload smoke test logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -229,6 +293,8 @@ jobs:
           name: acceptance-smoke-logs
           path: |
             /tmp/smoke-test.log
+            /tmp/ttl-soak.log
+            reports/
             logs/
           if-no-files-found: warn
 

@@ -359,6 +359,420 @@ mkctl endpoints --json --filter type=external | jq '.[].id'
 
 ---
 
+## Monitoring Endpoint Liveness
+
+### Built-in Watch Mode with TTL Status
+
+mkctl has a built-in watch mode that displays real-time liveness status:
+
+```bash
+# Terminal 1: Start topology
+mkctl run --file examples/configs/external-pty.yaml --duration 60
+
+# Terminal 2: Watch with liveness indicators
+mkctl endpoints --watch --interval 2
+```
+
+**Output:**
+```
+[2025-10-17T04:15:23.456Z] Watching endpoints (refresh every 2s)...
+Press Ctrl+C to stop.
+
+Registered Endpoints (RoutingServer snapshot)
+
+ID:          localhost:web:0x0001:...
+Type:        external
+Coordinates: node:web
+Status:      ✓ healthy
+TTL:         28s
+Updated:     2025-10-17T04:15:21.456Z
+
+ID:          localhost:sink:0x0002:...
+Type:        inproc
+Coordinates: node:sink
+Status:      ⚠ stale
+TTL:         5s
+Updated:     2025-10-17T04:14:58.456Z
+```
+
+**Status Indicators:**
+- `✓ healthy` — Endpoint is fresh (age < 70% of TTL)
+- `⚠ stale` — Endpoint is aging (age ≥ 70% of TTL but < 100%)
+- `✗ expired` — Endpoint has exceeded TTL (age ≥ TTL)
+
+**TTL Countdown:**
+- Shows seconds remaining until expiration
+- Calculated as: `expiresAt - now` (or `ttlMs - age`)
+- Default TTL is 30 seconds if not specified
+
+### JSON Output with Status
+
+Get structured liveness data for automation:
+
+```bash
+mkctl endpoints --json | jq '.[] | {id, status, ttl: .ttlRemaining}'
+```
+
+**Output:**
+```json
+{
+  "id": "localhost:web:0x0001:...",
+  "status": "healthy",
+  "ttl": 28000
+}
+{
+  "id": "localhost:sink:0x0002:...",
+  "status": "stale",
+  "ttl": 5000
+}
+```
+
+### Custom Runtime Directory
+
+Specify a custom path for router snapshots:
+
+```bash
+mkctl endpoints --watch --runtime-dir /path/to/runtime --interval 1
+```
+
+This reads from `/path/to/runtime/reports/router-endpoints.json` instead of the default `./reports/router-endpoints.json`.
+
+### Watch Endpoints (External Polling)
+
+Alternatively, use the Unix `watch` command for simpler polling:
+
+```bash
+# Terminal 1: Start topology
+mkctl run --file examples/configs/external-pty.yaml --duration 60
+
+# Terminal 2: Watch endpoints every 2 seconds
+watch -n 2 'mkctl endpoints'
+```
+
+**Output:**
+```
+Every 2.0s: mkctl endpoints
+
+Registered Endpoints (2)
+
+ID:          localhost:web:0x0001:...
+Type:        external
+Coordinates: node:web
+Updated:     2025-10-17T04:15:23.456Z
+
+ID:          localhost:sink:0x0002:...
+Type:        inproc
+Coordinates: node:sink
+Updated:     2025-10-17T04:15:23.456Z
+```
+
+### Custom Watch Script (Liveness Monitor)
+
+Create a shell script to monitor endpoint health:
+
+```bash
+#!/bin/bash
+# watch-endpoints.sh — Monitor endpoint liveness
+
+INTERVAL=1  # seconds
+COUNT=0
+
+echo "Monitoring endpoint liveness (Ctrl+C to stop)"
+echo "================================================"
+
+while true; do
+  COUNT=$((COUNT + 1))
+  TIMESTAMP=$(date '+%H:%M:%S')
+
+  # Get endpoint count
+  if [ -f reports/router-endpoints.json ]; then
+    TOTAL=$(jq 'length' reports/router-endpoints.json)
+    echo "[$TIMESTAMP] Sweep #$COUNT: $TOTAL endpoints registered"
+
+    # Show endpoint types
+    jq -r '.[] | "\(.type): \(.id | split(":")[1])"' reports/router-endpoints.json | \
+      sort | uniq -c | sed 's/^/  /'
+  else
+    echo "[$TIMESTAMP] Sweep #$COUNT: No router snapshot yet"
+  fi
+
+  echo ""
+  sleep $INTERVAL
+done
+```
+
+**Usage:**
+```bash
+# Make executable
+chmod +x watch-endpoints.sh
+
+# Terminal 1: Start topology
+mkctl run --file examples/configs/http-logs-local.yml --duration 60
+
+# Terminal 2: Monitor liveness
+./watch-endpoints.sh
+```
+
+**Output:**
+```
+Monitoring endpoint liveness (Ctrl+C to stop)
+================================================
+[12:34:56] Sweep #1: 2 endpoints registered
+  1 external: web
+  1 inproc: sink
+
+[12:34:57] Sweep #2: 2 endpoints registered
+  1 external: web
+  1 inproc: sink
+
+[12:34:58] Sweep #3: 2 endpoints registered
+  1 external: web
+  1 inproc: sink
+```
+
+### JSON Liveness Monitor
+
+Monitor endpoint liveness with JSON output for automation:
+
+```bash
+#!/bin/bash
+# json-liveness.sh — JSON endpoint liveness monitor
+
+INTERVAL=2
+
+while true; do
+  if [ -f reports/router-endpoints.json ]; then
+    TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    TOTAL=$(jq 'length' reports/router-endpoints.json)
+
+    # Extract endpoint summary
+    SUMMARY=$(jq -r '.[] | "\(.type)"' reports/router-endpoints.json | \
+              sort | uniq -c | jq -R -s 'split("\n") | map(select(length > 0))')
+
+    # Output JSON
+    jq -n \
+      --arg ts "$TIMESTAMP" \
+      --argjson total "$TOTAL" \
+      --argjson summary "$SUMMARY" \
+      '{timestamp: $ts, total_endpoints: $total, type_counts: $summary}'
+  else
+    echo '{"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","error":"No router snapshot"}'
+  fi
+
+  sleep $INTERVAL
+done
+```
+
+**Usage:**
+```bash
+chmod +x json-liveness.sh
+
+# Terminal 1: Start topology
+mkctl run --file examples/configs/http-logs-local.yml --duration 60
+
+# Terminal 2: Monitor as JSON
+./json-liveness.sh | jq '.'
+```
+
+**Output:**
+```json
+{
+  "timestamp": "2025-10-17T04:15:23Z",
+  "total_endpoints": 2,
+  "type_counts": [
+    "1 external",
+    "1 inproc"
+  ]
+}
+{
+  "timestamp": "2025-10-17T04:15:25Z",
+  "total_endpoints": 2,
+  "type_counts": [
+    "1 external",
+    "1 inproc"
+  ]
+}
+```
+
+### Watch with Timestamps
+
+Monitor endpoint registration/unregistration events:
+
+```bash
+# watch-changes.sh — Alert on endpoint changes
+
+PREV_COUNT=0
+
+while true; do
+  if [ -f reports/router-endpoints.json ]; then
+    CURR_COUNT=$(jq 'length' reports/router-endpoints.json)
+
+    if [ $CURR_COUNT -ne $PREV_COUNT ]; then
+      TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+      DELTA=$((CURR_COUNT - PREV_COUNT))
+
+      if [ $DELTA -gt 0 ]; then
+        echo "[$TIMESTAMP] ✅ +$DELTA endpoint(s) registered (total: $CURR_COUNT)"
+      else
+        echo "[$TIMESTAMP] ❌ $((DELTA * -1)) endpoint(s) removed (total: $CURR_COUNT)"
+      fi
+
+      # Show current endpoints
+      jq -r '.[] | "  \(.type): \(.id | split(":")[1])"' reports/router-endpoints.json
+
+      PREV_COUNT=$CURR_COUNT
+    fi
+  fi
+
+  sleep 1
+done
+```
+
+**Usage:**
+```bash
+chmod +x watch-changes.sh
+
+# Terminal 1: Start topology
+mkctl run --file examples/configs/http-logs-local.yml --duration 60
+
+# Terminal 2: Watch for changes
+./watch-changes.sh
+```
+
+**Output:**
+```
+[2025-10-17 12:34:56] ✅ +2 endpoint(s) registered (total: 2)
+  external: web
+  inproc: sink
+
+# (later, if topology stops)
+[2025-10-17 12:35:56] ❌ 2 endpoint(s) removed (total: 0)
+```
+
+### Continuous Liveness Check (CI/CD)
+
+Use in CI pipelines to ensure endpoints remain live:
+
+```bash
+#!/bin/bash
+# ci-liveness-check.sh — Fail if endpoints drop during test
+
+DURATION=30  # seconds to monitor
+INTERVAL=2
+MIN_ENDPOINTS=2  # expected minimum
+
+echo "Monitoring endpoint liveness for ${DURATION}s..."
+
+START=$(date +%s)
+while [ $(($(date +%s) - START)) -lt $DURATION ]; do
+  if [ -f reports/router-endpoints.json ]; then
+    COUNT=$(jq 'length' reports/router-endpoints.json)
+
+    if [ $COUNT -lt $MIN_ENDPOINTS ]; then
+      echo "❌ FAIL: Only $COUNT endpoints (expected >= $MIN_ENDPOINTS)"
+      exit 1
+    fi
+
+    echo "[$(date +%H:%M:%S)] ✓ $COUNT endpoints alive"
+  else
+    echo "[$(date +%H:%M:%S)] ⚠ No router snapshot yet"
+  fi
+
+  sleep $INTERVAL
+done
+
+echo "✅ PASS: Endpoints remained live for ${DURATION}s"
+```
+
+**Usage in CI:**
+```yaml
+# .github/workflows/test.yml
+- name: Liveness check
+  run: |
+    mkctl run --file config.yml --duration 60 &
+    MKCTL_PID=$!
+
+    sleep 5  # Wait for startup
+    ./ci-liveness-check.sh
+
+    kill $MKCTL_PID
+```
+
+### Advanced: Stale Endpoint Detection
+
+Detect endpoints that haven't updated recently:
+
+```bash
+#!/bin/bash
+# stale-endpoints.sh — Find endpoints with old updatedAt timestamps
+
+STALE_THRESHOLD=10  # seconds
+
+while true; do
+  if [ -f reports/router-endpoints.json ]; then
+    NOW=$(date +%s)
+
+    jq -r --arg now "$NOW" --arg threshold "$STALE_THRESHOLD" '
+      .[] |
+      select((($now | tonumber) - (.updatedAt / 1000)) > ($threshold | tonumber)) |
+      "\(.id | split(":")[1]): stale for \((($now | tonumber) - (.updatedAt / 1000)) | floor)s"
+    ' reports/router-endpoints.json
+  fi
+
+  sleep 5
+done
+```
+
+**Output:**
+```
+web: stale for 12s
+# Alerts if endpoint hasn't updated in 10+ seconds
+```
+
+### Health Check Pattern
+
+Combine with health checks for complete liveness monitoring:
+
+```yaml
+# Complete liveness topology
+nodes:
+  - id: web
+    module: ExternalProcess
+    params:
+      command: node
+      args: ['server.js']
+      ioMode: stdio
+      healthCheck:
+        type: http
+        url: 'http://localhost:3000/health'
+        timeout: 5000
+        retries: 3
+    runMode: process
+
+  - id: sink
+    module: FilesystemSink
+    params:
+      path: reports/output.jsonl
+      format: jsonl
+```
+
+**Monitor both health and liveness:**
+```bash
+# Terminal 1: Run topology
+mkctl run --file liveness-topology.yml --duration 60
+
+# Terminal 2: Check health endpoint
+while true; do
+  curl -s http://localhost:3000/health || echo "❌ Health check failed"
+  sleep 2
+done
+
+# Terminal 3: Monitor endpoint registration
+watch -n 2 'mkctl endpoints | grep -c "Type:"'
+```
+
+---
+
 ## Common Topologies
 
 ### PTY Demo (Interactive Shell)

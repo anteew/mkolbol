@@ -195,13 +195,27 @@ const commands: Command[] = [
   {
     name: 'doctor',
     description: 'Diagnose system and dependency issues',
-    usage: 'mk doctor [--verbose]',
+    usage: 'mk doctor [--verbose] [--section all|toolchain|environment] [--json]',
     handler: async (args: string[]) => {
       const verbose = args.includes('--verbose');
+      const jsonOutput = args.includes('--json');
+      
+      let section: 'all' | 'toolchain' | 'environment' = 'all';
+      const sectionIndex = args.findIndex(a => a === '--section');
+      if (sectionIndex !== -1 && args[sectionIndex + 1]) {
+        const sectionArg = args[sectionIndex + 1];
+        if (sectionArg === 'toolchain' || sectionArg === 'environment' || sectionArg === 'all') {
+          section = sectionArg;
+        } else {
+          console.error(`Invalid --section value: ${sectionArg}. Use: all, toolchain, or environment`);
+          return EXIT_USAGE;
+        }
+      }
+      
       const { runDoctorChecks, formatCheckResults } = await import('../src/mk/doctor.js');
       
-      const results = await runDoctorChecks(verbose);
-      const output = formatCheckResults(results);
+      const results = await runDoctorChecks(verbose, section);
+      const output = formatCheckResults(results, jsonOutput ? 'json' : 'text');
       console.log(output);
       
       const hasFailed = results.some(r => r.status === 'fail');
@@ -286,24 +300,31 @@ const commands: Command[] = [
   {
     name: 'fetch',
     description: 'Download and install release tarball by tag (experimental)',
-    usage: 'mk fetch <tag>',
+    usage: 'mk fetch <tag> [--verify] [--force] [--no-install]',
     handler: async (args: string[]) => {
-      if (args.length === 0) {
+      if (args.length === 0 || args[0].startsWith('--')) {
         console.error('Error: Missing release tag');
-        console.error('Usage: mk fetch <tag>');
-        console.error('Examples: mk fetch v0.2.0, mk fetch latest');
+        console.error('Usage: mk fetch <tag> [--verify] [--force] [--no-install]');
+        console.error('Examples: mk fetch v0.2.0, mk fetch latest --verify');
         return EXIT_USAGE;
       }
 
       const tag = args[0];
+      const verify = args.includes('--verify');
+      const forceDownload = args.includes('--force');
+      const noInstall = args.includes('--no-install');
       
       try {
         const { downloadRelease, installTarball } = await import('../src/mk/fetch.js');
         
-        console.log(`Fetching release ${tag}...`);
-        const tarballPath = await downloadRelease(tag);
+        console.error(`Fetching release ${tag}...`);
+        const tarballPath = await downloadRelease(tag, { verify, forceDownload });
         
-        await installTarball(tarballPath);
+        if (!noInstall) {
+          await installTarball(tarballPath);
+        } else {
+          console.error(`Tarball ready at: ${tarballPath}`);
+        }
         
         return EXIT_SUCCESS;
       } catch (error) {
@@ -465,6 +486,147 @@ const commands: Command[] = [
       
       const { ciPlanHandler } = await import('../src/mk/ciPlan.js');
       return ciPlanHandler(args.slice(1));
+    },
+  },
+  {
+    name: 'self',
+    description: 'Manage mk installation (install, uninstall, where, switch)',
+    usage: 'mk self install|uninstall|where|switch [options]',
+    handler: async (args: string[]) => {
+      if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+        console.log('Manage mk installation\n');
+        console.log('Usage:');
+        console.log('  mk self install [--bin-dir <path>] [--from repo|global] [--copy]');
+        console.log('  mk self uninstall [--bin-dir <path>]');
+        console.log('  mk self where');
+        console.log('  mk self switch <version>');
+        return EXIT_SUCCESS;
+      }
+
+      const subcommand = args[0];
+      const subArgs = args.slice(1);
+
+      const { install, uninstall, where, switchVersion } = await import('../src/mk/selfInstall.js');
+
+      if (subcommand === 'install') {
+        let binDir: string | undefined;
+        let from: 'repo' | 'global' = 'repo';
+        let copy = false;
+        let verbose = false;
+
+        for (let i = 0; i < subArgs.length; i++) {
+          if ((subArgs[i] === '--bin-dir' || subArgs[i] === '-B') && i + 1 < subArgs.length) {
+            binDir = subArgs[++i];
+          } else if (subArgs[i] === '--from' && i + 1 < subArgs.length) {
+            const value = subArgs[++i];
+            if (value === 'repo' || value === 'global') {
+              from = value;
+            } else {
+              console.error('Error: --from must be "repo" or "global"');
+              return EXIT_USAGE;
+            }
+          } else if (subArgs[i] === '--copy') {
+            copy = true;
+          } else if (subArgs[i] === '--verbose' || subArgs[i] === '-v') {
+            verbose = true;
+          }
+        }
+
+        if (!binDir) {
+          const home = process.env.HOME || process.env.USERPROFILE || '.';
+          const { resolve } = await import('node:path');
+          binDir = resolve(home, '.local', 'bin');
+        }
+
+        const result = install({ binDir, from, copy, verbose });
+        console.log(result.message);
+        return result.success ? EXIT_SUCCESS : EXIT_ERROR;
+      } else if (subcommand === 'uninstall') {
+        let binDir: string | undefined;
+
+        for (let i = 0; i < subArgs.length; i++) {
+          if ((subArgs[i] === '--bin-dir' || subArgs[i] === '-B') && i + 1 < subArgs.length) {
+            binDir = subArgs[++i];
+          }
+        }
+
+        if (!binDir) {
+          const home = process.env.HOME || process.env.USERPROFILE || '.';
+          const { resolve } = await import('node:path');
+          binDir = resolve(home, '.local', 'bin');
+        }
+
+        const result = uninstall(binDir);
+        console.log(result.message);
+        return result.success ? EXIT_SUCCESS : EXIT_ERROR;
+      } else if (subcommand === 'where') {
+        const result = where();
+        console.log(result.message);
+        return result.success ? EXIT_SUCCESS : EXIT_ERROR;
+      } else if (subcommand === 'switch') {
+        if (subArgs.length === 0) {
+          console.error('Error: Missing version argument');
+          console.error('Usage: mk self switch <version>');
+          return EXIT_USAGE;
+        }
+        const version = subArgs[0];
+        const result = switchVersion(version);
+        console.log(result.message);
+        return result.success ? EXIT_SUCCESS : EXIT_ERROR;
+      } else {
+        console.error(`Error: Unknown subcommand '${subcommand}'`);
+        console.error('Use: mk self install|uninstall|where|switch');
+        return EXIT_USAGE;
+      }
+    },
+  },
+  {
+    name: 'bootstrap',
+    description: 'Create out-of-tree project with mkolbol as dependency',
+    usage: 'mk bootstrap <app-dir> [--yes] [--verbose] [--template <name>] [--source tarball|git|local] [--git-tag <tag>] [--tarball <path>]',
+    handler: async (args: string[]) => {
+      if (args.length === 0 || args[0].startsWith('--')) {
+        console.error('Error: Missing app directory');
+        console.error('Usage: mk bootstrap <app-dir> [--yes] [--verbose] [--template <name>]');
+        return EXIT_USAGE;
+      }
+
+      const appDir = args[0];
+      const yes = args.includes('--yes') || args.includes('-y');
+      const verbose = args.includes('--verbose');
+      
+      let template: string | undefined;
+      let source: 'tarball' | 'git' | 'local' = 'local';
+      let gitTag: string | undefined;
+      let tarballPath: string | undefined;
+
+      for (let i = 1; i < args.length; i++) {
+        const arg = args[i];
+        if (arg === '--template' && i + 1 < args.length) {
+          template = args[++i];
+        } else if (arg === '--source' && i + 1 < args.length) {
+          const srcValue = args[++i];
+          if (srcValue === 'tarball' || srcValue === 'git' || srcValue === 'local') {
+            source = srcValue;
+          } else {
+            console.error(`Invalid --source value: ${srcValue}. Use: tarball, git, or local`);
+            return EXIT_USAGE;
+          }
+        } else if (arg === '--git-tag' && i + 1 < args.length) {
+          gitTag = args[++i];
+        } else if (arg === '--tarball' && i + 1 < args.length) {
+          tarballPath = args[++i];
+        }
+      }
+
+      try {
+        const { bootstrapProject } = await import('../src/mk/bootstrap.js');
+        await bootstrapProject(appDir, { yes, verbose, template, source, gitTag, tarballPath });
+        return EXIT_SUCCESS;
+      } catch (error) {
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        return EXIT_ERROR;
+      }
     },
   },
   {

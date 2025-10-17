@@ -34,6 +34,90 @@
 }
 ```
 
+```json
+{
+  "ampcode": "v1",
+  "waves": [
+    { "id": "P17-A_ORCH_V1",  "parallel": true,  "tasks": ["T9701","T9702","T9703","T9705"] },
+    { "id": "P17-B_ROUTER_P2", "parallel": true,  "depends_on": ["P17-A_ORCH_V1"], "tasks": ["T9711","T9712","T9713"] }
+  ],
+  "tasks": [
+    {"id": "T9701", "agent": "susan", "title": "mk self install: where/uninstall/switch + --copy; Windows shims; doctor checks",
+      "why": "Complete RFC v1 shim model so mk works anywhere without npm publish; add visibility and safe removal.",
+      "allowedFiles": [
+        "scripts/mk.ts", "src/mk/selfInstall.ts", "src/mk/doctor.ts",
+        "tests/cli/mkSelf.spec.ts", "tests/cli/mkDoctor.spec.ts"
+      ],
+      "verify": [
+        "npm run build",
+        "node dist/scripts/mk.js self install --bin-dir ./.mk/bin --from repo",
+        "node dist/scripts/mk.js self where --json"
+      ],
+      "deliverables": ["patches/DIFF_T9701_mk-self-install-complete.patch"]},
+
+    {"id": "T9702", "agent": "susan", "title": "mk fetch <tag>: download toolchain tarball → ~/.mk/toolchains with SHA-256 verify",
+      "why": "Enable offline & reproducible installs; prepares bootstrap to use cached tarballs.",
+      "allowedFiles": ["scripts/mk.ts", "src/mk/fetch.ts", "tests/cli/mkFetch.spec.ts"],
+      "verify": ["npm run build"],
+      "deliverables": ["patches/DIFF_T9702_mk-fetch.patch"]},
+
+    {"id": "T9703", "agent": "susan", "title": "mk bootstrap <app-dir>: out-of-tree scaffold using file: tarball or git tag",
+      "why": "Let apps live outside the repo and still run mk quickly.",
+      "allowedFiles": [
+        "scripts/mk.ts", "src/mk/bootstrap.ts", "examples/mk/init-templates/**",
+        "tests/cli/mkBootstrap.spec.ts"
+      ],
+      "verify": [
+        "npm run build",
+        "node dist/scripts/mk.js bootstrap /tmp/mk-calc --yes",
+        "node /tmp/mk-calc/node_modules/.bin/ts-node -v || true"
+      ],
+      "deliverables": ["patches/DIFF_T9703_mk-bootstrap.patch"]},
+
+    {"id": "T9705", "agent": "susan", "title": "mk doctor: toolchain/shim PATH + integrity checks",
+      "why": "Fast diagnosis for naive users; surfaces exact remediation.",
+      "allowedFiles": ["src/mk/doctor.ts", "tests/cli/mkDoctor.spec.ts", "docs/devex/doctor.md"],
+      "verify": ["npm run build", "node dist/scripts/mk.js doctor --section toolchain --json"],
+      "deliverables": ["patches/DIFF_T9705_mk-doctor-toolchain.patch"]},
+
+    {"id": "T9711", "agent": "susan", "title": "RoutingServer TTL/heartbeat expiry + stale withdraw; snapshot expiresAt",
+      "why": "Router P2 from RFC: liveness semantics for endpoints.",
+      "allowedFiles": ["src/router/RoutingServer.ts", "src/executor/Executor.ts", "tests/integration/router.ttl.spec.ts"],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_T9711_router-ttl.patch"]},
+
+    {"id": "T9712", "agent": "susan", "title": "mkctl endpoints --watch shows liveness/TTL; supports --json with status",
+      "why": "Expose liveness to users and scripts; aligns with snapshots.",
+      "allowedFiles": ["scripts/mkctl.ts", "tests/cli/mkctlEndpoints.spec.ts", "docs/devex/mkctl-cookbook.md"],
+      "verify": ["npm run build", "node dist/scripts/mkctl.js endpoints --watch --runtime-dir . --json | head -n 1"],
+      "deliverables": ["patches/DIFF_T9712_mkctl-endpoints-liveness.patch"]},
+
+    {"id": "T9713", "agent": "susan", "title": "Acceptance soak: TTL expiry under load (best-effort, non-gating)",
+      "why": "Sanity check for leaks/backpressure with liveness updates.",
+      "allowedFiles": ["docs/devex/ci-acceptance-smoke.md", ".github/workflows/tests.yml", "scripts/mk-acceptance.ts"],
+      "verify": ["npm run build"],
+      "deliverables": ["patches/DIFF_T9713_router-ttl-soak.patch"]}
+  ]
+}
+```
+
+# Ampcode — P17: Orchestrator v1 (mk Anywhere) + Router P2 TTL
+
+Goal
+- Deliver mk “anywhere” without npm publish (shim + fetch + bootstrap) and add router liveness semantics with a minimal watch UX.
+
+Constraints
+- Keep Node 24 only. No network transports beyond what’s needed for fetch (HTTP GET). TTL is local-only; no gossip yet.
+
+Verification (quick)
+```bash
+export MK_LOCAL_NODE=1
+npm run build && npm run test:ci
+node dist/scripts/mk.js self install --bin-dir ./.mk/bin --from repo
+node dist/scripts/mk.js bootstrap /tmp/mk-calc --yes
+node dist/scripts/mkctl.js endpoints --runtime-dir . --json | jq '.[0].status'
+```
+
 # Ampcode — MKD RC Sweep: Acceptance + Release Prep
 
 Goal

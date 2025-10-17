@@ -3,3 +3,5 @@ node_modules/
 reports/
 *.tgz
 *.log
+examples/configs/bad-invalid-yaml.yml
+tests/fixtures/go-test.json

@@ -148,4 +148,5 @@ export interface RoutingAnnouncement {
 export interface RoutingEndpoint extends RoutingAnnouncement {
   announcedAt: number;
   updatedAt: number;
+  expiresAt: number;
 }

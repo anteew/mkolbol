@@ -39,6 +39,7 @@ Notes
 - You can always run mk directly with `node dist/scripts/mk.js ...`.
 - The `mk` and `mkctl` binaries are also exposed as npm scripts: `npm run mk -- …`, `npm run mkctl -- …`.
 - Local‑node gate: keep `MK_LOCAL_NODE=1` set while dogfooding.
+- **Want mk anywhere?** See [Installation: mk Anywhere](#installation-mk-anywhere-self-install) below.
 
 ### Web Terminal Demo (browser)
 
@@ -243,7 +244,84 @@ The RFC is organized into focused documents:
 
 **Single-File Version:** [STREAM_KERNEL_RFC.md](STREAM_KERNEL_RFC.md) (for offline reading)
 
-## Installation
+## Installation: mk Anywhere (Self-Install)
+
+To use `mk` and `mkctl` from any directory without `npm run` or `node dist/scripts/...`, add them to your PATH:
+
+### POSIX (Linux/macOS)
+
+**Option 1: PATH export (recommended)**
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc or ~/.profile
+export PATH="/absolute/path/to/mkolbol/dist/scripts:$PATH"
+
+# Reload shell config
+source ~/.bashrc  # or source ~/.zshrc
+```
+
+**Option 2: Symlink to /usr/local/bin**
+
+```bash
+# Create symlinks (requires sudo)
+sudo ln -s /absolute/path/to/mkolbol/dist/scripts/mk.js /usr/local/bin/mk
+sudo ln -s /absolute/path/to/mkolbol/dist/scripts/mkctl.js /usr/local/bin/mkctl
+
+# Make executable
+sudo chmod +x /usr/local/bin/mk /usr/local/bin/mkctl
+```
+
+**Verify:**
+```bash
+which mk        # Should show /usr/local/bin/mk or your PATH location
+mk --help       # Should display mk help
+mkctl --help    # Should display mkctl help
+```
+
+### Windows
+
+**Option 1: Add to PATH via System Properties**
+
+```powershell
+# 1. Copy the full path to mkolbol\dist\scripts
+# 2. Open: System Properties → Environment Variables
+# 3. Edit "Path" under "User variables" or "System variables"
+# 4. Click "New" and paste: C:\path\to\mkolbol\dist\scripts
+# 5. Click OK to save
+# 6. Restart terminal/PowerShell
+```
+
+**Option 2: Create .cmd shims in a PATH directory**
+
+```powershell
+# Create mk.cmd in C:\Windows\System32 or another PATH directory
+@echo off
+node "C:\path\to\mkolbol\dist\scripts\mk.js" %*
+
+# Create mkctl.cmd
+@echo off
+node "C:\path\to\mkolbol\dist\scripts\mkctl.js" %*
+```
+
+**Verify:**
+```powershell
+where.exe mk    # Should show C:\Windows\System32\mk.cmd or PATH location
+mk --help       # Should display mk help
+mkctl --help    # Should display mkctl help
+```
+
+### Troubleshooting Self-Install
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| **mk: command not found** | PATH not updated or shell not reloaded | Run `source ~/.bashrc` (Linux/macOS) or restart terminal (Windows) |
+| **Permission denied** | Script not executable | Run `chmod +x /path/to/mkolbol/dist/scripts/*.js` (Linux/macOS) |
+| **Wrong version executing** | Multiple mk installations in PATH | Run `which mk` (Linux/macOS) or `where.exe mk` (Windows) to find conflicts |
+| **Node.js not found** | Node not installed or not in PATH | Install Node 20+ and add to PATH |
+
+---
+
+## Installation: Distribution Paths
 
 📋 **[Distribution Matrix](docs/devex/distribution.md)** — Choose the right installation path for your use case (Tarball, Git Tag, or Vendor). Note: mkolbol is not published to npm.
 

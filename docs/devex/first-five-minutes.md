@@ -37,6 +37,8 @@ npm run build
 export MK_LOCAL_NODE=1
 ```
 
+**Want to use mk from anywhere?** See [Installation: mk Anywhere](../../README.md#installation-mk-anywhere-self-install) to add mk/mkctl to your PATH. This guide uses `node dist/scripts/mk.js` for clarity, but you can substitute `mk` after self-install.
+
 ---
 
 ## 1. Initialize Project (1 minute)

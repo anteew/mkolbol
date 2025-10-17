@@ -2,6 +2,340 @@
 
 This guide helps diagnose and fix common issues with mkolbol development, mkctl commands, and mkolbol topologies.
 
+---
+
+## Quick Fixes for Common Issues
+
+| Issue | Quick Fix |
+|-------|-----------|
+| **mk: command not found** | Add to PATH: `export PATH="/path/to/mkolbol/dist/scripts:$PATH"` |
+| **Permission denied** | Make executable: `chmod +x /path/to/mkolbol/dist/scripts/*.js` |
+| **Config file not found** | Use absolute path: `mk run --file $(pwd)/mk.json` |
+| **Port already in use** | Kill process: `lsof -i :4000 && kill -9 $(lsof -t -i :4000)` |
+| **Module not registered** | Check spelling: `mk doctor --file mk.json --verbose` |
+| **Node version < 20** | Upgrade: `nvm install 20 && nvm use 20` |
+
+---
+
+## Toolchain Installation & PATH Setup
+
+### Issue: mk, mkctl, or lam not found
+
+**Symptom:**
+```bash
+$ mk --help
+bash: mk: command not found
+```
+
+**Root cause:**
+- mk binaries not in PATH
+- mkolbol not built
+- Wrong directory
+
+**Fix (Linux/macOS):**
+
+**Option 1: Add to PATH (Recommended)**
+```bash
+# 1. Find absolute path to mkolbol
+cd /path/to/mkolbol
+pwd
+# Copy this path
+
+# 2. Add to shell config
+# For bash (~/.bashrc):
+echo 'export PATH="/path/to/mkolbol/dist/scripts:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# For zsh (~/.zshrc):
+echo 'export PATH="/path/to/mkolbol/dist/scripts:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# For fish (~/.config/fish/config.fish):
+set -Ux fish_user_paths /path/to/mkolbol/dist/scripts $fish_user_paths
+
+# 3. Verify
+which mk        # → /path/to/mkolbol/dist/scripts/mk.js
+mk --help       # → Shows mk help
+```
+
+**Option 2: Symlink to /usr/local/bin**
+```bash
+# Create symlinks (requires sudo)
+cd /path/to/mkolbol
+sudo ln -s "$(pwd)/dist/scripts/mk.js" /usr/local/bin/mk
+sudo ln -s "$(pwd)/dist/scripts/mkctl.js" /usr/local/bin/mkctl
+sudo ln -s "$(pwd)/dist/scripts/lam.js" /usr/local/bin/lam
+
+# Make executable
+sudo chmod +x /usr/local/bin/{mk,mkctl,lam}
+
+# Verify
+which mk        # → /usr/local/bin/mk
+mk --help       # → Shows mk help
+```
+
+**Option 3: Wrapper Script**
+```bash
+# Create ~/bin/mk wrapper
+mkdir -p ~/bin
+cat > ~/bin/mk << 'EOF'
+#!/usr/bin/env bash
+exec node /path/to/mkolbol/dist/scripts/mk.js "$@"
+EOF
+
+chmod +x ~/bin/mk
+
+# Add ~/bin to PATH if not already
+echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Verify
+which mk        # → /home/user/bin/mk
+mk --help       # → Shows mk help
+```
+
+**Fix (Windows):**
+
+**Option 1: Add to PATH via System Properties**
+```powershell
+# 1. Find mkolbol path
+cd C:\path\to\mkolbol
+pwd
+# Copy: C:\path\to\mkolbol\dist\scripts
+
+# 2. Open Environment Variables
+# Win + X → System → Advanced system settings → Environment Variables
+
+# 3. Edit Path variable
+# - Select "Path" under User or System variables
+# - Click "Edit..."
+# - Click "New"
+# - Paste: C:\path\to\mkolbol\dist\scripts
+# - Click OK to save
+
+# 4. Restart terminal and verify
+# Open new PowerShell window
+where.exe mk    # → C:\path\to\mkolbol\dist\scripts\mk.js
+mk --help       # → Shows mk help
+```
+
+**Option 2: Create .cmd Shims**
+```powershell
+# Create mk.cmd in PATH directory
+@"
+@echo off
+node "C:\path\to\mkolbol\dist\scripts\mk.js" %*
+"@ | Out-File -FilePath C:\Windows\System32\mk.cmd -Encoding ASCII
+
+# Repeat for mkctl and lam
+@"
+@echo off
+node "C:\path\to\mkolbol\dist\scripts\mkctl.js" %*
+"@ | Out-File -FilePath C:\Windows\System32\mkctl.cmd -Encoding ASCII
+
+@"
+@echo off
+node "C:\path\to\mkolbol\dist\scripts\lam.js" %*
+"@ | Out-File -FilePath C:\Windows\System32\lam.cmd -Encoding ASCII
+
+# Verify
+where.exe mk     # → C:\Windows\System32\mk.cmd
+mk --help        # → Shows mk help
+```
+
+**Note:** Creating .cmd files in System32 requires Administrator privileges.
+
+---
+
+### Issue: Shims Broken After Moving mkolbol
+
+**Symptom:**
+```bash
+$ mk --help
+/usr/local/bin/mk: No such file or directory
+```
+
+**Root cause:**
+- mkolbol directory moved
+- Absolute symlinks point to old location
+
+**Fix:**
+```bash
+# Remove old symlinks
+sudo rm /usr/local/bin/{mk,mkctl,lam}
+
+# Create new symlinks
+cd /new/path/to/mkolbol
+sudo ln -s "$(pwd)/dist/scripts/mk.js" /usr/local/bin/mk
+sudo ln -s "$(pwd)/dist/scripts/mkctl.js" /usr/local/bin/mkctl
+sudo ln -s "$(pwd)/dist/scripts/lam.js" /usr/local/bin/lam
+
+# Make executable
+sudo chmod +x /usr/local/bin/{mk,mkctl,lam}
+
+# Verify
+which mk        # → /usr/local/bin/mk (symlink to new path)
+mk --help       # → Shows mk help
+```
+
+---
+
+### Issue: Multiple mk Versions in PATH
+
+**Symptom:**
+```bash
+$ mk --help
+# Wrong version executing
+```
+
+**Root cause:**
+- Multiple mk installations
+- PATH order prioritizes wrong version
+
+**Fix (Linux/macOS):**
+```bash
+# Find all mk installations
+which -a mk
+# Output shows all matches in PATH order
+
+# Check PATH order
+echo $PATH | tr ':' '\n' | nl
+
+# Reorder PATH to prioritize correct installation
+export PATH="/correct/path/to/mkolbol/dist/scripts:$PATH"
+
+# Make permanent by adding to ~/.bashrc or ~/.zshrc
+echo 'export PATH="/correct/path/to/mkolbol/dist/scripts:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Verify
+which mk        # → Should show correct path first
+mk --version    # → Should show correct version
+```
+
+**Fix (Windows):**
+```powershell
+# Find all mk installations
+where.exe mk
+# Output shows all matches in PATH order
+
+# Edit PATH to remove duplicates or reorder
+# System Properties → Environment Variables → Path
+# - Remove duplicate entries
+# - Move correct path to top of list
+# - Click OK to save
+
+# Restart terminal and verify
+where.exe mk
+mk --version
+```
+
+---
+
+### Issue: Permission Denied on mk Scripts
+
+**Symptom:**
+```bash
+$ mk --help
+bash: /path/to/mkolbol/dist/scripts/mk.js: Permission denied
+```
+
+**Root cause:**
+- Scripts not executable
+- File permissions too restrictive
+
+**Fix (Linux/macOS):**
+```bash
+# Make scripts executable
+chmod +x /path/to/mkolbol/dist/scripts/*.js
+
+# Verify permissions
+ls -la /path/to/mkolbol/dist/scripts/
+# Should show: -rwxr-xr-x (executable)
+
+# Verify execution
+/path/to/mkolbol/dist/scripts/mk.js --help
+# Should work without "Permission denied"
+```
+
+**Fix (Windows):**
+Windows doesn't require executable bit. Ensure you're running with `node`:
+```powershell
+# Test direct execution
+node C:\path\to\mkolbol\dist\scripts\mk.js --help
+
+# If .cmd shim fails, recreate it
+# See "Create .cmd Shims" section above
+```
+
+---
+
+### Issue: Node.js Not Found
+
+**Symptom:**
+```bash
+$ mk --help
+/usr/bin/env: 'node': No such file or directory
+```
+
+**Root cause:**
+- Node.js not installed
+- Node.js not in PATH
+
+**Fix:**
+
+**Linux (Ubuntu/Debian):**
+```bash
+# Install Node 20+ via NodeSource
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Verify
+node --version  # → v20.x.x
+npm --version   # → 10.x.x
+```
+
+**macOS:**
+```bash
+# Install Node 20+ via Homebrew
+brew install node@20
+
+# Add to PATH
+echo 'export PATH="/opt/homebrew/opt/node@20/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Verify
+node --version  # → v20.x.x
+```
+
+**Windows:**
+```powershell
+# Download installer from https://nodejs.org/
+# Run installer (includes Node.js and npm)
+# Restart terminal
+
+# Verify
+node --version
+npm --version
+```
+
+**Using nvm (Cross-platform):**
+```bash
+# Install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+
+# Install Node 20
+nvm install 20
+nvm use 20
+nvm alias default 20
+
+# Verify
+node --version  # → v20.x.x
+```
+
+---
+
 ## mk doctor — Environment Diagnostics
 
 The `mk doctor` command performs comprehensive environment diagnostics to ensure your mkolbol development environment is correctly configured.
@@ -9,12 +343,14 @@ The `mk doctor` command performs comprehensive environment diagnostics to ensure
 ### Usage
 
 ```bash
-mk doctor [--verbose]
+mk doctor [--verbose] [--section all|toolchain|environment] [--json]
 ```
 
 ### Options
 
 - `--verbose` — Show detailed output (future enhancement)
+- `--section <type>` — Run specific check section: `all` (default), `toolchain`, or `environment`
+- `--json` — Output results in JSON format for programmatic consumption
 
 ---
 
@@ -334,9 +670,11 @@ nodes:
 
 ---
 
-## Checks Performed
+## Check Sections
 
-### 1. Node.js Version
+### Environment Checks
+
+#### 1. Node.js Version
 **Requirement**: Node.js 20 or later
 
 **Remediation**: If check fails:
@@ -348,7 +686,7 @@ nvm use 20
 # Or download from https://nodejs.org/
 ```
 
-### 2. Package Manager
+#### 2. Package Manager
 **Requirement**: npm or pnpm installed
 
 **Remediation**: If check fails:
@@ -359,7 +697,7 @@ npm install -g pnpm
 # npm comes bundled with Node.js
 ```
 
-### 3. Git Repository
+#### 3. Git Repository
 **Requirement**: Working in a Git repository (warning only)
 
 **Remediation**: If not detected:
@@ -367,7 +705,7 @@ npm install -g pnpm
 git init
 ```
 
-### 4. Build Status
+#### 4. Build Status
 **Requirement**: `dist/` directory with compiled files
 
 **Remediation**: If check fails:
@@ -375,7 +713,7 @@ git init
 npm run build
 ```
 
-### 5. Dependencies Installed
+#### 5. Dependencies Installed
 **Requirement**: `node_modules/` directory exists
 
 **Remediation**: If check fails:
@@ -385,7 +723,7 @@ npm install
 pnpm install
 ```
 
-### 6. TypeScript Compilation
+#### 6. TypeScript Compilation
 **Requirement**: No TypeScript type errors
 
 **Remediation**: If check fails:
@@ -396,6 +734,61 @@ npx tsc --noEmit
 # Fix type errors in your code
 # Then rebuild
 npm run build
+```
+
+### Toolchain Checks
+
+#### 7. Toolchain PATH Detection
+**Requirement**: `mk`, `mkctl`, and `lam` binaries available in PATH
+
+**Remediation**: If check fails:
+```bash
+# Global install
+npm install -g .
+
+# Or install PATH wrappers
+mk self-install --wrapper-only
+export PATH="$PATH:~/.local/bin"
+```
+
+#### 8. Shim Integrity
+**Requirement**: All binary shims exist and are executable in `dist/scripts/`
+
+**What it checks**:
+- `dist/scripts/mk.js` exists and is executable
+- `dist/scripts/mkctl.js` exists and is executable
+- `dist/scripts/lam.js` exists and is executable
+
+**Remediation**: If check fails:
+```bash
+npm run build
+```
+
+#### 9. mk Version Consistency
+**Requirement**: Binary version matches `package.json` version
+
+**What it checks**:
+- Reads version from `package.json`
+- Runs `mk --version` and compares output
+- Detects version mismatches from stale builds
+
+**Remediation**: If check fails:
+```bash
+npm run build
+```
+
+#### 10. Binary Accessibility
+**Requirement**: All binaries can be executed via `node dist/scripts/*.js`
+
+**What it checks**:
+- Tests actual execution of each binary
+- Verifies `--version` flag works
+- Detects runtime errors
+
+**Remediation**: If check fails:
+```bash
+npm run build
+npm install
 ```
 
 ## Output Format
@@ -410,6 +803,8 @@ Each failed or warned check includes a remediation hint.
 
 ## Example Output
 
+### Text Format (default)
+
 ```
 🏥 mk doctor — Environment Diagnostics
 
@@ -419,9 +814,53 @@ Each failed or warned check includes a remediation hint.
 ✓ Build status: dist/ directory exists with compiled files
 ✓ Dependencies: node_modules/ directory exists
 ✓ TypeScript compilation: No type errors
+✓ Toolchain PATH: All binaries found: mk, mkctl, lam
+✓ Shim integrity: All 3 shims OK
+✓ mk version consistency: v0.2.0-rfc
+✓ Binary accessibility: All binaries executable
 
 ────────────────────────────────────────────────────────────
-Summary: 6 passed, 0 warnings, 0 failed
+Summary: 10 passed, 0 warnings, 0 failed
+✓ All checks passed!
+```
+
+### JSON Format (`--json`)
+
+```json
+{
+  "summary": {
+    "total": 10,
+    "passed": 10,
+    "warnings": 0,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "Node.js version",
+      "status": "pass",
+      "message": "v20.12.2 (>= 20)"
+    },
+    {
+      "name": "Toolchain PATH",
+      "status": "pass",
+      "message": "All binaries found: mk, mkctl, lam"
+    }
+  ]
+}
+```
+
+### Section-Specific Output (`--section toolchain`)
+
+```
+🏥 mk doctor — Environment Diagnostics
+
+✓ Toolchain PATH: All binaries found: mk, mkctl, lam
+✓ Shim integrity: All 3 shims OK
+✓ mk version consistency: v0.2.0-rfc
+✓ Binary accessibility: All binaries executable
+
+────────────────────────────────────────────────────────────
+Summary: 4 passed, 0 warnings, 0 failed
 ✓ All checks passed!
 ```
 
