@@ -1,0 +1,8 @@
+## N1803 TCP Acceptance Complete
+
+P18A-TCP sprint delivered:
+- N1801: FrameCodec (4 tests)
+- N1802: TCPPipe (1 test)  
+- test:ci passing
+
+Ready for review.

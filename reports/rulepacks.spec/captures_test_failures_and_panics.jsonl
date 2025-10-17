@@ -1,3 +1,3 @@
-{"ts":1760719356260,"lvl":"info","case":"captures test failures and panics","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760719356261,"lvl":"info","case":"captures test failures and panics","phase":"execution","evt":"test.run"}
-{"ts":1760719356262,"lvl":"info","case":"captures test failures and panics","phase":"teardown","evt":"case.end","payload":{"duration":1,"status":"passed"}}
+{"ts":1760727840836,"lvl":"info","case":"captures test failures and panics","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727840837,"lvl":"info","case":"captures test failures and panics","phase":"execution","evt":"test.run"}
+{"ts":1760727840838,"lvl":"info","case":"captures test failures and panics","phase":"teardown","evt":"case.end","payload":{"duration":110,"status":"passed"}}
