@@ -418,3 +418,14 @@ npm run test:ci
   ]
 }
 ```
+
+Sprint Logging
+
+- Write sprint logs to `ampcode.log` (root).
+- Use concise entries: `[N2201] <what changed>`, `[N2202] <tests>`, etc.
+- Do not write to `devex.log` for this sprint.
+
+Worker Workflow (logging)
+
+- After each task, append 1–3 lines to `ampcode.log`.
+- Include file pointers when useful (e.g., `src/net/frame.ts:42`).
