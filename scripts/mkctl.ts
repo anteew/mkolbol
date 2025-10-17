@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs/promises';
 import path from 'node:path';
+let RUNTIME_DIR: string | undefined; // set via --runtime-dir
 import { Kernel } from '../src/kernel/Kernel.js';
 import { Hostess } from '../src/hostess/Hostess.js';
 import { StateManager } from '../src/state/StateManager.js';
@@ -195,8 +196,6 @@ type EndpointSnapshot = {
   updatedAt?: number;
 };
 
-var RUNTIME_DIR: string | undefined;
-
 async function loadEndpointSnapshot(): Promise<{ endpoints: EndpointSnapshot[]; source: 'router' | 'hostess' }> {
   const base = RUNTIME_DIR ? path.resolve(RUNTIME_DIR) : process.cwd();
   const routerSnapshotPath = path.resolve(base, 'reports', 'router-endpoints.json');
@@ -296,7 +295,7 @@ function parseEndpointsArgs(args: string[]): EndpointsArguments {
       json = true;
     } else if (token === '--runtime-dir' || token === '-R') {
       const next = args[i + 1];
-      if (!next || next.startsWith('--')) {
+      if (!next || next.startsWith('-')) {
         throw new MkctlError('--runtime-dir requires a path', EXIT_CODES.USAGE);
       }
       runtimeDir = next;

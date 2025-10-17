@@ -2,6 +2,8 @@
 
 import { generatePromptSnippet, disablePrompt, enablePrompt, isPromptDisabled } from '../src/mk/prompt.js';
 import { createError, formatError, isJsonOutputRequested, MkError } from '../src/mk/errors.js';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve as resolvePath, isAbsolute } from 'node:path';
 
 const EXIT_SUCCESS = 0;
 const EXIT_ERROR = 1;
@@ -20,14 +22,7 @@ const commands: Command[] = [
     description: 'Print mk version',
     usage: 'mk version',
     handler: async () => {
-      try {
-        const { readFile } = await import('node:fs/promises');
-        const { resolve } = await import('node:path');
-        const pkg = JSON.parse(await readFile(resolve(process.cwd(), 'package.json'), 'utf8'));
-        console.log(String(pkg?.version || '0.0.0'));
-      } catch {
-        console.log('0.0.0');
-      }
+      console.log(await getMkVersion());
       return EXIT_SUCCESS;
     }
   },
@@ -518,14 +513,16 @@ const commands: Command[] = [
       // Wrapper-only mode: create mk/mkctl scripts under ~/.local/bin (or provided binDir)
       try {
         const { mkdir, writeFile } = await import('node:fs/promises');
-        const { resolve } = await import('node:path');
+        const pathMod = await import('node:path');
         const home = process.env.HOME || process.env.USERPROFILE || '.';
-        const outDir = resolve(process.cwd(), binDir || resolve(home, '.local', 'bin'));
+        const outDir = binDir
+          ? (pathMod.isAbsolute(binDir) ? binDir : pathMod.resolve(process.cwd(), binDir))
+          : pathMod.resolve(home, '.local', 'bin');
         await mkdir(outDir, { recursive: true });
-        const mkPath = resolve(outDir, 'mk');
-        const mkctlPath = resolve(outDir, 'mkctl');
-        const mkScript = `#!/usr/bin/env bash\nexec node "${resolve(process.cwd(), 'dist/scripts/mk.js')}" "$@"\n`;
-        const mkctlScript = `#!/usr/bin/env bash\nexec node "${resolve(process.cwd(), 'dist/scripts/mkctl.js')}" "$@"\n`;
+        const mkPath = pathMod.resolve(outDir, 'mk');
+        const mkctlPath = pathMod.resolve(outDir, 'mkctl');
+        const mkScript = `#!/usr/bin/env bash\nexec node \"${pathMod.resolve(process.cwd(), 'dist/scripts/mk.js')}\" \"$@\"\n`;
+        const mkctlScript = `#!/usr/bin/env bash\nexec node \"${pathMod.resolve(process.cwd(), 'dist/scripts/mkctl.js')}\" \"$@\"\n`;
         await writeFile(mkPath, mkScript, { mode: 0o755 });
         await writeFile(mkctlPath, mkctlScript, { mode: 0o755 });
         console.log(`✓ Installed wrappers in ${outDir}`);
@@ -543,6 +540,10 @@ const commands: Command[] = [
 function printMainHelp() {
   console.log(`mk — mkolbol CLI toolkit\n`);
   console.log(`Usage: mk <command> [options]\n`);
+  console.log(`Global Flags:`);
+  console.log(`  --project-dir <dir>   Run mk as if started in <dir>  (alias: -C <dir>)`);
+  console.log(`  --version, -V         Print mk version`);
+  console.log('');
   console.log(`Commands:`);
   for (const cmd of commands) {
     console.log(`  ${cmd.name.padEnd(12)} ${cmd.description}`);
@@ -554,10 +555,6 @@ function printCommandHelp(cmd: Command) {
   console.log(`${cmd.description}\n`);
   console.log(`Usage: ${cmd.usage}`);
 }
-
-async function mkMain() {
-  let args = process.argv.slice(2);
-
   // Global flags: -C/--project/--project-dir to change directory, --version/-V for version info
   const projectFlagIndex = args.findIndex(
     (a) => a === '-C' || a === '--project' || a === '--project-dir'
@@ -565,7 +562,7 @@ async function mkMain() {
   if (projectFlagIndex !== -1) {
     const dir = args[projectFlagIndex + 1];
     if (!dir || dir.startsWith('-')) {
-      console.error('Usage: mk -C <project-dir> <command> ...');
+      console.error('Usage: mk --project-dir <dir> <command> ...  (alias: -C <dir>)');
       process.exit(EXIT_USAGE);
     }
     try {
@@ -581,14 +578,7 @@ async function mkMain() {
   }
 
   if (args.includes('--version') || args.includes('-V')) {
-    try {
-      const { readFile } = await import('node:fs/promises');
-      const { resolve } = await import('node:path');
-      const pkg = JSON.parse(await readFile(resolve(process.cwd(), 'package.json'), 'utf8'));
-      console.log(String(pkg?.version || '0.0.0'));
-    } catch {
-      console.log('0.0.0');
-    }
+    console.log(await getMkVersion());
     process.exit(EXIT_SUCCESS);
   }
 
@@ -599,8 +589,6 @@ async function mkMain() {
 
   const commandName = args[0];
   const command = commands.find((cmd) => cmd.name === commandName);
-
-  if (!command) {
     const jsonOutput = isJsonOutputRequested(args);
     const error = createError('UNKNOWN_COMMAND', { details: { command: commandName } });
     
@@ -631,6 +619,18 @@ async function mkMain() {
       console.error(formatError(error as Error, jsonOutput ? 'json' : 'text'));
     }
     process.exit(EXIT_ERROR);
+  }
+}
+
+async function getMkVersion(): Promise<string> {
+  try {
+    const { readFile } = await import('node:fs/promises');
+    const here = dirname(fileURLToPath(import.meta.url)); // dist/scripts
+    const pkgPath = resolvePath(here, '../../package.json');
+    const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
+    return String(pkg?.version || '0.0.0');
+  } catch {
+    return '0.0.0';
   }
 }
 
