@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs/promises';
 import path from 'node:path';
+let RUNTIME_DIR; // set via --runtime-dir
 import { Kernel } from '../src/kernel/Kernel.js';
 import { Hostess } from '../src/hostess/Hostess.js';
 import { StateManager } from '../src/state/StateManager.js';
@@ -168,7 +169,8 @@ async function waitForDurationOrSignal(durationMs) {
     });
 }
 async function loadEndpointSnapshot() {
-    const routerSnapshotPath = path.resolve(process.cwd(), 'reports', 'router-endpoints.json');
+    const base = RUNTIME_DIR ? path.resolve(RUNTIME_DIR) : process.cwd();
+    const routerSnapshotPath = path.resolve(base, 'reports', 'router-endpoints.json');
     try {
         const raw = await fs.readFile(routerSnapshotPath, 'utf-8');
         const parsed = JSON.parse(raw);
@@ -180,7 +182,7 @@ async function loadEndpointSnapshot() {
     catch {
         // fall through to hostess snapshot
     }
-    const hostessSnapshotPath = path.resolve(process.cwd(), 'reports', 'endpoints.json');
+    const hostessSnapshotPath = path.resolve(base, 'reports', 'endpoints.json');
     try {
         const raw = await fs.readFile(hostessSnapshotPath, 'utf-8');
         const parsed = JSON.parse(raw);
@@ -223,6 +225,7 @@ function parseEndpointsArgs(args) {
     let watch = false;
     let interval = 1;
     let json = false;
+    let runtimeDir;
     const filters = [];
     for (let i = 0; i < args.length; i++) {
         const token = args[i];
@@ -256,8 +259,16 @@ function parseEndpointsArgs(args) {
         else if (token === '--json') {
             json = true;
         }
+        else if (token === '--runtime-dir' || token === '-R') {
+            const next = args[i + 1];
+            if (!next || next.startsWith('-')) {
+                throw new MkctlError('--runtime-dir requires a path', EXIT_CODES.USAGE);
+            }
+            runtimeDir = next;
+            i++;
+        }
     }
-    return { watch, interval, filters, json };
+    return { watch, interval, filters, json, runtimeDir };
 }
 function applyFilters(endpoints, filters) {
     if (filters.length === 0)
@@ -303,7 +314,10 @@ function displayEndpoints(endpoints, source) {
     }
 }
 async function handleEndpointsCommand(args) {
-    const { watch, interval, filters, json } = parseEndpointsArgs(args);
+    const { watch, interval, filters, json, runtimeDir } = parseEndpointsArgs(args);
+    if (runtimeDir) {
+        RUNTIME_DIR = runtimeDir;
+    }
     if (!watch) {
         const { endpoints, source } = await loadEndpointSnapshot();
         if (endpoints.length === 0) {

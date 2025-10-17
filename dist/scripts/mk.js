@@ -1,10 +1,21 @@
 #!/usr/bin/env node
 import { generatePromptSnippet, disablePrompt, enablePrompt, isPromptDisabled } from '../src/mk/prompt.js';
 import { createError, formatError, isJsonOutputRequested, MkError } from '../src/mk/errors.js';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve as resolvePath } from 'node:path';
 const EXIT_SUCCESS = 0;
 const EXIT_ERROR = 1;
 const EXIT_USAGE = 64;
 const commands = [
+    {
+        name: 'version',
+        description: 'Print mk version',
+        usage: 'mk version',
+        handler: async () => {
+            console.log(await getMkVersion());
+            return EXIT_SUCCESS;
+        }
+    },
     {
         name: 'init',
         description: 'Initialize a new mkolbol project',
@@ -404,10 +415,82 @@ const commands = [
             return ciPlanHandler(args.slice(1));
         },
     },
+    {
+        name: 'self-install',
+        description: 'Install mk globally (safe tarball method) or install PATH wrappers',
+        usage: 'mk self-install [--wrapper-only] [--bin-dir <path>]',
+        handler: async (args) => {
+            const wrapperOnly = args.includes('--wrapper-only');
+            let binDir;
+            for (let i = 0; i < args.length; i++) {
+                if ((args[i] === '--bin-dir' || args[i] === '-B') && i + 1 < args.length) {
+                    binDir = args[i + 1];
+                    i++;
+                }
+            }
+            if (!wrapperOnly) {
+                // Safe global install via npm pack → npm i -g tarball
+                try {
+                    const { spawn } = await import('node:child_process');
+                    const { readdirSync } = await import('node:fs');
+                    const { resolve } = await import('node:path');
+                    await new Promise((resolveP, rejectP) => {
+                        const p = spawn('npm', ['pack'], { stdio: 'inherit' });
+                        p.on('exit', (code) => (code === 0 ? resolveP() : rejectP(new Error('npm pack failed'))));
+                    });
+                    const tarball = readdirSync(process.cwd()).find((f) => /^mkolbol-.*\.tgz$/.test(f));
+                    if (!tarball) {
+                        console.error('Error: no tarball produced by npm pack.');
+                        return EXIT_ERROR;
+                    }
+                    console.log(`Installing ${tarball} globally...`);
+                    await new Promise((resolveP, rejectP) => {
+                        const p = spawn('npm', ['install', '-g', tarball], { stdio: 'inherit' });
+                        p.on('exit', (code) => (code === 0 ? resolveP() : rejectP(new Error('npm install -g failed'))));
+                    });
+                    console.log('✓ Installed globally. mk should be on your PATH.');
+                    return EXIT_SUCCESS;
+                }
+                catch (err) {
+                    console.error(`Global install failed: ${err instanceof Error ? err.message : String(err)}`);
+                    console.error('Tip: retry with --wrapper-only or ensure npm global bin is on PATH.');
+                    return EXIT_ERROR;
+                }
+            }
+            // Wrapper-only mode: create mk/mkctl scripts under ~/.local/bin (or provided binDir)
+            try {
+                const { mkdir, writeFile } = await import('node:fs/promises');
+                const pathMod = await import('node:path');
+                const home = process.env.HOME || process.env.USERPROFILE || '.';
+                const outDir = binDir
+                    ? (pathMod.isAbsolute(binDir) ? binDir : pathMod.resolve(process.cwd(), binDir))
+                    : pathMod.resolve(home, '.local', 'bin');
+                await mkdir(outDir, { recursive: true });
+                const mkPath = pathMod.resolve(outDir, 'mk');
+                const mkctlPath = pathMod.resolve(outDir, 'mkctl');
+                const mkScript = `#!/usr/bin/env bash\nexec node \"${pathMod.resolve(process.cwd(), 'dist/scripts/mk.js')}\" \"$@\"\n`;
+                const mkctlScript = `#!/usr/bin/env bash\nexec node \"${pathMod.resolve(process.cwd(), 'dist/scripts/mkctl.js')}\" \"$@\"\n`;
+                await writeFile(mkPath, mkScript, { mode: 0o755 });
+                await writeFile(mkctlPath, mkctlScript, { mode: 0o755 });
+                console.log(`✓ Installed wrappers in ${outDir}`);
+                console.log('Ensure this directory is on your PATH. Example:');
+                console.log(`  export PATH=\"$PATH:${outDir}\"`);
+                return EXIT_SUCCESS;
+            }
+            catch (err) {
+                console.error(`Wrapper install failed: ${err instanceof Error ? err.message : String(err)}`);
+                return EXIT_ERROR;
+            }
+        },
+    },
 ];
 function printMainHelp() {
     console.log(`mk — mkolbol CLI toolkit\n`);
     console.log(`Usage: mk <command> [options]\n`);
+    console.log(`Global Flags:`);
+    console.log(`  --project-dir <dir>   Run mk as if started in <dir>  (alias: -C <dir>)`);
+    console.log(`  --version, -V         Print mk version`);
+    console.log('');
     console.log(`Commands:`);
     for (const cmd of commands) {
         console.log(`  ${cmd.name.padEnd(12)} ${cmd.description}`);
@@ -419,7 +502,31 @@ function printCommandHelp(cmd) {
     console.log(`Usage: ${cmd.usage}`);
 }
 async function mkMain() {
-    const args = process.argv.slice(2);
+    let args = process.argv.slice(2);
+    // Global flags: -C/--project-dir to change directory, --version/-V for version info
+    const projectFlagIndex = args.findIndex((a) => a === '-C' || a === '--project' || a === '--project-dir');
+    if (projectFlagIndex !== -1) {
+        const dir = args[projectFlagIndex + 1];
+        if (!dir || dir.startsWith('-')) {
+            console.error('Usage: mk --project-dir <dir> <command> ...  (alias: -C <dir>)');
+            process.exit(EXIT_USAGE);
+        }
+        try {
+            const { resolve } = await import('node:path');
+            const target = resolve(process.cwd(), dir);
+            process.chdir(target);
+            // Remove flag and its value from args
+            args = args.filter((_, i) => i !== projectFlagIndex && i !== projectFlagIndex + 1);
+        }
+        catch (err) {
+            console.error(`Error entering project directory '${dir}': ${err instanceof Error ? err.message : String(err)}`);
+            process.exit(EXIT_ERROR);
+        }
+    }
+    if (args.includes('--version') || args.includes('-V')) {
+        console.log(await getMkVersion());
+        process.exit(EXIT_SUCCESS);
+    }
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
         printMainHelp();
         process.exit(EXIT_SUCCESS);
@@ -455,6 +562,18 @@ async function mkMain() {
             console.error(formatError(error, jsonOutput ? 'json' : 'text'));
         }
         process.exit(EXIT_ERROR);
+    }
+}
+async function getMkVersion() {
+    try {
+        const { readFile } = await import('node:fs/promises');
+        const here = dirname(fileURLToPath(import.meta.url)); // dist/scripts
+        const pkgPath = resolvePath(here, '../../package.json');
+        const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
+        return String(pkg?.version || '0.0.0');
+    }
+    catch {
+        return '0.0.0';
     }
 }
 mkMain().catch((error) => {

@@ -24,12 +24,13 @@ async function main() {
         capabilities: { type: 'source', accepts: [], produces: [] },
         command: 'bash',
         args: ['-l'],
-        env: process.env,
+        // Explicit env is required by ExternalServerManifest; merge happens in wrapper.
+        env: {},
         cwd: process.cwd(),
         ioMode: 'pty',
         restart: 'never'
     });
-    const tty = new TTYRenderer(kernel, { toStdout: true });
+    const tty = new TTYRenderer(kernel, { target: 'stdout' });
     // Wire PTY → TTY
     kernel.connect(bash.outputPipe, tty.inputPipe);
     // Start PTY

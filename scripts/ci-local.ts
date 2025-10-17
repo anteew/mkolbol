@@ -104,8 +104,17 @@ async function main() {
   await sh('npm', ['run', 'build'], { cwd: workDir, env: envBase });
 
   if (subset === 'all' || subset === 'threads') {
-    log('Threads lane (test:ci)');
-    await sh('npm', ['run', 'test:ci'], { cwd: workDir, env: envBase });
+    log('Threads lane (excluding perf spec under laminar)');
+    await sh('npx', [
+      'vitest', 'run',
+      '--pool=threads',
+      "--exclude=**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts,tests/transforms/ansiParser.performance.spec.ts",
+      '--reporter=default',
+      '--reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js'
+    ], { cwd: workDir, env: envBase });
+
+    log('Threads lane (perf spec with default reporter)');
+    await sh('npx', ['vitest', 'run', '--pool=threads', 'tests/transforms/ansiParser.performance.spec.ts', '--reporter=default'], { cwd: workDir, env: envBase });
   } else {
     log('Threads lane skipped (CI_SUBSET != threads/all)');
   }
