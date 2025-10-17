@@ -4,6 +4,47 @@
 {
   "ampcode": "v1",
   "waves": [
+    { "id": "P21-CONNECT-POLISH", "parallel": false, "tasks": ["D2101","D2102","D2103","D2104"] }
+  ],
+  "branch": "mkolbol-devex-p21-connect-polish",
+  "tasks": [
+    {"id":"D2101","agent":"devex","title":"mk:// addressing freeze + parser/validator + help usage",
+      "allowedFiles":["scripts/mkctl.ts","src/cli/connect.ts","tests/cli/mkctlConnect.spec.ts","docs/devex/mkctl-cookbook.md"],
+      "why":"Lock operator‑facing contract for URLs across TCP/WS.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_D2101_mkctl-url-freeze.patch"]},
+
+    {"id":"D2102","agent":"devex","title":"Output modes: human default + --json raw frames (length‑prefixed)",
+      "allowedFiles":["src/cli/connect.ts","tests/cli/mkctlConnect.spec.ts","docs/devex/mkctl-cookbook.md"],
+      "why":"Support tooling while keeping a friendly default.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_D2102_mkctl-json-mode.patch"]},
+
+    {"id":"D2103","agent":"devex","title":"Record/replay + tee to FileSink; examples and docs",
+      "allowedFiles":["src/cli/connect.ts","examples/network/connect/**","docs/devex/network-quickstart.md"],
+      "why":"Operators can capture sessions and replay for debugging.",
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D2103_mkctl-record-replay.patch"]},
+
+    {"id":"D2104","agent":"devex","title":"Acceptance: polished UX walkthrough (copy/paste runnable)",
+      "allowedFiles":["docs/devex/first-five-minutes.md","README.md",".github/workflows/tests.yml"],
+      "why":"Ensure docs and CLI examples match reality end‑to‑end.",
+      "verify":["npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_D2104_connect-acceptance.patch"]}
+  ]
+}
+```
+
+Branch Instructions
+- IMPORTANT: Work only on `mkolbol-devex-p21-connect-polish`.
+- Keep ws/tcp parity; avoid breaking changes to CLI flags.
+- Do not add TLS/mTLS; document SSH tunnel patterns.
+
+
+```json
+{
+  "ampcode": "v1",
+  "waves": [
     { "id": "P20B-MKCTL-CONNECT", "parallel": false, "tasks": ["D2001","D2002","D2003"] }
   ],
   "branch": "mkolbol-devex-p20-mkctl-connect",
