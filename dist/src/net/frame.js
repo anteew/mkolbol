@@ -32,14 +32,14 @@ export class FrameCodec {
         const metadata = JSON.parse(metadataBuffer.toString('utf8'));
         return {
             frame: { metadata, payload: payloadBuffer },
-            bytesConsumed: totalLength
+            bytesConsumed: totalLength,
         };
     }
     static createDataFrame(payload, sequenceId) {
         const payloadBuffer = typeof payload === 'string' ? Buffer.from(payload, 'utf8') : payload;
         return {
             metadata: { type: 'data', timestamp: Date.now(), sequenceId },
-            payload: payloadBuffer
+            payload: payloadBuffer,
         };
     }
     static createPingFrame() {

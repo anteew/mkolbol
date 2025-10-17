@@ -25,7 +25,7 @@ export class StateManager {
             name: manifest.name ?? id,
             terminals: manifest.terminals ?? [],
             capabilities: manifest.capabilities ?? [],
-            humanReadable: manifest.humanReadable ?? (manifest.name ?? id),
+            humanReadable: manifest.humanReadable ?? manifest.name ?? id,
             location: manifest.location ?? 'local',
         };
         this.nodes.set(id, node);

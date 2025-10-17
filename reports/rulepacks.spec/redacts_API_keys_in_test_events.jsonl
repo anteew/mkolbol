@@ -1,3 +1,3 @@
-{"ts":1760731407838,"lvl":"info","case":"redacts API keys in test events","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760731407839,"lvl":"info","case":"redacts API keys in test events","phase":"execution","evt":"test.run"}
-{"ts":1760731407840,"lvl":"info","case":"redacts API keys in test events","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
+{"ts":1760736810493,"lvl":"info","case":"redacts API keys in test events","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760736810494,"lvl":"info","case":"redacts API keys in test events","phase":"execution","evt":"test.run"}
+{"ts":1760736810495,"lvl":"info","case":"redacts API keys in test events","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}

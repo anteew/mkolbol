@@ -22,7 +22,7 @@ export class ConsoleSink {
                     this.writeText(chunk);
                 }
                 cb();
-            }
+            },
         });
         this.inputPipe = sink;
     }
@@ -44,7 +44,7 @@ export class ConsoleSink {
             data = {
                 type: 'Buffer',
                 encoding: 'base64',
-                data: chunk.toString('base64')
+                data: chunk.toString('base64'),
             };
         }
         else {
@@ -60,18 +60,23 @@ function formatBuffer(buf) {
     if (buf.length === 0) {
         return 'Buffer(0) []';
     }
-    const isLikelyText = buf.every(byte => (byte >= 0x20 && byte <= 0x7E) ||
-        byte === 0x09 || byte === 0x0A || byte === 0x0D);
+    const isLikelyText = buf.every((byte) => (byte >= 0x20 && byte <= 0x7e) || byte === 0x09 || byte === 0x0a || byte === 0x0d);
     if (isLikelyText && buf.length <= maxUtf8Length) {
         const str = buf.toString('utf8');
         return `Buffer(${buf.length}) "${str}"`;
     }
     if (buf.length <= maxHexBytes) {
-        const hex = buf.toString('hex').match(/.{1,2}/g)?.join(' ') || '';
+        const hex = buf
+            .toString('hex')
+            .match(/.{1,2}/g)
+            ?.join(' ') || '';
         return `Buffer(${buf.length}) [${hex}]`;
     }
     const preview = buf.subarray(0, maxHexBytes);
-    const hex = preview.toString('hex').match(/.{1,2}/g)?.join(' ') || '';
+    const hex = preview
+        .toString('hex')
+        .match(/.{1,2}/g)
+        ?.join(' ') || '';
     return `Buffer(${buf.length}) [${hex} ... +${buf.length - maxHexBytes} bytes]`;
 }
 //# sourceMappingURL=consoleSink.js.map

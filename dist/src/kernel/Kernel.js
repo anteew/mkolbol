@@ -47,7 +47,7 @@ export class Kernel {
             if (query.features) {
                 if (!caps.features)
                     continue;
-                const hasAll = query.features.every(f => caps.features.includes(f));
+                const hasAll = query.features.every((f) => caps.features.includes(f));
                 if (!hasAll)
                     continue;
             }

@@ -27,7 +27,7 @@ export class RateLimiterTransform {
                 else {
                     this.pendingMessages.push({ chunk, callback: () => cb(null, chunk) });
                 }
-            }
+            },
         });
         this.outputPipe = kernel.createPipe({ objectMode: true });
         this.inputPipe.pipe(transformer).pipe(this.outputPipe);

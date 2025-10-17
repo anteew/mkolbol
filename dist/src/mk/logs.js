@@ -170,7 +170,7 @@ export async function tailLogs(options) {
         await tailDebugLogs(options);
         return;
     }
-    const suites = fs.readdirSync(reportsDir).filter(f => {
+    const suites = fs.readdirSync(reportsDir).filter((f) => {
         const stat = fs.statSync(path.join(reportsDir, f));
         return stat.isDirectory();
     });
@@ -180,13 +180,13 @@ export async function tailLogs(options) {
     }
     const suite = suites[0];
     const suiteDir = path.join(reportsDir, suite);
-    const logFiles = fs.readdirSync(suiteDir).filter(f => f.endsWith('.jsonl'));
+    const logFiles = fs.readdirSync(suiteDir).filter((f) => f.endsWith('.jsonl'));
     if (logFiles.length === 0) {
         await tailDebugLogs(options);
         return;
     }
     const latestLog = logFiles
-        .map(f => ({
+        .map((f) => ({
         name: f,
         path: path.join(suiteDir, f),
         mtime: fs.statSync(path.join(suiteDir, f)).mtime,

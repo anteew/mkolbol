@@ -15,7 +15,7 @@ class JSONSink {
             write: (chunk, _enc, cb) => {
                 console.log(`${prefix}`, JSON.stringify(chunk, null, 2));
                 cb();
-            }
+            },
         });
         this.inputPipe = sink;
     }
@@ -34,13 +34,13 @@ async function main() {
         terminals: [
             { name: 'input', type: 'local', direction: 'input' },
             { name: 'output', type: 'local', direction: 'output' },
-            { name: 'error', type: 'local', direction: 'output' }
+            { name: 'error', type: 'local', direction: 'output' },
         ],
         capabilities: {
             type: 'transform',
             accepts: ['text'],
             produces: ['text'],
-            features: ['interactive', 'pty']
+            features: ['interactive', 'pty'],
         },
         shell: '/bin/bash',
         shellArgs: [],
@@ -54,7 +54,7 @@ async function main() {
         initialRows: 24,
         restart: 'on-failure',
         restartDelay: 1000,
-        maxRestarts: 3
+        maxRestarts: 3,
     };
     console.log('=== ANSI Parser Demo: PTY → AnsiParser → [ConsoleSink + JSONSink] ===\n');
     console.log('Spawning PTY wrapper...');
@@ -68,11 +68,11 @@ async function main() {
     kernel.split(ansiParser.outputPipe, [consoleSink.inputPipe, jsonSink.inputPipe]);
     console.log('Sending test commands...\n');
     pty.inputPipe.write('echo "\\x1b[1;32mGreen Bold Text\\x1b[0m"\n');
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
     pty.inputPipe.write('echo "Normal text"\n');
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
     pty.inputPipe.write('pwd\n');
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
     console.log('\n=== Parser State ===');
     console.log(ansiParser.getState());
     console.log('\nShutting down...');

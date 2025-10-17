@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync, unlinkSync, copyFileSync, chmodSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, unlinkSync, copyFileSync, chmodSync, statSync, } from 'node:fs';
 import { resolve, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { platform } from 'node:os';
@@ -62,7 +62,7 @@ export function install(options) {
             shimPaths.push(mkShimPath + '.cmd');
         }
         if (verbose) {
-            shimPaths.forEach(p => console.log(`Created shim: ${p}`));
+            shimPaths.forEach((p) => console.log(`Created shim: ${p}`));
         }
         return {
             success: true,
@@ -140,7 +140,8 @@ export function where() {
         }
         return {
             success: true,
-            message: `Found ${foundInstalls.length} installation(s):\n` + foundInstalls.map(p => `  ${p}`).join('\n'),
+            message: `Found ${foundInstalls.length} installation(s):\n` +
+                foundInstalls.map((p) => `  ${p}`).join('\n'),
             shimPaths: foundInstalls,
         };
     }

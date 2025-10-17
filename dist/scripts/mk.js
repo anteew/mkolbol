@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { generatePromptSnippet, disablePrompt, enablePrompt, isPromptDisabled } from '../src/mk/prompt.js';
+import { generatePromptSnippet, disablePrompt, enablePrompt, isPromptDisabled, } from '../src/mk/prompt.js';
 import { createError, formatError, isJsonOutputRequested, MkError } from '../src/mk/errors.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
@@ -14,7 +14,7 @@ const commands = [
         handler: async () => {
             console.log(await getMkVersion());
             return EXIT_SUCCESS;
-        }
+        },
     },
     {
         name: 'init',
@@ -24,7 +24,7 @@ const commands = [
             const { mkdirSync, existsSync, cpSync, writeFileSync, readFileSync } = await import('node:fs');
             const { join, resolve } = await import('node:path');
             const { fileURLToPath } = await import('node:url');
-            const projectName = args.find(a => !a.startsWith('--')) || 'mk-app';
+            const projectName = args.find((a) => !a.startsWith('--')) || 'mk-app';
             const force = args.includes('--force') || args.includes('-f');
             const verbose = args.includes('--verbose');
             const cwd = process.cwd();
@@ -46,7 +46,7 @@ const commands = [
             if (existsSync(targetDir) && force) {
                 // Minimal nuke: recreate directory
                 try {
-                    await import('node:fs/promises').then(fs => fs.rm(targetDir, { recursive: true, force: true }));
+                    await import('node:fs/promises').then((fs) => fs.rm(targetDir, { recursive: true, force: true }));
                 }
                 catch { }
             }
@@ -141,7 +141,7 @@ const commands = [
                     verbose,
                     onReload: (nodeId) => {
                         console.log(`[mk dev] Node ${nodeId} hot-reloaded`);
-                    }
+                    },
                 });
                 console.log('[mk dev] System running. Press Ctrl+C to stop.');
                 // Handle graceful shutdown
@@ -173,7 +173,7 @@ const commands = [
             const verbose = args.includes('--verbose');
             const jsonOutput = args.includes('--json');
             let section = 'all';
-            const sectionIndex = args.findIndex(a => a === '--section');
+            const sectionIndex = args.findIndex((a) => a === '--section');
             if (sectionIndex !== -1 && args[sectionIndex + 1]) {
                 const sectionArg = args[sectionIndex + 1];
                 if (sectionArg === 'toolchain' || sectionArg === 'environment' || sectionArg === 'all') {
@@ -188,7 +188,7 @@ const commands = [
             const results = await runDoctorChecks(verbose, section);
             const output = formatCheckResults(results, jsonOutput ? 'json' : 'text');
             console.log(output);
-            const hasFailed = results.some(r => r.status === 'fail');
+            const hasFailed = results.some((r) => r.status === 'fail');
             return hasFailed ? EXIT_ERROR : EXIT_SUCCESS;
         },
     },
@@ -598,7 +598,7 @@ const commands = [
                     const { resolve } = await import('node:path');
                     await new Promise((resolveP, rejectP) => {
                         const p = spawn('npm', ['pack'], { stdio: 'inherit' });
-                        p.on('exit', (code) => (code === 0 ? resolveP() : rejectP(new Error('npm pack failed'))));
+                        p.on('exit', (code) => code === 0 ? resolveP() : rejectP(new Error('npm pack failed')));
                     });
                     const tarball = readdirSync(process.cwd()).find((f) => /^mkolbol-.*\.tgz$/.test(f));
                     if (!tarball) {
@@ -608,7 +608,7 @@ const commands = [
                     console.log(`Installing ${tarball} globally...`);
                     await new Promise((resolveP, rejectP) => {
                         const p = spawn('npm', ['install', '-g', tarball], { stdio: 'inherit' });
-                        p.on('exit', (code) => (code === 0 ? resolveP() : rejectP(new Error('npm install -g failed'))));
+                        p.on('exit', (code) => code === 0 ? resolveP() : rejectP(new Error('npm install -g failed')));
                     });
                     console.log('✓ Installed globally. mk should be on your PATH.');
                     return EXIT_SUCCESS;
@@ -625,7 +625,9 @@ const commands = [
                 const pathMod = await import('node:path');
                 const home = process.env.HOME || process.env.USERPROFILE || '.';
                 const outDir = binDir
-                    ? (pathMod.isAbsolute(binDir) ? binDir : pathMod.resolve(process.cwd(), binDir))
+                    ? pathMod.isAbsolute(binDir)
+                        ? binDir
+                        : pathMod.resolve(process.cwd(), binDir)
                     : pathMod.resolve(home, '.local', 'bin');
                 await mkdir(outDir, { recursive: true });
                 const mkPath = pathMod.resolve(outDir, 'mk');

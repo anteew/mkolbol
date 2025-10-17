@@ -52,7 +52,7 @@ async function runTest(command) {
             resolve({
                 passed: code === 0,
                 duration,
-                error: code !== 0 ? `Exit code ${code}` : undefined
+                error: code !== 0 ? `Exit code ${code}` : undefined,
             });
         });
     });
@@ -62,13 +62,13 @@ async function testRemoteViewer() {
     return new Promise((resolve) => {
         // Start server
         const server = spawn('npx', ['tsx', 'examples/network/remote-viewer/server.ts'], {
-            stdio: 'pipe'
+            stdio: 'pipe',
         });
         // Wait for server to start
         setTimeout(() => {
             // Start client (connect and receive one message)
             const client = spawn('npx', ['tsx', 'examples/network/remote-viewer/client.ts'], {
-                stdio: 'pipe'
+                stdio: 'pipe',
             });
             let received = false;
             client.stdout?.on('data', (data) => {
@@ -87,7 +87,7 @@ async function testRemoteViewer() {
                 resolve({
                     passed: received,
                     duration,
-                    error: received ? undefined : 'No data received'
+                    error: received ? undefined : 'No data received',
                 });
             });
         }, 1000);

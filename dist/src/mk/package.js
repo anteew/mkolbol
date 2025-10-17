@@ -46,9 +46,10 @@ export async function packageHandler(_args) {
         const capsulePath = join(distDir, capsuleFilename);
         console.log('[mk package] Creating capsule...');
         // Create tarball using tar command
-        const files = ['bundle.js', 'bundle.js.map', 'build-info.json']
-            .filter(f => existsSync(join(distDir, f)));
-        await execAsync(`tar -czf "${capsuleFilename}" ${files.map(f => `"${f}"`).join(' ')}`, { cwd: distDir });
+        const files = ['bundle.js', 'bundle.js.map', 'build-info.json'].filter((f) => existsSync(join(distDir, f)));
+        await execAsync(`tar -czf "${capsuleFilename}" ${files.map((f) => `"${f}"`).join(' ')}`, {
+            cwd: distDir,
+        });
         // Get file stats
         const stats = statSync(capsulePath);
         const size = stats.size;

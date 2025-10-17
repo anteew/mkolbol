@@ -16,14 +16,14 @@ export class WorkerBusAdapter {
                 this.port.postMessage({
                     type: 'publish',
                     topic: name,
-                    data
+                    data,
                 });
             });
             if (!this.subscriptions.has(name)) {
                 this.subscriptions.add(name);
                 this.port.postMessage({
                     type: 'subscribe',
-                    topic: name
+                    topic: name,
                 });
             }
         }
@@ -42,7 +42,7 @@ export class WorkerBusAdapter {
             this.subscriptions.delete(topic);
             this.port.postMessage({
                 type: 'unsubscribe',
-                topic
+                topic,
             });
         }
         const stream = this.topics.get(topic);

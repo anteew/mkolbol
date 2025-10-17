@@ -94,7 +94,10 @@ async function loadModuleList() {
                 if (moduleName.includes('sink') || moduleName.includes('output')) {
                     moduleType = 'output';
                 }
-                else if (moduleName.includes('source') || moduleName.includes('input') || moduleName.includes('timer') || moduleName.includes('keyboard')) {
+                else if (moduleName.includes('source') ||
+                    moduleName.includes('input') ||
+                    moduleName.includes('timer') ||
+                    moduleName.includes('keyboard')) {
                     moduleType = 'input';
                 }
                 modules.push({

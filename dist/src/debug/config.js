@@ -10,8 +10,8 @@ function parseModules(envVar) {
         return new Set();
     return new Set(envVar
         .split(',')
-        .map(m => m.trim())
-        .filter(m => m.length > 0));
+        .map((m) => m.trim())
+        .filter((m) => m.length > 0));
 }
 function parseLevel(envVar) {
     const level = (envVar?.toLowerCase() || 'info');

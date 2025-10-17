@@ -1,3 +1,3 @@
-{"ts":1760731411366,"lvl":"info","case":"tools/resources list read","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760731411367,"lvl":"info","case":"tools/resources list read","phase":"execution","evt":"test.run"}
-{"ts":1760731411368,"lvl":"info","case":"tools/resources list read","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760736813487,"lvl":"info","case":"tools/resources list read","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760736813488,"lvl":"info","case":"tools/resources list read","phase":"execution","evt":"test.run"}
+{"ts":1760736813489,"lvl":"info","case":"tools/resources list read","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}

@@ -167,7 +167,7 @@ connections:
             throw new Error('TTL soak test: no output data file created');
         }
         const outputContent = readFileSync(soakOutputPath, 'utf-8');
-        const lineCount = outputContent.split('\n').filter(l => l.trim()).length;
+        const lineCount = outputContent.split('\n').filter((l) => l.trim()).length;
         if (lineCount < 10) {
             throw new Error(`TTL soak test: insufficient data throughput (${lineCount} lines)`);
         }
@@ -187,8 +187,8 @@ connections:
 }
 async function generateReport(projectPath) {
     log('Generating report...');
-    const passed = results.filter(r => r.passed).length;
-    const failed = results.filter(r => !r.passed).length;
+    const passed = results.filter((r) => r.passed).length;
+    const failed = results.filter((r) => !r.passed).length;
     const total = results.length;
     const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
     const timestamp = new Date().toISOString();
@@ -200,7 +200,8 @@ async function generateReport(projectPath) {
 
 ## Test Results
 
-${results.map(r => {
+${results
+        .map((r) => {
         const icon = r.passed ? '✓' : '✗';
         const status = r.passed ? 'PASSED' : 'FAILED';
         return `### ${icon} ${r.name} - ${status}
@@ -208,7 +209,8 @@ ${results.map(r => {
 **Duration:** ${r.duration}ms
 ${r.passed ? '' : `**Error:** ${r.message}`}
 `;
-    }).join('\n')}
+    })
+        .join('\n')}
 
 ## Summary
 
@@ -263,10 +265,10 @@ ${sectionMarker}
 **Last Run:** ${timestamp}
 
 \`\`\`
-${results.map(r => `${r.passed ? '✓' : '✗'} ${r.name} (${r.duration}ms)`).join('\n')}
+${results.map((r) => `${r.passed ? '✓' : '✗'} ${r.name} (${r.duration}ms)`).join('\n')}
 \`\`\`
 
-**Summary:** ${results.filter(r => r.passed).length}/${results.length} tests passed
+**Summary:** ${results.filter((r) => r.passed).length}/${results.length} tests passed
 
 See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
 
@@ -316,8 +318,8 @@ async function main() {
         // Generate report
         await generateReport(projectPath);
         // Print summary
-        const passed = results.filter(r => r.passed).length;
-        const failed = results.filter(r => !r.passed).length;
+        const passed = results.filter((r) => r.passed).length;
+        const failed = results.filter((r) => !r.passed).length;
         console.log('\n' + '='.repeat(60));
         console.log('ACCEPTANCE TEST SUMMARY');
         console.log('='.repeat(60));
@@ -327,7 +329,9 @@ async function main() {
         console.log('='.repeat(60));
         if (failed > 0) {
             console.log('\nFailed tests:');
-            results.filter(r => !r.passed).forEach(r => {
+            results
+                .filter((r) => !r.passed)
+                .forEach((r) => {
                 console.log(`  - ${r.name}: ${r.message}`);
             });
         }
@@ -339,9 +343,11 @@ async function main() {
     }
 }
 // Run the acceptance tests
-main().then(exitCode => {
+main()
+    .then((exitCode) => {
     process.exit(exitCode);
-}).catch(err => {
+})
+    .catch((err) => {
     error(`Fatal error: ${err.message}`);
     process.exit(EXIT_ERROR);
 });

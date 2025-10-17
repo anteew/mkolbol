@@ -11,7 +11,7 @@ function runCommand(cmd, options = {}) {
         return execSync(cmd, {
             encoding: 'utf8',
             stdio: ['inherit', 'pipe', 'inherit'],
-            ...options
+            ...options,
         });
     }
     catch (error) {
@@ -41,8 +41,7 @@ function main() {
     if (fs.existsSync(indexPath)) {
         try {
             const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
-            const hasFailures = Array.isArray(index?.artifacts) &&
-                index.artifacts.some((a) => a.status === 'fail');
+            const hasFailures = Array.isArray(index?.artifacts) && index.artifacts.some((a) => a.status === 'fail');
             if (hasFailures) {
                 const digest = runCommand('npm run lam -- digest');
                 fs.writeFileSync(path.join(reportsDir, 'LAMINAR_DIGEST.txt'), digest, 'utf8');

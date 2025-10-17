@@ -13,7 +13,7 @@ export class TTYRenderer {
         this.options = {
             target: options?.target ?? 'stdout',
             rawMode: options?.rawMode ?? true,
-            stripAnsi: options?.stripAnsi ?? false
+            stripAnsi: options?.stripAnsi ?? false,
         };
         this.isTTY = this.options.target === 'stdout' && process.stdout.isTTY;
         const sink = new Writable({
@@ -21,7 +21,7 @@ export class TTYRenderer {
             write: (chunk, _enc, cb) => {
                 this.writeChunk(chunk);
                 cb();
-            }
+            },
         });
         this.inputPipe = sink;
     }
@@ -57,7 +57,7 @@ export class TTYRenderer {
             await mkdir(dir, { recursive: true });
             this.fileStream = createWriteStream(this.options.target, {
                 flags: 'a',
-                encoding: 'utf8'
+                encoding: 'utf8',
             });
             this.fileStream.on('error', (err) => {
                 console.error(`[TTYRenderer] Error writing to ${this.options.target}:`, err);

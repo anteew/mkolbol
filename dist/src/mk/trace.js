@@ -48,9 +48,7 @@ export class TraceCollector extends EventEmitter {
         const allLatencies = Array.from(this.latencyBuffers.values()).flat();
         allLatencies.sort((a, b) => a - b);
         const totalMessages = allLatencies.length;
-        const avgLatency = allLatencies.length > 0
-            ? allLatencies.reduce((a, b) => a + b, 0) / allLatencies.length
-            : 0;
+        const avgLatency = allLatencies.length > 0 ? allLatencies.reduce((a, b) => a + b, 0) / allLatencies.length : 0;
         const p50Latency = this.percentile(allLatencies, 50);
         const p95Latency = this.percentile(allLatencies, 95);
         const p99Latency = this.percentile(allLatencies, 99);
@@ -170,8 +168,8 @@ export function formatTraceOutput(data, format = 'text') {
     lines.push('');
     if (data.bottlenecks.length > 0) {
         lines.push('─── Bottleneck Analysis ───────────────────────────────');
-        const highSeverity = data.bottlenecks.filter(b => b.severity === 'high');
-        const mediumSeverity = data.bottlenecks.filter(b => b.severity === 'medium');
+        const highSeverity = data.bottlenecks.filter((b) => b.severity === 'high');
+        const mediumSeverity = data.bottlenecks.filter((b) => b.severity === 'medium');
         if (highSeverity.length > 0) {
             lines.push('');
             lines.push('⚠ HIGH SEVERITY:');

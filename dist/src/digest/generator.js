@@ -11,7 +11,7 @@ export class DigestGenerator {
             return null;
         }
         const allEvents = await this.loadEvents(artifactPath);
-        const caseEvents = allEvents.filter(e => e.case === caseId);
+        const caseEvents = allEvents.filter((e) => e.case === caseId);
         if (caseEvents.length === 0) {
             return null;
         }
@@ -35,10 +35,10 @@ export class DigestGenerator {
                 generated: Date.now(),
                 source: artifactPath,
                 eventCount: allEvents.length,
-                filteredCount: filteredEvents.length
+                filteredCount: filteredEvents.length,
             },
             events: filteredEvents,
-            summary
+            summary,
         };
     }
     async loadEvents(eventsPath) {
@@ -46,7 +46,7 @@ export class DigestGenerator {
         const fileStream = fs.createReadStream(eventsPath);
         const rl = readline.createInterface({
             input: fileStream,
-            crlfDelay: Infinity
+            crlfDelay: Infinity,
         });
         for await (const line of rl) {
             if (line.trim()) {
@@ -72,8 +72,8 @@ export class DigestGenerator {
         const included = new Set();
         const excluded = new Set();
         for (const rule of rules) {
-            const hasIncludeAction = rule.actions.some(a => a.type === 'include');
-            const hasExcludeAction = rule.actions.some(a => a.type === 'exclude');
+            const hasIncludeAction = rule.actions.some((a) => a.type === 'include');
+            const hasExcludeAction = rule.actions.some((a) => a.type === 'exclude');
             for (let i = 0; i < events.length; i++) {
                 if (excluded.has(i))
                     continue;
@@ -87,7 +87,7 @@ export class DigestGenerator {
                         if (!excluded.has(i)) {
                             included.add(i);
                         }
-                        const sliceAction = rule.actions.find(a => a.type === 'slice');
+                        const sliceAction = rule.actions.find((a) => a.type === 'slice');
                         if (sliceAction && sliceAction.window) {
                             const window = sliceAction.window;
                             for (let j = Math.max(0, i - window); j <= Math.min(events.length - 1, i + window); j++) {
@@ -123,9 +123,7 @@ export class DigestGenerator {
             }
         }
         if (match.pattern) {
-            const pattern = match.pattern instanceof RegExp
-                ? match.pattern
-                : new RegExp(match.pattern);
+            const pattern = match.pattern instanceof RegExp ? match.pattern : new RegExp(match.pattern);
             const searchText = `${event.case} ${event.evt} ${event.phase || ''}`;
             if (!pattern.test(searchText)) {
                 return false;
@@ -168,7 +166,7 @@ export class DigestGenerator {
             debug: 0,
             info: 0,
             warn: 0,
-            error: 0
+            error: 0,
         };
         const byEventType = {};
         for (const event of events) {
@@ -180,7 +178,7 @@ export class DigestGenerator {
             byLevel,
             byEventType,
             redactedFields,
-            includedEvents: events.length
+            includedEvents: events.length,
         };
     }
 }

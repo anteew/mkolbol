@@ -47,9 +47,7 @@ export async function buildHandler(_args) {
         const bundleContent = readFileSync(outfile, 'utf-8');
         const bundleHash = createHash('sha256').update(bundleContent).digest('hex');
         // Extract source files from metafile
-        const sourceFiles = result.metafile
-            ? Object.keys(result.metafile.inputs).sort()
-            : [entryPoint];
+        const sourceFiles = result.metafile ? Object.keys(result.metafile.inputs).sort() : [entryPoint];
         // Generate provenance
         const provenance = {
             version: pkg.version,

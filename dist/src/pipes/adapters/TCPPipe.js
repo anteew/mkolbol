@@ -67,13 +67,13 @@ export class TCPPipeServer {
             this.server.on('error', reject);
             this.server.listen(this.options.port, () => {
                 const addr = this.server.address();
-                resolve((addr && typeof addr === 'object') ? addr.port : this.options.port);
+                resolve(addr && typeof addr === 'object' ? addr.port : this.options.port);
             });
         });
     }
     close() {
         return new Promise((resolve) => {
-            this.connections.forEach(s => s.end());
+            this.connections.forEach((s) => s.end());
             this.connections.clear();
             if (this.server)
                 this.server.close(() => resolve());

@@ -1,3 +1,3 @@
-{"ts":1760731410906,"lvl":"info","case":"should render raw ANSI to stdout","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760731410907,"lvl":"info","case":"should render raw ANSI to stdout","phase":"execution","evt":"test.run"}
-{"ts":1760731410908,"lvl":"info","case":"should render raw ANSI to stdout","phase":"teardown","evt":"case.end","payload":{"duration":28,"status":"passed"}}
+{"ts":1760736876086,"lvl":"info","case":"should render raw ANSI to stdout","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760736876087,"lvl":"info","case":"should render raw ANSI to stdout","phase":"execution","evt":"test.run"}
+{"ts":1760736876088,"lvl":"info","case":"should render raw ANSI to stdout","phase":"teardown","evt":"case.end","payload":{"duration":151,"status":"passed"}}

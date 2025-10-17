@@ -6,12 +6,12 @@ function generateCIPlan() {
     return {
         matrix: {
             node: ['20', '24'],
-            lane: ['threads', 'forks']
+            lane: ['threads', 'forks'],
         },
         cacheKeys: {
             'node-modules-20': 'node-modules-20-abc123',
-            'node-modules-24': 'node-modules-24-def456'
-        }
+            'node-modules-24': 'node-modules-24-def456',
+        },
     };
 }
 function formatEnvOutput(plan) {

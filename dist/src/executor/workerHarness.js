@@ -29,7 +29,7 @@ async function bootWorker() {
         type: 'worker.ready',
         id: config.nodeId,
         ts: Date.now(),
-        payload: { nodeId: config.nodeId }
+        payload: { nodeId: config.nodeId },
     });
     parentPort.on('message', (msg) => {
         if (msg && msg.type === 'shutdown') {

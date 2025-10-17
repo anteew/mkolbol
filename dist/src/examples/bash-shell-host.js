@@ -19,7 +19,7 @@ async function main() {
         terminals: [
             { name: 'input', type: 'local', direction: 'input' },
             { name: 'output', type: 'local', direction: 'output' },
-            { name: 'error', type: 'local', direction: 'output' }
+            { name: 'error', type: 'local', direction: 'output' },
         ],
         capabilities: { type: 'source', accepts: [], produces: [] },
         command: 'bash',
@@ -28,7 +28,7 @@ async function main() {
         env: {},
         cwd: process.cwd(),
         ioMode: 'pty',
-        restart: 'never'
+        restart: 'never',
     });
     const tty = new TTYRenderer(kernel, { target: 'stdout' });
     // Wire PTY → TTY

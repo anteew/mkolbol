@@ -7,5 +7,8 @@ const sinkA = new ConsoleSink('[A]');
 const sinkB = new ConsoleSink('[B]');
 kernel.split(timer.outputPipe, [sinkA.inputPipe, sinkB.inputPipe]);
 timer.start();
-setTimeout(() => { timer.stop(); console.log('Done.'); }, 2000);
+setTimeout(() => {
+    timer.stop();
+    console.log('Done.');
+}, 2000);
 //# sourceMappingURL=split-topology.js.map

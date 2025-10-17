@@ -21,7 +21,7 @@ async function main() {
     console.log('Bringing topology up...');
     await executor.up();
     console.log('Topology running for 5 seconds...\n');
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     console.log('\nBringing topology down...');
     await executor.down();
     console.log('Done.');

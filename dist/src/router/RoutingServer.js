@@ -1,5 +1,6 @@
 import { debug } from '../debug/api.js';
-export class RoutingServer {
+import { EventEmitter } from 'events';
+export class RoutingServer extends EventEmitter {
     endpoints = new Map();
     ttlMs;
     sweepIntervalMs;
@@ -9,7 +10,9 @@ export class RoutingServer {
         totalRemoved: 0,
         lastSweepTime: null,
     };
+    subscribers = new Set();
     constructor(config) {
+        super();
         this.ttlMs = config?.ttlMs ?? 30000;
         this.sweepIntervalMs = config?.sweepIntervalMs ?? 10000;
     }
@@ -39,14 +42,28 @@ export class RoutingServer {
                 updatedAt: now,
                 expiresAt,
             };
+        const isNew = !existing;
         this.endpoints.set(id, endpoint);
         debug.emit('router', 'announce', { id, type, coordinates, metadata });
+        this.emitEvent({
+            type: isNew ? 'added' : 'updated',
+            endpoint: { ...endpoint },
+            timestamp: now
+        });
     }
     withdraw(id) {
         if (!id)
             return;
+        const endpoint = this.endpoints.get(id);
         if (this.endpoints.delete(id)) {
             debug.emit('router', 'withdraw', { id });
+            if (endpoint) {
+                this.emitEvent({
+                    type: 'removed',
+                    endpoint: { ...endpoint },
+                    timestamp: Date.now()
+                });
+            }
         }
     }
     list() {
@@ -117,6 +134,17 @@ export class RoutingServer {
             totalRemoved: this.sweeperMetrics.totalRemoved,
             lastSweepTime: this.sweeperMetrics.lastSweepTime,
         };
+    }
+    subscribe(callback) {
+        this.subscribers.add(callback);
+        return () => this.unsubscribe(callback);
+    }
+    unsubscribe(callback) {
+        this.subscribers.delete(callback);
+    }
+    emitEvent(event) {
+        this.subscribers.forEach(cb => cb(event));
+        this.emit('routerEvent', event);
     }
 }
 //# sourceMappingURL=RoutingServer.js.map

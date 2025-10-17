@@ -19,7 +19,7 @@ function exec(cmd, cwd = PROJECT_ROOT) {
         return execSync(cmd, {
             cwd,
             encoding: 'utf8',
-            stdio: ['inherit', 'pipe', 'pipe']
+            stdio: ['inherit', 'pipe', 'pipe'],
         });
     }
     catch (err) {
@@ -75,7 +75,7 @@ async function main() {
         // Copy fixture files to temp directory
         cpSync(FIXTURE_DIR, tempDir, { recursive: true });
         console.log('  ✓ Copied fixture app');
-        // Copy tarball to temp directory  
+        // Copy tarball to temp directory
         const tarballPath = join(PROJECT_ROOT, tarballName);
         const targetTarball = join(tempDir, '..', tarballName);
         cpSync(tarballPath, targetTarball);
