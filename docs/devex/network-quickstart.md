@@ -141,6 +141,161 @@ Both provide identical Duplex stream interfaces.
 
 ---
 
+---
+
+## Viewing Remote Pipes with mkctl connect
+
+The `mkctl connect` command provides an easy way to view output from remote TCP or WebSocket pipes.
+
+### Quick Start: Connect to Local Pipe
+
+**Terminal 1: Start a pipe server**
+
+```bash
+npm run build
+npx tsx examples/network/remote-viewer/server.ts
+```
+
+**Terminal 2: View with mkctl connect**
+
+```bash
+# Human-readable output
+mkctl connect --url tcp://localhost:30018
+
+# JSON output (for tooling)
+mkctl connect --url tcp://localhost:30018 --json
+```
+
+### Connect to Remote Pipe
+
+Connect to a pipe running on a different machine:
+
+```bash
+# Direct connection (if firewall allows)
+mkctl connect --url tcp://192.168.1.100:30018
+
+# Via SSH tunnel (recommended for security)
+# Terminal 1: Create tunnel
+ssh -L 30018:localhost:30018 user@remote-host
+
+# Terminal 2: Connect through tunnel
+mkctl connect --url tcp://localhost:30018
+```
+
+### Output Modes
+
+**Human-readable (default):**
+
+```bash
+mkctl connect --url tcp://localhost:30018
+```
+
+Output:
+
+```
+Connected to tcp://localhost:30018
+[Tue Oct 17 2025 12:34:56] tick
+[Tue Oct 17 2025 12:34:57] tick
+```
+
+**JSON mode (for automation):**
+
+```bash
+mkctl connect --url tcp://localhost:30018 --json
+```
+
+Output:
+
+```json
+{"type":"data","payload":"tick","timestamp":1697520905123}
+{"type":"data","payload":"tick","timestamp":1697520906123}
+{"type":"ping","timestamp":1697520910000}
+```
+
+**Pipe JSON to jq:**
+
+```bash
+mkctl connect --url tcp://localhost:30018 --json | jq 'select(.type=="data") | .payload'
+```
+
+### WebSocket Pipes
+
+Connect works with WebSocket pipes too:
+
+```bash
+# Start WebSocket server
+npx tsx examples/network/ws-smoke/server.ts
+
+# Connect with mkctl
+mkctl connect --url ws://localhost:30015
+
+# JSON output
+mkctl connect --url ws://localhost:30015 --json
+```
+
+### End-to-End Example
+
+**Scenario:** Monitor remote server logs in real-time.
+
+**Step 1: On remote server (192.168.1.100)**
+
+Create a topology that exports logs via TCP:
+
+```yaml
+# http-logs-tcp.yml
+nodes:
+  - id: web
+    module: ExternalProcess
+    params:
+      command: node
+      args:
+        [
+          '-e',
+          'require("http").createServer((req,res)=>{console.log(req.url);res.end("OK")}).listen(3000)',
+        ]
+      ioMode: stdio
+  - id: tcp-export
+    module: TCPPipeServer
+    params:
+      port: 30018
+
+connections:
+  - from: web.output
+    to: tcp-export.input
+```
+
+Start the topology:
+
+```bash
+mkctl run --file http-logs-tcp.yml --duration 3600
+```
+
+**Step 2: On local machine**
+
+Set up SSH tunnel:
+
+```bash
+ssh -L 30018:localhost:30018 user@192.168.1.100
+```
+
+**Step 3: View logs**
+
+```bash
+mkctl connect --url tcp://localhost:30018
+```
+
+**Step 4: Generate traffic (optional)**
+
+```bash
+# On remote server or from anywhere
+curl http://192.168.1.100:3000/hello
+curl http://192.168.1.100:3000/api/users
+```
+
+You'll see the logs appear in your local terminal in real-time!
+
+---
+
 ## Next Steps
 
 - See [Remote Viewer README](../../examples/network/remote-viewer/README.md) for TCP example
@@ -148,3 +303,5 @@ Both provide identical Duplex stream interfaces.
 - See [TCPPipe tests](../../tests/integration/tcpPipe.spec.ts) for TCP API usage
 - See [WebSocketPipe tests](../../tests/integration/wsPipe.spec.ts) for WebSocket API usage
 - See [FrameCodec tests](../../tests/net/frame.spec.ts) for protocol details
+- See [mkctl Cookbook](./mkctl-cookbook.md#remote-viewing) for complete connect command reference
+- See [Remote Host Setup](./remote-host-setup.md#ssh-tunnel-patterns-for-mkctl-connect) for SSH tunnel patterns

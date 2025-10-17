@@ -397,6 +397,144 @@ const client = new TCPPipeClient({ port: 30015, host: 'localhost' });
 
 ---
 
+## SSH Tunnel Patterns for mkctl connect
+
+Use SSH tunnels to securely view remote pipes without exposing additional ports.
+
+### Basic TCP Tunnel
+
+Forward a remote TCP pipe to your local machine:
+
+```bash
+# Terminal 1: Create SSH tunnel
+# Forwards localhost:30010 → remote-host:30010
+ssh -L 30010:localhost:30010 user@remote-host
+
+# Terminal 2: Connect to the tunneled port
+mkctl connect --url tcp://localhost:30010
+```
+
+**What happens:**
+
+- SSH creates encrypted tunnel from your local port 30010 to remote port 30010
+- `mkctl connect` connects to localhost:30010, but traffic flows to remote host
+- All data is encrypted by SSH
+- No firewall changes needed (uses existing SSH port 22)
+
+### WebSocket Tunnel
+
+Forward a remote WebSocket pipe:
+
+```bash
+# Terminal 1: Create SSH tunnel for WebSocket
+ssh -L 30012:localhost:30012 user@remote-host
+
+# Terminal 2: Connect to the tunneled WebSocket
+mkctl connect --url ws://localhost:30012/pipe
+```
+
+### Multiple Port Tunneling
+
+Forward multiple pipes simultaneously:
+
+```bash
+# Forward 3 different services in one SSH session
+ssh -L 30010:localhost:30010 \
+    -L 30011:localhost:30011 \
+    -L 30012:localhost:30012 \
+    user@remote-host
+
+# Then connect to each in separate terminals
+# Terminal 1
+mkctl connect --url tcp://localhost:30010
+
+# Terminal 2
+mkctl connect --url tcp://localhost:30011
+
+# Terminal 3
+mkctl connect --url ws://localhost:30012/pipe
+```
+
+### Reverse Tunnel (Remote to Local)
+
+Make your local pipe accessible from remote machine:
+
+```bash
+# On local machine: Create reverse tunnel
+# Makes remote-host:30010 forward to localhost:30010
+ssh -R 30010:localhost:30010 user@remote-host
+
+# On remote machine: Connect to the reverse-tunneled port
+mkctl connect --url tcp://localhost:30010
+```
+
+**Use case:** Development environment where you want to test from remote but pipe server runs locally.
+
+### SSH Tunnel Best Practices
+
+**Keep tunnel alive with autossh:**
+
+```bash
+# Install autossh
+sudo apt-get install autossh
+
+# Create persistent tunnel
+autossh -M 0 -f -N -L 30010:localhost:30010 user@remote-host
+```
+
+**SSH config for easier tunneling:**
+
+Add to `~/.ssh/config`:
+
+```
+Host remote-pipes
+    HostName remote-host.example.com
+    User your-username
+    LocalForward 30010 localhost:30010
+    LocalForward 30011 localhost:30011
+    LocalForward 30012 localhost:30012
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+```
+
+Then simply run:
+
+```bash
+# Single command to set up all tunnels
+ssh -N remote-pipes
+```
+
+**Background tunnel:**
+
+```bash
+# Run tunnel in background
+ssh -fN -L 30010:localhost:30010 user@remote-host
+
+# Find and kill the tunnel later
+ps aux | grep "ssh.*30010"
+kill <PID>
+```
+
+### Security Notes
+
+**Why SSH tunnels are recommended:**
+
+- ✅ **Encryption**: All traffic encrypted with SSH (no plaintext on network)
+- ✅ **Authentication**: Uses your existing SSH keys/passwords
+- ✅ **No new firewall rules**: Only requires SSH port (22) to be open
+- ✅ **Audit trail**: SSH logs all connections
+- ✅ **Port protection**: Prevents unauthorized access to pipe ports
+
+**Alternatives (less secure):**
+
+- Direct TCP/WebSocket: Fast but unencrypted, requires firewall rules
+- VPN: Secure but requires VPN setup and overhead
+- TLS wrapping: Requires certificate management
+
+**Recommended approach:** Always use SSH tunnels for remote pipe viewing in production.
+
+---
+
 ## Advanced: Multi-Host Topology
 
 Run a distributed topology across 3 machines:

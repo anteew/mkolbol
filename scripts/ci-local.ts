@@ -10,14 +10,14 @@ async function runFastAcceptance(): Promise<void> {
   let failed = 0;
 
   // Test 1: Frame codec
-  console.log('[1/3] Testing FrameCodec...');
+  console.log('[1/4] Testing FrameCodec...');
   const frameTest = await runTest('npx vitest run tests/net/frame.spec.ts --reporter=default');
   results.push({ name: 'FrameCodec', ...frameTest });
   if (frameTest.passed) passed++;
   else failed++;
 
   // Test 2: TCPPipe
-  console.log('[2/3] Testing TCPPipe...');
+  console.log('[2/4] Testing TCPPipe...');
   const tcpTest = await runTest(
     'npx vitest run tests/integration/tcpPipe.spec.ts --reporter=default',
   );
@@ -25,8 +25,17 @@ async function runFastAcceptance(): Promise<void> {
   if (tcpTest.passed) passed++;
   else failed++;
 
-  // Test 3: Remote viewer example (smoke)
-  console.log('[3/3] Testing remote viewer example...');
+  // Test 3: WebSocketPipe
+  console.log('[3/4] Testing WebSocketPipe...');
+  const wsTest = await runTest(
+    'npx vitest run tests/integration/wsPipe.spec.ts --reporter=default',
+  );
+  results.push({ name: 'WebSocketPipe', ...wsTest });
+  if (wsTest.passed) passed++;
+  else failed++;
+
+  // Test 4: Remote viewer example (smoke)
+  console.log('[4/4] Testing remote viewer example...');
   const viewerTest = await testRemoteViewer();
   results.push({ name: 'RemoteViewer', ...viewerTest });
   if (viewerTest.passed) passed++;

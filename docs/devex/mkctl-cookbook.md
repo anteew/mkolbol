@@ -1715,103 +1715,178 @@ cat reports/router-endpoints.json | jq 'length'
 
 ---
 
-## Future: Remote Connectivity (WebSocket)
+## Remote Viewing
 
-> **Note:** WebSocket remote connectivity is under development. This section documents the planned `--connect` flag for future reference.
+View output from remote TCP or WebSocket pipes in real-time.
 
-### Planned: Connect mkctl to Remote Host
+### Connect to TCP Pipe
 
-In a future release, `mkctl` will support connecting to remote mkolbol instances via WebSocket:
-
-```bash
-# Connect to remote mkolbol routing server
-mkctl --connect ws://remote-host:30015 endpoints
-```
-
-**Planned Use Cases:**
-
-- Monitor remote topologies from your local machine
-- Query endpoint status across distributed deployments
-- Inspect routing snapshots from remote hosts
-- Centralized observability for multi-node setups
-
-### Planned Architecture
-
-```
-Local Machine                    Remote Host (mkolbol instance)
-┌──────────────────┐            ┌─────────────────────────┐
-│  mkctl           │            │  RoutingServer          │
-│  --connect       │────WS──────│  (WebSocket listener)   │
-│  ws://host:30015 │            │  Port 30015             │
-└──────────────────┘            └─────────────────────────┘
-```
-
-### Planned Commands with --connect
+Connect to a remote TCP pipe server and view the output:
 
 ```bash
-# List endpoints on remote host
-mkctl --connect ws://prod-server:30015 endpoints
+# Human-readable output (default)
+mkctl connect --url tcp://localhost:30010
 
-# Watch remote endpoints in real-time
-mkctl --connect ws://prod-server:30015 endpoints --watch
-
-# Get JSON output from remote
-mkctl --connect ws://prod-server:30015 endpoints --json
-
-# Filter remote endpoints by type
-mkctl --connect ws://prod-server:30015 endpoints --filter type=external
+# Connect to remote host
+mkctl connect --url tcp://192.168.1.100:30010
 ```
 
-### Security Considerations (Future)
+**What happens:**
 
-When WebSocket connectivity is implemented, consider:
+- Connects to TCP pipe server at specified host and port
+- Displays incoming data in human-readable format
+- Automatically handles frame protocol (length-prefixed messages)
+- Press Ctrl+C to disconnect gracefully
 
-- **Authentication**: Token-based auth for remote connections
-- **Encryption**: TLS support (`wss://` protocol)
-- **Firewall**: Expose WebSocket port (e.g., 30015) only to trusted networks
-- **Rate limiting**: Protect against DoS on routing server
+**Example output:**
 
-### Implementation Status
+```
+Connected to tcp://localhost:30010
+[Tue Oct 17 2025 12:34:56] tick
+[Tue Oct 17 2025 12:34:57] tick
+[Tue Oct 17 2025 12:34:58] tick
+```
 
-**Current (v0.2.0):**
+### Connect to WebSocket Pipe
 
-- ✅ WebSocketPipe implemented (client + server)
-- ✅ Frame protocol compatible with TCP
-- ✅ Tests and examples available
-- ❌ mkctl `--connect` flag not yet implemented
-
-**Roadmap:**
-
-1. Implement RoutingServer WebSocket listener
-2. Add `--connect` flag to mkctl CLI
-3. Enable remote endpoint queries
-4. Add authentication and TLS support
-
-### Current Workarounds
-
-Until `--connect` is available, use these patterns:
-
-**SSH tunneling:**
+Connect to a remote WebSocket pipe server:
 
 ```bash
-# Tunnel remote router snapshot to local machine
-ssh user@remote-host 'cat /path/to/reports/router-endpoints.json' > /tmp/remote-endpoints.json
-mkctl endpoints --runtime-dir /tmp
+# Human-readable output (default)
+mkctl connect --url ws://localhost:30012/pipe
+
+# Connect to remote host
+mkctl connect --url ws://192.168.1.100:30012/pipe
 ```
 
-**HTTP endpoint (if exposed):**
+**What happens:**
+
+- Connects to WebSocket server at specified URL
+- Displays incoming data frames
+- Handles WebSocket protocol upgrade automatically
+- Press Ctrl+C to disconnect gracefully
+
+### JSON Output Mode
+
+Get raw frame data in JSON format for tooling and automation:
 
 ```bash
-# If remote host exposes HTTP API
-curl http://remote-host:8080/api/endpoints | jq '.'
+# TCP with JSON output
+mkctl connect --url tcp://localhost:30010 --json
+
+# WebSocket with JSON output
+mkctl connect --url ws://localhost:30012/pipe --json
 ```
 
-**Manual WebSocket client (advanced):**
+**JSON output format:**
+
+```json
+{"type":"data","payload":"Hello from timer","timestamp":1697520905123}
+{"type":"data","payload":"tick","timestamp":1697520906123}
+{"type":"ping","timestamp":1697520910000}
+```
+
+**Fields:**
+
+- `type` - Frame type (`data`, `ping`, `pong`, `close`)
+- `payload` - The actual data (for data frames)
+- `timestamp` - Unix timestamp in milliseconds
+
+**Use cases for JSON mode:**
+
+- Pipe output to `jq` for filtering: `mkctl connect --url tcp://localhost:30010 --json | jq 'select(.type=="data")'`
+- Log to file for analysis: `mkctl connect --url tcp://localhost:30010 --json >> logs.jsonl`
+- Stream to monitoring tools: `mkctl connect --url tcp://localhost:30010 --json | your-monitoring-tool`
+- Parse with custom scripts: `mkctl connect --url tcp://localhost:30010 --json | python analyze.py`
+
+### Connect via SSH Tunnel
+
+For secure remote connections, use SSH tunneling instead of exposing ports:
 
 ```bash
-# Use wscat to connect to remote WebSocket manually
-npm install -g wscat
-wscat -c ws://remote-host:30015
+# Terminal 1: Set up SSH tunnel
+ssh -L 30010:localhost:30010 user@remote-host
+
+# Terminal 2: Connect to localhost (tunneled to remote)
+mkctl connect --url tcp://localhost:30010
 ```
 
-See [Remote Host Setup Guide](./remote-host-setup.md) for configuring mkolbol on remote machines.
+**Why use SSH tunnels?**
+
+- ✅ Encrypted transport (no plaintext over network)
+- ✅ Uses existing SSH authentication
+- ✅ No need to expose additional firewall ports
+- ✅ Works with any TCP-based service
+
+See [Remote Host Setup Guide](./remote-host-setup.md) for complete SSH tunnel patterns.
+
+### End-to-End Example: Remote Log Viewing
+
+**Scenario:** View logs from a remote server's HTTP service.
+
+**Step 1: On remote server (server.example.com)**
+
+```bash
+# Start HTTP service with TCP pipe export
+mkctl run --file http-server-topology.yml --duration 3600
+```
+
+**Step 2: On your local machine**
+
+```bash
+# Option A: Direct connection (if firewall allows)
+mkctl connect --url tcp://server.example.com:30010
+
+# Option B: SSH tunnel (recommended)
+ssh -L 30010:localhost:30010 user@server.example.com
+
+# Then connect to localhost
+mkctl connect --url tcp://localhost:30010
+```
+
+**Step 3: View logs in real-time**
+
+```
+Connected to tcp://localhost:30010
+[2025-10-17T12:34:56.789Z] GET /api/users
+[2025-10-17T12:34:57.123Z] POST /api/auth
+[2025-10-17T12:34:58.456Z] GET /health
+```
+
+### Troubleshooting Connection Issues
+
+**Connection refused:**
+
+```bash
+# Verify server is listening
+# On server: lsof -i :30010
+# or: netstat -an | grep 30010
+
+# Check firewall allows port
+# Linux: sudo ufw status
+# Check if port is blocked
+```
+
+**Connection timeout:**
+
+```bash
+# Test network connectivity
+ping remote-host
+
+# Test port specifically
+telnet remote-host 30010
+# or: nc -zv remote-host 30010
+```
+
+**"Protocol error" or "Invalid frame":**
+
+- Verify the URL points to a mkolbol TCP/WebSocket pipe server
+- Check that the server is using the same frame protocol version
+- Ensure the endpoint is a pipe server, not a different service
+
+**See also:**
+
+- **[Network Quickstart](./network-quickstart.md)** - TCP and WebSocket pipe setup
+- **[Remote Host Setup](./remote-host-setup.md)** - Complete remote deployment guide
+
+---

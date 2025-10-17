@@ -851,11 +851,21 @@ See [docs/testing/laminar.md](docs/testing/laminar.md#cross-language-test-ingest
 # List all registered endpoints
 node dist/scripts/mkctl.js endpoints
 
+# Connect to remote TCP/WebSocket pipes
+node dist/scripts/mkctl.js connect --url tcp://localhost:30010
+node dist/scripts/mkctl.js connect --url ws://localhost:30012/pipe
+
+# Get JSON output for tooling
+node dist/scripts/mkctl.js connect --url tcp://localhost:30010 --json
+
 # Show help
 node dist/scripts/mkctl.js
 ```
 
-The `mkctl` tool provides control and introspection for the microkernel. The `endpoints` command lists all endpoints registered with Hostess, showing their type (e.g., "pty", "executor"), coordinates (e.g., "localhost:3000"), and optional metadata including `ioMode`.
+The `mkctl` tool provides control and introspection for the microkernel:
+
+- **`endpoints`** - Lists all endpoints registered with Hostess, showing their type (e.g., "pty", "executor"), coordinates (e.g., "localhost:3000"), and optional metadata including `ioMode`
+- **`connect`** - Connects to remote TCP or WebSocket pipes and displays output in real-time (human-readable or JSON format)
 
 **Understanding ioMode:**
 
