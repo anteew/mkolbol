@@ -1,3 +1,3 @@
-{"ts":1760731410230,"lvl":"info","case":"split: order preservation across destinations","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760731410231,"lvl":"info","case":"split: order preservation across destinations","phase":"execution","evt":"test.run"}
-{"ts":1760731410232,"lvl":"info","case":"split: order preservation across destinations","phase":"teardown","evt":"case.end","payload":{"duration":270,"status":"passed"}}
+{"ts":1760743478184,"lvl":"info","case":"split: order preservation across destinations","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760743478185,"lvl":"info","case":"split: order preservation across destinations","phase":"execution","evt":"test.run"}
+{"ts":1760743478186,"lvl":"info","case":"split: order preservation across destinations","phase":"teardown","evt":"case.end","payload":{"duration":225,"status":"passed"}}
