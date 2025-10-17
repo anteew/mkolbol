@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[pre-push] Local CI (fast) — comment out to disable"
+# Uncomment the next line to enable a fast local CI run before pushing
+# npm run -s ci:local:fast
+
+echo "[pre-push] done"
+

@@ -86,7 +86,9 @@
     "format": "prettier -w .",
     "format:check": "prettier -c .",
     "ci:local": "tsx scripts/ci-local.ts",
-    "ci:local:fast": "CI_FAST=1 tsx scripts/ci-local.ts"
+    "ci:local:fast": "CI_FAST=1 tsx scripts/ci-local.ts",
+    "hooks:install": "bash scripts/install-hooks.sh",
+    "ci:local:docker": "echo \"Stub: see docker/Dockerfile.ci (not built).\" && exit 0"
   },
   "dependencies": {
     "node-pty": "^1.0.0",
