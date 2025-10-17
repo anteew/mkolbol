@@ -42,7 +42,7 @@
     "lam": "dist/scripts/lam.js"
   },
   "scripts": {
-    "prepare": "test -f tsconfig.json && npm run build || true",
+    "prepare": "npm run -s hooks:install && (test -f tsconfig.json && npm run build || true)",
     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",

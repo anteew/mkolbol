@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[pre-push] Running fast local CI (RAM when available)"
+CI_FAST=1 npm run -s ci:local
+echo "[pre-push] Local CI passed"
+

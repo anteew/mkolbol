@@ -12,8 +12,7 @@ mkdir -p "$HOOKS_DIR"
 cp -f scripts/git-hooks/pre-commit "$HOOKS_DIR"/pre-commit
 chmod +x "$HOOKS_DIR"/pre-commit
 
-# Provide pre-push sample without enabling by default
-cp -f scripts/git-hooks/pre-push.sample "$HOOKS_DIR"/pre-push.sample
+cp -f scripts/git-hooks/pre-push "$HOOKS_DIR"/pre-push
+chmod +x "$HOOKS_DIR"/pre-push
 
-echo "Installed pre-commit hook. Pre-push sample available at .git/hooks/pre-push.sample"
-
+echo "Installed pre-commit and pre-push hooks."
