@@ -1,0 +1,20 @@
+# Intent-only stub for a reproducible local CI container.
+# We don’t build or use this in CI yet — it documents the target environment
+# and enables an optional `npm run ci:local:docker` path in a future commit.
+
+FROM node:24-bookworm
+
+# Minimal native toolchain for node-pty and friends
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      build-essential python3 make g++ git ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Intentionally not copying package files — this Dockerfile is a stub.
+# A future task will: COPY package*.json ./ && npm ci, then bind-mount repo for runs.
+
+# Default command is a placeholder. The local runner will override via `docker run`.
+CMD ["bash", "-lc", "node -v && npm -v && echo 'CI container stub ready.'"]
+

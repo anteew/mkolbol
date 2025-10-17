@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${SKIP_PREPUSH_CI:-}" == "1" ]]; then
+  echo "[pre-push] SKIP_PREPUSH_CI=1 set — skipping local CI"
+  exit 0
+fi
+
+echo "[pre-push] Running fast local CI (RAM when available)"
+CI_FAST=1 npm run -s ci:local
+echo "[pre-push] Local CI passed"

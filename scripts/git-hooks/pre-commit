@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[pre-commit] format:check"
+npm run -s format:check
+
+echo "[pre-commit] lint (warnings allowed)"
+npm run -s lint || true
+
+echo "[pre-commit] done"
+

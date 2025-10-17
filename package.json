@@ -42,7 +42,7 @@
     "lam": "dist/scripts/lam.js"
   },
   "scripts": {
-    "prepare": "test -f tsconfig.json && npm run build || true",
+    "prepare": "npm run -s hooks:install && (test -f tsconfig.json && npm run build || true)",
     "docs": "echo 'See docs/rfcs/stream-kernel/00-index.md for architecture documentation'",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
@@ -80,7 +80,15 @@
     "mkctl": "node dist/scripts/mkctl.js",
     "dev:bash-host": "node --enable-source-maps dist/src/examples/bash-shell-host.js",
     "dev:web-terminal": "node --enable-source-maps dist/src/examples/web-terminal-server.js",
-    "acceptance:mk": "tsx scripts/mk-acceptance.ts"
+    "acceptance:mk": "tsx scripts/mk-acceptance.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier -w .",
+    "format:check": "prettier -c .",
+    "ci:local": "tsx scripts/ci-local.ts",
+    "ci:local:fast": "CI_FAST=1 tsx scripts/ci-local.ts",
+    "hooks:install": "bash scripts/install-hooks.sh",
+    "ci:local:docker": "echo \"Stub: see docker/Dockerfile.ci (not built).\" && exit 0"
   },
   "dependencies": {
     "node-pty": "^1.0.0",
@@ -89,12 +97,17 @@
   },
   "devDependencies": {
     "@agent_vega/laminar": "github:anteew/Laminar",
+    "@eslint/js": "^9.37.0",
     "@types/node": "^20.12.12",
     "@types/ws": "^8.5.10",
     "esbuild": "^0.19.0",
+    "eslint": "^9.37.0",
     "fast-check": "^4.3.0",
+    "globals": "^15.15.0",
+    "prettier": "^3.6.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.2",
+    "typescript-eslint": "^8.46.1",
     "vitest": "^1.6.0"
   }
 }
