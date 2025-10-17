@@ -84,7 +84,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier -w .",
-    "format:check": "prettier -c ."
+    "format:check": "prettier -c .",
+    "ci:local": "tsx scripts/ci-local.ts",
+    "ci:local:fast": "CI_FAST=1 tsx scripts/ci-local.ts"
   },
   "dependencies": {
     "node-pty": "^1.0.0",
