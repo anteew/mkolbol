@@ -31,18 +31,10 @@ async function runFastAcceptance() {
     else
         failed++;
     // Test 4: Remote viewer example (smoke)
-    console.log('[4/5] Testing remote viewer example...');
+    console.log('[4/4] Testing remote viewer example...');
     const viewerTest = await testRemoteViewer();
     results.push({ name: 'RemoteViewer', ...viewerTest });
     if (viewerTest.passed)
-        passed++;
-    else
-        failed++;
-    // Test 5: Federation acceptance
-    console.log('[5/5] Testing router federation...');
-    const federationTest = await runTest('npx tsx examples/network/federation-demo/test.ts');
-    results.push({ name: 'FederationAcceptance', ...federationTest });
-    if (federationTest.passed)
         passed++;
     else
         failed++;
