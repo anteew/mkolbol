@@ -1,3 +1,3 @@
-{"ts":1760736811390,"lvl":"info","case":"validator enforces directionality when set","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760736811391,"lvl":"info","case":"validator enforces directionality when set","phase":"execution","evt":"test.run"}
-{"ts":1760736811392,"lvl":"info","case":"validator enforces directionality when set","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
+{"ts":1760736914140,"lvl":"info","case":"validator enforces directionality when set","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760736914141,"lvl":"info","case":"validator enforces directionality when set","phase":"execution","evt":"test.run"}
+{"ts":1760736914142,"lvl":"info","case":"validator enforces directionality when set","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
