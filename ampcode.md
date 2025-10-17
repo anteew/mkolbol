@@ -1,5 +1,3 @@
-````json
-
 ```json
 {
   "ampcode": "v1",
@@ -33,7 +31,7 @@
       "deliverables":["patches/DIFF_N2304_discovery-acceptance.patch"]}
   ]
 }
-````
+```
 
 Branch Instructions
 
@@ -42,6 +40,7 @@ Branch Instructions
 - Security: no auth; require explicit approve/persist to use peers.
 - Tests avoid real multicast in CI; use loopback + injected PeerSource for determinism.
 
+```json
 {
 "ampcode": "v1",
 "waves": [
@@ -66,10 +65,8 @@ Branch Instructions
       "allowedFiles":["examples/network/subscriber-demo/**","docs/devex/network-quickstart.md","reports/**"],
       "verify":["npm run ci:local:fast"],
       "deliverables":["patches/DIFF_N2003_subscriber-acceptance.patch"]}
-
-]
+  ]
 }
-
 ```
 
 Branch Instructions
