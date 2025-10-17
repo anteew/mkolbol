@@ -1,5 +1,3 @@
-````json
-
 ```json
 {
   "ampcode": "v1",
