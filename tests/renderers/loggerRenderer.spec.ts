@@ -26,29 +26,21 @@ describe('LoggerRenderer', () => {
     }
   });
 
-  it('should write all data to log file', (done) => {
+  it('should write all data to log file', async () => {
     renderer = new LoggerRenderer(kernel, testLogPath);
-    
     const testData = 'Test log data\n';
     renderer.inputPipe.write(Buffer.from(testData));
-    
-    setTimeout(() => {
-      const content = fs.readFileSync(testLogPath, 'utf8');
-      expect(content).toBe(testData);
-      done();
-    }, 200);
+    await new Promise((r) => setTimeout(r, 50));
+    const content = fs.readFileSync(testLogPath, 'utf8');
+    expect(content).toBe(testData);
   });
 
-  it('should append to existing log file', (done) => {
+  it('should append to existing log file', async () => {
     fs.writeFileSync(testLogPath, 'Existing content\n');
-    
     renderer = new LoggerRenderer(kernel, testLogPath);
     renderer.inputPipe.write(Buffer.from('New content\n'));
-    
-    setTimeout(() => {
-      const content = fs.readFileSync(testLogPath, 'utf8');
-      expect(content).toBe('Existing content\nNew content\n');
-      done();
-    }, 200);
+    await new Promise((r) => setTimeout(r, 50));
+    const content = fs.readFileSync(testLogPath, 'utf8');
+    expect(content).toBe('Existing content\nNew content\n');
   });
 });

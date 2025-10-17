@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mkolbol Web Terminal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+  <style>
+    html, body { height: 100%; margin: 0; background: #111; color: #eee; }
+    #term { height: 100%; }
+    .header { padding: 8px 12px; font: 14px/1.4 system-ui, sans-serif; background: #181818; border-bottom: 1px solid #222; }
+    .header code { background: #222; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    mkolbol Web Terminal — WS <code>ws://localhost:3001</code>
+    &nbsp;|&nbsp; Hint: SSH port‑forward with <code>ssh -L 9090:localhost:9090 host</code>
+  </div>
+  <div id="term"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+  <script>
+    const term = new Terminal({ cursorBlink: true, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', theme: { background: '#111111' } });
+    term.open(document.getElementById('term'));
+
+    const ws = new WebSocket('ws://localhost:3001');
+    ws.binaryType = 'arraybuffer';
+
+    ws.addEventListener('open', () => {
+      term.writeln('\x1b[36m[mkolbol-web]\x1b[0m Connected. Type commands.');
+    });
+
+    ws.addEventListener('message', (evt) => {
+      const data = evt.data instanceof ArrayBuffer ? new Uint8Array(evt.data) : evt.data;
+      const text = data instanceof Uint8Array ? new TextDecoder().decode(data) : String(data);
+      term.write(text);
+    });
+
+    term.onData((d) => {
+      ws.readyState === WebSocket.OPEN && ws.send(d);
+    });
+  </script>
+</body>
+</html>
+

@@ -78,15 +78,19 @@
     "dev:worker-demo": "node --enable-source-maps dist/examples/worker-demo.js",
     "mk": "node dist/scripts/mk.js",
     "mkctl": "node dist/scripts/mkctl.js",
+    "dev:bash-host": "node --enable-source-maps dist/src/examples/bash-shell-host.js",
+    "dev:web-terminal": "node --enable-source-maps dist/src/examples/web-terminal-server.js",
     "acceptance:mk": "tsx scripts/mk-acceptance.ts"
   },
   "dependencies": {
     "node-pty": "^1.0.0",
+    "ws": "^8.16.0",
     "yaml": "^2.3.4"
   },
   "devDependencies": {
     "@agent_vega/laminar": "github:anteew/Laminar",
     "@types/node": "^20.12.12",
+    "@types/ws": "^8.5.10",
     "esbuild": "^0.19.0",
     "fast-check": "^4.3.0",
     "tsx": "^4.19.2",

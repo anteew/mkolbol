@@ -40,6 +40,15 @@ Notes
 - The `mk` and `mkctl` binaries are also exposed as npm scripts: `npm run mk -- …`, `npm run mkctl -- …`.
 - Local‑node gate: keep `MK_LOCAL_NODE=1` set while dogfooding.
 
+### Web Terminal Demo (browser)
+
+- Quickstart: see docs/devex/web-terminal-quickstart.md
+- Run servers:
+  - `npm run build`
+  - `npm run dev:web-terminal` (WS: 3001, HTML: 9090)
+  - Open http://localhost:9090
+  - Remote? Use `ssh -L 9090:localhost:9090 host` from your laptop.
+
 ## Primary Architect
  - **Architect Name** - VEGA
  - **Architect Model** - GPT-5 Thinking HIGH

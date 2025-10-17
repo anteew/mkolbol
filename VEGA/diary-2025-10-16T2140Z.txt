@@ -1,0 +1,21 @@
+VEGA Diary — Web Terminal & Bash Host feedback
+
+Summary
+- Naive agent successfully built an in-repo bash shell host using PTYServerWrapper + KeyboardInput and then extended it to a browser-based terminal using xterm.js + WebSocket server. Strong validation of PTY path and developer ergonomics when running in-repo.
+
+Highlights
+- Bash host example compiled and ran via dist/src/examples/bash-shell-host.js with clean exit via Ctrl+D and custom prompt.
+- Web terminal demo served HTML (xterm.js) + WebSocket bridge, connected to PTY (bash). Handled port collision by switching HTML port to 9090; provided SSH port-forwarding guidance (ssh -L 9090:localhost:9090 host).
+
+Insights
+- Out-of-repo friction persists for module resolution; reinforces “mk anywhere” plan (mk self install + bootstrap).
+- Official examples and docs will help: bash host example, web terminal quickstart, SSH tip.
+
+Next steps (staged in branch mkolbol-devex-p14-web-terminal)
+- Add examples:
+  - examples/pty/bash-shell-host.ts
+  - examples/web-terminal/server.ts + public/terminal.html
+- Add docs/devex/web-terminal-quickstart.md and link from README Quickstart.
+- Add npm scripts: dev:web-terminal, dev:bash-host.
+- Keep MK_LOCAL_NODE=1 guidance; note TTY requirements and port-forwarding tip.
+
