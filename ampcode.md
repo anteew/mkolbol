@@ -1,33 +1,53 @@
-````json
-
 ```json
 {
   "ampcode": "v1",
-  "waves": [
-    { "id": "P24-FEDERATION", "parallel": false, "tasks": ["N2401","N2402","N2403"] }
-  ],
+  "waves": [{ "id": "P24-FEDERATION", "parallel": false, "tasks": ["N2401", "N2402", "N2403"] }],
   "branch": "mkolbol-net-p24-federation",
   "tasks": [
-    {"id":"N2401","agent":"devex","title":"Federation API: Router↔Router adverts via PeerSource (static first)",
-      "allowedFiles":["src/router/Federation.ts","src/router/RoutingServer.ts","tests/integration/router.federation.spec.ts"],
-      "why":"Let routers share endpoint ads and TTL across peers.",
-      "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_N2401_router-federation.patch"]},
+    {
+      "id": "N2401",
+      "agent": "devex",
+      "title": "Federation API: Router↔Router adverts via PeerSource (static first)",
+      "allowedFiles": [
+        "src/router/Federation.ts",
+        "src/router/RoutingServer.ts",
+        "tests/integration/router.federation.spec.ts"
+      ],
+      "why": "Let routers share endpoint ads and TTL across peers.",
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_N2401_router-federation.patch"]
+    },
 
-    {"id":"N2402","agent":"devex","title":"Failover & path preference: local > LAN > WAN; TTL propagation",
-      "allowedFiles":["src/router/RoutingServer.ts","src/state/StateManager.ts","tests/integration/router.failover.spec.ts"],
-      "why":"Choose best path and recover when peers die; respect liveness events.",
-      "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_N2402_router-failover.patch"]},
+    {
+      "id": "N2402",
+      "agent": "devex",
+      "title": "Failover & path preference: local > LAN > WAN; TTL propagation",
+      "allowedFiles": [
+        "src/router/RoutingServer.ts",
+        "src/state/StateManager.ts",
+        "tests/integration/router.failover.spec.ts"
+      ],
+      "why": "Choose best path and recover when peers die; respect liveness events.",
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_N2402_router-failover.patch"]
+    },
 
-    {"id":"N2403","agent":"devex","title":"Acceptance: two routers, static peers → federation → fail one link",
-      "allowedFiles":["examples/network/federation-demo/**","docs/devex/network-quickstart.md",".github/workflows/tests.yml"],
-      "why":"Prove federation and failover without mDNS dependency.",
-      "verify":["npm run ci:local:fast"],
-      "deliverables":["patches/DIFF_N2403_federation-acceptance.patch"]}
+    {
+      "id": "N2403",
+      "agent": "devex",
+      "title": "Acceptance: two routers, static peers → federation → fail one link",
+      "allowedFiles": [
+        "examples/network/federation-demo/**",
+        "docs/devex/network-quickstart.md",
+        ".github/workflows/tests.yml"
+      ],
+      "why": "Prove federation and failover without mDNS dependency.",
+      "verify": ["npm run ci:local:fast"],
+      "deliverables": ["patches/DIFF_N2403_federation-acceptance.patch"]
+    }
   ]
 }
-````
+```
 
 Branch Instructions
 

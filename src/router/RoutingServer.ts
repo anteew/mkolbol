@@ -63,11 +63,11 @@ export class RoutingServer extends EventEmitter {
     const isNew = !existing;
     this.endpoints.set(id, endpoint);
     debug.emit('router', 'announce', { id, type, coordinates, metadata });
-    
+
     this.emitEvent({
       type: isNew ? 'added' : 'updated',
       endpoint: { ...endpoint },
-      timestamp: now
+      timestamp: now,
     });
   }
 
@@ -80,7 +80,7 @@ export class RoutingServer extends EventEmitter {
         this.emitEvent({
           type: 'removed',
           endpoint: { ...endpoint },
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     }
@@ -91,6 +91,44 @@ export class RoutingServer extends EventEmitter {
       ...endpoint,
       metadata: endpoint.metadata ? { ...endpoint.metadata } : undefined,
     }));
+  }
+
+  /**
+   * Resolve the best endpoint for given coordinates using path preference.
+   * Preference order: local > LAN > WAN (determined by federationSource metadata)
+   * Returns the highest-priority endpoint, or undefined if none exist.
+   */
+  resolve(coordinates: string): RoutingEndpoint | undefined {
+    const candidates = this.resolveAll(coordinates);
+    return candidates.length > 0 ? candidates[0] : undefined;
+  }
+
+  /**
+   * Resolve all endpoints for given coordinates, ranked by path preference.
+   * Preference order: local > LAN > WAN
+   * Local: no federationSource metadata
+   * Remote: has federationSource metadata (LAN vs WAN could be distinguished later)
+   */
+  resolveAll(coordinates: string): RoutingEndpoint[] {
+    const matches = Array.from(this.endpoints.values())
+      .filter((ep) => ep.coordinates === coordinates)
+      .map((endpoint) => ({
+        ...endpoint,
+        metadata: endpoint.metadata ? { ...endpoint.metadata } : undefined,
+      }));
+
+    // Sort by preference: local first, then by federationSource
+    return matches.sort((a, b) => {
+      const aIsLocal = !a.metadata?.federationSource;
+      const bIsLocal = !b.metadata?.federationSource;
+
+      // Local endpoints take priority
+      if (aIsLocal && !bIsLocal) return -1;
+      if (!aIsLocal && bIsLocal) return 1;
+
+      // Both local or both remote: sort by most recently updated
+      return (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+    });
   }
 
   startSweeper(): void {
@@ -140,11 +178,21 @@ export class RoutingServer extends EventEmitter {
     }
 
     for (const id of stale) {
+      const endpoint = this.endpoints.get(id);
       this.endpoints.delete(id);
       debug.emit('router', 'sweep.removed', {
         id,
         totalRemaining: this.endpoints.size,
       });
+
+      // Emit staleExpired event for failover handling
+      if (endpoint) {
+        this.emitEvent({
+          type: 'staleExpired',
+          endpoint: { ...endpoint },
+          timestamp: now,
+        });
+      }
     }
 
     this.sweeperMetrics.totalSweeps++;
@@ -179,7 +227,7 @@ export class RoutingServer extends EventEmitter {
   }
 
   private emitEvent(event: RouterEvent): void {
-    this.subscribers.forEach(cb => cb(event));
+    this.subscribers.forEach((cb) => cb(event));
     this.emit('routerEvent', event);
   }
 }
