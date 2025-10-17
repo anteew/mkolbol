@@ -86,6 +86,8 @@ function copyTree(srcRoot: string, dstRoot: string) {
 async function main() {
   const base = chooseWorkspaceBase();
   const workDir = join(base, `mkolbol-ci-${stamp}`);
+  const subset = (process.env.CI_SUBSET || 'all').toLowerCase();
+  const skipAcceptance = process.env.CI_NO_ACCEPTANCE === '1';
   log(`Create workspace at ${workDir}`);
   rmSync(workDir, { recursive: true, force: true });
   mkdirSync(workDir, { recursive: true });
@@ -101,28 +103,40 @@ async function main() {
   log('npm run build');
   await sh('npm', ['run', 'build'], { cwd: workDir, env: envBase });
 
-  log('Threads lane (test:ci)');
-  await sh('npm', ['run', 'test:ci'], { cwd: workDir, env: envBase });
+  if (subset === 'all' || subset === 'threads') {
+    log('Threads lane (test:ci)');
+    await sh('npm', ['run', 'test:ci'], { cwd: workDir, env: envBase });
+  } else {
+    log('Threads lane skipped (CI_SUBSET != threads/all)');
+  }
 
-  log('Forks/process lane (test:pty)');
-  await sh('bash', ['-lc', 'MK_PROCESS_EXPERIMENTAL=1 npm run test:pty'], { cwd: workDir, env: envBase });
+  if (subset === 'all' || subset === 'forks' || subset === 'process') {
+    log('Forks/process lane (test:pty)');
+    await sh('bash', ['-lc', 'MK_PROCESS_EXPERIMENTAL=1 npm run test:pty'], { cwd: workDir, env: envBase });
+  } else {
+    log('Forks/process lane skipped (CI_SUBSET != forks/process/all)');
+  }
 
   // Acceptance smoke with ephemeral port: copy config and rewrite port
-  const cfgSrc = join(workDir, 'examples', 'configs', 'http-logs-local-file.yml');
-  const cfgDst = join(workDir, 'examples', 'configs', `http-logs-local-file.local.${stamp}.yml`);
-  const port = await getFreePort();
-  let cfg = readFileSync(cfgSrc, 'utf8');
-  cfg = cfg.replace(/listen\(3000/g, `listen(${port}`)
-                 .replace(/localhost:3000/g, `localhost:${port}`);
-  writeFileSync(cfgDst, cfg);
+  if (!skipAcceptance && (subset === 'all' || subset === 'acceptance')) {
+    const cfgSrc = join(workDir, 'examples', 'configs', 'http-logs-local-file.yml');
+    const cfgDst = join(workDir, 'examples', 'configs', `http-logs-local-file.local.${stamp}.yml`);
+    const port = await getFreePort();
+    let cfg = readFileSync(cfgSrc, 'utf8');
+    cfg = cfg.replace(/listen\(3000/g, `listen(${port}`)
+                   .replace(/localhost:3000/g, `localhost:${port}`);
+    writeFileSync(cfgDst, cfg);
 
-  log(`Acceptance smoke (FilesystemSink) on port ${port}`);
-  await sh('node', ['dist/scripts/mkctl.js', 'run', '--file', cfgDst, '--duration', '5'], {
-    cwd: workDir,
-    env: envBase,
-  }).catch((err) => {
-    console.warn('Acceptance smoke returned non-zero (continuing):', String(err.message || err));
-  });
+    log(`Acceptance smoke (FilesystemSink) on port ${port}`);
+    await sh('node', ['dist/scripts/mkctl.js', 'run', '--file', cfgDst, '--duration', '5'], {
+      cwd: workDir,
+      env: envBase,
+    }).catch((err) => {
+      console.warn('Acceptance smoke returned non-zero (continuing):', String(err.message || err));
+    });
+  } else {
+    log('Acceptance smoke skipped (CI_NO_ACCEPTANCE=1 or CI_SUBSET set)');
+  }
 
   // Copy reports back
   const reportsSrc = join(workDir, 'reports');
