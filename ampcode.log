@@ -2,3 +2,20 @@
 
 This log was archived at archives/ampcode.log.2025-10-17T194426Z to keep files small for agents.
 New entries should be appended here.
+
+## Sprint P20A-ROUTER-P3 — 2025-10-17 21:35Z
+
+**Branch**: mkolbol-core-router-p3-subscribe
+
+### N2001 — subscribe() API ✅
+Commit: f057954
+Events: added, updated, removed
+
+### N2002 — TTL staleExpired events ✅  
+Commit: b47ef74
+Events: staleExpired on sweep
+
+### N2003 — Acceptance ✅
+test:ci passing
+
+**Status**: Ready for PR #89
