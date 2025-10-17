@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 {"ts":1760727512646,"lvl":"info","case":"redacts database URLs in Go test failures","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
 {"ts":1760727512647,"lvl":"info","case":"redacts database URLs in Go test failures","phase":"execution","evt":"test.run"}
 {"ts":1760727512648,"lvl":"info","case":"redacts database URLs in Go test failures","phase":"teardown","evt":"case.end","payload":{"duration":7,"status":"passed"}}
+=======
+{"ts":1760727841222,"lvl":"info","case":"redacts database URLs in Go test failures","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727841223,"lvl":"info","case":"redacts database URLs in Go test failures","phase":"execution","evt":"test.run"}
+{"ts":1760727841224,"lvl":"info","case":"redacts database URLs in Go test failures","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
+>>>>>>> origin/main

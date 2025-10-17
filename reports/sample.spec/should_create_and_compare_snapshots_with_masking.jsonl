@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 {"ts":1760727514289,"lvl":"info","case":"should create and compare snapshots with masking","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
 {"ts":1760727514290,"lvl":"info","case":"should create and compare snapshots with masking","phase":"execution","evt":"test.run"}
 {"ts":1760727514291,"lvl":"info","case":"should create and compare snapshots with masking","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
+=======
+{"ts":1760727844218,"lvl":"info","case":"should create and compare snapshots with masking","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727844219,"lvl":"info","case":"should create and compare snapshots with masking","phase":"execution","evt":"test.run"}
+{"ts":1760727844220,"lvl":"info","case":"should create and compare snapshots with masking","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
+>>>>>>> origin/main

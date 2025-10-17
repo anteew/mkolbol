@@ -2,7 +2,7 @@ import type { Frame, FrameMetadata } from './transport.js';
 
 export class FrameCodec {
   private static readonly HEADER_SIZE = 8;
-  private static readonly MAX_PAYLOAD_SIZE = 10 * 1024 * 1024; // 10MB
+  private static readonly MAX_PAYLOAD_SIZE = 10 * 1024 * 1024;
 
   static encode(frame: Frame): Buffer {
     const metadataJson = JSON.stringify(frame.metadata);
@@ -28,7 +28,6 @@ export class FrameCodec {
 
     const metadataLength = buffer.readUInt32BE(0);
     const payloadLength = buffer.readUInt32BE(4);
-
     const totalLength = this.HEADER_SIZE + metadataLength + payloadLength;
 
     if (buffer.length < totalLength) {
@@ -41,7 +40,6 @@ export class FrameCodec {
 
     const metadataBuffer = buffer.slice(this.HEADER_SIZE, this.HEADER_SIZE + metadataLength);
     const payloadBuffer = buffer.slice(this.HEADER_SIZE + metadataLength, totalLength);
-
     const metadata = JSON.parse(metadataBuffer.toString('utf8')) as FrameMetadata;
 
     return {
@@ -52,44 +50,21 @@ export class FrameCodec {
 
   static createDataFrame(payload: Buffer | string, sequenceId?: number): Frame {
     const payloadBuffer = typeof payload === 'string' ? Buffer.from(payload, 'utf8') : payload;
-    
     return {
-      metadata: {
-        type: 'data',
-        timestamp: Date.now(),
-        sequenceId
-      },
+      metadata: { type: 'data', timestamp: Date.now(), sequenceId },
       payload: payloadBuffer
     };
   }
 
   static createPingFrame(): Frame {
-    return {
-      metadata: {
-        type: 'ping',
-        timestamp: Date.now()
-      },
-      payload: Buffer.alloc(0)
-    };
+    return { metadata: { type: 'ping', timestamp: Date.now() }, payload: Buffer.alloc(0) };
   }
 
   static createPongFrame(): Frame {
-    return {
-      metadata: {
-        type: 'pong',
-        timestamp: Date.now()
-      },
-      payload: Buffer.alloc(0)
-    };
+    return { metadata: { type: 'pong', timestamp: Date.now() }, payload: Buffer.alloc(0) };
   }
 
   static createCloseFrame(): Frame {
-    return {
-      metadata: {
-        type: 'close',
-        timestamp: Date.now()
-      },
-      payload: Buffer.alloc(0)
-    };
+    return { metadata: { type: 'close', timestamp: Date.now() }, payload: Buffer.alloc(0) };
   }
 }

@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 {"ts":1760727513470,"lvl":"info","case":"exporters produce strings","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
 {"ts":1760727513471,"lvl":"info","case":"exporters produce strings","phase":"execution","evt":"test.run"}
 {"ts":1760727513472,"lvl":"info","case":"exporters produce strings","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+=======
+{"ts":1760727842375,"lvl":"info","case":"exporters produce strings","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727842376,"lvl":"info","case":"exporters produce strings","phase":"execution","evt":"test.run"}
+{"ts":1760727842377,"lvl":"info","case":"exporters produce strings","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+>>>>>>> origin/main

@@ -2,7 +2,6 @@ import { Duplex } from 'stream';
 export interface TCPPipeOptions {
     host?: string;
     port: number;
-    objectMode?: boolean;
     timeout?: number;
 }
 export declare class TCPPipeClient extends Duplex {
@@ -12,12 +11,11 @@ export declare class TCPPipeClient extends Duplex {
     private sequenceId;
     constructor(options: TCPPipeOptions);
     connect(): Promise<void>;
-    _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void;
-    _read(size: number): void;
-    private handleIncomingData;
-    private sendPong;
+    _write(chunk: any, _: BufferEncoding, cb: (error?: Error | null) => void): void;
+    _read(): void;
+    private handleData;
     close(): void;
-    _final(callback: (error?: Error | null) => void): void;
+    _final(cb: (error?: Error | null) => void): void;
 }
 export declare class TCPPipeServer {
     private options;

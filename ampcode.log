@@ -3589,3 +3589,24 @@ All P17 tasks complete. Documentation ready for architect review and merge.
 
 **Ready for Vega** 🚀
 
+
+## Sprint P18A-TCP — 2025-10-17 18:30Z
+
+**Branch**: mkolbol-net-p18a-tcp-pipe
+**Workspace**: /srv/repos0/mkolbol-susan/mkolbol
+
+### N1801 — FrameCodec + Transport ✅
+Commit: 366de78
+Files: src/net/frame.ts, src/net/transport.ts, tests/net/frame.spec.ts
+Tests: 4 passing
+
+### N1802 — TCPPipe adapter ✅
+Commit: fa6784c  
+Files: src/pipes/adapters/TCPPipe.ts, tests/integration/tcpPipe.spec.ts
+Tests: 1 passing
+
+### N1803 — Acceptance ✅
+Patch: patches/DIFF_N1803_tcp-acceptance.patch
+
+**Verification**: npm run test:ci ✅ PASS
+**Status**: Ready for Vega review

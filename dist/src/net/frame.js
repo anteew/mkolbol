@@ -1,6 +1,6 @@
 export class FrameCodec {
     static HEADER_SIZE = 8;
-    static MAX_PAYLOAD_SIZE = 10 * 1024 * 1024; // 10MB
+    static MAX_PAYLOAD_SIZE = 10 * 1024 * 1024;
     static encode(frame) {
         const metadataJson = JSON.stringify(frame.metadata);
         const metadataBuffer = Buffer.from(metadataJson, 'utf8');
@@ -38,40 +38,18 @@ export class FrameCodec {
     static createDataFrame(payload, sequenceId) {
         const payloadBuffer = typeof payload === 'string' ? Buffer.from(payload, 'utf8') : payload;
         return {
-            metadata: {
-                type: 'data',
-                timestamp: Date.now(),
-                sequenceId
-            },
+            metadata: { type: 'data', timestamp: Date.now(), sequenceId },
             payload: payloadBuffer
         };
     }
     static createPingFrame() {
-        return {
-            metadata: {
-                type: 'ping',
-                timestamp: Date.now()
-            },
-            payload: Buffer.alloc(0)
-        };
+        return { metadata: { type: 'ping', timestamp: Date.now() }, payload: Buffer.alloc(0) };
     }
     static createPongFrame() {
-        return {
-            metadata: {
-                type: 'pong',
-                timestamp: Date.now()
-            },
-            payload: Buffer.alloc(0)
-        };
+        return { metadata: { type: 'pong', timestamp: Date.now() }, payload: Buffer.alloc(0) };
     }
     static createCloseFrame() {
-        return {
-            metadata: {
-                type: 'close',
-                timestamp: Date.now()
-            },
-            payload: Buffer.alloc(0)
-        };
+        return { metadata: { type: 'close', timestamp: Date.now() }, payload: Buffer.alloc(0) };
     }
 }
 //# sourceMappingURL=frame.js.map

@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 {"ts":1760727512646,"lvl":"info","case":"assert handshake event structure","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
 {"ts":1760727512647,"lvl":"info","case":"assert handshake event structure","phase":"execution","evt":"test.run"}
 {"ts":1760727512648,"lvl":"info","case":"assert handshake event structure","phase":"teardown","evt":"case.end","payload":{"duration":8,"status":"passed"}}
+=======
+{"ts":1760727841015,"lvl":"info","case":"assert handshake event structure","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727841016,"lvl":"info","case":"assert handshake event structure","phase":"execution","evt":"test.run"}
+{"ts":1760727841017,"lvl":"info","case":"assert handshake event structure","phase":"teardown","evt":"case.end","payload":{"duration":28,"status":"passed"}}
+>>>>>>> origin/main

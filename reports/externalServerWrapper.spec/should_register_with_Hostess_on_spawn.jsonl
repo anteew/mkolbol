@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 {"ts":1760727514777,"lvl":"info","case":"should register with Hostess on spawn","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
 {"ts":1760727514778,"lvl":"info","case":"should register with Hostess on spawn","phase":"execution","evt":"test.run"}
 {"ts":1760727514779,"lvl":"info","case":"should register with Hostess on spawn","phase":"teardown","evt":"case.end","payload":{"duration":63,"status":"passed"}}
+=======
+{"ts":1760727843624,"lvl":"info","case":"should register with Hostess on spawn","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727843625,"lvl":"info","case":"should register with Hostess on spawn","phase":"execution","evt":"test.run"}
+{"ts":1760727843626,"lvl":"info","case":"should register with Hostess on spawn","phase":"teardown","evt":"case.end","payload":{"duration":111,"status":"passed"}}
+>>>>>>> origin/main

@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 {"ts":1760727514118,"lvl":"info","case":"should spawn a simple process","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
 {"ts":1760727514119,"lvl":"info","case":"should spawn a simple process","phase":"execution","evt":"test.run"}
 {"ts":1760727514120,"lvl":"info","case":"should spawn a simple process","phase":"teardown","evt":"case.end","payload":{"duration":211,"status":"passed"}}
+=======
+{"ts":1760727843212,"lvl":"info","case":"should spawn a simple process","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727843213,"lvl":"info","case":"should spawn a simple process","phase":"execution","evt":"test.run"}
+{"ts":1760727843214,"lvl":"info","case":"should spawn a simple process","phase":"teardown","evt":"case.end","payload":{"duration":295,"status":"passed"}}
+>>>>>>> origin/main
