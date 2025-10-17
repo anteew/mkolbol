@@ -1,0 +1,12 @@
+{
+  "$schema": "docs/testing/laminar.schema.json",
+  "budget": { "kb": 128, "events": 500, "cases": 200 },
+  "rules": [
+    { "name": "Prioritize errors", "match": { "lvl": "error" }, "action": { "type": "priority", "level": 10 } },
+    { "name": "Slice around errors", "match": { "lvl": "error" }, "action": { "type": "slice", "window": 50 } },
+    { "name": "Elevate TimeoutNaNWarning", "match": { "case": "*TimeoutNaNWarning*" }, "action": { "type": "priority", "level": 9 } },
+    { "name": "Router TTL flakes", "match": { "case": "*router.ttl*" }, "action": { "type": "priority", "level": 8 } },
+    { "name": "Redact tokens in logs", "match": { "path": "*" }, "action": { "type": "redact", "fields": ["token", "authorization", "apiKey", "password"] } }
+  ],
+  "defaults": { "action": "include", "priority": 5 }
+}

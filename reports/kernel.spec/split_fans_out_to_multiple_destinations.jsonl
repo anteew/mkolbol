@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+{"ts":1760727514901,"lvl":"info","case":"split fans out to multiple destinations","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727514902,"lvl":"info","case":"split fans out to multiple destinations","phase":"execution","evt":"test.run"}
+{"ts":1760727514903,"lvl":"info","case":"split fans out to multiple destinations","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
+=======
 {"ts":1760727841229,"lvl":"info","case":"split fans out to multiple destinations","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
 {"ts":1760727841230,"lvl":"info","case":"split fans out to multiple destinations","phase":"execution","evt":"test.run"}
 {"ts":1760727841231,"lvl":"info","case":"split fans out to multiple destinations","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+>>>>>>> origin/main

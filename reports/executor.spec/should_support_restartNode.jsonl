@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+{"ts":1760727514898,"lvl":"info","case":"should support restartNode","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760727514899,"lvl":"info","case":"should support restartNode","phase":"execution","evt":"test.run"}
+{"ts":1760727514900,"lvl":"info","case":"should support restartNode","phase":"teardown","evt":"case.end","payload":{"duration":7,"status":"passed"}}
+=======
 {"ts":1760727844017,"lvl":"info","case":"should support restartNode","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
 {"ts":1760727844018,"lvl":"info","case":"should support restartNode","phase":"execution","evt":"test.run"}
 {"ts":1760727844019,"lvl":"info","case":"should support restartNode","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
+>>>>>>> origin/main

@@ -35,18 +35,21 @@ export async function downloadRelease(tag: string, options: FetchOptions = {}): 
     return cachedPath;
   }
 
-  const { tarballUrl, sha256 } = await getReleaseTarballInfo(normalizedTag);
+  const { tarballUrl, sha256Url } = await getReleaseTarballInfo(normalizedTag);
   
   await mkdir(cacheDir, { recursive: true });
   await downloadFile(tarballUrl, cachedPath);
   
-  if (sha256) {
-    await createReadStream(cachedPath)
-      .pipe(createWriteStream(hashPath));
-    
-    const hashContent = sha256 + '\n';
-    await writeFile(hashPath, hashContent);
-    console.log(`✓ SHA-256 hash saved: ${sha256.slice(0, 16)}...`);
+  if (sha256Url) {
+    try {
+      const hashContent = await downloadText(sha256Url);
+      // Persist exactly as provided (usually a single hex line)
+      await writeFile(hashPath, (hashContent || '').trim() + '\n');
+      const preview = (hashContent || '').trim().slice(0, 16);
+      if (preview.length > 0) console.log(`✓ SHA-256 hash saved: ${preview}...`);
+    } catch (e) {
+      console.warn(`⚠ Failed to download SHA-256 file: ${e instanceof Error ? e.message : String(e)}`);
+    }
   } else {
     console.warn('⚠ No SHA-256 hash available from GitHub release');
   }
@@ -109,7 +112,7 @@ export async function installTarball(tarballPath: string): Promise<void> {
   }
 }
 
-async function getReleaseTarballInfo(tag: string): Promise<{ tarballUrl: string; sha256?: string }> {
+async function getReleaseTarballInfo(tag: string): Promise<{ tarballUrl: string; sha256Url?: string }> {
   return new Promise((resolve, reject) => {
     const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`;
     
@@ -149,7 +152,7 @@ async function getReleaseTarballInfo(tag: string): Promise<{ tarballUrl: string;
 
           resolve({
             tarballUrl: tgzAsset.browser_download_url,
-            sha256: sha256Asset?.browser_download_url,
+            sha256Url: sha256Asset?.browser_download_url,
           });
         } catch (error) {
           reject(new Error(`Failed to parse release data: ${error instanceof Error ? error.message : String(error)}`));
@@ -229,4 +232,28 @@ async function downloadFile(url: string, outputPath: string): Promise<void> {
 async function writeFile(path: string, content: string): Promise<void> {
   const { writeFile: fsWriteFile } = await import('node:fs/promises');
   await fsWriteFile(path, content, 'utf8');
+}
+
+async function downloadText(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    https.get(url, {
+      headers: { 'User-Agent': 'mkolbol-fetch' },
+    }, (res) => {
+      if (res.statusCode === 302 || res.statusCode === 301) {
+        const loc = res.headers.location;
+        if (!loc) return reject(new Error('Redirect without location header'));
+        downloadText(loc).then(resolve).catch(reject);
+        return;
+      }
+      if (res.statusCode !== 200) {
+        reject(new Error(`Download failed with status ${res.statusCode}`));
+        return;
+      }
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => resolve(data));
+      res.on('error', reject);
+    }).on('error', reject);
+  });
 }

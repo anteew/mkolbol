@@ -215,7 +215,7 @@ connections:
       
       // Verify stale endpoints would be detected (check TTL metadata exists)
       const hasHeartbeatData = endpoints.some((ep: any) => 
-        ep.lastHeartbeat !== undefined || ep.ttlMs !== undefined
+        ep.updatedAt !== undefined || ep.expiresAt !== undefined || ep.ttlMs !== undefined
       );
       
       if (hasHeartbeatData) {

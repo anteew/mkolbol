@@ -1,0 +1,104 @@
+diff --git a/docs/devex/mkctl-cookbook.md b/docs/devex/mkctl-cookbook.md
+index 335eddc..0670d42 100644
+--- a/docs/devex/mkctl-cookbook.md
++++ b/docs/devex/mkctl-cookbook.md
+@@ -1640,3 +1640,99 @@ cat reports/router-endpoints.json | jq 'length'
+ - **[CI Acceptance Smoke Documentation](./ci-acceptance-smoke.md)** — Complete guide to smoke test architecture and debugging
+ - **[Acceptance Pack](../../tests/devex/acceptance/local-node-v1.md)** — Full acceptance test scenarios
+ - **[Doctor Guide](./doctor.md)** — Troubleshooting mkctl errors
++
++---
++
++## Future: Remote Connectivity (WebSocket)
++
++> **Note:** WebSocket remote connectivity is under development. This section documents the planned `--connect` flag for future reference.
++
++### Planned: Connect mkctl to Remote Host
++
++In a future release, `mkctl` will support connecting to remote mkolbol instances via WebSocket:
++
++```bash
++# Connect to remote mkolbol routing server
++mkctl --connect ws://remote-host:30015 endpoints
++```
++
++**Planned Use Cases:**
++- Monitor remote topologies from your local machine
++- Query endpoint status across distributed deployments
++- Inspect routing snapshots from remote hosts
++- Centralized observability for multi-node setups
++
++### Planned Architecture
++
++```
++Local Machine                    Remote Host (mkolbol instance)
++┌──────────────────┐            ┌─────────────────────────┐
++│  mkctl           │            │  RoutingServer          │
++│  --connect       │────WS──────│  (WebSocket listener)   │
++│  ws://host:30015 │            │  Port 30015             │
++└──────────────────┘            └─────────────────────────┘
++```
++
++### Planned Commands with --connect
++
++```bash
++# List endpoints on remote host
++mkctl --connect ws://prod-server:30015 endpoints
++
++# Watch remote endpoints in real-time
++mkctl --connect ws://prod-server:30015 endpoints --watch
++
++# Get JSON output from remote
++mkctl --connect ws://prod-server:30015 endpoints --json
++
++# Filter remote endpoints by type
++mkctl --connect ws://prod-server:30015 endpoints --filter type=external
++```
++
++### Security Considerations (Future)
++
++When WebSocket connectivity is implemented, consider:
++- **Authentication**: Token-based auth for remote connections
++- **Encryption**: TLS support (`wss://` protocol)
++- **Firewall**: Expose WebSocket port (e.g., 30015) only to trusted networks
++- **Rate limiting**: Protect against DoS on routing server
++
++### Implementation Status
++
++**Current (v0.2.0):**
++- ✅ WebSocketPipe implemented (client + server)
++- ✅ Frame protocol compatible with TCP
++- ✅ Tests and examples available
++- ❌ mkctl `--connect` flag not yet implemented
++
++**Roadmap:**
++1. Implement RoutingServer WebSocket listener
++2. Add `--connect` flag to mkctl CLI
++3. Enable remote endpoint queries
++4. Add authentication and TLS support
++
++### Current Workarounds
++
++Until `--connect` is available, use these patterns:
++
++**SSH tunneling:**
++```bash
++# Tunnel remote router snapshot to local machine
++ssh user@remote-host 'cat /path/to/reports/router-endpoints.json' > /tmp/remote-endpoints.json
++mkctl endpoints --runtime-dir /tmp
++```
++
++**HTTP endpoint (if exposed):**
++```bash
++# If remote host exposes HTTP API
++curl http://remote-host:8080/api/endpoints | jq '.'
++```
++
++**Manual WebSocket client (advanced):**
++```bash
++# Use wscat to connect to remote WebSocket manually
++npm install -g wscat
++wscat -c ws://remote-host:30015
++```
++
++See [Remote Host Setup Guide](./remote-host-setup.md) for configuring mkolbol on remote machines.

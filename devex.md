@@ -121,6 +121,36 @@
 }
 ```
 
+```json
+{
+  "ampcode": "v1",
+  "waves": [
+    { "id": "P18B-WS", "parallel": false, "tasks": ["D1801","D1802","D1803"] }
+  ],
+  "branch": "mkolbol-net-p18b-ws-pipe",
+  "tasks": [
+    {"id":"D1801","agent":"devex","title":"WebSocketPipe: headless smoke + examples + docs",
+      "allowedFiles":["src/pipes/adapters/WebSocketPipe.ts","tests/integration/wsPipe.spec.ts","examples/network/ws-smoke/**","docs/devex/network-quickstart.md"],
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_D1801_ws-pipe.patch"]},
+
+    {"id":"D1802","agent":"devex","title":"mkctl notes: future --connect ws://... (doc placeholders only)",
+      "allowedFiles":["docs/devex/mkctl-cookbook.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D1802_mkctl-ws-docs.patch"]},
+
+    {"id":"D1803","agent":"devex","title":"Remote Host Setup (2nd machine) — quickstart",
+      "allowedFiles":["docs/devex/remote-host-setup.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D1803_remote-host-docs.patch"]}
+  ]
+}
+```
+
+Branch Instructions
+- IMPORTANT: This sprint runs ONLY on branch `mkolbol-net-p18b-ws-pipe`.
+- Do not change branches or merge; commit patches and logs as usual. The architect will handle PRs/merges.
+- Use ephemeral WS ports 30012–30019 in tests to avoid collisions.
 Autonomy & Direction
 - Keep everything copy‑paste runnable; prefer tarball/git‑tag paths (no npm registry).
 - Use the template; keep a concise log in `Vex/devex.log`.

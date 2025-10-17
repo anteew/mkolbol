@@ -1,0 +1,407 @@
+diff --git a/ampcode.md b/ampcode.md
+index 2650853..a7f96f5 100644
+--- a/ampcode.md
++++ b/ampcode.md
+@@ -118,6 +118,40 @@ node dist/scripts/mk.js bootstrap /tmp/mk-calc --yes
+ node dist/scripts/mkctl.js endpoints --runtime-dir . --json | jq '.[0].status'
+ ```
+ 
++```json
++{
++  "ampcode": "v1",
++  "waves": [
++    { "id": "P18A-TCP", "parallel": false, "tasks": ["N1801","N1802","N1803"] }
++  ],
++  "branch": "mkolbol-net-p18a-tcp-pipe",
++  "tasks": [
++    {"id":"N1801","agent":"susan","title":"FrameCodec + Transport interface (pre-step)",
++      "why":"Shared base for TCP/WS pipes; length-prefixed framing + ping/pong.",
++      "allowedFiles":["src/net/frame.ts","src/net/transport.ts","tests/net/frame.spec.ts"],
++      "verify":["npm run build","npm run test:ci"],
++      "deliverables":["patches/DIFF_N1801_frame-transport.patch"]},
++
++    {"id":"N1802","agent":"susan","title":"TCPPipe adapter + Remote Viewer example",
++      "why":"Enable cross-process streams over TCP; simplest remote demo.",
++      "allowedFiles":["src/pipes/adapters/TCPPipe.ts","examples/network/remote-viewer/**","tests/integration/tcpPipe.spec.ts"],
++      "verify":["npm run build","npm run test:ci"],
++      "deliverables":["patches/DIFF_N1802_tcp-pipe.patch"]},
++
++    {"id":"N1803","agent":"susan","title":"Acceptance: PTY in proc A → TCP → viewer proc B (ephemeral ports)",
++      "why":"Prove end-to-end with port collision safety and Laminar artifacts.",
++      "allowedFiles":["docs/devex/network-quickstart.md",".github/workflows/tests.yml","scripts/ci-local.ts"],
++      "verify":["npm run build","npm run ci:local:fast"],
++      "deliverables":["patches/DIFF_N1803_tcp-acceptance.patch"]}
++  ]
++}
++```
++
++Branch Instructions
++- IMPORTANT: This sprint runs ONLY on branch `mkolbol-net-p18a-tcp-pipe`.
++- Do not change branches or merge; commit patches and logs as usual. I will handle PRs/merges.
++- Use ephemeral ports from 30010–30019 for tests. Avoid hard-coded 3000.
++
+ # Ampcode — MKD RC Sweep: Acceptance + Release Prep
+ 
+ Goal
+diff --git a/devex.md b/devex.md
+index 29c68ef..fd06f14 100644
+--- a/devex.md
++++ b/devex.md
+@@ -121,6 +121,36 @@
+ }
+ ```
+ 
++```json
++{
++  "ampcode": "v1",
++  "waves": [
++    { "id": "P18B-WS", "parallel": false, "tasks": ["D1801","D1802","D1803"] }
++  ],
++  "branch": "mkolbol-net-p18b-ws-pipe",
++  "tasks": [
++    {"id":"D1801","agent":"devex","title":"WebSocketPipe: headless smoke + examples + docs",
++      "allowedFiles":["src/pipes/adapters/WebSocketPipe.ts","tests/integration/wsPipe.spec.ts","examples/network/ws-smoke/**","docs/devex/network-quickstart.md"],
++      "verify":["npm run build","npm run test:ci"],
++      "deliverables":["patches/DIFF_D1801_ws-pipe.patch"]},
++
++    {"id":"D1802","agent":"devex","title":"mkctl notes: future --connect ws://... (doc placeholders only)",
++      "allowedFiles":["docs/devex/mkctl-cookbook.md"],
++      "verify":["npm run build"],
++      "deliverables":["patches/DIFF_D1802_mkctl-ws-docs.patch"]},
++
++    {"id":"D1803","agent":"devex","title":"Remote Host Setup (2nd machine) — quickstart",
++      "allowedFiles":["docs/devex/remote-host-setup.md"],
++      "verify":["npm run build"],
++      "deliverables":["patches/DIFF_D1803_remote-host-docs.patch"]}
++  ]
++}
++```
++
++Branch Instructions
++- IMPORTANT: This sprint runs ONLY on branch `mkolbol-net-p18b-ws-pipe`.
++- Do not change branches or merge; commit patches and logs as usual. The architect will handle PRs/merges.
++- Use ephemeral WS ports 30012–30019 in tests to avoid collisions.
+ Autonomy & Direction
+ - Keep everything copy‑paste runnable; prefer tarball/git‑tag paths (no npm registry).
+ - Use the template; keep a concise log in `Vex/devex.log`.
+diff --git a/laminar.rules.json b/laminar.rules.json
+new file mode 100644
+index 0000000..09f7948
+--- /dev/null
++++ b/laminar.rules.json
+@@ -0,0 +1,12 @@
++{
++  "$schema": "docs/testing/laminar.schema.json",
++  "budget": { "kb": 128, "events": 500, "cases": 200 },
++  "rules": [
++    { "name": "Prioritize errors", "match": { "lvl": "error" }, "action": { "type": "priority", "level": 10 } },
++    { "name": "Slice around errors", "match": { "lvl": "error" }, "action": { "type": "slice", "window": 50 } },
++    { "name": "Elevate TimeoutNaNWarning", "match": { "case": "*TimeoutNaNWarning*" }, "action": { "type": "priority", "level": 9 } },
++    { "name": "Router TTL flakes", "match": { "case": "*router.ttl*" }, "action": { "type": "priority", "level": 8 } },
++    { "name": "Redact tokens in logs", "match": { "path": "*" }, "action": { "type": "redact", "fields": ["token", "authorization", "apiKey", "password"] } }
++  ],
++  "defaults": { "action": "include", "priority": 5 }
++}
+diff --git a/src/net/frame.ts b/src/net/frame.ts
+new file mode 100644
+index 0000000..838e6b4
+--- /dev/null
++++ b/src/net/frame.ts
+@@ -0,0 +1,95 @@
++import type { Frame, FrameMetadata } from './transport.js';
++
++export class FrameCodec {
++  private static readonly HEADER_SIZE = 8;
++  private static readonly MAX_PAYLOAD_SIZE = 10 * 1024 * 1024; // 10MB
++
++  static encode(frame: Frame): Buffer {
++    const metadataJson = JSON.stringify(frame.metadata);
++    const metadataBuffer = Buffer.from(metadataJson, 'utf8');
++    const metadataLength = metadataBuffer.length;
++    const payloadLength = frame.payload.length;
++
++    if (payloadLength > this.MAX_PAYLOAD_SIZE) {
++      throw new Error(`Payload exceeds maximum size: ${payloadLength} > ${this.MAX_PAYLOAD_SIZE}`);
++    }
++
++    const headerBuffer = Buffer.allocUnsafe(this.HEADER_SIZE);
++    headerBuffer.writeUInt32BE(metadataLength, 0);
++    headerBuffer.writeUInt32BE(payloadLength, 4);
++
++    return Buffer.concat([headerBuffer, metadataBuffer, frame.payload]);
++  }
++
++  static decode(buffer: Buffer): { frame: Frame; bytesConsumed: number } | null {
++    if (buffer.length < this.HEADER_SIZE) {
++      return null;
++    }
++
++    const metadataLength = buffer.readUInt32BE(0);
++    const payloadLength = buffer.readUInt32BE(4);
++
++    const totalLength = this.HEADER_SIZE + metadataLength + payloadLength;
++
++    if (buffer.length < totalLength) {
++      return null;
++    }
++
++    if (payloadLength > this.MAX_PAYLOAD_SIZE) {
++      throw new Error(`Payload exceeds maximum size: ${payloadLength} > ${this.MAX_PAYLOAD_SIZE}`);
++    }
++
++    const metadataBuffer = buffer.slice(this.HEADER_SIZE, this.HEADER_SIZE + metadataLength);
++    const payloadBuffer = buffer.slice(this.HEADER_SIZE + metadataLength, totalLength);
++
++    const metadata = JSON.parse(metadataBuffer.toString('utf8')) as FrameMetadata;
++
++    return {
++      frame: { metadata, payload: payloadBuffer },
++      bytesConsumed: totalLength
++    };
++  }
++
++  static createDataFrame(payload: Buffer | string, sequenceId?: number): Frame {
++    const payloadBuffer = typeof payload === 'string' ? Buffer.from(payload, 'utf8') : payload;
++    
++    return {
++      metadata: {
++        type: 'data',
++        timestamp: Date.now(),
++        sequenceId
++      },
++      payload: payloadBuffer
++    };
++  }
++
++  static createPingFrame(): Frame {
++    return {
++      metadata: {
++        type: 'ping',
++        timestamp: Date.now()
++      },
++      payload: Buffer.alloc(0)
++    };
++  }
++
++  static createPongFrame(): Frame {
++    return {
++      metadata: {
++        type: 'pong',
++        timestamp: Date.now()
++      },
++      payload: Buffer.alloc(0)
++    };
++  }
++
++  static createCloseFrame(): Frame {
++    return {
++      metadata: {
++        type: 'close',
++        timestamp: Date.now()
++      },
++      payload: Buffer.alloc(0)
++    };
++  }
++}
+diff --git a/src/net/transport.ts b/src/net/transport.ts
+new file mode 100644
+index 0000000..60c8050
+--- /dev/null
++++ b/src/net/transport.ts
+@@ -0,0 +1,24 @@
++import type { Duplex } from 'stream';
++
++export interface TransportOptions {
++  objectMode?: boolean;
++  highWaterMark?: number;
++  encoding?: BufferEncoding;
++}
++
++export interface Transport {
++  createConnection(options: any): Duplex;
++  createServer(options: any, callback: (stream: Duplex) => void): any;
++  close(): Promise<void>;
++}
++
++export interface FrameMetadata {
++  type: 'data' | 'ping' | 'pong' | 'close';
++  timestamp?: number;
++  sequenceId?: number;
++}
++
++export interface Frame {
++  metadata: FrameMetadata;
++  payload: Buffer;
++}
+diff --git a/tests/net/frame.spec.ts b/tests/net/frame.spec.ts
+new file mode 100644
+index 0000000..874fc7d
+--- /dev/null
++++ b/tests/net/frame.spec.ts
+@@ -0,0 +1,166 @@
++import { describe, it, expect } from 'vitest';
++import { FrameCodec } from '../../src/net/frame.js';
++import type { Frame } from '../../src/net/transport.js';
++
++describe('FrameCodec', () => {
++  describe('encode/decode', () => {
++    it('encodes and decodes data frame', () => {
++      const payload = Buffer.from('hello world', 'utf8');
++      const frame = FrameCodec.createDataFrame(payload, 42);
++
++      const encoded = FrameCodec.encode(frame);
++      expect(encoded).toBeInstanceOf(Buffer);
++
++      const decoded = FrameCodec.decode(encoded);
++      expect(decoded).not.toBeNull();
++      expect(decoded!.frame.metadata.type).toBe('data');
++      expect(decoded!.frame.metadata.sequenceId).toBe(42);
++      expect(decoded!.frame.payload.toString('utf8')).toBe('hello world');
++      expect(decoded!.bytesConsumed).toBe(encoded.length);
++    });
++
++    it('returns null for incomplete header', () => {
++      const partial = Buffer.from([0x00, 0x00, 0x00]);
++      const result = FrameCodec.decode(partial);
++      expect(result).toBeNull();
++    });
++
++    it('returns null for incomplete payload', () => {
++      const frame = FrameCodec.createDataFrame('test data');
++      const encoded = FrameCodec.encode(frame);
++      const partial = encoded.slice(0, encoded.length - 5);
++
++      const result = FrameCodec.decode(partial);
++      expect(result).toBeNull();
++    });
++
++    it('handles empty payload', () => {
++      const frame = FrameCodec.createDataFrame(Buffer.alloc(0));
++      const encoded = FrameCodec.encode(frame);
++      const decoded = FrameCodec.decode(encoded);
++
++      expect(decoded).not.toBeNull();
++      expect(decoded!.frame.payload.length).toBe(0);
++    });
++
++    it('handles large payload', () => {
++      const largePayload = Buffer.alloc(1024 * 1024, 'x'); // 1MB
++      const frame = FrameCodec.createDataFrame(largePayload);
++      const encoded = FrameCodec.encode(frame);
++      const decoded = FrameCodec.decode(encoded);
++
++      expect(decoded).not.toBeNull();
++      expect(decoded!.frame.payload.length).toBe(largePayload.length);
++      expect(decoded!.frame.payload.equals(largePayload)).toBe(true);
++    });
++
++    it('rejects payload exceeding max size', () => {
++      const hugePayload = Buffer.alloc(11 * 1024 * 1024, 'x'); // 11MB (over 10MB limit)
++      const frame = FrameCodec.createDataFrame(hugePayload);
++
++      expect(() => FrameCodec.encode(frame)).toThrow('Payload exceeds maximum size');
++    });
++
++    it('handles string payload', () => {
++      const frame = FrameCodec.createDataFrame('string data', 123);
++      const encoded = FrameCodec.encode(frame);
++      const decoded = FrameCodec.decode(encoded);
++
++      expect(decoded).not.toBeNull();
++      expect(decoded!.frame.payload.toString('utf8')).toBe('string data');
++    });
++  });
++
++  describe('frame types', () => {
++    it('creates ping frame', () => {
++      const frame = FrameCodec.createPingFrame();
++      expect(frame.metadata.type).toBe('ping');
++      expect(frame.payload.length).toBe(0);
++      expect(frame.metadata.timestamp).toBeGreaterThan(0);
++    });
++
++    it('creates pong frame', () => {
++      const frame = FrameCodec.createPongFrame();
++      expect(frame.metadata.type).toBe('pong');
++      expect(frame.payload.length).toBe(0);
++      expect(frame.metadata.timestamp).toBeGreaterThan(0);
++    });
++
++    it('creates close frame', () => {
++      const frame = FrameCodec.createCloseFrame();
++      expect(frame.metadata.type).toBe('close');
++      expect(frame.payload.length).toBe(0);
++    });
++
++    it('encodes and decodes ping/pong frames', () => {
++      const ping = FrameCodec.createPingFrame();
++      const pong = FrameCodec.createPongFrame();
++
++      const encodedPing = FrameCodec.encode(ping);
++      const encodedPong = FrameCodec.encode(pong);
++
++      const decodedPing = FrameCodec.decode(encodedPing);
++      const decodedPong = FrameCodec.decode(encodedPong);
++
++      expect(decodedPing!.frame.metadata.type).toBe('ping');
++      expect(decodedPong!.frame.metadata.type).toBe('pong');
++    });
++  });
++
++  describe('multiple frames in buffer', () => {
++    it('decodes first frame and reports bytes consumed', () => {
++      const frame1 = FrameCodec.createDataFrame('first');
++      const frame2 = FrameCodec.createDataFrame('second');
++
++      const encoded1 = FrameCodec.encode(frame1);
++      const encoded2 = FrameCodec.encode(frame2);
++      const combined = Buffer.concat([encoded1, encoded2]);
++
++      const decoded = FrameCodec.decode(combined);
++
++      expect(decoded).not.toBeNull();
++      expect(decoded!.frame.payload.toString('utf8')).toBe('first');
++      expect(decoded!.bytesConsumed).toBe(encoded1.length);
++    });
++
++    it('can decode remaining frames after consuming first', () => {
++      const frame1 = FrameCodec.createDataFrame('first');
++      const frame2 = FrameCodec.createDataFrame('second');
++
++      const encoded1 = FrameCodec.encode(frame1);
++      const encoded2 = FrameCodec.encode(frame2);
++      const combined = Buffer.concat([encoded1, encoded2]);
++
++      const decoded1 = FrameCodec.decode(combined);
++      expect(decoded1).not.toBeNull();
++
++      const remaining = combined.slice(decoded1!.bytesConsumed);
++      const decoded2 = FrameCodec.decode(remaining);
++
++      expect(decoded2).not.toBeNull();
++      expect(decoded2!.frame.payload.toString('utf8')).toBe('second');
++    });
++  });
++
++  describe('metadata preservation', () => {
++    it('preserves timestamp in metadata', () => {
++      const before = Date.now();
++      const frame = FrameCodec.createDataFrame('test');
++      const after = Date.now();
++
++      const encoded = FrameCodec.encode(frame);
++      const decoded = FrameCodec.decode(encoded);
++
++      expect(decoded!.frame.metadata.timestamp).toBeGreaterThanOrEqual(before);
++      expect(decoded!.frame.metadata.timestamp).toBeLessThanOrEqual(after);
++    });
++
++    it('preserves sequence ID', () => {
++      const frame = FrameCodec.createDataFrame('test', 999);
++      const encoded = FrameCodec.encode(frame);
++      const decoded = FrameCodec.decode(encoded);
++
++      expect(decoded!.frame.metadata.sequenceId).toBe(999);
++    });
++  });
++});
