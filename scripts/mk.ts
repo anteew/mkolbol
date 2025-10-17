@@ -558,8 +558,10 @@ function printCommandHelp(cmd: Command) {
 async function mkMain() {
   let args = process.argv.slice(2);
 
-  // Global flags: -C/--project to change directory, --version/-V for version info
-  const projectFlagIndex = args.findIndex((a) => a === '-C' || a === '--project');
+  // Global flags: -C/--project/--project-dir to change directory, --version/-V for version info
+  const projectFlagIndex = args.findIndex(
+    (a) => a === '-C' || a === '--project' || a === '--project-dir'
+  );
   if (projectFlagIndex !== -1) {
     const dir = args[projectFlagIndex + 1];
     if (!dir || dir.startsWith('-')) {
