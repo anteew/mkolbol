@@ -1,16 +1,52 @@
+````json
+
 ```json
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "P20A-ROUTER-P3", "parallel": false, "tasks": ["N2001","N2002","N2003"] }
+    { "id": "P22-RESILIENCE", "parallel": false, "tasks": ["N2201","N2202","N2203"] }
   ],
-  "branch": "mkolbol-core-router-p3-subscribe",
+  "branch": "mkolbol-net-p22-resilience",
   "tasks": [
-    {"id":"N2001","agent":"susan","title":"RoutingServer: subscribe() API + event stream (added/updated/removed/staleExpired)",
-      "why":"Enable live route/liveness updates to consumers without polling.",
-      "allowedFiles":["src/router/RoutingServer.ts","src/executor/Executor.ts","src/types/router.ts","tests/integration/router.subscribe.spec.ts"],
+    {"id":"N2201","agent":"susan","title":"Reconnect/backoff + clearer errors; heartbeat/ping tuning",
+      "allowedFiles":["src/pipes/adapters/TCPPipe.ts","src/pipes/adapters/WebSocketPipe.ts","tests/integration/net.resilience.spec.ts"],
+      "why":"Stabilize links across transient failures with clear remediation.",
       "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_N2001_router-subscribe.patch"]},
+      "deliverables":["patches/DIFF_N2201_net-resilience.patch"]},
+
+    {"id":"N2202","agent":"susan","title":"FrameCodec v2 header + version negotiation (additive)",
+      "allowedFiles":["src/net/frame.ts","tests/net/frame.spec.ts","tests/integration/net.handshake.spec.ts"],
+      "why":"Allow safe, incremental protocol evolution.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2202_frame-v2.patch"]},
+
+    {"id":"N2203","agent":"susan","title":"Docs: error surfaces and recommended timeouts; PR release notes",
+      "allowedFiles":["docs/devex/network-quickstart.md","docs/devex/troubleshooting.md","docs/devex/releases.md"],
+      "why":"Make failures legible and tunables explicit for operators.",
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_N2203_resilience-docs.patch"]}
+  ]
+}
+````
+
+Branch Instructions
+
+- IMPORTANT: Work only on `mkolbol-net-p22-resilience`.
+- Keep v1 framing working; negotiate v2 on handshake; tests cover mixed versions.
+- Clear error messages: include cause, next steps, and which side should retry.
+
+{
+"ampcode": "v1",
+"waves": [
+{ "id": "P20A-ROUTER-P3", "parallel": false, "tasks": ["N2001","N2002","N2003"] }
+],
+"branch": "mkolbol-core-router-p3-subscribe",
+"tasks": [
+{"id":"N2001","agent":"susan","title":"RoutingServer: subscribe() API + event stream (added/updated/removed/staleExpired)",
+"why":"Enable live route/liveness updates to consumers without polling.",
+"allowedFiles":["src/router/RoutingServer.ts","src/executor/Executor.ts","src/types/router.ts","tests/integration/router.subscribe.spec.ts"],
+"verify":["npm run build","npm run test:ci"],
+"deliverables":["patches/DIFF_N2001_router-subscribe.patch"]},
 
     {"id":"N2002","agent":"susan","title":"Heartbeat/TTL integration: emit stale→expired transitions; snapshot includes expiresAt",
       "why":"Expose liveness semantics over subscriptions; align with TTL rules.",
@@ -23,9 +59,11 @@
       "allowedFiles":["examples/network/subscriber-demo/**","docs/devex/network-quickstart.md","reports/**"],
       "verify":["npm run ci:local:fast"],
       "deliverables":["patches/DIFF_N2003_subscriber-acceptance.patch"]}
-  ]
+
+]
 }
-````
+
+```
 
 Branch Instructions
 
@@ -99,7 +137,7 @@ Branch Instructions
 ]
 }
 
-````
+```
 
 ```json
 {
@@ -219,7 +257,7 @@ Branch Instructions
     }
   ]
 }
-````
+```
 
 # Ampcode — P17: Orchestrator v1 (mk Anywhere) + Router P2 TTL
 
