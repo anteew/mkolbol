@@ -19,6 +19,7 @@ export class RoutingServer {
             throw new Error('RoutingServer.announce requires an "id"');
         }
         const now = Date.now();
+        const expiresAt = now + this.ttlMs;
         const existing = this.endpoints.get(id);
         const endpoint = existing
             ? {
@@ -27,6 +28,7 @@ export class RoutingServer {
                 coordinates,
                 metadata: metadata ? { ...metadata } : undefined,
                 updatedAt: now,
+                expiresAt,
             }
             : {
                 id,
@@ -35,6 +37,7 @@ export class RoutingServer {
                 metadata: metadata ? { ...metadata } : undefined,
                 announcedAt: now,
                 updatedAt: now,
+                expiresAt,
             };
         this.endpoints.set(id, endpoint);
         debug.emit('router', 'announce', { id, type, coordinates, metadata });

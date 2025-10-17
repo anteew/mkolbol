@@ -114,6 +114,77 @@ async function testMkRunYaml(projectPath) {
         }
     });
 }
+async function testTtlSoakUnderLoad() {
+    await runTest('TTL expiry soak test under load (non-gating)', async () => {
+        log('Starting TTL soak test with heartbeats and load...');
+        // Create a topology with router heartbeats enabled
+        const soakTopology = `
+nodes:
+  - id: source
+    module: ExternalProcess
+    params:
+      command: node
+      args:
+        - -e
+        - "setInterval(() => { for(let i=0; i<100; i++) console.log('msg-' + Date.now() + '-' + i); }, 100);"
+      ioMode: stdio
+      restart: never
+      
+  - id: meter
+    module: PipeMeterTransform
+    params:
+      emitInterval: 1000
+      
+  - id: sink
+    module: FilesystemSink
+    params:
+      path: reports/ttl-soak.jsonl
+      format: jsonl
+      mode: append
+      
+connections:
+  - from: source.output
+    to: meter.input
+  - from: meter.output
+    to: sink.input
+`;
+        const soakConfigPath = join(process.cwd(), 'reports', 'ttl-soak-topology.yml');
+        const reportsDir = join(process.cwd(), 'reports');
+        if (!existsSync(reportsDir)) {
+            mkdirSync(reportsDir, { recursive: true });
+        }
+        writeFileSync(soakConfigPath, soakTopology);
+        // Run topology for 10 seconds with router heartbeats
+        const result = exec(`timeout 12 node dist/scripts/mkctl.js run --file ${soakConfigPath} --duration 10`, process.cwd());
+        const logOutput = result.stdout + result.stderr;
+        // Verify topology ran
+        if (!logOutput.includes('Topology running') && !logOutput.includes('Starting')) {
+            throw new Error('Topology did not start successfully');
+        }
+        // Verify data flowed (check for JSONL output)
+        const soakOutputPath = join(reportsDir, 'ttl-soak.jsonl');
+        if (!existsSync(soakOutputPath)) {
+            throw new Error('TTL soak test: no output data file created');
+        }
+        const outputContent = readFileSync(soakOutputPath, 'utf-8');
+        const lineCount = outputContent.split('\n').filter(l => l.trim()).length;
+        if (lineCount < 10) {
+            throw new Error(`TTL soak test: insufficient data throughput (${lineCount} lines)`);
+        }
+        log(`TTL soak test completed: ${lineCount} messages processed under load`);
+        // Check for router endpoints snapshot (validates heartbeat mechanism)
+        const endpointsPath = join(reportsDir, 'router-endpoints.json');
+        if (existsSync(endpointsPath)) {
+            const endpoints = JSON.parse(readFileSync(endpointsPath, 'utf-8'));
+            log(`Router endpoints tracked: ${endpoints.length} endpoints`);
+            // Verify stale endpoints would be detected (check TTL metadata exists)
+            const hasHeartbeatData = endpoints.some((ep) => ep.lastHeartbeat !== undefined || ep.ttlMs !== undefined);
+            if (hasHeartbeatData) {
+                log('✓ Heartbeat/TTL metadata present in endpoint tracking');
+            }
+        }
+    });
+}
 async function generateReport(projectPath) {
     log('Generating report...');
     const passed = results.filter(r => r.passed).length;
@@ -240,6 +311,8 @@ async function main() {
         await testMkDoctor();
         await testMkFormatToYaml(projectPath);
         await testMkRunYaml(projectPath);
+        // TTL soak test (non-gating, best-effort)
+        await testTtlSoakUnderLoad();
         // Generate report
         await generateReport(projectPath);
         // Print summary

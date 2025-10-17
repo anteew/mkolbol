@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec node "/srv/repos0/mkolbol/dist/scripts/mk.js" "$@"

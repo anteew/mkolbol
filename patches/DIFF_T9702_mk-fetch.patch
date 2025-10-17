@@ -1,0 +1,475 @@
+diff --git a/scripts/mk.ts b/scripts/mk.ts
+index ecd2c07..7824dcc 100644
+--- a/scripts/mk.ts
++++ b/scripts/mk.ts
+@@ -195,13 +195,27 @@ const commands: Command[] = [
+   {
+     name: 'doctor',
+     description: 'Diagnose system and dependency issues',
+-    usage: 'mk doctor [--verbose]',
++    usage: 'mk doctor [--verbose] [--section all|toolchain|environment] [--json]',
+     handler: async (args: string[]) => {
+       const verbose = args.includes('--verbose');
++      const jsonOutput = args.includes('--json');
++      
++      let section: 'all' | 'toolchain' | 'environment' = 'all';
++      const sectionIndex = args.findIndex(a => a === '--section');
++      if (sectionIndex !== -1 && args[sectionIndex + 1]) {
++        const sectionArg = args[sectionIndex + 1];
++        if (sectionArg === 'toolchain' || sectionArg === 'environment' || sectionArg === 'all') {
++          section = sectionArg;
++        } else {
++          console.error(`Invalid --section value: ${sectionArg}. Use: all, toolchain, or environment`);
++          return EXIT_USAGE;
++        }
++      }
++      
+       const { runDoctorChecks, formatCheckResults } = await import('../src/mk/doctor.js');
+       
+-      const results = await runDoctorChecks(verbose);
+-      const output = formatCheckResults(results);
++      const results = await runDoctorChecks(verbose, section);
++      const output = formatCheckResults(results, jsonOutput ? 'json' : 'text');
+       console.log(output);
+       
+       const hasFailed = results.some(r => r.status === 'fail');
+@@ -286,24 +300,31 @@ const commands: Command[] = [
+   {
+     name: 'fetch',
+     description: 'Download and install release tarball by tag (experimental)',
+-    usage: 'mk fetch <tag>',
++    usage: 'mk fetch <tag> [--verify] [--force] [--no-install]',
+     handler: async (args: string[]) => {
+-      if (args.length === 0) {
++      if (args.length === 0 || args[0].startsWith('--')) {
+         console.error('Error: Missing release tag');
+-        console.error('Usage: mk fetch <tag>');
+-        console.error('Examples: mk fetch v0.2.0, mk fetch latest');
++        console.error('Usage: mk fetch <tag> [--verify] [--force] [--no-install]');
++        console.error('Examples: mk fetch v0.2.0, mk fetch latest --verify');
+         return EXIT_USAGE;
+       }
+ 
+       const tag = args[0];
++      const verify = args.includes('--verify');
++      const forceDownload = args.includes('--force');
++      const noInstall = args.includes('--no-install');
+       
+       try {
+         const { downloadRelease, installTarball } = await import('../src/mk/fetch.js');
+         
+         console.log(`Fetching release ${tag}...`);
+-        const tarballPath = await downloadRelease(tag);
++        const tarballPath = await downloadRelease(tag, { verify, forceDownload });
+         
+-        await installTarball(tarballPath);
++        if (!noInstall) {
++          await installTarball(tarballPath);
++        } else {
++          console.log(`Tarball ready at: ${tarballPath}`);
++        }
+         
+         return EXIT_SUCCESS;
+       } catch (error) {
+@@ -467,6 +488,55 @@ const commands: Command[] = [
+       return ciPlanHandler(args.slice(1));
+     },
+   },
++  {
++    name: 'bootstrap',
++    description: 'Create out-of-tree project with mkolbol as dependency',
++    usage: 'mk bootstrap <app-dir> [--yes] [--verbose] [--template <name>] [--source tarball|git|local] [--git-tag <tag>] [--tarball <path>]',
++    handler: async (args: string[]) => {
++      if (args.length === 0 || args[0].startsWith('--')) {
++        console.error('Error: Missing app directory');
++        console.error('Usage: mk bootstrap <app-dir> [--yes] [--verbose] [--template <name>]');
++        return EXIT_USAGE;
++      }
++
++      const appDir = args[0];
++      const yes = args.includes('--yes') || args.includes('-y');
++      const verbose = args.includes('--verbose');
++      
++      let template: string | undefined;
++      let source: 'tarball' | 'git' | 'local' = 'local';
++      let gitTag: string | undefined;
++      let tarballPath: string | undefined;
++
++      for (let i = 1; i < args.length; i++) {
++        const arg = args[i];
++        if (arg === '--template' && i + 1 < args.length) {
++          template = args[++i];
++        } else if (arg === '--source' && i + 1 < args.length) {
++          const srcValue = args[++i];
++          if (srcValue === 'tarball' || srcValue === 'git' || srcValue === 'local') {
++            source = srcValue;
++          } else {
++            console.error(`Invalid --source value: ${srcValue}. Use: tarball, git, or local`);
++            return EXIT_USAGE;
++          }
++        } else if (arg === '--git-tag' && i + 1 < args.length) {
++          gitTag = args[++i];
++        } else if (arg === '--tarball' && i + 1 < args.length) {
++          tarballPath = args[++i];
++        }
++      }
++
++      try {
++        const { bootstrapProject } = await import('../src/mk/bootstrap.js');
++        await bootstrapProject(appDir, { yes, verbose, template, source, gitTag, tarballPath });
++        return EXIT_SUCCESS;
++      } catch (error) {
++        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
++        return EXIT_ERROR;
++      }
++    },
++  },
+   {
+     name: 'self-install',
+     description: 'Install mk globally (safe tarball method) or install PATH wrappers',
+diff --git a/src/mk/fetch.ts b/src/mk/fetch.ts
+index ac65ae9..db32f53 100644
+--- a/src/mk/fetch.ts
++++ b/src/mk/fetch.ts
+@@ -1,20 +1,88 @@
+-import { createWriteStream, existsSync } from 'node:fs';
+-import { mkdir, chmod, access, constants as fsConstants } from 'node:fs/promises';
++import { createWriteStream, existsSync, createReadStream } from 'node:fs';
++import { mkdir, chmod, access, constants as fsConstants, readFile } from 'node:fs/promises';
+ import { dirname, join } from 'node:path';
+ import { pipeline } from 'node:stream/promises';
+ import { execSync } from 'node:child_process';
++import { homedir } from 'node:os';
+ import https from 'node:https';
++import crypto from 'node:crypto';
+ 
+ const GITHUB_OWNER = 'anteew';
+ const GITHUB_REPO = 'mkolbol';
+ 
+-export async function downloadRelease(tag: string): Promise<string> {
+-  const tarballUrl = await getReleaseTarballUrl(tag);
+-  const fileName = `mkolbol-${tag}.tgz`;
+-  const outputPath = join(process.cwd(), fileName);
++export interface FetchOptions {
++  verify?: boolean;
++  forceDownload?: boolean;
++}
++
++export async function downloadRelease(tag: string, options: FetchOptions = {}): Promise<string> {
++  const normalizedTag = tag === 'latest' ? await getLatestReleaseTag() : tag;
++  const cacheDir = join(homedir(), '.mk', 'toolchains', normalizedTag);
++  const cachedPath = join(cacheDir, 'mkolbol.tgz');
++  const hashPath = join(cacheDir, 'mkolbol.tgz.sha256');
++
++  if (existsSync(cachedPath) && !options.forceDownload) {
++    console.log(`Using cached tarball: ${cachedPath}`);
++    
++    if (options.verify) {
++      const isValid = await verifyTarball(cachedPath, hashPath);
++      if (!isValid) {
++        throw new Error('SHA-256 verification failed for cached tarball');
++      }
++      console.log('✓ SHA-256 verification passed');
++    }
++    
++    return cachedPath;
++  }
+ 
+-  await downloadFile(tarballUrl, outputPath);
+-  return outputPath;
++  const { tarballUrl, sha256 } = await getReleaseTarballInfo(normalizedTag);
++  
++  await mkdir(cacheDir, { recursive: true });
++  await downloadFile(tarballUrl, cachedPath);
++  
++  if (sha256) {
++    await createReadStream(cachedPath)
++      .pipe(createWriteStream(hashPath));
++    
++    const hashContent = sha256 + '\n';
++    await writeFile(hashPath, hashContent);
++    console.log(`✓ SHA-256 hash saved: ${sha256.slice(0, 16)}...`);
++  } else {
++    console.warn('⚠ No SHA-256 hash available from GitHub release');
++  }
++
++  if (options.verify) {
++    const isValid = await verifyTarball(cachedPath, hashPath);
++    if (!isValid) {
++      throw new Error('SHA-256 verification failed');
++    }
++    console.log('✓ SHA-256 verification passed');
++  }
++
++  return cachedPath;
++}
++
++export async function verifyTarball(tarballPath: string, hashPath: string): Promise<boolean> {
++  if (!existsSync(hashPath)) {
++    console.warn('⚠ No hash file found for verification');
++    return false;
++  }
++
++  const expectedHash = (await readFile(hashPath, 'utf8')).trim();
++  const actualHash = await calculateSHA256(tarballPath);
++  
++  return expectedHash === actualHash;
++}
++
++export async function calculateSHA256(filePath: string): Promise<string> {
++  return new Promise((resolve, reject) => {
++    const hash = crypto.createHash('sha256');
++    const stream = createReadStream(filePath);
++    
++    stream.on('data', (chunk) => hash.update(chunk));
++    stream.on('end', () => resolve(hash.digest('hex')));
++    stream.on('error', reject);
++  });
+ }
+ 
+ export async function installTarball(tarballPath: string): Promise<void> {
+@@ -41,11 +109,9 @@ export async function installTarball(tarballPath: string): Promise<void> {
+   }
+ }
+ 
+-async function getReleaseTarballUrl(tag: string): Promise<string> {
+-  const normalizedTag = tag === 'latest' ? await getLatestReleaseTag() : tag;
+-  
++async function getReleaseTarballInfo(tag: string): Promise<{ tarballUrl: string; sha256?: string }> {
+   return new Promise((resolve, reject) => {
+-    const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${normalizedTag}`;
++    const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`;
+     
+     https.get(apiUrl, {
+       headers: {
+@@ -54,7 +120,7 @@ async function getReleaseTarballUrl(tag: string): Promise<string> {
+       },
+     }, (res) => {
+       if (res.statusCode === 404) {
+-        reject(new Error(`Release ${normalizedTag} not found`));
++        reject(new Error(`Release ${tag} not found`));
+         return;
+       }
+       
+@@ -73,11 +139,18 @@ async function getReleaseTarballUrl(tag: string): Promise<string> {
+           );
+ 
+           if (!tgzAsset) {
+-            reject(new Error(`No .tgz asset found for release ${normalizedTag}`));
++            reject(new Error(`No .tgz asset found for release ${tag}`));
+             return;
+           }
+ 
+-          resolve(tgzAsset.browser_download_url);
++          const sha256Asset = release.assets?.find((asset: any) => 
++            asset.name === `${tgzAsset.name}.sha256` || asset.name.endsWith('.sha256')
++          );
++
++          resolve({
++            tarballUrl: tgzAsset.browser_download_url,
++            sha256: sha256Asset?.browser_download_url,
++          });
+         } catch (error) {
+           reject(new Error(`Failed to parse release data: ${error instanceof Error ? error.message : String(error)}`));
+         }
+@@ -152,3 +225,8 @@ async function downloadFile(url: string, outputPath: string): Promise<void> {
+     }).on('error', reject);
+   });
+ }
++
++async function writeFile(path: string, content: string): Promise<void> {
++  const { writeFile: fsWriteFile } = await import('node:fs/promises');
++  await fsWriteFile(path, content, 'utf8');
++}
+diff --git a/tests/cli/mkFetch.spec.ts b/tests/cli/mkFetch.spec.ts
+new file mode 100644
+index 0000000..d157521
+--- /dev/null
++++ b/tests/cli/mkFetch.spec.ts
+@@ -0,0 +1,186 @@
++import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
++import { spawnSync } from 'node:child_process';
++import { join } from 'node:path';
++import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
++import { homedir } from 'node:os';
++import { calculateSHA256, verifyTarball } from '../../src/mk/fetch.js';
++
++describe('mk fetch command', () => {
++  const mkPath = join(process.cwd(), 'dist', 'scripts', 'mk.js');
++  const cacheDir = join(homedir(), '.mk', 'toolchains', 'test-tag');
++
++  afterAll(() => {
++    if (existsSync(cacheDir)) {
++      rmSync(cacheDir, { recursive: true, force: true });
++    }
++  });
++
++  it('shows help when --help flag is used', () => {
++    const r = spawnSync('node', [mkPath, 'fetch', '--help'], { encoding: 'utf8' });
++
++    expect(r.status).toBe(0);
++    expect(r.stdout).toContain('Download and install release tarball by tag');
++    expect(r.stdout).toContain('Usage: mk fetch');
++  });
++
++  it('shows error when no tag is provided', () => {
++    const r = spawnSync('node', [mkPath, 'fetch'], { encoding: 'utf8' });
++
++    expect(r.status).toBe(64);
++    expect(r.stderr).toContain('Error: Missing release tag');
++    expect(r.stderr).toContain('Usage: mk fetch <tag>');
++  });
++
++  it('shows error when only flags are provided', () => {
++    const r = spawnSync('node', [mkPath, 'fetch', '--verify'], { encoding: 'utf8' });
++
++    expect(r.status).toBe(64);
++    expect(r.stderr).toContain('Error: Missing release tag');
++  });
++
++  it('accepts tag and --verify flag', () => {
++    const r = spawnSync('node', [mkPath, 'fetch', 'v0.2.0', '--verify'], {
++      encoding: 'utf8',
++      timeout: 5000,
++    });
++
++    expect(r.stderr).toContain('Fetching release v0.2.0');
++  });
++
++  it('accepts tag and --force flag', () => {
++    const r = spawnSync('node', [mkPath, 'fetch', 'v0.2.0', '--force'], {
++      encoding: 'utf8',
++      timeout: 5000,
++    });
++
++    expect(r.stderr).toContain('Fetching release v0.2.0');
++  });
++
++  it('accepts tag and --no-install flag', () => {
++    const r = spawnSync('node', [mkPath, 'fetch', 'v0.2.0', '--no-install'], {
++      encoding: 'utf8',
++      timeout: 5000,
++    });
++
++    expect(r.stderr).toContain('Fetching release v0.2.0');
++  });
++
++  it('accepts latest as tag', () => {
++    const r = spawnSync('node', [mkPath, 'fetch', 'latest', '--no-install'], {
++      encoding: 'utf8',
++      timeout: 5000,
++    });
++
++    expect(r.stderr).toContain('Fetching release latest');
++  });
++});
++
++describe('SHA-256 verification', () => {
++  const testDir = join(homedir(), '.mk', 'toolchains', 'test-sha256');
++  const testFilePath = join(testDir, 'test.tgz');
++  const testHashPath = join(testDir, 'test.tgz.sha256');
++
++  beforeAll(() => {
++    if (existsSync(testDir)) {
++      rmSync(testDir, { recursive: true, force: true });
++    }
++    mkdirSync(testDir, { recursive: true });
++  });
++
++  afterAll(() => {
++    if (existsSync(testDir)) {
++      rmSync(testDir, { recursive: true, force: true });
++    }
++  });
++
++  it('calculates SHA-256 hash correctly', async () => {
++    const content = 'test content for sha256 calculation';
++    writeFileSync(testFilePath, content);
++
++    const hash = await calculateSHA256(testFilePath);
++    
++    expect(hash).toBeTruthy();
++    expect(hash).toHaveLength(64);
++    expect(hash).toMatch(/^[a-f0-9]{64}$/);
++  });
++
++  it('verifies tarball with matching hash', async () => {
++    const content = 'test tarball content';
++    writeFileSync(testFilePath, content);
++    
++    const hash = await calculateSHA256(testFilePath);
++    writeFileSync(testHashPath, hash + '\n');
++
++    const isValid = await verifyTarball(testFilePath, testHashPath);
++    
++    expect(isValid).toBe(true);
++  });
++
++  it('rejects tarball with mismatched hash', async () => {
++    const content = 'test tarball content';
++    writeFileSync(testFilePath, content);
++    writeFileSync(testHashPath, 'wronghash1234567890abcdef1234567890abcdef1234567890abcdef1234567\n');
++
++    const isValid = await verifyTarball(testFilePath, testHashPath);
++    
++    expect(isValid).toBe(false);
++  });
++
++  it('returns false when hash file does not exist', async () => {
++    const content = 'test tarball content';
++    writeFileSync(testFilePath, content);
++    
++    if (existsSync(testHashPath)) {
++      rmSync(testHashPath);
++    }
++
++    const isValid = await verifyTarball(testFilePath, join(testDir, 'nonexistent.sha256'));
++    
++    expect(isValid).toBe(false);
++  });
++
++  it('produces consistent hashes for same content', async () => {
++    const content = 'consistent content test';
++    writeFileSync(testFilePath, content);
++
++    const hash1 = await calculateSHA256(testFilePath);
++    const hash2 = await calculateSHA256(testFilePath);
++    
++    expect(hash1).toBe(hash2);
++  });
++
++  it('produces different hashes for different content', async () => {
++    writeFileSync(testFilePath, 'content A');
++    const hash1 = await calculateSHA256(testFilePath);
++
++    writeFileSync(testFilePath, 'content B');
++    const hash2 = await calculateSHA256(testFilePath);
++    
++    expect(hash1).not.toBe(hash2);
++  });
++});
++
++describe('Cache structure', () => {
++  it('creates cache directory under ~/.mk/toolchains/<tag>', () => {
++    const expectedCacheRoot = join(homedir(), '.mk', 'toolchains');
++    const exampleCacheDir = join(expectedCacheRoot, 'v0.2.0');
++    
++    expect(expectedCacheRoot).toContain('.mk');
++    expect(expectedCacheRoot).toContain('toolchains');
++    expect(exampleCacheDir).toContain('v0.2.0');
++  });
++
++  it('stores tarball as mkolbol.tgz', () => {
++    const cacheDir = join(homedir(), '.mk', 'toolchains', 'v0.2.0');
++    const tarballPath = join(cacheDir, 'mkolbol.tgz');
++    
++    expect(tarballPath).toContain('mkolbol.tgz');
++  });
++
++  it('stores hash as mkolbol.tgz.sha256', () => {
++    const cacheDir = join(homedir(), '.mk', 'toolchains', 'v0.2.0');
++    const hashPath = join(cacheDir, 'mkolbol.tgz.sha256');
++    
++    expect(hashPath).toContain('mkolbol.tgz.sha256');
++  });
++});

@@ -180,6 +180,66 @@ connections:
     expect(outcome.stdout).toContain('node:ep1');
     expect(outcome.stdout).not.toContain('node:ep2');
   });
+
+  it('shows liveness status in watch mode', async () => {
+    const snapshotPath = join(workspaceDir, 'reports', 'router-endpoints.json');
+    mkdirSync(join(workspaceDir, 'reports'), { recursive: true });
+    
+    const now = Date.now();
+    writeFileSync(snapshotPath, JSON.stringify([
+      { id: 'ep1', type: 'inproc', coordinates: 'node:ep1', metadata: {}, announcedAt: now, updatedAt: now, ttlMs: 30000 },
+      { id: 'ep2', type: 'inproc', coordinates: 'node:ep2', metadata: {}, announcedAt: now - 25000, updatedAt: now - 25000, ttlMs: 30000 },
+      { id: 'ep3', type: 'inproc', coordinates: 'node:ep3', metadata: {}, announcedAt: now - 35000, updatedAt: now - 35000, ttlMs: 30000 }
+    ]));
+
+    const { proc, result } = spawnMkctl(['endpoints', '--watch', '--interval', '1'], 3000);
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    proc.kill('SIGTERM');
+
+    const outcome = await result;
+    expect(outcome.stdout).toContain('Status:');
+    expect(outcome.stdout).toContain('TTL:');
+    expect(outcome.stdout).toMatch(/✓.*healthy|⚠.*stale|✗.*expired/);
+  });
+
+  it('includes status field in JSON output', async () => {
+    const snapshotPath = join(workspaceDir, 'reports', 'router-endpoints.json');
+    mkdirSync(join(workspaceDir, 'reports'), { recursive: true });
+    
+    const now = Date.now();
+    const testData = [
+      { id: 'ep1', type: 'inproc', coordinates: 'node:ep1', metadata: {}, announcedAt: now, updatedAt: now, ttlMs: 30000 },
+      { id: 'ep2', type: 'inproc', coordinates: 'node:ep2', metadata: {}, announcedAt: now - 25000, updatedAt: now - 25000, ttlMs: 30000 }
+    ];
+    writeFileSync(snapshotPath, JSON.stringify(testData));
+
+    const result = spawnMkctl(['endpoints', '--json']);
+    const outcome = await result.result;
+
+    expect(outcome.code).toBe(EXIT_CODES.SUCCESS);
+    const parsed = JSON.parse(outcome.stdout);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed[0]).toHaveProperty('status');
+    expect(parsed[0]).toHaveProperty('ttlRemaining');
+    expect(['healthy', 'stale', 'expired']).toContain(parsed[0].status);
+  });
+
+  it('supports --runtime-dir flag', async () => {
+    const customDir = join(workspaceDir, 'custom');
+    const snapshotPath = join(customDir, 'reports', 'router-endpoints.json');
+    mkdirSync(join(customDir, 'reports'), { recursive: true });
+    
+    writeFileSync(snapshotPath, JSON.stringify([
+      { id: 'ep1', type: 'inproc', coordinates: 'node:ep1', metadata: {}, announcedAt: Date.now(), updatedAt: Date.now() }
+    ]));
+
+    const result = spawnMkctl(['endpoints', '--runtime-dir', customDir]);
+    const outcome = await result.result;
+
+    expect(outcome.code).toBe(EXIT_CODES.SUCCESS);
+    expect(outcome.stdout).toContain('node:ep1');
+  });
 });
 
 const EXIT_CODES = {

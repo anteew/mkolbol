@@ -1,3 +1,3 @@
-{"ts":1760711183574,"lvl":"info","case":"should handle ANSI escape sequences","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760711183575,"lvl":"info","case":"should handle ANSI escape sequences","phase":"execution","evt":"test.run"}
-{"ts":1760711183576,"lvl":"info","case":"should handle ANSI escape sequences","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
+{"ts":1760719419268,"lvl":"info","case":"should handle ANSI escape sequences","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760719419269,"lvl":"info","case":"should handle ANSI escape sequences","phase":"execution","evt":"test.run"}
+{"ts":1760719419270,"lvl":"info","case":"should handle ANSI escape sequences","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}

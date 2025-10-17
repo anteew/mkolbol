@@ -1,86 +1,452 @@
-# Using mkolbol in Your Repository
+# Bootstrap an Out-of-Tree mkolbol App
 
-This guide shows you how to integrate mkolbol into your project for stream processing, data pipelines, and observability.
+**Create production-ready mkolbol projects outside the mkolbol repository using `mk init`.**
 
-> Distribution note: mkolbol is not published on npm. Use Tarball, Git Tag, or Vendor installs. See the [Distribution Matrix](./distribution.md).
+This guide shows you how to bootstrap mkolbol applications in your own repository using the `mk` CLI, no manual file copying required.
 
-## Installation Methods
+---
 
-Choose one based on your workflow:
+## Overview
 
-| Method | Use Case | Command |
-|--------|----------|---------|
-| **Tarball (Recommended)** | Reproducible builds, CI | `npm install ./mkolbol-<version>.tgz` |
-| **Git Tag (Pinned)** | Team workflows, no registry | `npm install github:anteew/mkolbol#v0.2.0` |
-| **Vendor/Local** | Monorepo, full control | `npm install file:../packages/mkolbol` |
+**What is bootstrapping?**
+- Create a new mkolbol project from a template
+- Generate project structure, configs, and starter code
+- Install mkolbol as a dependency (tarball, git tag, or vendor)
+- Get a runnable topology in under 5 minutes
 
-For a detailed comparison, see [Distribution Matrix](./distribution.md).
+**What you'll create:**
+- A complete hello-calculator app (3-node topology)
+- All project files (package.json, tsconfig.json, src/, .mk/)
+- Ready to run, test, and customize
 
-## Quick Start: 5-Minute Setup
+---
 
-### 1. Install mkolbol
+## Prerequisites
 
-**Recommended (Tarball):**
+**Before bootstrapping, you need mkolbol available:**
+
+1. **Clone and build mkolbol** (one-time setup):
+   ```bash
+   git clone https://github.com/anteew/mkolbol.git
+   cd mkolbol
+   npm install
+   npm run build
+   export MK_LOCAL_NODE=1
+   ```
+
+2. **(Optional) Add mk to PATH:**
+   See [Installation: mk Anywhere](../../README.md#installation-mk-anywhere-self-install) to avoid using `node dist/scripts/mk.js` every time.
+
+---
+
+## Quick Start: Bootstrap Hello Calculator (5 Minutes)
+
+### Step 1: Create Project Directory
+
 ```bash
-# Option A — local tarball from this repo
-git clone https://github.com/anteew/mkolbol.git
-cd mkolbol && npm ci && npm run build && npm pack
-cd /your/app && npm install ../mkolbol/mkolbol-*.tgz
-
-# Option B — when GitHub Releases are available
-# npm install https://github.com/anteew/mkolbol/releases/download/v0.2.0/mkolbol-0.2.0.tgz
+# Create a workspace for your out-of-tree app
+mkdir ~/my-mkolbol-projects
+cd ~/my-mkolbol-projects
 ```
 
-**Alternative (Git Tag):**
+### Step 2: Bootstrap with mk init
+
 ```bash
+# Run mk init from the mkolbol repo
+node /path/to/mkolbol/dist/scripts/mk.js init hello-calculator --lang ts --preset tty
+
+# Or if mk is in PATH:
+mk init hello-calculator --lang ts --preset tty
+```
+
+**What happens:**
+1. Creates `hello-calculator/` directory
+2. Generates project structure (src/, .mk/, package.json, tsconfig.json)
+3. Scaffolds 3-node topology (CalculatorServer → XtermTTYRenderer → FilesystemSink)
+4. Adds README.md and .gitignore
+
+**Output:**
+```
+✓ Created hello-calculator/
+✓ Initialized package.json
+✓ Created tsconfig.json
+✓ Scaffolded src/index.ts with CalculatorServer
+✓ Generated mk.json topology (3 nodes, 2 connections)
+✓ Created .mk/options.json with dev/ci/release profiles
+✓ Generated README.md and .gitignore
+
+Next steps:
+  cd hello-calculator
+  npm install ../mkolbol/mkolbol-0.2.0.tgz  # Install mkolbol dependency
+  npm run build
+  mk run --file mk.json --duration 10
+```
+
+### Step 3: Install mkolbol Dependency
+
+Choose your distribution method (see [Distribution Matrix](./distribution.md) for details):
+
+**Option 1: Tarball (Recommended)**
+```bash
+cd hello-calculator
+
+# Pack mkolbol from the repo
+cd /path/to/mkolbol
+npm pack  # Creates mkolbol-0.2.0.tgz
+
+# Install in your project
+cd ~/my-mkolbol-projects/hello-calculator
+npm install /path/to/mkolbol/mkolbol-0.2.0.tgz
+```
+
+**Option 2: Git Tag**
+```bash
+cd hello-calculator
 npm install github:anteew/mkolbol#v0.2.0
 ```
 
-**Or use local development:**
+**Option 3: Vendor (Monorepo)**
 ```bash
-npm link ../mkolbol
+# Copy mkolbol into your monorepo
+cp -r /path/to/mkolbol ~/my-monorepo/packages/mkolbol
+
+# Reference from hello-calculator/package.json
+cd hello-calculator
+npm install file:../packages/mkolbol
 ```
 
-### 2. Create a topology file
-
-```yaml
-# topology.yml
-nodes:
-  - id: timer
-    module: TimerSource
-    params: { periodMs: 1000 }
-
-  - id: uppercase
-    module: UppercaseTransform
-
-  - id: console
-    module: ConsoleSink
-    params: { prefix: "[output]" }
-
-connections:
-  - from: timer.output
-    to: uppercase.input
-  - from: uppercase.output
-    to: console.input
-```
-
-### 3. Run the topology
+### Step 4: Build and Run
 
 ```bash
-# Run for 10 seconds
-npx mkctl run --file topology.yml --duration 10
+# Build TypeScript
+npm run build
 
-# Or validate without running
-npx mkctl run --file topology.yml --dry-run
+# Run the topology
+mk run --file mk.json --duration 10
+
+# In another terminal, test the calculator
+curl 'http://localhost:4000/add?a=5&b=3'       # → {"result":8}
+curl 'http://localhost:4000/subtract?a=10&b=7' # → {"result":3}
 ```
 
 **Expected output:**
 ```
-[output] TICK
-[output] TICK
+[mk] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.
+[mk] Loading config from: mk.json
+[mk] Bringing topology up...
+[calculator] Server listening on http://localhost:4000
+[calculator] GET /add?a=5&b=3 → 8.00
+[calculator] GET /subtract?a=10&b=7 → 3.00
 ```
 
-## Common Use Cases
+🎉 **Success!** You've bootstrapped your first out-of-tree mkolbol app.
+
+---
+
+## Project Structure
+
+After `mk init`, you'll have:
+
+```
+hello-calculator/
+├── .mk/
+│   └── options.json       # dev/ci/release profiles
+├── src/
+│   └── index.ts           # CalculatorServer module
+├── mk.json                # Topology configuration
+├── package.json           # Dependencies and scripts
+├── tsconfig.json          # TypeScript config
+├── .gitignore             # Git ignore patterns
+└── README.md              # Project documentation
+```
+
+### Key Files Explained
+
+#### mk.json (Topology Config)
+
+```json
+{
+  "topology": {
+    "nodes": [
+      {
+        "id": "calculator",
+        "module": "CalculatorServer",
+        "runMode": "inproc",
+        "params": { "port": 4000, "precision": 2 }
+      },
+      {
+        "id": "tty-renderer",
+        "module": "XtermTTYRenderer",
+        "runMode": "inproc"
+      },
+      {
+        "id": "logger",
+        "module": "FilesystemSink",
+        "runMode": "inproc",
+        "params": {
+          "path": "logs/calculator.jsonl",
+          "format": "jsonl"
+        }
+      }
+    ],
+    "connections": [
+      { "from": "calculator.output", "to": "tty-renderer.input" },
+      { "from": "calculator.output", "to": "logger.input" }
+    ]
+  }
+}
+```
+
+#### .mk/options.json (Profiles)
+
+```json
+{
+  "profiles": {
+    "dev": {
+      "watch": true,
+      "reload": "hot",
+      "logLevel": "debug",
+      "gates": { "MK_LOCAL_NODE": "1" }
+    },
+    "ci": {
+      "watch": false,
+      "testMatrix": {
+        "node": ["20", "24"],
+        "lane": ["threads", "forks"]
+      }
+    }
+  }
+}
+```
+
+#### src/index.ts (CalculatorServer Module)
+
+```typescript
+import { Kernel } from 'mkolbol';
+import * as http from 'http';
+
+export class CalculatorServer {
+  private server: http.Server | null = null;
+
+  constructor(
+    private kernel: Kernel,
+    private options: { port: number; precision: number }
+  ) {}
+
+  start() {
+    const { port, precision } = this.options;
+    this.server = http.createServer((req, res) => {
+      const url = new URL(req.url || '', `http://localhost:${port}`);
+
+      if (url.pathname === '/add') {
+        const a = parseFloat(url.searchParams.get('a') || '0');
+        const b = parseFloat(url.searchParams.get('b') || '0');
+        const result = (a + b).toFixed(precision);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ result: parseFloat(result) }));
+      }
+      // ... more endpoints
+    });
+    this.server.listen(port);
+  }
+
+  stop() {
+    if (this.server) this.server.close();
+  }
+}
+```
+
+---
+
+## Installation Methods (Distribution Paths)
+
+> **Note:** mkolbol is not published to npm. Choose one of these methods:
+
+| Method | Use Case | Pros | Cons |
+|--------|----------|------|------|
+| **Tarball** | Production, CI/CD | Reproducible, version-pinned, offline installs | Manual tarball management |
+| **Git Tag** | Development, testing | Easy version switching | Requires git access |
+| **Vendor** | Monorepo, offline builds | Full control, no external deps | Repo bloat, manual updates |
+
+### Tarball Installation (Detailed)
+
+```bash
+# 1. Pack mkolbol from repo
+cd /path/to/mkolbol
+npm run build
+npm pack  # → mkolbol-0.2.0.tgz
+
+# 2. Install in your project
+cd /your/project
+npm install /path/to/mkolbol/mkolbol-0.2.0.tgz
+
+# 3. Verify
+npm list mkolbol
+# → mkolbol@0.2.0
+```
+
+### Git Tag Installation (Detailed)
+
+```bash
+# Install specific version
+npm install github:anteew/mkolbol#v0.2.0
+
+# Install main branch (latest)
+npm install github:anteew/mkolbol#main
+
+# Verify
+npm list mkolbol
+```
+
+### Vendor Installation (Detailed)
+
+```bash
+# Copy mkolbol into your repo
+mkdir -p vendor
+cp -r /path/to/mkolbol vendor/mkolbol
+
+# Update package.json
+{
+  "dependencies": {
+    "mkolbol": "file:./vendor/mkolbol"
+  }
+}
+
+# Install
+npm install
+```
+
+For complete comparison, see **[Distribution Matrix](./distribution.md)**.
+
+---
+
+## Customizing Your Bootstrapped Project
+
+After bootstrapping with `mk init`, customize the generated files:
+
+### Customize Topology (mk.json)
+
+**Change ports:**
+```json
+{
+  "params": { "port": 5000, "precision": 3 }
+}
+```
+
+**Add more nodes:**
+```json
+{
+  "nodes": [
+    { "id": "calculator", "module": "CalculatorServer", ... },
+    { "id": "metrics", "module": "PipeMeterTransform", ... },
+    { "id": "tty-renderer", ... }
+  ]
+}
+```
+
+**Change connections:**
+```json
+{
+  "connections": [
+    { "from": "calculator.output", "to": "metrics.input" },
+    { "from": "metrics.output", "to": "tty-renderer.input" }
+  ]
+}
+```
+
+### Customize Module (src/index.ts)
+
+**Add new endpoints:**
+```typescript
+if (url.pathname === '/multiply') {
+  const a = parseFloat(url.searchParams.get('a') || '0');
+  const b = parseFloat(url.searchParams.get('b') || '0');
+  const result = (a * b).toFixed(precision);
+  res.end(JSON.stringify({ result: parseFloat(result) }));
+}
+```
+
+**Add request logging:**
+```typescript
+console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+```
+
+### Customize Profiles (.mk/options.json)
+
+**Add staging profile:**
+```json
+{
+  "profiles": {
+    "staging": {
+      "logLevel": "info",
+      "gates": { "MK_LOCAL_NODE": "0" },
+      "params": { "port": 8080 }
+    }
+  }
+}
+```
+
+---
+
+## Advanced Bootstrap Patterns
+
+### Pattern 1: Multiple Projects from Same Template
+
+```bash
+# Bootstrap multiple apps
+mk init calculator-prod --lang ts --preset tty
+mk init calculator-dev --lang ts --preset tty
+mk init calculator-test --lang ts --preset tty
+
+# Install mkolbol in each
+for dir in calculator-*; do
+  cd $dir
+  npm install ../mkolbol-0.2.0.tgz
+  cd ..
+done
+```
+
+### Pattern 2: Custom Init Templates
+
+Create your own init template by copying and modifying:
+
+```bash
+# Copy default template
+cp -r /path/to/mkolbol/examples/mk/init-templates/hello-calculator my-template
+
+# Customize my-template/
+# - Edit mk.json
+# - Modify src/index.ts
+# - Update .mk/options.json
+
+# Use custom template (feature coming soon)
+mk init my-project --template file:./my-template
+```
+
+### Pattern 3: Monorepo Bootstrap
+
+```bash
+# Bootstrap multiple apps in monorepo
+mkdir -p packages
+cd packages
+
+mk init calculator --lang ts --preset tty
+mk init logger --lang ts --preset tty
+mk init metrics --lang ts --preset tty
+
+# Install shared mkolbol
+cd ..
+npm install file:./vendor/mkolbol
+
+# Link to each package
+cd packages/calculator && npm install file:../../node_modules/mkolbol
+cd packages/logger && npm install file:../../node_modules/mkolbol
+cd packages/metrics && npm install file:../../node_modules/mkolbol
+```
+
+---
+
+## Common Use Cases (After Bootstrap)
 
 ### Use Case 1: HTTP Logging Pipeline
 
@@ -427,7 +793,45 @@ services:
 
 ## Next Steps
 
-- 📚 Read [Hello Calculator Tutorial](./hello-calculator.md) for hands-on learning
-- 👨‍💻 Build a custom module: [Authoring a Module](./authoring-a-module.md)
-- 🔧 Explore [mkctl Cookbook](./mkctl-cookbook.md) for daily commands
-- 🆘 Use [Doctor Guide](./doctor.md) for troubleshooting
+After bootstrapping your first project:
+
+- **[Hello Calculator Tutorial](./hello-calculator.md)** - Manual walkthrough (alternative to mk init)
+- **[First Five Minutes](./first-five-minutes.md)** - Complete mk workflow (init → run → doctor → build → package → ci plan)
+- **[Authoring a Module](./authoring-a-module.md)** - Write custom modules with tests
+- **[mk dev, logs, trace Guide](./mk-dev-logs-trace.md)** - Development ergonomics
+- **[mkctl Cookbook](./mkctl-cookbook.md)** - Daily mkctl commands
+- **[Doctor Guide](./doctor.md)** - Troubleshooting common issues
+
+## Quick Reference
+
+**Bootstrap a new project:**
+```bash
+mk init my-project --lang ts --preset tty
+cd my-project
+npm install /path/to/mkolbol-0.2.0.tgz
+npm run build
+mk run --file mk.json --duration 10
+```
+
+**Verify your project:**
+```bash
+mk doctor --file mk.json
+mk run --file mk.json --dry-run
+```
+
+**Package for distribution:**
+```bash
+mk build
+mk package
+# → my-project-0.1.0.tgz
+```
+
+**Generate CI config:**
+```bash
+mk ci plan --output
+# → .github/workflows/test.yml
+```
+
+---
+
+**Ready to bootstrap?** Run `mk init hello-calculator` and get started in 5 minutes.

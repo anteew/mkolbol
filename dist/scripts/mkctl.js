@@ -211,6 +211,8 @@ function normalizeRouterEndpoint(entry) {
         metadata: entry && typeof entry.metadata === 'object' ? entry.metadata : undefined,
         announcedAt: typeof entry?.announcedAt === 'number' ? entry.announcedAt : undefined,
         updatedAt: typeof entry?.updatedAt === 'number' ? entry.updatedAt : undefined,
+        expiresAt: typeof entry?.expiresAt === 'number' ? entry.expiresAt : undefined,
+        ttlMs: typeof entry?.ttlMs === 'number' ? entry.ttlMs : undefined,
     };
 }
 function formatTimestamp(value) {
@@ -220,6 +222,43 @@ function formatTimestamp(value) {
     if (Number.isNaN(date.getTime()))
         return 'n/a';
     return date.toISOString();
+}
+function computeLiveness(endpoint, now) {
+    const DEFAULT_TTL = 30000;
+    const STALE_THRESHOLD = 0.7;
+    let status = 'healthy';
+    let ttlRemaining;
+    if (endpoint.updatedAt !== undefined) {
+        const ttl = endpoint.ttlMs ?? DEFAULT_TTL;
+        const age = now - endpoint.updatedAt;
+        ttlRemaining = Math.max(0, ttl - age);
+        if (age >= ttl) {
+            status = 'expired';
+        }
+        else if (age >= ttl * STALE_THRESHOLD) {
+            status = 'stale';
+        }
+    }
+    return {
+        ...endpoint,
+        status,
+        ttlRemaining,
+    };
+}
+function formatTTL(ttlMs) {
+    if (ttlMs === undefined)
+        return 'n/a';
+    const seconds = Math.ceil(ttlMs / 1000);
+    if (seconds < 0)
+        return '0s';
+    return `${seconds}s`;
+}
+function getStatusIcon(status) {
+    switch (status) {
+        case 'healthy': return '✓';
+        case 'stale': return '⚠';
+        case 'expired': return '✗';
+    }
 }
 function parseEndpointsArgs(args) {
     let watch = false;
@@ -290,17 +329,25 @@ function applyFilters(endpoints, filters) {
         return true;
     });
 }
-function displayEndpoints(endpoints, source) {
+function displayEndpoints(endpoints, source, showLiveness = false) {
     if (endpoints.length === 0) {
         console.log('No endpoints match the filters.');
         return;
     }
     console.log(`Registered Endpoints (${source === 'router' ? 'RoutingServer snapshot' : 'Hostess snapshot'})`);
     console.log('');
+    const now = Date.now();
     for (const endpoint of endpoints) {
+        const enhanced = showLiveness ? computeLiveness(endpoint, now) : { ...endpoint, status: 'healthy', ttlRemaining: undefined };
         console.log(`ID:          ${endpoint.id}`);
         console.log(`Type:        ${endpoint.type}`);
         console.log(`Coordinates: ${endpoint.coordinates}`);
+        if (showLiveness) {
+            console.log(`Status:      ${getStatusIcon(enhanced.status)} ${enhanced.status}`);
+            if (enhanced.ttlRemaining !== undefined) {
+                console.log(`TTL:         ${formatTTL(enhanced.ttlRemaining)}`);
+            }
+        }
         if (endpoint.metadata && Object.keys(endpoint.metadata).length > 0) {
             console.log(`Metadata:    ${JSON.stringify(endpoint.metadata)}`);
         }
@@ -331,7 +378,16 @@ async function handleEndpointsCommand(args) {
         }
         const filtered = applyFilters(endpoints, filters);
         if (json) {
-            console.log(JSON.stringify(filtered, null, 2));
+            const now = Date.now();
+            const enhanced = filtered.map(ep => {
+                const { status, ttlRemaining } = computeLiveness(ep, now);
+                return {
+                    ...ep,
+                    status,
+                    ttlRemaining,
+                };
+            });
+            console.log(JSON.stringify(enhanced, null, 2));
         }
         else {
             displayEndpoints(filtered, source);
@@ -362,7 +418,21 @@ async function handleEndpointsCommand(args) {
             console.log('No endpoints registered.');
         }
         else {
-            displayEndpoints(filtered, source);
+            if (json) {
+                const now = Date.now();
+                const enhanced = filtered.map(ep => {
+                    const { status, ttlRemaining } = computeLiveness(ep, now);
+                    return {
+                        ...ep,
+                        status,
+                        ttlRemaining,
+                    };
+                });
+                console.log(JSON.stringify(enhanced, null, 2));
+            }
+            else {
+                displayEndpoints(filtered, source, true);
+            }
         }
         await new Promise((resolve) => setTimeout(resolve, interval * 1000));
     }
