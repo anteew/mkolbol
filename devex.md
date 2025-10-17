@@ -4,6 +4,42 @@
 {
   "ampcode": "v1",
   "waves": [
+    { "id": "P20B-MKCTL-CONNECT", "parallel": false, "tasks": ["D2001","D2002","D2003"] }
+  ],
+  "branch": "mkolbol-devex-p20-mkctl-connect",
+  "tasks": [
+    {"id":"D2001","agent":"devex","title":"mkctl --connect tcp://... | ws://... : minimal viewer (ConsoleSink)",
+      "allowedFiles":["scripts/mkctl.ts","src/cli/connect.ts","tests/cli/mkctlConnect.spec.ts","examples/network/connect/**"],
+      "why":"Let users attach to a remote pipe quickly without custom code.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_D2001_mkctl-connect.patch"]},
+
+    {"id":"D2002","agent":"devex","title":"Docs: mkctl cookbook + remote-host-setup updates; examples end-to-end",
+      "allowedFiles":["docs/devex/mkctl-cookbook.md","docs/devex/remote-host-setup.md","docs/devex/network-quickstart.md","README.md"],
+      "why":"Copy‑paste path for remote viewing via TCP/WS.",
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D2002_docs-mkctl-connect.patch"]},
+
+    {"id":"D2003","agent":"devex","title":"Acceptance: ws/tcp smoke against examples; Laminar non‑gating job",
+      "allowedFiles":[".github/workflows/tests.yml","scripts/ci-local.ts","tests/integration/wsPipe.spec.ts","tests/integration/tcpPipe.spec.ts"],
+      "why":"Ensure basic connectivity stays green across changes.",
+      "verify":["npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_D2003_mkctl-connect-acceptance.patch"]}
+  ]
+}
+```
+
+Branch Instructions
+- IMPORTANT: Work only on `mkolbol-devex-p20-mkctl-connect`.
+- Keep UX simple: `mkctl connect --url ws://host:30012/path` or `--url tcp://host:30010`.
+- Output modes: human default, `--json` raw frames (length‑prefixed) for tooling.
+- Do not add auth/TLS here; document SSH tunnel patterns instead.
+
+
+```json
+{
+  "ampcode": "v1",
+  "waves": [
     { "id": "P19-LINT", "parallel": false, "tasks": ["D1901","D1902","D1903","D1904","D1905"] }
   ],
   "branch": "mkolbol-devex-p19-lint-cleanup",

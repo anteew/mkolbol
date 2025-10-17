@@ -298,6 +298,78 @@ jobs:
             logs/
           if-no-files-found: warn
 
+  # Network connectivity smoke test: TCP/WebSocket pipes (non-gating)
+  network-connectivity-smoke:
+    name: Network Connectivity Smoke (TCP/WS)
+    runs-on: ubuntu-latest
+    needs: test
+    if: ${{ always() }}
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: TCP/WebSocket connectivity tests
+        env:
+          LAMINAR_SUITE: network-smoke
+        run: |
+          mkdir -p reports
+          echo "▶ Running TCP and WebSocket connectivity smoke tests..."
+
+          # Run TCP smoke test
+          echo "Testing TCPPipe connectivity..."
+          npx vitest run tests/integration/tcpPipe.spec.ts \
+            --reporter=default \
+            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
+            > reports/tcp-smoke.log 2>&1 && TCP_PASS="true" || TCP_PASS="false"
+
+          # Run WebSocket smoke test
+          echo "Testing WebSocketPipe connectivity..."
+          npx vitest run tests/integration/wsPipe.spec.ts \
+            --reporter=default \
+            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
+            > reports/ws-smoke.log 2>&1 && WS_PASS="true" || WS_PASS="false"
+
+          # Report results
+          if [ "$TCP_PASS" = "true" ]; then
+            echo "✅ TCP connectivity tests PASSED"
+          else
+            echo "⚠️  TCP connectivity tests FAILED"
+          fi
+
+          if [ "$WS_PASS" = "true" ]; then
+            echo "✅ WebSocket connectivity tests PASSED"
+          else
+            echo "⚠️  WebSocket connectivity tests FAILED"
+          fi
+
+          # Record results as JSONL
+          TEST_RESULT_FILE="reports/network-smoke.jsonl"
+          echo "{\"type\":\"network-smoke\",\"tcp\":$TCP_PASS,\"ws\":$WS_PASS,\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$TEST_RESULT_FILE"
+
+      - name: Upload network smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: network-smoke-logs
+          path: |
+            reports/tcp-smoke.log
+            reports/ws-smoke.log
+            reports/network-smoke.jsonl
+          if-no-files-found: warn
+
   # RC smoke test: validate mk init/build/package commands (best-effort)
   mk-rc-smoke:
     name: MK RC Smoke Test (init/build/package)

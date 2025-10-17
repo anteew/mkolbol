@@ -9,6 +9,8 @@ import { Executor } from '../src/executor/Executor.js';
 import { loadConfig } from '../src/config/loader.js';
 import { RoutingServer } from '../src/router/RoutingServer.js';
 import type { RoutingEndpoint } from '../src/types.js';
+import { TCPPipeClient } from '../src/pipes/adapters/TCPPipe.js';
+import { WebSocketPipeClient } from '../src/pipes/adapters/WebSocketPipe.js';
 
 const EXIT_CODES = {
   SUCCESS: 0,
@@ -58,6 +60,7 @@ USAGE
 COMMANDS
   endpoints    List all registered endpoints with type and coordinates
   run          Execute topology from config file
+  connect      Connect to a remote TCP or WebSocket pipe and stream output
 
 EXAMPLES
   mkctl endpoints
@@ -66,6 +69,8 @@ EXAMPLES
   mkctl endpoints --watch --filter type=worker --interval 2
   mkctl run --file examples/configs/basic.yml
   mkctl run --file config.yml --duration 10
+  mkctl connect --url tcp://localhost:30010
+  mkctl connect --url ws://localhost:30012/pipe --json
 
 LEARN MORE
   Documentation: https://github.com/anteew/mkolbol
@@ -83,6 +88,16 @@ async function main() {
     case 'run': {
       try {
         const exitCode = await handleRunCommand(process.argv.slice(3));
+        process.exit(exitCode);
+      } catch (err: unknown) {
+        const code = handleException(err);
+        process.exit(code);
+      }
+      return;
+    }
+    case 'connect': {
+      try {
+        const exitCode = await handleConnectCommand(process.argv.slice(3));
         process.exit(exitCode);
       } catch (err: unknown) {
         const code = handleException(err);
@@ -534,6 +549,158 @@ async function handleEndpointsCommand(args: string[]): Promise<void> {
 
     await new Promise((resolve) => setTimeout(resolve, interval * 1000));
   }
+}
+
+interface ConnectArguments {
+  url: string;
+  json: boolean;
+}
+
+interface ParsedURL {
+  protocol: 'tcp' | 'ws';
+  host: string;
+  port: number;
+  path?: string;
+}
+
+function parseConnectArgs(args: string[]): ConnectArguments {
+  let url: string | undefined;
+  let json = false;
+
+  for (let i = 0; i < args.length; i++) {
+    const token = args[i];
+    if (token === '--url') {
+      const next = args[i + 1];
+      if (!next || next.startsWith('--')) {
+        throw new MkctlError('--url requires a value', EXIT_CODES.USAGE);
+      }
+      url = next;
+      i++;
+    } else if (token === '--json') {
+      json = true;
+    }
+  }
+
+  if (!url) {
+    throw new MkctlError(
+      'Usage: mkctl connect --url <tcp://host:port | ws://host:port/path> [--json]',
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return { url, json };
+}
+
+function parseURL(url: string): ParsedURL {
+  const tcpMatch = url.match(/^tcp:\/\/([^:]+):(\d+)$/);
+  if (tcpMatch) {
+    const host = tcpMatch[1];
+    const port = Number.parseInt(tcpMatch[2], 10);
+    if (Number.isNaN(port) || port <= 0 || port > 65535) {
+      throw new MkctlError(`Invalid port in URL: ${url}`, EXIT_CODES.USAGE);
+    }
+    return { protocol: 'tcp', host, port };
+  }
+
+  const wsMatch = url.match(/^ws:\/\/([^:]+):(\d+)(\/.*)?$/);
+  if (wsMatch) {
+    const host = wsMatch[1];
+    const port = Number.parseInt(wsMatch[2], 10);
+    const path = wsMatch[3] || '/';
+    if (Number.isNaN(port) || port <= 0 || port > 65535) {
+      throw new MkctlError(`Invalid port in URL: ${url}`, EXIT_CODES.USAGE);
+    }
+    return { protocol: 'ws', host, port, path };
+  }
+
+  throw new MkctlError(
+    `Invalid URL format: ${url}\nExpected: tcp://host:port or ws://host:port/path`,
+    EXIT_CODES.USAGE,
+  );
+}
+
+async function handleConnectCommand(args: string[]): Promise<number> {
+  const { url, json } = parseConnectArgs(args);
+  const parsed = parseURL(url);
+
+  console.error(`[mkctl] Connecting to ${url}...`);
+
+  let client: TCPPipeClient | WebSocketPipeClient;
+  let exitCode: number = EXIT_CODES.SUCCESS;
+  let isShuttingDown = false;
+
+  try {
+    if (parsed.protocol === 'tcp') {
+      client = new TCPPipeClient({
+        host: parsed.host,
+        port: parsed.port,
+        timeout: 5000,
+      });
+    } else {
+      client = new WebSocketPipeClient({
+        host: parsed.host,
+        port: parsed.port,
+        path: parsed.path,
+        timeout: 5000,
+      });
+    }
+
+    await client.connect();
+    console.error(`[mkctl] Connected to ${url}`);
+
+    const handleShutdown = () => {
+      if (isShuttingDown) return;
+      isShuttingDown = true;
+      console.error('\n[mkctl] Disconnecting...');
+      client.close();
+    };
+
+    process.once('SIGINT', handleShutdown);
+    process.once('SIGTERM', handleShutdown);
+
+    client.on('data', (chunk: Buffer) => {
+      if (json) {
+        try {
+          const data = {
+            timestamp: Date.now(),
+            data: chunk.toString('base64'),
+            size: chunk.length,
+          };
+          console.log(JSON.stringify(data));
+        } catch (err) {
+          console.error(`[mkctl] Error formatting data: ${err}`);
+        }
+      } else {
+        process.stdout.write(chunk);
+      }
+    });
+
+    client.on('end', () => {
+      if (!isShuttingDown) {
+        console.error('[mkctl] Connection closed by remote');
+      }
+      process.exit(exitCode);
+    });
+
+    client.on('error', (err: Error) => {
+      console.error(`[mkctl] Connection error: ${err.message}`);
+      exitCode = EXIT_CODES.RUNTIME;
+      if (!isShuttingDown) {
+        client.close();
+      }
+    });
+
+    await new Promise(() => {});
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      throw new MkctlError(`Failed to connect to ${url}: ${err.message}`, EXIT_CODES.RUNTIME, {
+        cause: err,
+      });
+    }
+    throw err;
+  }
+
+  return exitCode;
 }
 
 async function writeRouterSnapshot(router: RoutingServer): Promise<void> {

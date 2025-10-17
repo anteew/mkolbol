@@ -1,0 +1,585 @@
+diff --git a/README.md b/README.md
+index de34769..864ae19 100644
+--- a/README.md
++++ b/README.md
+@@ -851,11 +851,21 @@ See [docs/testing/laminar.md](docs/testing/laminar.md#cross-language-test-ingest
+ # List all registered endpoints
+ node dist/scripts/mkctl.js endpoints
+ 
++# Connect to remote TCP/WebSocket pipes
++node dist/scripts/mkctl.js connect --url tcp://localhost:30010
++node dist/scripts/mkctl.js connect --url ws://localhost:30012/pipe
++
++# Get JSON output for tooling
++node dist/scripts/mkctl.js connect --url tcp://localhost:30010 --json
++
+ # Show help
+ node dist/scripts/mkctl.js
+ ```
+ 
+-The `mkctl` tool provides control and introspection for the microkernel. The `endpoints` command lists all endpoints registered with Hostess, showing their type (e.g., "pty", "executor"), coordinates (e.g., "localhost:3000"), and optional metadata including `ioMode`.
++The `mkctl` tool provides control and introspection for the microkernel:
++
++- **`endpoints`** - Lists all endpoints registered with Hostess, showing their type (e.g., "pty", "executor"), coordinates (e.g., "localhost:3000"), and optional metadata including `ioMode`
++- **`connect`** - Connects to remote TCP or WebSocket pipes and displays output in real-time (human-readable or JSON format)
+ 
+ **Understanding ioMode:**
+ 
+diff --git a/docs/devex/mkctl-cookbook.md b/docs/devex/mkctl-cookbook.md
+index f453f18..e9f6471 100644
+--- a/docs/devex/mkctl-cookbook.md
++++ b/docs/devex/mkctl-cookbook.md
+@@ -1715,103 +1715,178 @@ cat reports/router-endpoints.json | jq 'length'
+ 
+ ---
+ 
+-## Future: Remote Connectivity (WebSocket)
++## Remote Viewing
+ 
+-> **Note:** WebSocket remote connectivity is under development. This section documents the planned `--connect` flag for future reference.
++View output from remote TCP or WebSocket pipes in real-time.
+ 
+-### Planned: Connect mkctl to Remote Host
++### Connect to TCP Pipe
+ 
+-In a future release, `mkctl` will support connecting to remote mkolbol instances via WebSocket:
++Connect to a remote TCP pipe server and view the output:
+ 
+ ```bash
+-# Connect to remote mkolbol routing server
+-mkctl --connect ws://remote-host:30015 endpoints
++# Human-readable output (default)
++mkctl connect --url tcp://localhost:30010
++
++# Connect to remote host
++mkctl connect --url tcp://192.168.1.100:30010
+ ```
+ 
+-**Planned Use Cases:**
++**What happens:**
+ 
+-- Monitor remote topologies from your local machine
+-- Query endpoint status across distributed deployments
+-- Inspect routing snapshots from remote hosts
+-- Centralized observability for multi-node setups
++- Connects to TCP pipe server at specified host and port
++- Displays incoming data in human-readable format
++- Automatically handles frame protocol (length-prefixed messages)
++- Press Ctrl+C to disconnect gracefully
+ 
+-### Planned Architecture
++**Example output:**
+ 
+ ```
+-Local Machine                    Remote Host (mkolbol instance)
+-┌──────────────────┐            ┌─────────────────────────┐
+-│  mkctl           │            │  RoutingServer          │
+-│  --connect       │────WS──────│  (WebSocket listener)   │
+-│  ws://host:30015 │            │  Port 30015             │
+-└──────────────────┘            └─────────────────────────┘
++Connected to tcp://localhost:30010
++[Tue Oct 17 2025 12:34:56] tick
++[Tue Oct 17 2025 12:34:57] tick
++[Tue Oct 17 2025 12:34:58] tick
+ ```
+ 
+-### Planned Commands with --connect
++### Connect to WebSocket Pipe
++
++Connect to a remote WebSocket pipe server:
+ 
+ ```bash
+-# List endpoints on remote host
+-mkctl --connect ws://prod-server:30015 endpoints
++# Human-readable output (default)
++mkctl connect --url ws://localhost:30012/pipe
++
++# Connect to remote host
++mkctl connect --url ws://192.168.1.100:30012/pipe
++```
+ 
+-# Watch remote endpoints in real-time
+-mkctl --connect ws://prod-server:30015 endpoints --watch
++**What happens:**
++
++- Connects to WebSocket server at specified URL
++- Displays incoming data frames
++- Handles WebSocket protocol upgrade automatically
++- Press Ctrl+C to disconnect gracefully
++
++### JSON Output Mode
+ 
+-# Get JSON output from remote
+-mkctl --connect ws://prod-server:30015 endpoints --json
++Get raw frame data in JSON format for tooling and automation:
++
++```bash
++# TCP with JSON output
++mkctl connect --url tcp://localhost:30010 --json
+ 
+-# Filter remote endpoints by type
+-mkctl --connect ws://prod-server:30015 endpoints --filter type=external
++# WebSocket with JSON output
++mkctl connect --url ws://localhost:30012/pipe --json
+ ```
+ 
+-### Security Considerations (Future)
++**JSON output format:**
+ 
+-When WebSocket connectivity is implemented, consider:
++```json
++{"type":"data","payload":"Hello from timer","timestamp":1697520905123}
++{"type":"data","payload":"tick","timestamp":1697520906123}
++{"type":"ping","timestamp":1697520910000}
++```
++
++**Fields:**
++
++- `type` - Frame type (`data`, `ping`, `pong`, `close`)
++- `payload` - The actual data (for data frames)
++- `timestamp` - Unix timestamp in milliseconds
++
++**Use cases for JSON mode:**
+ 
+-- **Authentication**: Token-based auth for remote connections
+-- **Encryption**: TLS support (`wss://` protocol)
+-- **Firewall**: Expose WebSocket port (e.g., 30015) only to trusted networks
+-- **Rate limiting**: Protect against DoS on routing server
++- Pipe output to `jq` for filtering: `mkctl connect --url tcp://localhost:30010 --json | jq 'select(.type=="data")'`
++- Log to file for analysis: `mkctl connect --url tcp://localhost:30010 --json >> logs.jsonl`
++- Stream to monitoring tools: `mkctl connect --url tcp://localhost:30010 --json | your-monitoring-tool`
++- Parse with custom scripts: `mkctl connect --url tcp://localhost:30010 --json | python analyze.py`
+ 
+-### Implementation Status
++### Connect via SSH Tunnel
+ 
+-**Current (v0.2.0):**
++For secure remote connections, use SSH tunneling instead of exposing ports:
++
++```bash
++# Terminal 1: Set up SSH tunnel
++ssh -L 30010:localhost:30010 user@remote-host
++
++# Terminal 2: Connect to localhost (tunneled to remote)
++mkctl connect --url tcp://localhost:30010
++```
+ 
+-- ✅ WebSocketPipe implemented (client + server)
+-- ✅ Frame protocol compatible with TCP
+-- ✅ Tests and examples available
+-- ❌ mkctl `--connect` flag not yet implemented
++**Why use SSH tunnels?**
+ 
+-**Roadmap:**
++- ✅ Encrypted transport (no plaintext over network)
++- ✅ Uses existing SSH authentication
++- ✅ No need to expose additional firewall ports
++- ✅ Works with any TCP-based service
+ 
+-1. Implement RoutingServer WebSocket listener
+-2. Add `--connect` flag to mkctl CLI
+-3. Enable remote endpoint queries
+-4. Add authentication and TLS support
++See [Remote Host Setup Guide](./remote-host-setup.md) for complete SSH tunnel patterns.
+ 
+-### Current Workarounds
++### End-to-End Example: Remote Log Viewing
+ 
+-Until `--connect` is available, use these patterns:
++**Scenario:** View logs from a remote server's HTTP service.
+ 
+-**SSH tunneling:**
++**Step 1: On remote server (server.example.com)**
+ 
+ ```bash
+-# Tunnel remote router snapshot to local machine
+-ssh user@remote-host 'cat /path/to/reports/router-endpoints.json' > /tmp/remote-endpoints.json
+-mkctl endpoints --runtime-dir /tmp
++# Start HTTP service with TCP pipe export
++mkctl run --file http-server-topology.yml --duration 3600
+ ```
+ 
+-**HTTP endpoint (if exposed):**
++**Step 2: On your local machine**
+ 
+ ```bash
+-# If remote host exposes HTTP API
+-curl http://remote-host:8080/api/endpoints | jq '.'
++# Option A: Direct connection (if firewall allows)
++mkctl connect --url tcp://server.example.com:30010
++
++# Option B: SSH tunnel (recommended)
++ssh -L 30010:localhost:30010 user@server.example.com
++
++# Then connect to localhost
++mkctl connect --url tcp://localhost:30010
++```
++
++**Step 3: View logs in real-time**
++
++```
++Connected to tcp://localhost:30010
++[2025-10-17T12:34:56.789Z] GET /api/users
++[2025-10-17T12:34:57.123Z] POST /api/auth
++[2025-10-17T12:34:58.456Z] GET /health
++```
++
++### Troubleshooting Connection Issues
++
++**Connection refused:**
++
++```bash
++# Verify server is listening
++# On server: lsof -i :30010
++# or: netstat -an | grep 30010
++
++# Check firewall allows port
++# Linux: sudo ufw status
++# Check if port is blocked
+ ```
+ 
+-**Manual WebSocket client (advanced):**
++**Connection timeout:**
+ 
+ ```bash
+-# Use wscat to connect to remote WebSocket manually
+-npm install -g wscat
+-wscat -c ws://remote-host:30015
++# Test network connectivity
++ping remote-host
++
++# Test port specifically
++telnet remote-host 30010
++# or: nc -zv remote-host 30010
+ ```
+ 
+-See [Remote Host Setup Guide](./remote-host-setup.md) for configuring mkolbol on remote machines.
++**"Protocol error" or "Invalid frame":**
++
++- Verify the URL points to a mkolbol TCP/WebSocket pipe server
++- Check that the server is using the same frame protocol version
++- Ensure the endpoint is a pipe server, not a different service
++
++**See also:**
++
++- **[Network Quickstart](./network-quickstart.md)** - TCP and WebSocket pipe setup
++- **[Remote Host Setup](./remote-host-setup.md)** - Complete remote deployment guide
++
++---
+diff --git a/docs/devex/network-quickstart.md b/docs/devex/network-quickstart.md
+index e0d0294..7444d08 100644
+--- a/docs/devex/network-quickstart.md
++++ b/docs/devex/network-quickstart.md
+@@ -141,6 +141,157 @@ Both provide identical Duplex stream interfaces.
+ 
+ ---
+ 
++---
++
++## Viewing Remote Pipes with mkctl connect
++
++The `mkctl connect` command provides an easy way to view output from remote TCP or WebSocket pipes.
++
++### Quick Start: Connect to Local Pipe
++
++**Terminal 1: Start a pipe server**
++
++```bash
++npm run build
++npx tsx examples/network/remote-viewer/server.ts
++```
++
++**Terminal 2: View with mkctl connect**
++
++```bash
++# Human-readable output
++mkctl connect --url tcp://localhost:30018
++
++# JSON output (for tooling)
++mkctl connect --url tcp://localhost:30018 --json
++```
++
++### Connect to Remote Pipe
++
++Connect to a pipe running on a different machine:
++
++```bash
++# Direct connection (if firewall allows)
++mkctl connect --url tcp://192.168.1.100:30018
++
++# Via SSH tunnel (recommended for security)
++# Terminal 1: Create tunnel
++ssh -L 30018:localhost:30018 user@remote-host
++
++# Terminal 2: Connect through tunnel
++mkctl connect --url tcp://localhost:30018
++```
++
++### Output Modes
++
++**Human-readable (default):**
++
++```bash
++mkctl connect --url tcp://localhost:30018
++```
++
++Output:
++
++```
++Connected to tcp://localhost:30018
++[Tue Oct 17 2025 12:34:56] tick
++[Tue Oct 17 2025 12:34:57] tick
++```
++
++**JSON mode (for automation):**
++
++```bash
++mkctl connect --url tcp://localhost:30018 --json
++```
++
++Output:
++
++```json
++{"type":"data","payload":"tick","timestamp":1697520905123}
++{"type":"data","payload":"tick","timestamp":1697520906123}
++{"type":"ping","timestamp":1697520910000}
++```
++
++**Pipe JSON to jq:**
++
++```bash
++mkctl connect --url tcp://localhost:30018 --json | jq 'select(.type=="data") | .payload'
++```
++
++### WebSocket Pipes
++
++Connect works with WebSocket pipes too:
++
++```bash
++# Start WebSocket server
++npx tsx examples/network/ws-smoke/server.ts
++
++# Connect with mkctl
++mkctl connect --url ws://localhost:30015
++
++# JSON output
++mkctl connect --url ws://localhost:30015 --json
++```
++
++### End-to-End Example
++
++**Scenario:** Monitor remote server logs in real-time.
++
++**Step 1: On remote server (192.168.1.100)**
++
++Create a topology that exports logs via TCP:
++
++```yaml
++# http-logs-tcp.yml
++nodes:
++  - id: web
++    module: ExternalProcess
++    params:
++      command: node
++      args: ['-e', 'require("http").createServer((req,res)=>{console.log(req.url);res.end("OK")}).listen(3000)']
++      ioMode: stdio
++  - id: tcp-export
++    module: TCPPipeServer
++    params:
++      port: 30018
++
++connections:
++  - from: web.output
++    to: tcp-export.input
++```
++
++Start the topology:
++
++```bash
++mkctl run --file http-logs-tcp.yml --duration 3600
++```
++
++**Step 2: On local machine**
++
++Set up SSH tunnel:
++
++```bash
++ssh -L 30018:localhost:30018 user@192.168.1.100
++```
++
++**Step 3: View logs**
++
++```bash
++mkctl connect --url tcp://localhost:30018
++```
++
++**Step 4: Generate traffic (optional)**
++
++```bash
++# On remote server or from anywhere
++curl http://192.168.1.100:3000/hello
++curl http://192.168.1.100:3000/api/users
++```
++
++You'll see the logs appear in your local terminal in real-time!
++
++---
++
+ ## Next Steps
+ 
+ - See [Remote Viewer README](../../examples/network/remote-viewer/README.md) for TCP example
+@@ -148,3 +299,5 @@ Both provide identical Duplex stream interfaces.
+ - See [TCPPipe tests](../../tests/integration/tcpPipe.spec.ts) for TCP API usage
+ - See [WebSocketPipe tests](../../tests/integration/wsPipe.spec.ts) for WebSocket API usage
+ - See [FrameCodec tests](../../tests/net/frame.spec.ts) for protocol details
++- See [mkctl Cookbook](./mkctl-cookbook.md#remote-viewing) for complete connect command reference
++- See [Remote Host Setup](./remote-host-setup.md#ssh-tunnel-patterns-for-mkctl-connect) for SSH tunnel patterns
+diff --git a/docs/devex/remote-host-setup.md b/docs/devex/remote-host-setup.md
+index e6502bf..e6211af 100644
+--- a/docs/devex/remote-host-setup.md
++++ b/docs/devex/remote-host-setup.md
+@@ -397,6 +397,144 @@ const client = new TCPPipeClient({ port: 30015, host: 'localhost' });
+ 
+ ---
+ 
++## SSH Tunnel Patterns for mkctl connect
++
++Use SSH tunnels to securely view remote pipes without exposing additional ports.
++
++### Basic TCP Tunnel
++
++Forward a remote TCP pipe to your local machine:
++
++```bash
++# Terminal 1: Create SSH tunnel
++# Forwards localhost:30010 → remote-host:30010
++ssh -L 30010:localhost:30010 user@remote-host
++
++# Terminal 2: Connect to the tunneled port
++mkctl connect --url tcp://localhost:30010
++```
++
++**What happens:**
++
++- SSH creates encrypted tunnel from your local port 30010 to remote port 30010
++- `mkctl connect` connects to localhost:30010, but traffic flows to remote host
++- All data is encrypted by SSH
++- No firewall changes needed (uses existing SSH port 22)
++
++### WebSocket Tunnel
++
++Forward a remote WebSocket pipe:
++
++```bash
++# Terminal 1: Create SSH tunnel for WebSocket
++ssh -L 30012:localhost:30012 user@remote-host
++
++# Terminal 2: Connect to the tunneled WebSocket
++mkctl connect --url ws://localhost:30012/pipe
++```
++
++### Multiple Port Tunneling
++
++Forward multiple pipes simultaneously:
++
++```bash
++# Forward 3 different services in one SSH session
++ssh -L 30010:localhost:30010 \
++    -L 30011:localhost:30011 \
++    -L 30012:localhost:30012 \
++    user@remote-host
++
++# Then connect to each in separate terminals
++# Terminal 1
++mkctl connect --url tcp://localhost:30010
++
++# Terminal 2
++mkctl connect --url tcp://localhost:30011
++
++# Terminal 3
++mkctl connect --url ws://localhost:30012/pipe
++```
++
++### Reverse Tunnel (Remote to Local)
++
++Make your local pipe accessible from remote machine:
++
++```bash
++# On local machine: Create reverse tunnel
++# Makes remote-host:30010 forward to localhost:30010
++ssh -R 30010:localhost:30010 user@remote-host
++
++# On remote machine: Connect to the reverse-tunneled port
++mkctl connect --url tcp://localhost:30010
++```
++
++**Use case:** Development environment where you want to test from remote but pipe server runs locally.
++
++### SSH Tunnel Best Practices
++
++**Keep tunnel alive with autossh:**
++
++```bash
++# Install autossh
++sudo apt-get install autossh
++
++# Create persistent tunnel
++autossh -M 0 -f -N -L 30010:localhost:30010 user@remote-host
++```
++
++**SSH config for easier tunneling:**
++
++Add to `~/.ssh/config`:
++
++```
++Host remote-pipes
++    HostName remote-host.example.com
++    User your-username
++    LocalForward 30010 localhost:30010
++    LocalForward 30011 localhost:30011
++    LocalForward 30012 localhost:30012
++    ServerAliveInterval 60
++    ServerAliveCountMax 3
++```
++
++Then simply run:
++
++```bash
++# Single command to set up all tunnels
++ssh -N remote-pipes
++```
++
++**Background tunnel:**
++
++```bash
++# Run tunnel in background
++ssh -fN -L 30010:localhost:30010 user@remote-host
++
++# Find and kill the tunnel later
++ps aux | grep "ssh.*30010"
++kill <PID>
++```
++
++### Security Notes
++
++**Why SSH tunnels are recommended:**
++
++- ✅ **Encryption**: All traffic encrypted with SSH (no plaintext on network)
++- ✅ **Authentication**: Uses your existing SSH keys/passwords
++- ✅ **No new firewall rules**: Only requires SSH port (22) to be open
++- ✅ **Audit trail**: SSH logs all connections
++- ✅ **Port protection**: Prevents unauthorized access to pipe ports
++
++**Alternatives (less secure):**
++
++- Direct TCP/WebSocket: Fast but unencrypted, requires firewall rules
++- VPN: Secure but requires VPN setup and overhead
++- TLS wrapping: Requires certificate management
++
++**Recommended approach:** Always use SSH tunnels for remote pipe viewing in production.
++
++---
++
+ ## Advanced: Multi-Host Topology
+ 
+ Run a distributed topology across 3 machines:
