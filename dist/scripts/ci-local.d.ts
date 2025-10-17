@@ -1,3 +1,3 @@
-#!/usr/bin/env -S node --enable-source-maps
+#!/usr/bin/env tsx
 export {};
 //# sourceMappingURL=ci-local.d.ts.map

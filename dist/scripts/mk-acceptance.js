@@ -178,7 +178,7 @@ connections:
             const endpoints = JSON.parse(readFileSync(endpointsPath, 'utf-8'));
             log(`Router endpoints tracked: ${endpoints.length} endpoints`);
             // Verify stale endpoints would be detected (check TTL metadata exists)
-            const hasHeartbeatData = endpoints.some((ep) => ep.lastHeartbeat !== undefined || ep.ttlMs !== undefined);
+            const hasHeartbeatData = endpoints.some((ep) => ep.updatedAt !== undefined || ep.expiresAt !== undefined || ep.ttlMs !== undefined);
             if (hasHeartbeatData) {
                 log('✓ Heartbeat/TTL metadata present in endpoint tracking');
             }

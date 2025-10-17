@@ -1,3 +1,3 @@
-{"ts":1760719356344,"lvl":"info","case":"combines rules from node-defaults and custom rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760719356345,"lvl":"info","case":"combines rules from node-defaults and custom rules","phase":"execution","evt":"test.run"}
-{"ts":1760719356346,"lvl":"info","case":"combines rules from node-defaults and custom rules","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
+{"ts":1760720200193,"lvl":"info","case":"combines rules from node-defaults and custom rules","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760720200194,"lvl":"info","case":"combines rules from node-defaults and custom rules","phase":"execution","evt":"test.run"}
+{"ts":1760720200195,"lvl":"info","case":"combines rules from node-defaults and custom rules","phase":"teardown","evt":"case.end","payload":{"duration":2,"status":"passed"}}
