@@ -118,6 +118,40 @@ node dist/scripts/mk.js bootstrap /tmp/mk-calc --yes
 node dist/scripts/mkctl.js endpoints --runtime-dir . --json | jq '.[0].status'
 ```
 
+```json
+{
+  "ampcode": "v1",
+  "waves": [
+    { "id": "P18A-TCP", "parallel": false, "tasks": ["N1801","N1802","N1803"] }
+  ],
+  "branch": "mkolbol-net-p18a-tcp-pipe",
+  "tasks": [
+    {"id":"N1801","agent":"susan","title":"FrameCodec + Transport interface (pre-step)",
+      "why":"Shared base for TCP/WS pipes; length-prefixed framing + ping/pong.",
+      "allowedFiles":["src/net/frame.ts","src/net/transport.ts","tests/net/frame.spec.ts"],
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N1801_frame-transport.patch"]},
+
+    {"id":"N1802","agent":"susan","title":"TCPPipe adapter + Remote Viewer example",
+      "why":"Enable cross-process streams over TCP; simplest remote demo.",
+      "allowedFiles":["src/pipes/adapters/TCPPipe.ts","examples/network/remote-viewer/**","tests/integration/tcpPipe.spec.ts"],
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N1802_tcp-pipe.patch"]},
+
+    {"id":"N1803","agent":"susan","title":"Acceptance: PTY in proc A → TCP → viewer proc B (ephemeral ports)",
+      "why":"Prove end-to-end with port collision safety and Laminar artifacts.",
+      "allowedFiles":["docs/devex/network-quickstart.md",".github/workflows/tests.yml","scripts/ci-local.ts"],
+      "verify":["npm run build","npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_N1803_tcp-acceptance.patch"]}
+  ]
+}
+```
+
+Branch Instructions
+- IMPORTANT: This sprint runs ONLY on branch `mkolbol-net-p18a-tcp-pipe`.
+- Do not change branches or merge; commit patches and logs as usual. I will handle PRs/merges.
+- Use ephemeral ports from 30010–30019 for tests. Avoid hard-coded 3000.
+
 # Ampcode — MKD RC Sweep: Acceptance + Release Prep
 
 Goal
