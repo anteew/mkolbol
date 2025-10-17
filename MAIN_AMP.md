@@ -1,53 +1,16 @@
-````json
-
 ```json
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "P24-FEDERATION", "parallel": false, "tasks": ["N2401","N2402","N2403"] }
+    { "id": "P23-DISCOVERY", "parallel": false, "tasks": ["N2301","N2302","N2303","N2304"] }
   ],
-  "branch": "mkolbol-net-p24-federation",
+  "branch": "mkolbol-net-p23-discovery",
   "tasks": [
-    {"id":"N2401","agent":"devex","title":"Federation API: Router↔Router adverts via PeerSource (static first)",
-      "allowedFiles":["src/router/Federation.ts","src/router/RoutingServer.ts","tests/integration/router.federation.spec.ts"],
-      "why":"Let routers share endpoint ads and TTL across peers.",
+    {"id":"N2301","agent":"susan","title":"PeerSource interface + ConfigPeerSource (static peers)",
+      "allowedFiles":["src/discovery/PeerSource.ts","src/discovery/ConfigPeerSource.ts","src/types/network.ts","tests/integration/peerSource.config.spec.ts"],
+      "why":"Provide common interface so federation can run before mDNS lands.",
       "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_N2401_router-federation.patch"]},
-
-    {"id":"N2402","agent":"devex","title":"Failover & path preference: local > LAN > WAN; TTL propagation",
-      "allowedFiles":["src/router/RoutingServer.ts","src/state/StateManager.ts","tests/integration/router.failover.spec.ts"],
-      "why":"Choose best path and recover when peers die; respect liveness events.",
-      "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_N2402_router-failover.patch"]},
-
-    {"id":"N2403","agent":"devex","title":"Acceptance: two routers, static peers → federation → fail one link",
-      "allowedFiles":["examples/network/federation-demo/**","docs/devex/network-quickstart.md",".github/workflows/tests.yml"],
-      "why":"Prove federation and failover without mDNS dependency.",
-      "verify":["npm run ci:local:fast"],
-      "deliverables":["patches/DIFF_N2403_federation-acceptance.patch"]}
-  ]
-}
-````
-
-Branch Instructions
-
-- IMPORTANT: Work only on `mkolbol-net-p24-federation`.
-- Start with ConfigPeerSource; later add MdnsPeerSource once P23 lands.
-- Use existing subscribe() + TTL events; no polling.
-- Keep federation eventual‑consistency; no strong ordering.
-
-{
-"ampcode": "v1",
-"waves": [
-{ "id": "P23-DISCOVERY", "parallel": false, "tasks": ["N2301","N2302","N2303","N2304"] }
-],
-"branch": "mkolbol-net-p23-discovery",
-"tasks": [
-{"id":"N2301","agent":"susan","title":"PeerSource interface + ConfigPeerSource (static peers)",
-"allowedFiles":["src/discovery/PeerSource.ts","src/discovery/ConfigPeerSource.ts","src/types/network.ts","tests/integration/peerSource.config.spec.ts"],
-"why":"Provide common interface so federation can run before mDNS lands.",
-"verify":["npm run build","npm run test:ci"],
-"deliverables":["patches/DIFF_N2301_peer-source.patch"]},
+      "deliverables":["patches/DIFF_N2301_peer-source.patch"]},
 
     {"id":"N2302","agent":"susan","title":"MdnsPeerSource: mDNS/UDP beacons (userspace LLDP‑like)",
       "allowedFiles":["src/discovery/MdnsPeerSource.ts","src/discovery/BeaconCodec.ts","tests/integration/mdnsPeer.spec.ts"],
@@ -66,11 +29,9 @@ Branch Instructions
       "why":"Prove zero‑config discovery with explicit approval and mkctl connect works.",
       "verify":["npm run ci:local:fast"],
       "deliverables":["patches/DIFF_N2304_discovery-acceptance.patch"]}
-
-]
+  ]
 }
-
-````
+```
 
 Branch Instructions
 
@@ -106,7 +67,7 @@ Branch Instructions
       "deliverables":["patches/DIFF_N2003_subscriber-acceptance.patch"]}
   ]
 }
-````
+```
 
 Branch Instructions
 
@@ -180,7 +141,7 @@ Branch Instructions
 ]
 }
 
-````
+```
 
 ```json
 {
@@ -300,7 +261,7 @@ Branch Instructions
     }
   ]
 }
-````
+```
 
 # Ampcode — P17: Orchestrator v1 (mk Anywhere) + Router P2 TTL
 
