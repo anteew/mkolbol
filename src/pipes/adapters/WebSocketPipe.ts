@@ -1,7 +1,6 @@
 import { Duplex } from 'stream';
 import WebSocket, { WebSocketServer } from 'ws';
 import { FrameCodec } from '../../net/frame.js';
-import type { Frame } from '../../net/transport.js';
 import { debug } from '../../debug/api.js';
 
 export interface WebSocketPipeOptions {
@@ -77,7 +76,7 @@ export class WebSocketPipeClient extends Duplex {
     }
   }
 
-  _read(size: number): void {
+  _read(_size: number): void {
     // Backpressure handled by WebSocket
   }
 
@@ -222,7 +221,7 @@ class WebSocketServerPipe extends Duplex {
     }
   }
 
-  _read(size: number): void {
+  _read(_size: number): void {
     // Backpressure handled by WebSocket
   }
 

@@ -11,7 +11,7 @@ describe('PassthroughRenderer', () => {
   beforeEach(() => {
     kernel = new Kernel();
     renderer = new PassthroughRenderer(kernel);
-    
+
     capturedOutput = [];
     originalStdoutWrite = process.stdout.write;
     process.stdout.write = ((chunk: any) => {

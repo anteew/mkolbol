@@ -24,7 +24,7 @@ class UnixPipeAdapterDuplex extends Duplex {
             }
         });
     }
-    _read(size) {
+    _read(_size) {
         this.socket.resume();
     }
     _write(chunk, encoding, callback) {

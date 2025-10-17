@@ -57,7 +57,7 @@ export class DevWatcher {
     }
     watchModule(nodeId, modulePath) {
         try {
-            const watcher = watch(modulePath, (eventType, filename) => {
+            const watcher = watch(modulePath, (eventType, _filename) => {
                 if (eventType === 'change') {
                     this.handleFileChange(nodeId, modulePath);
                 }

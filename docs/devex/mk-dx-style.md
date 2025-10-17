@@ -5,6 +5,7 @@
 Purpose: Encode developer‑joy into our CLI microcopy, output structure, and error semantics so every interaction is fast, obvious, reversible, and helpful.
 
 ## Principles
+
 - Short first, details on demand.
 - Every error teaches (code, cause, fix, rerun).
 - Deterministic output; machine‑readable with `--json`.
@@ -12,11 +13,13 @@ Purpose: Encode developer‑joy into our CLI microcopy, output structure, and er
 - Quiet on success, rich with `-v/--debug`.
 
 ## Status Line Conventions
+
 - Prefix tokens (TTY): `[OK ]`, `[ERR]`, `[WARN]`, `[INFO]`.
 - Non‑TTY: same tokens without color. Provide `--no-color`.
 - One short line first; follow with bullet details.
 
 Examples:
+
 ```
 [ERR] CONFIG_PARSE at mk.yaml:12:7 — invalid indent under "nodes".
 Fix: run `mk format --to json --dry-run` to see a normalized form.
@@ -29,6 +32,7 @@ Code: CONFIG_PARSE  Rerun: mk run --file mk.yaml --dry-run
 ```
 
 ## "Did You Mean" Pattern
+
 - **Algorithm**: Levenshtein distance ≤ 2 for commands/flags
 - **Limit**: Suggest at most 2 candidates
 - **Format**: `Unknown command "losg". Did you mean: logs, trace?`
@@ -36,6 +40,7 @@ Code: CONFIG_PARSE  Rerun: mk run --file mk.yaml --dry-run
 - **Scope**: Apply to both commands (`mk rnu`) and flags (`--flie`)
 
 ### Implementation Rules
+
 1. Calculate edit distance for all known commands/flags
 2. Filter candidates with distance ≤ 2
 3. Sort by distance (ascending), then alphabetically
@@ -43,6 +48,7 @@ Code: CONFIG_PARSE  Rerun: mk run --file mk.yaml --dry-run
 5. If no matches found, show generic "Unknown command" error
 
 ### Examples
+
 ```
 $ mk rnu
 [ERR] UNKNOWN_COMMAND — Unknown command "rnu"
@@ -65,6 +71,7 @@ Fix: Run: mk --help
 ```
 
 ## Error Taxonomy (Human)
+
 - CONFIG_NOT_FOUND — show searched paths; suggest `mk init`.
 - CONFIG_PARSE — include line:col; suggest `mk format --dry-run`.
 - SCHEMA_INVALID — show JSONPath to field; suggest fix snippet.
@@ -72,6 +79,7 @@ Fix: Run: mk --help
 - PERMISSION_DENIED — show exact flag to enable.
 
 ## Error Payload (Machine, with `--json`)
+
 ```json
 {
   "code": "CONFIG_PARSE",
@@ -86,7 +94,9 @@ Fix: Run: mk --help
 ## Help Text Conventions
 
 ### Structure
+
 All help text follows consistent sections:
+
 1. **Header**: Command name + one-line description
 2. **Usage**: Command syntax with brackets for optional args
 3. **Description**: 1-2 sentences explaining what the command does
@@ -97,6 +107,7 @@ All help text follows consistent sections:
 8. **Learn More**: Links to full docs and RFCs
 
 ### Formatting Rules
+
 - Use UPPERCASE for section headers
 - Indent options with 2 spaces
 - Keep primary lines ≤ 80 columns
@@ -105,6 +116,7 @@ All help text follows consistent sections:
 - Group related flags together
 
 ### Example Pattern
+
 ```
 mk <command> — Short description
 
@@ -131,6 +143,7 @@ LEARN MORE
 ```
 
 ### Stability Requirements
+
 - **No timestamps or dates** in help text
 - **No dynamic version numbers** that change per build
 - **Deterministic output**: Running `mk --help` twice produces identical output
@@ -139,6 +152,7 @@ LEARN MORE
 ## Error Message Style Guide
 
 ### Format
+
 ```
 [ERR] ERROR_CODE at <location> — brief description
 Fix: <actionable remediation>
@@ -147,6 +161,7 @@ Code: ERROR_CODE  Rerun: <exact command to retry>
 ```
 
 ### Writing Rules
+
 1. **Be specific**: "Configuration file not found at ./mk.json" > "File not found"
 2. **Show location**: Include file:line:col when available
 3. **Provide fix**: Every error includes actionable remediation
@@ -158,6 +173,7 @@ Code: ERROR_CODE  Rerun: <exact command to retry>
 ### Examples
 
 **Good**:
+
 ```
 [ERR] CONFIG_NOT_FOUND — Configuration file not found at ./mk.json
 Fix: Run: mk init --preset tty
@@ -166,32 +182,38 @@ Code: CONFIG_NOT_FOUND
 ```
 
 **Bad**:
+
 ```
 Error: couldn't find the config
 Try creating one
 ```
 
 ## Accessibility
+
 - Support `--no-ansi`; ensure high‑contrast tokens.
 - ASCII graphs for non‑TTY; avoid red/green only.
 - Respect `$LANG` for numbers/dates (messages remain English in v0).
 
 ## Prompt Snippet
+
 - Format: `[mk:<profile> <in/out format> <gates>]` (e.g., `[mk:dev yaml local]`).
 - Never write to shell rc files; `print` only; reversible.
 
 ## Snapshot Targets (v0)
+
 - Help text (`mk --help`, `mk dev --help`, `mk logs --help`, `mk trace --help`): stable sections and examples.
 - 10 canonical error messages: exact 3‑line structure.
 - JSON error payload shape: fields present and typed.
 - **Phase C Additions** (P11): `mk dev`, `mk logs`, `mk trace` help snapshots (see fixtures below).
 
 ## Copywriting Rules
+
 - Use imperative voice. Avoid jargon. Prefer verbs: "Run", "Fix", "Open".
 - Link to stable anchors. Avoid 404 risk.
 - Keep primary lines ≤ 80 columns.
 
 ## Acceptance Gates
+
 - TTFR ≤ 60s; TTR (parse error) ≤ 30s with provided fix.
 - `mk run --dry-run` latency < 400ms on example.
 - Help and error outputs pass snapshot tests.
@@ -201,6 +223,7 @@ Try creating one
 To enforce DX consistency, we maintain snapshot tests for critical CLI surfaces:
 
 ### Help Text Snapshot (`tests/cli/mkdxHelp.spec.ts`)
+
 - **Purpose**: Detect unintended help output changes
 - **Scope**: `mk --help` sections, command order, examples
 - **Structure**: Organized sections (Usage, Commands, Options, Examples)
@@ -208,7 +231,9 @@ To enforce DX consistency, we maintain snapshot tests for critical CLI surfaces:
 - **Status**: Active with 27 tests covering all commands and fixtures
 
 ### Test Coverage
+
 The help test suite includes:
+
 1. **Main help**: `mk --help` and `mk -h` flags
 2. **Command help**: All 8 core commands (`init`, `run`, `doctor`, `validate`, `graph`, `dev`, `logs`, `trace`)
 3. **Stability**: Deterministic output (no timestamps, no dynamic versions)
@@ -216,14 +241,16 @@ The help test suite includes:
 5. **Fixture validation**: Structure verification for `mk dev`, `mk logs`, `mk trace` fixtures
 
 ### Error Output Snapshot (`tests/cli/mkdxErrors.spec.ts`)
+
 - **Purpose**: Enforce error format consistency across all error codes
-- **Scope**: 15 core error codes (CONFIG_*, HEALTH_CHECK_*, SCHEMA_*, MODULE_*, RUNTIME_*, etc.)
+- **Scope**: 15 core error codes (CONFIG*\*, HEALTH_CHECK*\_, SCHEMA\_\_, MODULE*\*, RUNTIME*\*, etc.)
 - **Format**: MkError class with code/message/remediation/details/docs/hint
 - **Coverage**: Text format (human-readable), JSON format (machine-parseable)
 - **Validation**: All errors include non-empty message and remediation
 - **Status**: Active; tests ERROR_CATALOG and formatError() function
 
 ### How to Update Snapshots
+
 ```bash
 # Review and accept snapshot changes
 npm run test:ci -- --update
@@ -234,6 +261,7 @@ npx vitest tests/cli/mkdxErrors.spec.ts --update
 ```
 
 ### Adding New Error Codes
+
 1. Add to `ERROR_CATALOG` in error definitions
 2. Include code, message, remediation, docs link
 3. Run tests to verify scaffold coverage
@@ -246,6 +274,7 @@ npx vitest tests/cli/mkdxErrors.spec.ts --update
 Added help text snapshots for new developer ergonomics commands:
 
 ### Files Added
+
 - `tests/fixtures/mkdx/mk-dev.help.txt` — Help for `mk dev` (hot reload)
 - `tests/fixtures/mkdx/mk-logs.help.txt` — Help for `mk logs` (structured logging)
 - `tests/fixtures/mkdx/mk-trace.help.txt` — Help for `mk trace` (flow analysis)
@@ -280,6 +309,7 @@ npm run test:ci -- tests/cli/mkdxHelp.spec.ts --update
 ## Implementation Checklist for Future MK CLI Phases
 
 **Phase A (v0):**
+
 - [x] mkdxHelp.spec.ts — Activated with 27 comprehensive help tests
 - [x] mkdxErrors.spec.ts — Extended ERROR_CATALOG for all error scenarios
 - [ ] Implement mk --help with sections matching snapshot expectations
@@ -288,6 +318,7 @@ npm run test:ci -- tests/cli/mkdxHelp.spec.ts --update
 - [ ] Run full test suite: `npm run test:ci -- tests/cli/mkdx*`
 
 **Phase C (P11+):**
+
 - [x] Add mk dev/logs/trace help text snapshots (fixtures created)
 - [x] Add comprehensive did-you-mean tests
 - [x] Document help text conventions and error message style guide

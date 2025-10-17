@@ -84,6 +84,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier -w .",
+    "format:write": "prettier -w .",
     "format:check": "prettier -c .",
     "ci:local": "tsx scripts/ci-local.ts",
     "ci:local:fast": "CI_FAST=1 tsx scripts/ci-local.ts",

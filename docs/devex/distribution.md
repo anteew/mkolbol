@@ -4,13 +4,13 @@ This guide helps you choose the right way to install and distribute mkolbol for 
 
 ## Quick Reference
 
-| Installation Path | Use Case | Ease | Control | Network | Reproducibility |
-|-------------------|----------|------|---------|---------|-----------------|
-| **Tarball** (Recommended) | Early adopters, CI/CD, reproducible builds | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ❌ Offline | ⭐⭐⭐⭐⭐ |
-| **Git Tag** (Pinned) | Teams with git workflows, version tracking | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ✅ Required | ⭐⭐⭐⭐ |
-| **Vendor/Local** (Monorepo) | Same-repo development, zero dependencies | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ❌ Offline | ⭐⭐⭐⭐⭐ |
-| Local Dev (`npm link`) | Active development, debugging | ⭐⭐⭐⭐ | ⭐⭐⭐ | ✅ Required | ⭐⭐ |
-| GitHub Raw (`npm install github:...`) | Latest features, beta testing | ⭐⭐ | ⭐ | ✅ Required | ⭐ (cache issues) |
+| Installation Path                     | Use Case                                   | Ease       | Control    | Network     | Reproducibility   |
+| ------------------------------------- | ------------------------------------------ | ---------- | ---------- | ----------- | ----------------- |
+| **Tarball** (Recommended)             | Early adopters, CI/CD, reproducible builds | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ❌ Offline  | ⭐⭐⭐⭐⭐        |
+| **Git Tag** (Pinned)                  | Teams with git workflows, version tracking | ⭐⭐⭐     | ⭐⭐⭐⭐⭐ | ✅ Required | ⭐⭐⭐⭐          |
+| **Vendor/Local** (Monorepo)           | Same-repo development, zero dependencies   | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ❌ Offline  | ⭐⭐⭐⭐⭐        |
+| Local Dev (`npm link`)                | Active development, debugging              | ⭐⭐⭐⭐   | ⭐⭐⭐     | ✅ Required | ⭐⭐              |
+| GitHub Raw (`npm install github:...`) | Latest features, beta testing              | ⭐⭐       | ⭐         | ✅ Required | ⭐ (cache issues) |
 
 ---
 
@@ -81,6 +81,7 @@ npm install ./mkolbol-0.2.0.tgz
 #### Step 2: Reference in Your Project
 
 **In package.json:**
+
 ```json
 {
   "dependencies": {
@@ -90,6 +91,7 @@ npm install ./mkolbol-0.2.0.tgz
 ```
 
 **Then run:**
+
 ```bash
 npm install
 ```
@@ -159,6 +161,7 @@ Instead of using npm registry or tarballs, you pin a specific git tag directly.
 ```
 
 Then run:
+
 ```bash
 npm install
 ```
@@ -229,17 +232,16 @@ your-project/
 ### Setup with npm Workspaces
 
 **Root package.json:**
+
 ```json
 {
   "name": "my-workspace",
-  "workspaces": [
-    "packages/mkolbol",
-    "packages/my-app"
-  ]
+  "workspaces": ["packages/mkolbol", "packages/my-app"]
 }
 ```
 
 **packages/my-app/package.json:**
+
 ```json
 {
   "dependencies": {
@@ -251,6 +253,7 @@ your-project/
 ### Setup with Relative Paths
 
 **packages/my-app/package.json:**
+
 ```json
 {
   "dependencies": {
@@ -292,16 +295,16 @@ git subtree pull --prefix packages/mkolbol \
 
 ## 4. Comparison Table: When to Use Each
 
-| Scenario | Recommended | Why |
-|----------|-------------|-----|
-| First time, quick start | **Tarball** | Simple, reproducible, works offline after download |
-| Team CI/CD pipeline | **Tarball** | Stable, auditable, easy to cache |
-| Open source integration | **Git tag** | Keep in git history, easy to update |
-| Monorepo / same repo | **Vendor/Local** | Full control, no network needed |
-| Active development | **Vendor/Local** | Fast iteration, source visible |
-| Beta testing | **Git tag** or **Tarball** | Try latest features safely |
-| Production deployment | **Tarball** | Maximum reproducibility |
-| Air-gapped environment | **Tarball** or **Vendor** | Works offline |
+| Scenario                | Recommended                | Why                                                |
+| ----------------------- | -------------------------- | -------------------------------------------------- |
+| First time, quick start | **Tarball**                | Simple, reproducible, works offline after download |
+| Team CI/CD pipeline     | **Tarball**                | Stable, auditable, easy to cache                   |
+| Open source integration | **Git tag**                | Keep in git history, easy to update                |
+| Monorepo / same repo    | **Vendor/Local**           | Full control, no network needed                    |
+| Active development      | **Vendor/Local**           | Fast iteration, source visible                     |
+| Beta testing            | **Git tag** or **Tarball** | Try latest features safely                         |
+| Production deployment   | **Tarball**                | Maximum reproducibility                            |
+| Air-gapped environment  | **Tarball** or **Vendor**  | Works offline                                      |
 
 ---
 
@@ -420,6 +423,7 @@ npm install file:../packages/mkolbol
 **Problem**: Module appears in node_modules but can't be imported.
 
 **Solution**:
+
 ```bash
 # Verify extraction
 tar -tzf mkolbol-0.2.0.tar.gz | grep package.json
@@ -434,6 +438,7 @@ npm install ./mkolbol-0.2.0.tar.gz
 **Problem**: `npm install` uses cached version.
 
 **Solution**:
+
 ```bash
 # Clear npm cache
 npm cache clean --force
@@ -447,6 +452,7 @@ npm install
 **Problem**: `file:` path doesn't work in workspace.
 
 **Solution**:
+
 ```bash
 # Use workspaces in root package.json
 {

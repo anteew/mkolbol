@@ -20,7 +20,7 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
   });
 
   const createSyntheticLogs = (events: DigestEvent[]): void => {
-    const lines = events.map(e => JSON.stringify(e)).join('\n');
+    const lines = events.map((e) => JSON.stringify(e)).join('\n');
     fs.writeFileSync(artifactPath, lines);
   };
 
@@ -28,7 +28,14 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
     it('captures error events', async () => {
       const events: DigestEvent[] = [
         { ts: 1000, lvl: 'info', case: 'test-1', evt: 'test.start', id: '1' },
-        { ts: 2000, lvl: 'error', case: 'test-1', evt: 'custom.error', id: '2', payload: { msg: 'Error occurred' } },
+        {
+          ts: 2000,
+          lvl: 'error',
+          case: 'test-1',
+          evt: 'custom.error',
+          id: '2',
+          payload: { msg: 'Error occurred' },
+        },
         { ts: 3000, lvl: 'info', case: 'test-1', evt: 'test.end', id: '3' },
       ];
       createSyntheticLogs(events);
@@ -45,19 +52,46 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.events.length).toBeGreaterThan(0);
-      expect(digest!.events.some(e => e.lvl === 'error')).toBe(true);
+      expect(digest!.events.some((e) => e.lvl === 'error')).toBe(true);
     });
 
     it('captures assertion failures', async () => {
       const events: DigestEvent[] = [
         { ts: 1000, lvl: 'info', case: 'test-1', evt: 'test.start', id: '1' },
-        { ts: 1500, lvl: 'info', case: 'test-1', evt: 'log.info', id: '1.5', payload: { msg: 'Before assertion' } },
-        { ts: 2000, lvl: 'error', case: 'test-1', evt: 'assert.fail', id: '2', payload: { expected: 5, actual: 3 } },
-        { ts: 2500, lvl: 'info', case: 'test-1', evt: 'log.info', id: '2.5', payload: { msg: 'After assertion' } },
+        {
+          ts: 1500,
+          lvl: 'info',
+          case: 'test-1',
+          evt: 'log.info',
+          id: '1.5',
+          payload: { msg: 'Before assertion' },
+        },
+        {
+          ts: 2000,
+          lvl: 'error',
+          case: 'test-1',
+          evt: 'assert.fail',
+          id: '2',
+          payload: { expected: 5, actual: 3 },
+        },
+        {
+          ts: 2500,
+          lvl: 'info',
+          case: 'test-1',
+          evt: 'log.info',
+          id: '2.5',
+          payload: { msg: 'After assertion' },
+        },
         { ts: 3000, lvl: 'info', case: 'test-1', evt: 'test.end', id: '3' },
       ];
       createSyntheticLogs(events);
@@ -74,17 +108,37 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'assert.fail')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'assert.fail')).toBe(true);
     });
 
     it('captures console output', async () => {
       const events: DigestEvent[] = [
         { ts: 1000, lvl: 'info', case: 'test-1', evt: 'test.start', id: '1' },
-        { ts: 2000, lvl: 'error', case: 'test-1', evt: 'console.error', id: '2', payload: { msg: 'Error message' } },
-        { ts: 2500, lvl: 'warn', case: 'test-1', evt: 'console.warn', id: '2.5', payload: { msg: 'Warning message' } },
+        {
+          ts: 2000,
+          lvl: 'error',
+          case: 'test-1',
+          evt: 'console.error',
+          id: '2',
+          payload: { msg: 'Error message' },
+        },
+        {
+          ts: 2500,
+          lvl: 'warn',
+          case: 'test-1',
+          evt: 'console.warn',
+          id: '2.5',
+          payload: { msg: 'Warning message' },
+        },
         { ts: 3000, lvl: 'info', case: 'test-1', evt: 'test.end', id: '3' },
       ];
       createSyntheticLogs(events);
@@ -101,17 +155,30 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'console.error')).toBe(true);
-      expect(digest!.events.some(e => e.evt === 'console.warn')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'console.error')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'console.warn')).toBe(true);
     });
 
     it('captures test errors', async () => {
       const events: DigestEvent[] = [
         { ts: 1000, lvl: 'info', case: 'test-1', evt: 'test.start', id: '1' },
-        { ts: 2000, lvl: 'error', case: 'test-1', evt: 'test.error', id: '2', payload: { error: 'Test failed' } },
+        {
+          ts: 2000,
+          lvl: 'error',
+          case: 'test-1',
+          evt: 'test.error',
+          id: '2',
+          payload: { error: 'Test failed' },
+        },
         { ts: 3000, lvl: 'info', case: 'test-1', evt: 'test.end', id: '3' },
       ];
       createSyntheticLogs(events);
@@ -128,10 +195,16 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'test.error')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'test.error')).toBe(true);
     });
   });
 
@@ -139,7 +212,14 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
     it('captures test failures and panics', async () => {
       const events: DigestEvent[] = [
         { ts: 1000, lvl: 'info', case: 'TestExample', evt: 'test.start', id: '1' },
-        { ts: 2000, lvl: 'error', case: 'TestExample', evt: 'test.fail', id: '2', payload: { error: 'Expected 5, got 3' } },
+        {
+          ts: 2000,
+          lvl: 'error',
+          case: 'TestExample',
+          evt: 'test.fail',
+          id: '2',
+          payload: { error: 'Expected 5, got 3' },
+        },
         { ts: 3000, lvl: 'info', case: 'TestExample', evt: 'test.end', id: '3' },
       ];
       createSyntheticLogs(events);
@@ -156,17 +236,30 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('TestExample', 'fail', 3000, 'calc_test.go:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'TestExample',
+        'fail',
+        3000,
+        'calc_test.go:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'test.fail')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'test.fail')).toBe(true);
     });
 
     it('captures race conditions', async () => {
       const events: DigestEvent[] = [
         { ts: 1000, lvl: 'info', case: 'TestConcurrent', evt: 'test.start', id: '1' },
         { ts: 1500, lvl: 'info', case: 'TestConcurrent', evt: 'log.info', id: '1.5' },
-        { ts: 2000, lvl: 'error', case: 'TestConcurrent', evt: 'race.detected', id: '2', payload: { goroutine: 42 } },
+        {
+          ts: 2000,
+          lvl: 'error',
+          case: 'TestConcurrent',
+          evt: 'race.detected',
+          id: '2',
+          payload: { goroutine: 42 },
+        },
         { ts: 2500, lvl: 'info', case: 'TestConcurrent', evt: 'log.info', id: '2.5' },
         { ts: 3000, lvl: 'info', case: 'TestConcurrent', evt: 'test.end', id: '3' },
       ];
@@ -184,16 +277,29 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('TestConcurrent', 'fail', 3000, 'concurrent_test.go:20', artifactPath);
+      const digest = await generator.generateDigest(
+        'TestConcurrent',
+        'fail',
+        3000,
+        'concurrent_test.go:20',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'race.detected')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'race.detected')).toBe(true);
     });
 
     it('captures test timeouts', async () => {
       const events: DigestEvent[] = [
         { ts: 1000, lvl: 'info', case: 'TestLongRunning', evt: 'test.start', id: '1' },
-        { ts: 2000, lvl: 'error', case: 'TestLongRunning', evt: 'test.timeout', id: '2', payload: { duration: 60000 } },
+        {
+          ts: 2000,
+          lvl: 'error',
+          case: 'TestLongRunning',
+          evt: 'test.timeout',
+          id: '2',
+          payload: { duration: 60000 },
+        },
         { ts: 3000, lvl: 'info', case: 'TestLongRunning', evt: 'test.end', id: '3' },
       ];
       createSyntheticLogs(events);
@@ -210,10 +316,16 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('TestLongRunning', 'fail', 3000, 'timeout_test.go:15', artifactPath);
+      const digest = await generator.generateDigest(
+        'TestLongRunning',
+        'fail',
+        3000,
+        'timeout_test.go:15',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'test.timeout')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'test.timeout')).toBe(true);
     });
   });
 
@@ -244,11 +356,17 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 4000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        4000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.events.length).toBeGreaterThan(0);
-      expect(digest!.events.some(e => e.lvl === 'error')).toBe(true);
+      expect(digest!.events.some((e) => e.lvl === 'error')).toBe(true);
     });
 
     it('applies higher priority rules first', async () => {
@@ -276,10 +394,16 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'critical.error')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'critical.error')).toBe(true);
     });
 
     it('overrides pack rules with local high-priority rules', async () => {
@@ -307,10 +431,16 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'custom.event')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'custom.event')).toBe(true);
     });
   });
 
@@ -325,7 +455,8 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
           evt: 'auth.fail',
           id: '2',
           payload: {
-            token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U',
+            token:
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U',
           },
         },
         { ts: 3000, lvl: 'info', case: 'test-1', evt: 'test.end', id: '3' },
@@ -338,11 +469,17 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBeGreaterThan(0);
-      const payload = digest!.events.find(e => e.evt === 'auth.fail')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'auth.fail')?.payload as any;
       expect(payload.token).toBe('[REDACTED:jwt]');
     });
 
@@ -370,11 +507,17 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBeGreaterThan(0);
-      const payload = digest!.events.find(e => e.evt === 'aws.config')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'aws.config')?.payload as any;
       expect(payload.accessKey).toBe('[REDACTED:aws-key]');
       expect(payload.secretKey).toContain('[REDACTED:aws-secret]');
     });
@@ -402,11 +545,17 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBeGreaterThan(0);
-      const payload = digest!.events.find(e => e.evt === 'api.init')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'api.init')?.payload as any;
       expect(payload.config).toContain('[REDACTED:api-key]');
     });
 
@@ -434,11 +583,17 @@ describe('DigestGenerator - Rule Packs and Redaction', () => {
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBeGreaterThan(0);
-      const payload = digest!.events.find(e => e.evt === 'db.connect')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'db.connect')?.payload as any;
       expect(payload.url).toContain('[REDACTED:url-creds]');
       expect(payload.url).toContain('db.example.com');
       expect(payload.mongoUrl).toContain('[REDACTED:url-creds]');
@@ -472,11 +627,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBeGreaterThan(0);
-      const payload = digest!.events.find(e => e.evt === 'crypto.load')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'crypto.load')?.payload as any;
       expect(payload.privateKey).toBe('[REDACTED:private-key]');
     });
   });
@@ -492,7 +653,8 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
           evt: 'test.fail',
           id: '2',
           payload: {
-            output: 'Token mismatch: got eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0In0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+            output:
+              'Token mismatch: got eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0In0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
           },
         },
         { ts: 3000, lvl: 'info', case: 'TestAuth', evt: 'test.end', id: '3' },
@@ -505,11 +667,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('TestAuth', 'fail', 3000, 'auth_test.go:25', artifactPath);
+      const digest = await generator.generateDigest(
+        'TestAuth',
+        'fail',
+        3000,
+        'auth_test.go:25',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBeGreaterThan(0);
-      const payload = digest!.events.find(e => e.evt === 'test.fail')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'test.fail')?.payload as any;
       expect(payload.output).toContain('[REDACTED:jwt]');
       expect(payload.output).not.toContain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
     });
@@ -537,11 +705,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('TestS3Upload', 'fail', 3000, 's3_test.go:45', artifactPath);
+      const digest = await generator.generateDigest(
+        'TestS3Upload',
+        'fail',
+        3000,
+        's3_test.go:45',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBeGreaterThan(0);
-      const payload = digest!.events.find(e => e.evt === 'test.fail')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'test.fail')?.payload as any;
       expect(payload.error).toContain('[REDACTED:aws-key]');
     });
 
@@ -568,11 +742,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('TestDatabaseConnection', 'fail', 3000, 'db_test.go:15', artifactPath);
+      const digest = await generator.generateDigest(
+        'TestDatabaseConnection',
+        'fail',
+        3000,
+        'db_test.go:15',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBeGreaterThan(0);
-      const payload = digest!.events.find(e => e.evt === 'test.panic')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'test.panic')?.payload as any;
       expect(payload.panic).toContain('[REDACTED:url-creds]');
       expect(payload.panic).toContain('localhost:5432');
     });
@@ -589,7 +769,8 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
           evt: 'auth.fail',
           id: '2',
           payload: {
-            token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U',
+            token:
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U',
           },
         },
         { ts: 3000, lvl: 'info', case: 'test-1', evt: 'test.end', id: '3' },
@@ -605,11 +786,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBe(0);
-      const payload = digest!.events.find(e => e.evt === 'auth.fail')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'auth.fail')?.payload as any;
       expect(payload.token).toContain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
     });
 
@@ -639,11 +826,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBe(0);
-      const payload = digest!.events.find(e => e.evt === 'aws.config')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'aws.config')?.payload as any;
       expect(payload.accessKey).toBe('AKIAIOSFODNN7EXAMPLE');
     });
 
@@ -673,11 +866,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBe(0);
-      const payload = digest!.events.find(e => e.evt === 'db.connect')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'db.connect')?.payload as any;
       expect(payload.url).toBe('postgres://admin:supersecret@db.example.com:5432/mydb');
     });
   });
@@ -698,7 +897,8 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
             awsSecret: 'aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
             apiKey: 'api_key: zz_live_abcdefghijklmnopqrstuvwxyz',
             dbUrl: 'mysql://root:password123@localhost:3306/production',
-            privateKey: '-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn\n-----END RSA PRIVATE KEY-----',
+            privateKey:
+              '-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn\n-----END RSA PRIVATE KEY-----',
           },
         },
         { ts: 3000, lvl: 'info', case: 'test-1', evt: 'test.end', id: '3' },
@@ -711,11 +911,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBe(6);
-      const payload = digest!.events.find(e => e.evt === 'security.audit')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'security.audit')?.payload as any;
       expect(payload.jwt).toBe('[REDACTED:jwt]');
       expect(payload.awsKey).toBe('[REDACTED:aws-key]');
       expect(payload.awsSecret).toContain('[REDACTED:aws-secret]');
@@ -751,11 +957,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBe(3);
-      const payload = digest!.events.find(e => e.evt === 'multi.tokens')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'multi.tokens')?.payload as any;
       expect(payload.tokens[0]).toBe('[REDACTED:jwt]');
       expect(payload.tokens[1]).toBe('[REDACTED:jwt]');
       expect(payload.tokens[2]).toBe('[REDACTED:jwt]');
@@ -784,7 +996,8 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
                 providers: [
                   {
                     name: 'jwt',
-                    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U',
+                    token:
+                      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U',
                   },
                   {
                     name: 'aws',
@@ -805,11 +1018,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.summary.redactedFields).toBe(4);
-      const payload = digest!.events.find(e => e.evt === 'config.load')?.payload as any;
+      const payload = digest!.events.find((e) => e.evt === 'config.load')?.payload as any;
       expect(payload.services.database.primary.url).toContain('[REDACTED:url-creds]');
       expect(payload.services.database.replica.url).toContain('[REDACTED:url-creds]');
       expect(payload.services.auth.providers[0].token).toBe('[REDACTED:jwt]');
@@ -849,11 +1068,17 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 3000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        3000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'assert.fail')).toBe(true);
-      expect(digest!.events.some(e => e.evt === 'custom.event')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'assert.fail')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'custom.event')).toBe(true);
     });
 
     it('combines rules from go-defaults and custom rules', async () => {
@@ -888,12 +1113,18 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('TestExample', 'fail', 3000, 'example_test.go:30', artifactPath);
+      const digest = await generator.generateDigest(
+        'TestExample',
+        'fail',
+        3000,
+        'example_test.go:30',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
-      expect(digest!.events.some(e => e.evt === 'test.fail')).toBe(true);
-      expect(digest!.events.some(e => e.evt === 'race.detected')).toBe(true);
-      expect(digest!.events.some(e => e.evt === 'perf.warning')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'test.fail')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'race.detected')).toBe(true);
+      expect(digest!.events.some((e) => e.evt === 'perf.warning')).toBe(true);
     });
   });
 
@@ -906,7 +1137,10 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
         evt: i % 10 === 0 ? 'error.event' : 'log.event',
         id: `${i}`,
         payload: {
-          token: i % 10 === 0 ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U' : undefined,
+          token:
+            i % 10 === 0
+              ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'
+              : undefined,
           data: `Event ${i}`,
         },
       }));
@@ -921,7 +1155,13 @@ MIIEpAIBAAKCAQEA0Z3VS5JJcds3xfn/ygWyF0W/F5ADZiGD5WqNGGIqgYnRD
       };
 
       const generator = new DigestGenerator(config);
-      const digest = await generator.generateDigest('test-1', 'fail', 4000, 'test.spec.ts:10', artifactPath);
+      const digest = await generator.generateDigest(
+        'test-1',
+        'fail',
+        4000,
+        'test.spec.ts:10',
+        artifactPath,
+      );
 
       expect(digest).not.toBeNull();
       expect(digest!.events.length).toBeLessThanOrEqual(50);

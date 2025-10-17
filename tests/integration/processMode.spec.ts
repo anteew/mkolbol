@@ -29,43 +29,47 @@ describe('Process Mode Integration', () => {
 
   // GATED: Process mode test requires experimental flag (T4705)
   // Only run when MK_PROCESS_EXPERIMENTAL=1 is set
-  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('should spawn and manage process lifecycle', async () => {
-    const config: TopologyConfig = {
-      nodes: [
-        { 
-          id: 'echo-process', 
-          module: 'ExternalProcess',
-          params: { 
-            command: 'cat',
-            args: []
+  it.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)(
+    'should spawn and manage process lifecycle',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'echo-process',
+            module: 'ExternalProcess',
+            params: {
+              command: 'cat',
+              args: [],
+            },
+            runMode: 'process',
           },
-          runMode: 'process'
-        }
-      ],
-      connections: []
-    };
+        ],
+        connections: [],
+      };
 
-    executor.load(config);
-    await executor.up();
+      executor.load(config);
+      await executor.up();
 
-    // Verify process endpoint is registered
-    const endpoints = hostess.listEndpoints();
-    const processEndpoint = Array.from(endpoints.entries()).find(
-      ([_, ep]) => ep.coordinates === 'node:echo-process'
-    );
+      // Verify process endpoint is registered
+      const endpoints = hostess.listEndpoints();
+      const processEndpoint = Array.from(endpoints.entries()).find(
+        ([_, ep]) => ep.coordinates === 'node:echo-process',
+      );
 
-    expect(processEndpoint).toBeDefined();
-    expect(processEndpoint![1].type).toBe('process');
-    expect(processEndpoint![1].metadata?.runMode).toBe('process');
-    expect(processEndpoint![1].metadata?.command).toBe('cat');
+      expect(processEndpoint).toBeDefined();
+      expect(processEndpoint![1].type).toBe('process');
+      expect(processEndpoint![1].metadata?.runMode).toBe('process');
+      expect(processEndpoint![1].metadata?.command).toBe('cat');
 
-    // Verify state manager registered the node
-    const state = stateManager.getState();
-    const processNode = state.nodes.find((n: any) => n.id === 'echo-process');
-    expect(processNode).toBeDefined();
-    expect(processNode.location).toBe('process');
+      // Verify state manager registered the node
+      const state = stateManager.getState();
+      const processNode = state.nodes.find((n: any) => n.id === 'echo-process');
+      expect(processNode).toBeDefined();
+      expect(processNode.location).toBe('process');
 
-    // Clean shutdown
-    await executor.down();
-  }, testTimeout);
+      // Clean shutdown
+      await executor.down();
+    },
+    testTimeout,
+  );
 });

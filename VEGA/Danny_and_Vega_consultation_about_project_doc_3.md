@@ -23,10 +23,10 @@ Scope: Technical summary of service mesh, routing servers, terminals, and multi�
 
 - Messages carry an envelope: `{ source, destination, replyTo?, data, ... }`.
 - Router flow:
-  1) Receive data on a terminal’s `inputPipe`.
-  2) Parse destination from envelope.
-  3) Lookup route; select destination terminal.
-  4) Forward data via destination terminal’s `outputPipe`.
+  1. Receive data on a terminal’s `inputPipe`.
+  2. Parse destination from envelope.
+  3. Lookup route; select destination terminal.
+  4. Forward data via destination terminal’s `outputPipe`.
 - Supports multi‑hop by forwarding between network terminals; hop counts used for route preference.
 - Reply path (hairpin) uses `replyTo` addressing; return traffic may traverse back to origin over a different terminal.
 
@@ -42,11 +42,11 @@ Scope: Technical summary of service mesh, routing servers, terminals, and multi�
 - Machine B: Parser; Router with terminals to A and C.
 - Machine C: GPU and Encoder; Router with terminals to A and B.
 - Example flow (PTY → Parser → GPU → Encoder → Display):
-  1) A routes PTY output to B’s parser (net terminal to B).
-  2) B routes parsed data to C’s GPU (net terminal to C).
-  3) C forwards GPU output to local encoder.
-  4) C routes encoded result back to A’s display (net terminal to A).
-  5) A delivers to local display.
+  1. A routes PTY output to B’s parser (net terminal to B).
+  2. B routes parsed data to C’s GPU (net terminal to C).
+  3. C forwards GPU output to local encoder.
+  4. C routes encoded result back to A’s display (net terminal to A).
+  5. A delivers to local display.
 - Route tables per machine map service names to the appropriate terminal (local or network) with hop info.
 
 ## Hairpin / Loopback Case

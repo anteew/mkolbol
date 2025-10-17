@@ -18,7 +18,7 @@ describe('WorkerPipeAdapter - Backpressure', () => {
     pipe2.write({ data: 'msg1' });
     pipe2.write({ data: 'msg2' });
     pipe2.write({ data: 'msg3' });
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(received.length).toBe(3);
 
@@ -39,7 +39,7 @@ describe('WorkerPipeAdapter - Backpressure', () => {
     });
 
     pipe1.read();
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(resumeSignals.length).toBeGreaterThan(0);
 
@@ -64,7 +64,7 @@ describe('WorkerPipeAdapter - Bidirectional Data Flow', () => {
     pipe1.write({ data: 'message1' });
     pipe1.write({ data: 'message2' });
 
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(received).toHaveLength(2);
     expect(received[0]).toEqual({ data: 'message1' });
@@ -89,7 +89,7 @@ describe('WorkerPipeAdapter - Bidirectional Data Flow', () => {
     pipe2.write({ data: 'reverse1' });
     pipe2.write({ data: 'reverse2' });
 
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(received).toHaveLength(2);
     expect(received[0]).toEqual({ data: 'reverse1' });
@@ -122,7 +122,7 @@ describe('WorkerPipeAdapter - Bidirectional Data Flow', () => {
     pipe1.write({ from: 'pipe1', seq: 2 });
     pipe2.write({ from: 'pipe2', seq: 2 });
 
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(received1).toHaveLength(2);
     expect(received2).toHaveLength(2);
@@ -148,7 +148,7 @@ describe('WorkerPipeAdapter - Bidirectional Data Flow', () => {
     const testBuffer = Buffer.from('test data');
     pipe1.write(testBuffer);
 
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(received).toHaveLength(1);
     expect(Buffer.isBuffer(received[0])).toBe(true);
@@ -173,7 +173,7 @@ describe('WorkerPipeAdapter - Error Propagation', () => {
 
     port1.emit('messageerror');
 
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(errorOccurred).toBe(true);
 
@@ -193,7 +193,7 @@ describe('WorkerPipeAdapter - Error Propagation', () => {
     port2.close();
     port1.close();
 
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(closeHandled).toBe(true);
   });
@@ -209,7 +209,7 @@ describe('WorkerPipeAdapter - Error Propagation', () => {
     });
 
     port2.postMessage({ type: 'data', payload: { test: 'data' } });
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(received.length).toBe(1);
 
@@ -238,7 +238,7 @@ describe('WorkerPipeAdapter - Teardown', () => {
     pipe1.write({ data: 'final message' });
     pipe1.end();
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(received).toHaveLength(1);
     expect(endReceived).toBe(true);
@@ -262,7 +262,7 @@ describe('WorkerPipeAdapter - Teardown', () => {
 
     await Promise.race([
       endPromise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 100))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 100)),
     ]).catch(() => {});
 
     pipe1.end();
@@ -281,7 +281,7 @@ describe('WorkerPipeAdapter - Teardown', () => {
 
     pipe1.destroy();
 
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(destroyHandled).toBe(true);
 
@@ -302,7 +302,7 @@ describe('WorkerPipeAdapter - Teardown', () => {
 
     pipe1.destroy(testError);
 
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(receivedError).toBe(testError);
 

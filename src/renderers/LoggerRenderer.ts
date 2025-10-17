@@ -9,14 +9,14 @@ export class LoggerRenderer {
 
   constructor(kernel: Kernel, logFilePath: string) {
     this.inputPipe = kernel.createPipe();
-    
+
     const dir = path.dirname(logFilePath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    
+
     this.writeStream = fs.createWriteStream(logFilePath, { flags: 'a' });
-    
+
     this.inputPipe.on('data', (data: Buffer) => {
       this.writeStream.write(data);
     });

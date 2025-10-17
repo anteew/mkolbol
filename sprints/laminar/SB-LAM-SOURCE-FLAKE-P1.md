@@ -2,9 +2,9 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "SFL-A", "parallel": true,  "tasks": ["T2601", "T2602"] },
+    { "id": "SFL-A", "parallel": true, "tasks": ["T2601", "T2602"] },
     { "id": "SFL-B", "parallel": false, "depends_on": ["SFL-A"], "tasks": ["T2603"] },
-    { "id": "SFL-C", "parallel": true,  "depends_on": ["SFL-B"], "tasks": ["T2604", "T2605"] }
+    { "id": "SFL-C", "parallel": true, "depends_on": ["SFL-B"], "tasks": ["T2604", "T2605"] }
   ],
   "tasks": [
     {
@@ -58,6 +58,6 @@
 ---
 
 ## Notes
+
 - Use minimal deps for sourcemaps (e.g., `source-map`), and keep frames short.
 - Do not bloat digest; attach frames only when budget allows.
-

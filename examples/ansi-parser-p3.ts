@@ -1,4 +1,8 @@
-import { AnsiParser, type AnsiParserOptions, type AnsiParserEvent } from '../src/transforms/AnsiParser.js';
+import {
+  AnsiParser,
+  type AnsiParserOptions,
+  type AnsiParserEvent,
+} from '../src/transforms/AnsiParser.js';
 
 function withParser(options: AnsiParserOptions, fn: (parser: AnsiParser) => void): void {
   const parser = new AnsiParser(options);
@@ -48,4 +52,6 @@ withParser({ cols: 4, rows: 3 }, (parser) => {
   });
 });
 
-console.log('\nRun `npx vitest run --reporter=default tests/transforms/ansiParser.performance.spec.ts` to execute the lightweight performance guard.');
+console.log(
+  '\nRun `npx vitest run --reporter=default tests/transforms/ansiParser.performance.spec.ts` to execute the lightweight performance guard.',
+);

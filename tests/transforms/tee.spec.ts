@@ -32,7 +32,7 @@ describe('TeeTransform', () => {
 
   it('throws error if outputCount is less than 1', () => {
     expect(() => new TeeTransform(kernel, { outputCount: 0 })).toThrow(
-      'outputCount must be at least 1'
+      'outputCount must be at least 1',
     );
   });
 
@@ -50,7 +50,7 @@ describe('TeeTransform', () => {
     tee.inputPipe.write('chunk2');
     tee.inputPipe.write('chunk3');
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(outputs[0]).toEqual(['chunk1', 'chunk2', 'chunk3']);
     expect(outputs[1]).toEqual(['chunk1', 'chunk2', 'chunk3']);
@@ -68,7 +68,7 @@ describe('TeeTransform', () => {
     tee.inputPipe.write('test1');
     tee.inputPipe.write('test2');
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(received).toEqual(['test1', 'test2']);
   });
@@ -89,7 +89,7 @@ describe('TeeTransform', () => {
     tee.inputPipe.write(obj1);
     tee.inputPipe.write(obj2);
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(outputs[0]).toEqual([obj1, obj2]);
     expect(outputs[1]).toEqual([obj1, obj2]);
@@ -111,7 +111,7 @@ describe('TeeTransform', () => {
     tee.inputPipe.write(buf1);
     tee.inputPipe.write(buf2);
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(outputs[0][0].equals(buf1)).toBe(true);
     expect(outputs[0][1].equals(buf2)).toBe(true);
@@ -137,7 +137,7 @@ describe('TeeTransform', () => {
         setTimeout(() => {
           callback();
         }, 100);
-      }
+      },
     });
 
     tee.outputPipes[1].pipe(slowWritable);
@@ -146,7 +146,7 @@ describe('TeeTransform', () => {
       tee.inputPipe.write(`chunk${i}`);
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     expect(fastOutput.length).toBe(10);
     expect(slowOutput.length).toBe(10);
@@ -166,7 +166,7 @@ describe('TeeTransform', () => {
           setTimeout(() => {
             callback();
           }, delays[index]);
-        }
+        },
       });
       pipe.pipe(writable);
     });
@@ -175,7 +175,7 @@ describe('TeeTransform', () => {
       tee.inputPipe.write(`msg${i}`);
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     expect(outputs[0].length).toBe(5);
     expect(outputs[1].length).toBe(5);
@@ -198,7 +198,7 @@ describe('TeeTransform', () => {
       tee.inputPipe.write(i);
     }
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const expected = Array.from({ length: 100 }, (_, i) => i);
     expect(outputs[0]).toEqual(expected);
@@ -216,7 +216,7 @@ describe('TeeTransform', () => {
       });
     });
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(outputs[0]).toEqual([]);
     expect(outputs[1]).toEqual([]);
@@ -235,7 +235,7 @@ describe('TeeTransform', () => {
     const largeChunk = 'x'.repeat(10000);
     tee.inputPipe.write(largeChunk);
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(outputs[0][0]).toBe(largeChunk);
     expect(outputs[1][0]).toBe(largeChunk);
@@ -255,7 +255,7 @@ describe('TeeTransform', () => {
       tee.inputPipe.write(i);
     }
 
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(outputs[0].length).toBe(1000);
     expect(outputs[1].length).toBe(1000);
@@ -278,7 +278,7 @@ describe('TeeTransform', () => {
         } else {
           callback();
         }
-      }
+      },
     });
 
     tee.outputPipes[0].pipe(slowWritable);
@@ -288,7 +288,7 @@ describe('TeeTransform', () => {
       tee.inputPipe.write(`item${i}`);
     }
 
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     expect(output.length).toBe(10);
   });
@@ -305,7 +305,7 @@ describe('TeeTransform', () => {
 
     tee.inputPipe.write('test');
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     outputs.forEach((output) => {
       expect(output).toEqual(['test']);
@@ -315,7 +315,7 @@ describe('TeeTransform', () => {
   it('handles end event', async () => {
     const tee = new TeeTransform(kernel, { outputCount: 2 });
     const received: string[][] = [[], []];
-    
+
     tee.outputPipes.forEach((pipe, index) => {
       pipe.on('data', (chunk) => {
         received[index].push(chunk);
@@ -340,7 +340,7 @@ describe('TeeTransform', () => {
 
     await Promise.race([
       endPromise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100)),
     ]);
 
     expect(received[0]).toEqual(['data1', 'data2']);

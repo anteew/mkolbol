@@ -122,7 +122,6 @@ export async function captureTrace(topology, duration = 5000, options = {}) {
     const unsubscribe = stateManager.subscribe((event) => {
         if (event.type === 'connected') {
             const connectionId = event.connection.id;
-            const startTime = Date.now();
             collector.recordFlow(connectionId, 0);
         }
     });

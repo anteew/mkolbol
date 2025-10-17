@@ -3,7 +3,7 @@ import { wrap, type WrapOptions } from './wrap.js';
 export function traced(module: string, options?: WrapOptions) {
   return function <T extends (...args: any[]) => any>(
     target: T,
-    context: ClassMethodDecoratorContext | ClassFieldDecoratorContext
+    context: ClassMethodDecoratorContext | ClassFieldDecoratorContext,
   ): T | void {
     const methodName = String(context.name);
 

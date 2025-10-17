@@ -18,7 +18,7 @@ nodes:
   - id: console-output
     module: ConsoleSink
     params:
-      prefix: "[hello-ticker]"
+      prefix: '[hello-ticker]'
 
 connections:
   - from: number-generator.output
@@ -26,4 +26,3 @@ connections:
 
   - from: transformer.output
     to: console-output.input
-

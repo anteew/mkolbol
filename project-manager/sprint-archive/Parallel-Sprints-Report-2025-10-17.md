@@ -11,6 +11,7 @@ Two parallel sprints have been completed and merged into `main` via Pull Request
 2.  **`SB-DEVEX-CONFIG-PROCESS-P1` (Vex):** This was a large and successful inaugural sprint for our new DevEx engineer, Vex. It produced a comprehensive suite of documentation, tutorials, examples, and feedback mechanisms aimed at making it easier for new developers to get started with `mkolbol`.
 
 **Outcome:**
+
 - All tasks for both sprints were completed successfully.
 - The work was integrated into the `main` branch via the merge of Pull Request #61, which passed all CI checks.
 
@@ -18,8 +19,8 @@ Two parallel sprints have been completed and merged into `main` via Pull Request
 
 Continuing our data-driven analysis of Laminar, I have compared the raw test output with the Laminar summary from the CI run for PR #61.
 
--   **Raw Vitest Log (`threads_raw.log`):** 21,363 bytes
--   **Laminar Summary (`summary.jsonl`):** 2,566 bytes
+- **Raw Vitest Log (`threads_raw.log`):** 21,363 bytes
+- **Laminar Summary (`summary.jsonl`):** 2,566 bytes
 
 **Result:**
 For this sprint, Laminar provided an **88% reduction** in the size of the test summary output. This is our most significant saving to date and continues to prove Laminar's immense value in reducing the token footprint for AI agent consumption.

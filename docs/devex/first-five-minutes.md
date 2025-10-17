@@ -11,6 +11,7 @@ Welcome to mkolbol! This guide shows you the complete developer workflow from pr
 ## What You'll Build
 
 By the end of this guide, you'll have:
+
 - ✅ A working mkolbol project (hello-calculator topology)
 - ✅ Validated configuration with `mk doctor`
 - ✅ Both JSON and YAML workflow experience
@@ -18,6 +19,7 @@ By the end of this guide, you'll have:
 - ✅ Production-ready GitHub Actions CI config
 
 **The mk workflow chain:**
+
 ```
 mk init → mk run → mk doctor → mk format → mk run --yaml → mk build → mk package → mk ci plan
 ```
@@ -54,6 +56,7 @@ node dist/scripts/mk.js init hello-calculator --lang ts --preset tty
 ```
 
 **What happens:**
+
 1. Creates `hello-calculator/` directory
 2. Generates `mk.json` with 3-node topology (CalculatorServer → XtermTTYRenderer → FilesystemSink)
 3. Creates `.mk/options.json` with dev/ci/release profiles
@@ -61,6 +64,7 @@ node dist/scripts/mk.js init hello-calculator --lang ts --preset tty
 5. Adds `package.json`, `.gitignore`, `README.md`
 
 **Verify it worked:**
+
 ```bash
 cd hello-calculator
 ls -la
@@ -79,6 +83,7 @@ node ../dist/scripts/mk.js run --file mk.json --duration 10
 ```
 
 **Expected output:**
+
 ```
 [mk] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.
 [mk] Loading config from: mk.json
@@ -90,11 +95,13 @@ node ../dist/scripts/mk.js run --file mk.json --duration 10
 ```
 
 **What's happening:**
+
 1. CalculatorServer starts on port 4000
 2. XtermTTYRenderer displays live output
 3. FilesystemSink logs to `logs/calculator.jsonl`
 
 **Test it:**
+
 ```bash
 # In another terminal
 curl -s "http://localhost:4000/add?a=5&b=3"
@@ -112,6 +119,7 @@ node ../dist/scripts/mk.js doctor --file mk.json
 ```
 
 **Expected output:**
+
 ```
 [✓] Config file valid (mk.json)
 [✓] All modules registered (CalculatorServer, XtermTTYRenderer, FilesystemSink)
@@ -125,6 +133,7 @@ node ../dist/scripts/mk.js doctor --file mk.json
 ```
 
 **What doctor checks:**
+
 - Config syntax and schema validation
 - Module existence in registry
 - Port conflicts
@@ -133,6 +142,7 @@ node ../dist/scripts/mk.js doctor --file mk.json
 - Resource limits
 
 **If you see errors:**
+
 ```bash
 # Dry-run to see what would happen
 node ../dist/scripts/mk.js doctor --file mk.json --dry-run
@@ -154,6 +164,7 @@ node ../dist/scripts/mk.js format --to yaml mk.json
 ```
 
 **Creates `mk.yaml`:**
+
 ```yaml
 nodes:
   - id: calculator
@@ -182,17 +193,20 @@ connections:
 ```
 
 **Run with YAML:**
+
 ```bash
 node ../dist/scripts/mk.js run --file mk.yaml --duration 10
 ```
 
 **Why YAML?**
+
 - More concise (no quotes on most values)
 - Comments supported (`# This is a comment`)
 - Multi-line strings easier
 - Industry standard for config
 
 **Switch back anytime:**
+
 ```bash
 node ../dist/scripts/mk.js format --to json mk.yaml
 ```
@@ -208,6 +222,7 @@ node ../dist/scripts/mk.js build
 ```
 
 **What happens:**
+
 1. Compiles `src/index.ts` → `dist/index.js`
 2. Bundles dependencies (if configured)
 3. Generates `dist/manifest.json` with provenance:
@@ -224,12 +239,14 @@ node ../dist/scripts/mk.js build
 4. Creates `dist/mk.json` (normalized config)
 
 **Verify:**
+
 ```bash
 ls -la dist/
 # dist/index.js, dist/manifest.json, dist/mk.json
 ```
 
 **Build targets:**
+
 ```bash
 # Production build (minified)
 node ../dist/scripts/mk.js build --target production
@@ -251,6 +268,7 @@ node ../dist/scripts/mk.js package
 **Output: `hello-calculator-0.1.0.tgz`**
 
 **What's included:**
+
 ```
 hello-calculator-0.1.0.tgz
 ├── dist/                 # Compiled artifacts
@@ -262,6 +280,7 @@ hello-calculator-0.1.0.tgz
 ```
 
 **Install the package elsewhere:**
+
 ```bash
 # Copy to another machine
 scp hello-calculator-0.1.0.tgz remote:/tmp/
@@ -275,6 +294,7 @@ node ../dist/scripts/mk.js run --file mk.json
 ```
 
 **Package options:**
+
 ```bash
 # Sign with GPG
 node ../dist/scripts/mk.js package --sign
@@ -294,6 +314,7 @@ node ../dist/scripts/mk.js ci plan --output
 ```
 
 **Creates `.github/workflows/test.yml`:**
+
 ```yaml
 name: Tests
 
@@ -339,6 +360,7 @@ jobs:
 ```
 
 **With Laminar integration:**
+
 ```bash
 node ../dist/scripts/mk.js ci plan --output --with-laminar
 ```
@@ -346,6 +368,7 @@ node ../dist/scripts/mk.js ci plan --output --with-laminar
 Adds Laminar test observability (see [CI Acceptance Smoke](./ci-acceptance-smoke.md#mk-ci-plan-command)).
 
 **Test locally:**
+
 ```bash
 # Generate plan JSON
 node ../dist/scripts/mk.js ci plan
@@ -363,13 +386,13 @@ echo $MATRIX_NODE  # ["20", "24"]
 
 ### Immediate Next Steps
 
-| If you want to... | Go here... |
-|-------------------|-----------|
-| **Iterate faster with hot reload** | [mk dev, logs, trace Guide](./mk-dev-logs-trace.md) - Development ergonomics |
-| **Write custom modules** | [Authoring a Module](./authoring-a-module.md) - Complete guide with test patterns |
-| **Understand architecture** | [Early Adopter Guide](./early-adopter-guide.md) - Core concepts and mental models |
-| **Use curated patterns** | [Recipes](./recipes.md) - 9 copy-paste topologies for common use cases |
-| **Troubleshoot issues** | [Doctor Guide](./doctor.md) - Common errors and fixes |
+| If you want to...                  | Go here...                                                                        |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| **Iterate faster with hot reload** | [mk dev, logs, trace Guide](./mk-dev-logs-trace.md) - Development ergonomics      |
+| **Write custom modules**           | [Authoring a Module](./authoring-a-module.md) - Complete guide with test patterns |
+| **Understand architecture**        | [Early Adopter Guide](./early-adopter-guide.md) - Core concepts and mental models |
+| **Use curated patterns**           | [Recipes](./recipes.md) - 9 copy-paste topologies for common use cases            |
+| **Troubleshoot issues**            | [Doctor Guide](./doctor.md) - Common errors and fixes                             |
 
 ### Production Workflows
 
@@ -389,17 +412,18 @@ echo $MATRIX_NODE  # ["20", "24"]
 
 ### Common Issues
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| **mk: command not found** | Script not built or wrong path | Run: `npm run build` from mkolbol repo root |
-| **Config file not found** | Wrong relative path | Use `../dist/scripts/mk.js` from project directory |
-| **Port already in use** | Another process on port 4000 | Check: `lsof -i :4000` and kill process |
-| **Module not registered** | Module name typo in mk.json | Run: `node ../dist/scripts/mk.js doctor --file mk.json` |
-| **Permission denied (logs/)** | Log directory not writable | Run: `mkdir -p logs && chmod 755 logs` |
+| Error                         | Cause                          | Fix                                                     |
+| ----------------------------- | ------------------------------ | ------------------------------------------------------- |
+| **mk: command not found**     | Script not built or wrong path | Run: `npm run build` from mkolbol repo root             |
+| **Config file not found**     | Wrong relative path            | Use `../dist/scripts/mk.js` from project directory      |
+| **Port already in use**       | Another process on port 4000   | Check: `lsof -i :4000` and kill process                 |
+| **Module not registered**     | Module name typo in mk.json    | Run: `node ../dist/scripts/mk.js doctor --file mk.json` |
+| **Permission denied (logs/)** | Log directory not writable     | Run: `mkdir -p logs && chmod 755 logs`                  |
 
 ### Quick Fixes
 
 **"mk init fails"**
+
 ```bash
 # Check if directory already exists
 ls -la hello-calculator/
@@ -410,6 +434,7 @@ node dist/scripts/mk.js init hello-calculator
 ```
 
 **"mk build fails"**
+
 ```bash
 # Check TypeScript compilation
 npx tsc --noEmit
@@ -422,6 +447,7 @@ node ../dist/scripts/mk.js build --verbose
 ```
 
 **"mk package fails"**
+
 ```bash
 # Build first
 node ../dist/scripts/mk.js build
@@ -444,6 +470,7 @@ node ../dist/scripts/mk.js package
 ## Quick Reference Card
 
 **Complete workflow (from mkolbol repo):**
+
 ```bash
 # Initialize project
 node dist/scripts/mk.js init hello-calculator --lang ts --preset tty
@@ -472,6 +499,7 @@ node ../dist/scripts/mk.js ci plan --output
 ```
 
 **Common flags:**
+
 ```bash
 --file <path>          # Config file (mk.json or mk.yaml)
 --duration <seconds>   # How long to run topology
@@ -487,6 +515,7 @@ node ../dist/scripts/mk.js ci plan --output
 **Time spent:** 10 minutes ⏱️
 
 **What you learned:**
+
 - ✅ Initialize mkolbol projects with `mk init`
 - ✅ Run and validate topologies with `mk run` and `mk doctor`
 - ✅ Convert configs between JSON and YAML with `mk format`

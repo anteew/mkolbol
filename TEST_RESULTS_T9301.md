@@ -1,20 +1,24 @@
 # Test Results: T9301 - mk dev Hot-Reload
 
 ## Task Summary
+
 Implemented `mk dev` command with hot-reload functionality for in-proc modules.
 
 ## Implementation
 
 ### Files Created
+
 1. **src/mk/dev.ts** - DevWatcher class for file watching and hot-reload
 2. **tests/cli/mkDev.spec.ts** - Comprehensive test suite for DevWatcher
 
 ### Files Modified
+
 1. **scripts/mk.ts** - Added `mk dev <config>` command
 
 ## Features Implemented
 
 ### DevWatcher Class (`src/mk/dev.ts`)
+
 - ✅ File watching using Node.js `fs.watch`
 - ✅ Module path resolution for known modules
 - ✅ Debouncing (300ms) to prevent multiple rapid reloads
@@ -26,6 +30,7 @@ Implemented `mk dev` command with hot-reload functionality for in-proc modules.
 - ✅ Only watches in-proc modules (skips worker/process modes)
 
 ### CLI Command (`mk dev <config> [--verbose]`)
+
 - ✅ Loads topology configuration
 - ✅ Initializes Kernel, Hostess, StateManager, and Executor
 - ✅ Registers known modules
@@ -35,12 +40,14 @@ Implemented `mk dev` command with hot-reload functionality for in-proc modules.
 - ✅ Clear console messages for user feedback
 
 ### Executor Changes
+
 - ✅ Existing `restartNode()` method used (no changes needed)
 - ✅ Module cache clearing handled in DevWatcher
 
 ## Test Results
 
 ### Unit Tests (`tests/cli/mkDev.spec.ts`)
+
 ```
 ✓ DevWatcher (20 tests) 223ms
   ✓ constructor and initialization (3 tests)
@@ -59,6 +66,7 @@ Test Files  1 passed (1)
 ```
 
 ### Full Test Suite
+
 ```bash
 npm run test:ci
 ```
@@ -68,6 +76,7 @@ npm run test:ci
 No regressions introduced. All existing tests continue to pass.
 
 ## Build Verification
+
 ```bash
 npm run build
 ```
@@ -79,16 +88,19 @@ TypeScript compilation completed without errors.
 ## Usage Examples
 
 ### Basic Usage
+
 ```bash
 mk dev config/topology.yml
 ```
 
 ### With Verbose Logging
+
 ```bash
 mk dev config/topology.yml --verbose
 ```
 
 ### Example Output
+
 ```
 [mk dev] Starting topology with hot-reload...
 [mk dev] Starting file watchers...
@@ -105,7 +117,9 @@ mk dev config/topology.yml --verbose
 ## Technical Details
 
 ### Module Path Resolution
+
 The DevWatcher resolves paths for the following built-in modules:
+
 - TimerSource
 - UppercaseTransform
 - ConsoleSink
@@ -115,15 +129,18 @@ The DevWatcher resolves paths for the following built-in modules:
 - TeeTransform
 
 ### Debouncing
+
 File changes are debounced with a 300ms delay to prevent multiple rapid reloads from editor auto-save or build tools.
 
 ### Error Handling
+
 - Watcher errors are logged but don't crash the system
 - Module reload errors are caught and reported
 - Unknown modules are skipped gracefully
 - File watch setup failures are handled
 
 ### Memory Management
+
 - Watchers are properly closed on stop
 - Debounce timers are cleared
 - Module cache is cleared before reload
@@ -131,12 +148,14 @@ File changes are debounced with a 300ms delay to prevent multiple rapid reloads 
 ## Deliverable
 
 **Patch File**: `patches/DIFF_T9301_mk-dev-hot-reload.patch`
+
 - Size: 13,233 lines
 - Contains all changes for the hot-reload feature
 
 ## Conclusion
 
 ✅ All objectives completed successfully:
+
 1. Created src/mk/dev.ts with watchModules() and file change handling
 2. Added `mk dev <config>` command to scripts/mk.ts
 3. Used Node.js fs.watch for file watching

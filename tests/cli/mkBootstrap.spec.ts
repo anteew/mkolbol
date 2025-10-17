@@ -9,7 +9,10 @@ describe('mk bootstrap', () => {
   let testDir: string;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `mk-bootstrap-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `mk-bootstrap-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     await mkdir(testDir, { recursive: true });
   });
 
@@ -118,18 +121,18 @@ describe('mk bootstrap', () => {
 
       await mkdir(appDir, { recursive: true });
 
-      await expect(
-        bootstrapProject(appDir, { template: 'hello-calculator' })
-      ).rejects.toThrow(/already exists/);
+      await expect(bootstrapProject(appDir, { template: 'hello-calculator' })).rejects.toThrow(
+        /already exists/,
+      );
     });
 
     it('should throw error if template does not exist', async () => {
       const appName = 'test-invalid';
       const appDir = join(testDir, appName);
 
-      await expect(
-        bootstrapProject(appDir, { template: 'non-existent-template' })
-      ).rejects.toThrow(/not found/);
+      await expect(bootstrapProject(appDir, { template: 'non-existent-template' })).rejects.toThrow(
+        /not found/,
+      );
     });
 
     it('should handle verbose mode', async () => {
@@ -145,7 +148,7 @@ describe('mk bootstrap', () => {
       try {
         await bootstrapProject(appDir, { verbose: true });
 
-        expect(logSpy.some(log => log.includes('[bootstrap]'))).toBe(true);
+        expect(logSpy.some((log) => log.includes('[bootstrap]'))).toBe(true);
       } finally {
         console.log = originalLog;
       }
@@ -198,7 +201,7 @@ describe('mk bootstrap', () => {
     it('should include hello-calculator template', async () => {
       const templates = await listTemplates();
 
-      const helloCalc = templates.find(t => t.name === 'hello-calculator');
+      const helloCalc = templates.find((t) => t.name === 'hello-calculator');
       expect(helloCalc).toBeDefined();
       expect(helloCalc?.description).toBeDefined();
     });
@@ -207,7 +210,7 @@ describe('mk bootstrap', () => {
       const templates = await listTemplates();
 
       expect(templates.length).toBeGreaterThan(0);
-      
+
       const template = templates[0];
       expect(template.name).toBeDefined();
       expect(template.description).toBeDefined();
@@ -255,10 +258,10 @@ describe('mk bootstrap', () => {
       await bootstrapProject(appDir, {});
 
       expect(existsSync(join(appDir, 'mk.json'))).toBe(true);
-      
+
       const pkgContent = await readFile(join(appDir, 'package.json'), 'utf8');
       const pkg = JSON.parse(pkgContent);
-      
+
       expect(pkg.description).toContain('calculator');
     });
   });

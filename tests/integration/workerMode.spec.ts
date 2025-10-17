@@ -28,154 +28,182 @@ describe('Worker Mode Integration', () => {
 
   // GATED: Worker mode test requires worker harness infrastructure
   // Only run when MK_WORKER_EXPERIMENTAL=1 is set
-  it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)('should execute Timer → Worker(Uppercase) → Console topology', async () => {
-    const config: TopologyConfig = {
-      nodes: [
-        { 
-          id: 'timer-source', 
-          module: 'TimerSource', 
-          params: { periodMs: 200 },
-          runMode: 'inproc'
-        },
-        { 
-          id: 'uppercase-worker', 
-          module: 'UppercaseTransform',
-          runMode: 'worker'
-        },
-        { 
-          id: 'console-sink', 
-          module: 'ConsoleSink', 
-          params: { prefix: '[WORKER-TEST]' },
-          runMode: 'inproc'
-        }
-      ],
-      connections: [
-        { from: 'timer-source.output', to: 'uppercase-worker.input' },
-        { from: 'uppercase-worker.output', to: 'console-sink.input' }
-      ]
-    };
+  it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)(
+    'should execute Timer → Worker(Uppercase) → Console topology',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'timer-source',
+            module: 'TimerSource',
+            params: { periodMs: 200 },
+            runMode: 'inproc',
+          },
+          {
+            id: 'uppercase-worker',
+            module: 'UppercaseTransform',
+            runMode: 'worker',
+          },
+          {
+            id: 'console-sink',
+            module: 'ConsoleSink',
+            params: { prefix: '[WORKER-TEST]' },
+            runMode: 'inproc',
+          },
+        ],
+        connections: [
+          { from: 'timer-source.output', to: 'uppercase-worker.input' },
+          { from: 'uppercase-worker.output', to: 'console-sink.input' },
+        ],
+      };
 
-    executor.load(config);
-    await executor.up();
+      executor.load(config);
+      await executor.up();
 
-    // Verify all nodes are registered
-    const state = stateManager.getState();
-    expect(state.nodes).toHaveLength(3);
+      // Verify all nodes are registered
+      const state = stateManager.getState();
+      expect(state.nodes).toHaveLength(3);
 
-    const timerNode = state.nodes.find((n: any) => n.id === 'timer-source');
-    const workerNode = state.nodes.find((n: any) => n.id === 'uppercase-worker');
-    const sinkNode = state.nodes.find((n: any) => n.id === 'console-sink');
+      const timerNode = state.nodes.find((n: any) => n.id === 'timer-source');
+      const workerNode = state.nodes.find((n: any) => n.id === 'uppercase-worker');
+      const sinkNode = state.nodes.find((n: any) => n.id === 'console-sink');
 
-    expect(timerNode).toBeDefined();
-    expect(timerNode.location).toBe('inproc');
+      expect(timerNode).toBeDefined();
+      expect(timerNode.location).toBe('inproc');
 
-    expect(workerNode).toBeDefined();
-    expect(workerNode.location).toBe('worker');
+      expect(workerNode).toBeDefined();
+      expect(workerNode.location).toBe('worker');
 
-    expect(sinkNode).toBeDefined();
-    expect(sinkNode.location).toBe('inproc');
+      expect(sinkNode).toBeDefined();
+      expect(sinkNode.location).toBe('inproc');
 
-    // Verify endpoints are registered
-    const endpoints = hostess.listEndpoints();
-    const endpointEntries = Array.from(endpoints.entries());
-    
-    const timerEndpoint = endpointEntries.find(([_, ep]) => ep.coordinates === 'node:timer-source');
-    const workerEndpoint = endpointEntries.find(([_, ep]) => ep.coordinates === 'node:uppercase-worker');
-    const sinkEndpoint = endpointEntries.find(([_, ep]) => ep.coordinates === 'node:console-sink');
+      // Verify endpoints are registered
+      const endpoints = hostess.listEndpoints();
+      const endpointEntries = Array.from(endpoints.entries());
 
-    expect(timerEndpoint).toBeDefined();
-    expect(timerEndpoint![1].type).toBe('inproc');
-    expect(timerEndpoint![1].metadata?.runMode).toBe('inproc');
+      const timerEndpoint = endpointEntries.find(
+        ([_, ep]) => ep.coordinates === 'node:timer-source',
+      );
+      const workerEndpoint = endpointEntries.find(
+        ([_, ep]) => ep.coordinates === 'node:uppercase-worker',
+      );
+      const sinkEndpoint = endpointEntries.find(
+        ([_, ep]) => ep.coordinates === 'node:console-sink',
+      );
 
-    expect(workerEndpoint).toBeDefined();
-    expect(workerEndpoint![1].type).toBe('worker');
-    expect(workerEndpoint![1].metadata?.runMode).toBe('worker');
-    expect(workerEndpoint![1].metadata?.module).toBe('UppercaseTransform');
+      expect(timerEndpoint).toBeDefined();
+      expect(timerEndpoint![1].type).toBe('inproc');
+      expect(timerEndpoint![1].metadata?.runMode).toBe('inproc');
 
-    expect(sinkEndpoint).toBeDefined();
-    expect(sinkEndpoint![1].type).toBe('inproc');
+      expect(workerEndpoint).toBeDefined();
+      expect(workerEndpoint![1].type).toBe('worker');
+      expect(workerEndpoint![1].metadata?.runMode).toBe('worker');
+      expect(workerEndpoint![1].metadata?.module).toBe('UppercaseTransform');
 
-    // Let data flow through the topology
-    await new Promise(resolve => setTimeout(resolve, 800));
+      expect(sinkEndpoint).toBeDefined();
+      expect(sinkEndpoint![1].type).toBe('inproc');
 
-    // Verify clean teardown (afterEach will call down())
-    const endpointsAfter = hostess.listEndpoints();
-    expect(endpointsAfter.size).toBe(0);
-  }, testTimeout);
+      // Let data flow through the topology
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
-  it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)('should handle worker node lifecycle (up → run → down)', async () => {
-    const config: TopologyConfig = {
-      nodes: [
-        { 
-          id: 'worker-node', 
-          module: 'UppercaseTransform',
-          runMode: 'worker'
-        }
-      ],
-      connections: []
-    };
+      // Verify clean teardown (afterEach will call down())
+      const endpointsAfter = hostess.listEndpoints();
+      expect(endpointsAfter.size).toBe(0);
+    },
+    testTimeout,
+  );
 
-    executor.load(config);
-    
-    // UP phase
-    await executor.up();
-    
-    const stateAfterUp = stateManager.getState();
-    const workerNode = stateAfterUp.nodes.find((n: any) => n.id === 'worker-node');
-    expect(workerNode).toBeDefined();
-    expect(workerNode.location).toBe('worker');
+  it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)(
+    'should handle worker node lifecycle (up → run → down)',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          {
+            id: 'worker-node',
+            module: 'UppercaseTransform',
+            runMode: 'worker',
+          },
+        ],
+        connections: [],
+      };
 
-    const endpointsAfterUp = hostess.listEndpoints();
-    expect(endpointsAfterUp.size).toBeGreaterThanOrEqual(1);
+      executor.load(config);
 
-    // RUN phase (worker should be operational)
-    await new Promise(resolve => setTimeout(resolve, 200));
+      // UP phase
+      await executor.up();
 
-    // DOWN phase
-    await executor.down();
+      const stateAfterUp = stateManager.getState();
+      const workerNode = stateAfterUp.nodes.find((n: any) => n.id === 'worker-node');
+      expect(workerNode).toBeDefined();
+      expect(workerNode.location).toBe('worker');
 
-    const endpointsAfterDown = hostess.listEndpoints();
-    expect(endpointsAfterDown.size).toBe(0);
-  }, testTimeout);
+      const endpointsAfterUp = hostess.listEndpoints();
+      expect(endpointsAfterUp.size).toBeGreaterThanOrEqual(1);
 
-  it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)('should support mixed inproc and worker nodes', async () => {
-    const config: TopologyConfig = {
-      nodes: [
-        { id: 'timer-1', module: 'TimerSource', params: { periodMs: 300 }, runMode: 'inproc' },
-        { id: 'upper-worker', module: 'UppercaseTransform', runMode: 'worker' },
-        { id: 'upper-inproc', module: 'UppercaseTransform', runMode: 'inproc' },
-        { id: 'sink-1', module: 'ConsoleSink', params: { prefix: '[WORKER]' }, runMode: 'inproc' },
-        { id: 'sink-2', module: 'ConsoleSink', params: { prefix: '[INPROC]' }, runMode: 'inproc' }
-      ],
-      connections: [
-        { from: 'timer-1.output', to: 'upper-worker.input' },
-        { from: 'timer-1.output', to: 'upper-inproc.input' },
-        { from: 'upper-worker.output', to: 'sink-1.input' },
-        { from: 'upper-inproc.output', to: 'sink-2.input' }
-      ]
-    };
+      // RUN phase (worker should be operational)
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-    executor.load(config);
-    await executor.up();
+      // DOWN phase
+      await executor.down();
 
-    const state = stateManager.getState();
-    expect(state.nodes).toHaveLength(5);
+      const endpointsAfterDown = hostess.listEndpoints();
+      expect(endpointsAfterDown.size).toBe(0);
+    },
+    testTimeout,
+  );
 
-    const workerNodes = state.nodes.filter((n: any) => n.location === 'worker');
-    const inprocNodes = state.nodes.filter((n: any) => n.location === 'inproc');
+  it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)(
+    'should support mixed inproc and worker nodes',
+    async () => {
+      const config: TopologyConfig = {
+        nodes: [
+          { id: 'timer-1', module: 'TimerSource', params: { periodMs: 300 }, runMode: 'inproc' },
+          { id: 'upper-worker', module: 'UppercaseTransform', runMode: 'worker' },
+          { id: 'upper-inproc', module: 'UppercaseTransform', runMode: 'inproc' },
+          {
+            id: 'sink-1',
+            module: 'ConsoleSink',
+            params: { prefix: '[WORKER]' },
+            runMode: 'inproc',
+          },
+          {
+            id: 'sink-2',
+            module: 'ConsoleSink',
+            params: { prefix: '[INPROC]' },
+            runMode: 'inproc',
+          },
+        ],
+        connections: [
+          { from: 'timer-1.output', to: 'upper-worker.input' },
+          { from: 'timer-1.output', to: 'upper-inproc.input' },
+          { from: 'upper-worker.output', to: 'sink-1.input' },
+          { from: 'upper-inproc.output', to: 'sink-2.input' },
+        ],
+      };
 
-    expect(workerNodes).toHaveLength(1);
-    expect(inprocNodes).toHaveLength(4);
+      executor.load(config);
+      await executor.up();
 
-    const endpoints = hostess.listEndpoints();
-    const types = new Set(Array.from(endpoints.values()).map(ep => ep.type));
-    
-    expect(types.has('inproc')).toBe(true);
-    expect(types.has('worker')).toBe(true);
+      const state = stateManager.getState();
+      expect(state.nodes).toHaveLength(5);
 
-    // Let topology run
-    await new Promise(resolve => setTimeout(resolve, 600));
+      const workerNodes = state.nodes.filter((n: any) => n.location === 'worker');
+      const inprocNodes = state.nodes.filter((n: any) => n.location === 'inproc');
 
-    await executor.down();
-  }, testTimeout);
+      expect(workerNodes).toHaveLength(1);
+      expect(inprocNodes).toHaveLength(4);
+
+      const endpoints = hostess.listEndpoints();
+      const types = new Set(Array.from(endpoints.values()).map((ep) => ep.type));
+
+      expect(types.has('inproc')).toBe(true);
+      expect(types.has('worker')).toBe(true);
+
+      // Let topology run
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      await executor.down();
+    },
+    testTimeout,
+  );
 });

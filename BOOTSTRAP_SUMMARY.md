@@ -9,6 +9,7 @@ Created a complete `mk bootstrap` command for out-of-tree project scaffolding, a
 ### 1. Core Module: `src/mk/bootstrap.ts`
 
 **Key Functions:**
+
 - `bootstrapProject(appDir, options)` - Main bootstrap logic
   - Creates project directory structure
   - Copies template files
@@ -19,6 +20,7 @@ Created a complete `mk bootstrap` command for out-of-tree project scaffolding, a
 - `listTemplates()` - Returns available project templates
 
 **Features:**
+
 - **Multiple installation sources:**
   - `local` - Use local mkolbol repository path
   - `tarball` - Use packaged tarball (auto-detects or explicit path)
@@ -41,11 +43,13 @@ Created a complete `mk bootstrap` command for out-of-tree project scaffolding, a
 ### 2. CLI Integration: `scripts/mk.ts`
 
 **Command:**
+
 ```bash
 mk bootstrap <app-dir> [options]
 ```
 
 **Options:**
+
 - `--yes, -y` - Auto-install dependencies
 - `--verbose` - Show detailed progress
 - `--template <name>` - Choose template (default: hello-calculator)
@@ -54,6 +58,7 @@ mk bootstrap <app-dir> [options]
 - `--tarball <path>` - Explicit tarball path
 
 **Example Usage:**
+
 ```bash
 # Basic local development
 mk bootstrap my-app --yes
@@ -74,6 +79,7 @@ mk bootstrap my-app --yes --verbose
 ### 3. Tests: `tests/cli/mkBootstrap.spec.ts`
 
 **Test Coverage:**
+
 - ✅ Project creation from template
 - ✅ Package.json name update
 - ✅ mkolbol dependency configuration (local, git, tarball)
@@ -93,6 +99,7 @@ mk bootstrap my-app --yes --verbose
 ### 4. Templates: `examples/mk/init-templates/`
 
 **Current Templates:**
+
 - `hello-calculator/` - HTTP calculator with TTY rendering and logging
   - Includes mk.json, package.json, tsconfig.json
   - Sample src/index.ts
@@ -101,6 +108,7 @@ mk bootstrap my-app --yes --verbose
   - .mk/options.json for configuration
 
 **Template Structure:**
+
 ```
 hello-calculator/
 ├── .mk/
@@ -120,6 +128,7 @@ hello-calculator/
 ### Manual Testing
 
 ✅ **Basic Bootstrap (Local Source):**
+
 ```bash
 $ npm run build && node dist/scripts/mk.js bootstrap /tmp/mk-calc --yes
 
@@ -133,18 +142,21 @@ Next steps:
 ```
 
 ✅ **Git Source:**
+
 ```bash
 $ node dist/scripts/mk.js bootstrap /tmp/mk-test-git --source git --git-tag v0.2.0
 # package.json: "mkolbol": "github:anteew/mkolbol#v0.2.0"
 ```
 
 ✅ **Tarball Source:**
+
 ```bash
 $ node dist/scripts/mk.js bootstrap /tmp/mk-test-tarball --source tarball
 # package.json: "mkolbol": "/srv/repos0/mkolbol/mkolbol-0.2.0-rfc.tgz"
 ```
 
 ✅ **Verify mk Command:**
+
 ```bash
 $ cd /tmp/mk-calc
 $ npm run build
@@ -169,6 +181,7 @@ $ npx mk --version
 ## Template Structure Requirements
 
 Templates must have:
+
 - `package.json` - Will be personalized with project name
 - Valid npm package structure
 - (Optional) `README.md` - Will be personalized
@@ -186,6 +199,7 @@ Templates must have:
 ### Custom Template Variables
 
 Future enhancement: Support template variables beyond project name:
+
 ```typescript
 interface TemplateVars {
   projectName: string;
@@ -198,13 +212,16 @@ interface TemplateVars {
 ## Files Modified/Created
 
 **Created:**
+
 - `src/mk/bootstrap.ts` - Core bootstrap logic
 - `tests/cli/mkBootstrap.spec.ts` - Comprehensive test suite
 
 **Modified:**
+
 - `scripts/mk.ts` - Added bootstrap command handler
 
 **Used (Existing):**
+
 - `examples/mk/init-templates/hello-calculator/` - Default template
 
 ## Patch File
@@ -212,12 +229,14 @@ interface TemplateVars {
 **Location:** `patches/DIFF_T9703_mk-bootstrap.patch`
 
 **Contents:**
+
 - New bootstrap module (190 lines)
 - CLI integration (~50 lines)
 - Test suite (280+ lines)
 - Build artifacts (dist/)
 
 **Stats:**
+
 - 4,450 total lines in patch
 - 3 source files created/modified
 - 1 test file created
@@ -243,5 +262,6 @@ To use the bootstrap command:
 4. Start developing: `npm run build && npx mk run mk.json`
 
 For out-of-repo use:
+
 - Install from tarball: `npm pack && npm i -g mkolbol-*.tgz`
 - Or use git: `npm i -g github:anteew/mkolbol#v0.2.0`

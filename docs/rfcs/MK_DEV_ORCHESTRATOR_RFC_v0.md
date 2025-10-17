@@ -21,6 +21,7 @@ This RFC defines goals, UX, schemas, command surfaces, and implementation phases
 - Seamless authoring: author in JSON by default or YAML with `--yaml`; round‑trip either way.
 
 Non‑negotiables for v0:
+
 - Single source of truth for topology validation (reuses kernel loader).
 - Canonical JSON AST inside mk; format adapters perform JSON⇄YAML I/O only.
 - Per‑repo `.mk/options.json` fully populated with defaults and inactive stubs.
@@ -31,6 +32,7 @@ Non‑negotiables for v0:
 We optimize for knees‑go‑weak delight. Every interaction must be: fast, obvious, reversible, and helpful. If a developer pauses to think about the tool instead of their app, we consider that a bug.
 
 DX commandments:
+
 - 1. Zero‑to‑run in under 60 seconds, always.
 - 2. If we can infer, we infer; if we guess, we show our work.
 - 3. Every error teaches: code, cause, fix, and a copy‑paste rerun.
@@ -79,6 +81,7 @@ DX commandments:
 ```
 
 Key points:
+
 - mk owns developer ergonomics (format, defaults, profiles, UX) while deferring topology semantics and validation to the existing kernel loader. This avoids drift.
 - All config is normalized to a canonical JSON AST. YAML/JSON adapters read/write only; comments/anchors are not preserved across translation (documented).
 
@@ -96,11 +99,11 @@ Key points:
   - `yaml-in`: parse YAML → JSON AST.
   - `yaml-out`: serialize JSON AST → YAML.
 - CLI precedence (highest→lowest):
-  1) Flags (`--yaml`, `--yaml-in`, `--yaml-out`, `--format`) 
-  2) Profile in `.mk/options.json`
-  3) Environment variables (e.g., `MK_FORMAT=yaml`)
-  4) File extension (mk.yaml → yaml-in default)
-  5) Defaults (JSON for both in/out)
+  1. Flags (`--yaml`, `--yaml-in`, `--yaml-out`, `--format`)
+  2. Profile in `.mk/options.json`
+  3. Environment variables (e.g., `MK_FORMAT=yaml`)
+  4. File extension (mk.yaml → yaml-in default)
+  5. Defaults (JSON for both in/out)
 - Comment preservation: not guaranteed; `mk format --to yaml --dry-run` offers diffs.
 
 ### Project Options Schema (.mk/options.json)
@@ -112,9 +115,20 @@ JSON only; shipped as a fully populated example with inactive stubs. Users toggl
   "$schema": "https://mkolbol.dev/schemas/mk-options.v0.json",
   "version": 0,
   "profiles": {
-    "dev": { "format": { "in": "auto", "out": "auto" }, "gate": { "localNode": true }, "prompt": { "enabled": true } },
-    "ci":  { "format": { "in": "json", "out": "json" }, "gate": { "localNode": true }, "prompt": { "enabled": false } },
-    "release": { "format": { "in": "json", "out": "yaml" }, "packaging": { "capsule": { "enabled": true } } }
+    "dev": {
+      "format": { "in": "auto", "out": "auto" },
+      "gate": { "localNode": true },
+      "prompt": { "enabled": true }
+    },
+    "ci": {
+      "format": { "in": "json", "out": "json" },
+      "gate": { "localNode": true },
+      "prompt": { "enabled": false }
+    },
+    "release": {
+      "format": { "in": "json", "out": "yaml" },
+      "packaging": { "capsule": { "enabled": true } }
+    }
   },
   "activeProfile": "dev",
   "format": { "in": "auto", "out": "auto" },
@@ -122,8 +136,8 @@ JSON only; shipped as a fully populated example with inactive stubs. Users toggl
   "prompt": { "enabled": false, "style": { "theme": "auto", "compact": true } },
   "packaging": {
     "bundle": { "enabled": true, "tool": "esbuild" },
-    "image":  { "enabled": false, "base": "node:20-slim" },
-    "capsule":{ "enabled": false, "sign": false }
+    "image": { "enabled": false, "base": "node:20-slim" },
+    "capsule": { "enabled": false, "sign": false }
   },
   "ci": { "laminar": { "prComment": true, "historyCache": true } },
   "doctor": { "checks": ["node-version", "permissions", "paths"] }
@@ -144,6 +158,7 @@ JSON only; shipped as a fully populated example with inactive stubs. Users toggl
 - `mk ci plan` — emit CI matrix with Laminar and cache keys.
 
 Flags affecting format I/O:
+
 - `--yaml` (alias for `--yaml-in --yaml-out`)
 - `--yaml-in`, `--yaml-out` (directional)
 - `--format=auto|json|yaml` (supersedes the above when provided)
@@ -164,6 +179,7 @@ mk prompt print --shell pwsh | Invoke-Expression
 ```
 
 Design constraints:
+
 - No implicit mutation of shell config files.
 - `mk prompt off` prints a command to restore the previous prompt (tracked in `.mk/state/prompt.json`).
 - Exposes environment (`MK_LOCAL_NODE`, `MK_FORMAT_IN`, `MK_FORMAT_OUT`, current profile) as readonly variables for other scripts.
@@ -171,6 +187,7 @@ Design constraints:
 ### Output & Microcopy Style (Obsessive Edition)
 
 Guarantees:
+
 - Color by default on TTY with auto‑detect; no‑color fallback, `--no-color` respected.
 - Always print a short, one‑line status first; then details.
 - Include a remediation footer that links to a stable doc anchor.
@@ -190,6 +207,7 @@ Code: CONFIG_PARSE  Rerun: mk run --file mk.yaml --dry-run
 ```
 
 “Did you mean…” rules:
+
 - Single edit distance on subcommands and flags.
 - Suggest the top 1–2 matches; never auto‑correct without confirmation.
 
@@ -197,9 +215,9 @@ Code: CONFIG_PARSE  Rerun: mk run --file mk.yaml --dry-run
 
 ### Golden Path (Hello in 60s)
 
-1) `mk init --preset tty` → creates `mk.json`, `.mk/options.json`, tests, and `src/hello.ts`.
-2) `mk run` → runs the preset topology; TTY output appears; `mk endpoints --watch` optional via mkctl.
-3) `mk doctor` → passes or prints exact remediations with copy‑paste commands.
+1. `mk init --preset tty` → creates `mk.json`, `.mk/options.json`, tests, and `src/hello.ts`.
+2. `mk run` → runs the preset topology; TTY output appears; `mk endpoints --watch` optional via mkctl.
+3. `mk doctor` → passes or prints exact remediations with copy‑paste commands.
 
 ### “Hello Calculator” Tutorial
 
@@ -212,8 +230,18 @@ JSON authoring (default):
   "topology": {
     "nodes": [
       { "id": "calc", "module": "CalculatorServer", "runMode": "inproc", "params": {} },
-      { "id": "tty",  "module": "TTYRenderer", "runMode": "inproc", "params": { "target": "stdout" } },
-      { "id": "logs", "module": "FilesystemSink", "runMode": "inproc", "params": { "path": "logs/out.jsonl", "format": "jsonl" } }
+      {
+        "id": "tty",
+        "module": "TTYRenderer",
+        "runMode": "inproc",
+        "params": { "target": "stdout" }
+      },
+      {
+        "id": "logs",
+        "module": "FilesystemSink",
+        "runMode": "inproc",
+        "params": { "path": "logs/out.jsonl", "format": "jsonl" }
+      }
     ],
     "connections": [
       { "from": "calc.output", "to": "tty.input" },
@@ -236,6 +264,7 @@ mk run --yaml                    # respect YAML both in/out for this session
 - `mk format --dry-run` shows unified diffs and warns before overwriting.
 
 Accessibility:
+
 - Provide `--no-ansi` for plain output; ensure ASCII graphs.
 - Respect `$LANG` for number/date formatting (messages remain English v0).
 - Avoid hard‑coded red/green pairs; ensure contrast.
@@ -253,10 +282,12 @@ mk delegates topology validation to the kernel loader and maps errors to friendl
 All errors include: short code, human message, remediation steps, and a copy‑paste rerun.
 
 Scripting contract:
+
 - `--json` adds a machine payload: `{ code, message, remediation, details, docs, hint }`.
 - Exit codes are stable and documented; non‑zero on any failure.
 
 Joy gates (quantitative):
+
 - Time‑to‑first‑run (TTFR): ≤ 60s on a clean machine with Node installed.
 - Time‑to‑recovery (TTR) from a common parse error: ≤ 30s following printed fix.
 - CLI latency: `mk run --dry-run` returns in < 400 ms on the example repo.
@@ -304,9 +335,9 @@ Joy gates (quantitative):
 
 ## Open Questions
 
-1) Should `mk` subsume `mkctl` long‑term or remain complementary? (v0: complementary.)
-2) Do we require signed capsules in v0, or defer to v1? (Proposal: defer.)
-3) How opinionated should profiles be out of the box? (Proposal: dev/ci/release.)
+1. Should `mk` subsume `mkctl` long‑term or remain complementary? (v0: complementary.)
+2. Do we require signed capsules in v0, or defer to v1? (Proposal: defer.)
+3. How opinionated should profiles be out of the box? (Proposal: dev/ci/release.)
 
 ## Risks & Mitigations
 
@@ -330,7 +361,12 @@ TopologyConfig (delegated to kernel loader):
 
 ```ts
 interface TopologyConfig {
-  nodes: Array<{ id: string; module: string; runMode: 'inproc'|'worker'|'process'; params?: Record<string, unknown> }>;
+  nodes: Array<{
+    id: string;
+    module: string;
+    runMode: 'inproc' | 'worker' | 'process';
+    params?: Record<string, unknown>;
+  }>;
   connections: Array<{ from: string; to: string }>;
 }
 ```
@@ -383,6 +419,7 @@ detectFormat(content: string): 'json' | 'yaml'
 ### CLI: scripts/mk.ts
 
 Flag precedence (highest → lowest):
+
 1. `--format json|yaml|auto` (supersedes all)
 2. `--yaml` (alias for `--yaml-in --yaml-out`)
 3. `--yaml-in` or `--yaml-out` (directional)
@@ -390,13 +427,14 @@ Flag precedence (highest → lowest):
 5. Default: JSON
 
 Commands implemented:
+
 - `mk format --to json|yaml [--in-place] [--dry-run] [--file <path>]`
 - `mk help`
 
 Example usage:
+
 ```bash
 mk format --to yaml --in-place           # mk.json → mk.yaml
 mk format --to json --dry-run            # Preview conversion
 mk format --yaml-in --file mk.yaml       # Read YAML, output JSON
 ```
-

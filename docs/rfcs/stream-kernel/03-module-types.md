@@ -9,19 +9,19 @@ Every module follows this pattern:
 ```typescript
 interface Module {
   // Input modules: only outputPipe
-  // Output modules: only inputPipe  
+  // Output modules: only inputPipe
   // Transform modules: both
   // Source modules: both (bidirectional)
   // Routing modules: manage multiple pipes
-  
-  inputPipe?: Pipe;   // Receives data
-  outputPipe?: Pipe;  // Sends data
+
+  inputPipe?: Pipe; // Receives data
+  outputPipe?: Pipe; // Sends data
 }
 ```
 
 ##
 
- 1. Input Modules
+1.  Input Modules
 
 Generate user input and push to `outputPipe`:
 
@@ -35,6 +35,7 @@ interface InputModule {
 ### Examples
 
 **Keyboard Input:**
+
 ```typescript
 class KeyboardInput {
   outputPipe: Pipe;
@@ -51,6 +52,7 @@ class KeyboardInput {
 ```
 
 **Voice Input (Speech-to-Text):**
+
 ```typescript
 class WhisperSTT {
   outputPipe: Pipe;
@@ -68,6 +70,7 @@ class WhisperSTT {
 ```
 
 **AI Agent Input:**
+
 ```typescript
 class MCPInput {
   outputPipe: Pipe;
@@ -89,14 +92,15 @@ Bidirectional: run processes, expose input/output:
 ```typescript
 interface SourceModule {
   type: 'source';
-  inputPipe: Pipe;   // Commands to send
-  outputPipe: Pipe;  // Output from process
+  inputPipe: Pipe; // Commands to send
+  outputPipe: Pipe; // Output from process
 }
 ```
 
 ### Examples
 
 **Local PTY:**
+
 ```typescript
 import * as pty from 'node-pty';
 
@@ -113,7 +117,7 @@ class LocalPTY {
       cols: 80,
       rows: 24,
       cwd: process.cwd(),
-      env: process.env
+      env: process.env,
     });
 
     shell.onData((data) => {
@@ -128,6 +132,7 @@ class LocalPTY {
 ```
 
 **Docker PTY:**
+
 ```typescript
 class DockerPTY {
   inputPipe: Pipe;
@@ -169,6 +174,7 @@ interface TransformModule {
 ### Examples
 
 **ANSI Parser:**
+
 ```typescript
 class ANSIParser {
   inputPipe: Pipe;
@@ -192,6 +198,7 @@ class ANSIParser {
 ```
 
 **AI Text Formatter:**
+
 ```typescript
 class AITextFormatter {
   inputPipe: Pipe;
@@ -229,6 +236,7 @@ interface OutputModule {
 ### Examples
 
 **Screen Renderer:**
+
 ```typescript
 class ScreenRenderer {
   inputPipe: Pipe;
@@ -249,6 +257,7 @@ class ScreenRenderer {
 ```
 
 **Canvas Renderer:**
+
 ```typescript
 class CanvasRenderer {
   inputPipe: Pipe;
@@ -271,6 +280,7 @@ class CanvasRenderer {
 ```
 
 **MP4 Recorder:**
+
 ```typescript
 class MP4Recorder {
   inputPipe: Pipe;
@@ -305,6 +315,7 @@ interface RoutingModule {
 ### Example
 
 **Routing Server:**
+
 ```typescript
 class RoutingServer {
   private kernel: Kernel;
@@ -313,11 +324,15 @@ class RoutingServer {
 
   constructor(kernel: Kernel) {
     this.kernel = kernel;
-    
-    kernel.register('router', {
-      type: 'routing',
-      features: ['service-discovery', 'multi-hop']
-    }, kernel.createPipe());
+
+    kernel.register(
+      'router',
+      {
+        type: 'routing',
+        features: ['service-discovery', 'multi-hop'],
+      },
+      kernel.createPipe(),
+    );
   }
 
   createTerminal(name: string, type: 'local' | 'network'): Terminal {
@@ -325,7 +340,7 @@ class RoutingServer {
       name,
       type,
       inputPipe: this.kernel.createPipe(),
-      outputPipe: this.kernel.createPipe()
+      outputPipe: this.kernel.createPipe(),
     };
 
     terminal.inputPipe.on('data', (envelope) => {
@@ -367,11 +382,7 @@ kernel.connect(transform2.output, sink.input);
 ### Pattern 2: Fan-Out (Multi-Modal Output)
 
 ```typescript
-kernel.split(source.output, [
-  sink1.input,
-  sink2.input,
-  sink3.input
-]);
+kernel.split(source.output, [sink1.input, sink2.input, sink3.input]);
 
 // source → sink1
 //       ↘ sink2
@@ -381,11 +392,7 @@ kernel.split(source.output, [
 ### Pattern 3: Fan-In (Multi-Input)
 
 ```typescript
-kernel.merge([
-  input1.output,
-  input2.output,
-  input3.output
-], sink.input);
+kernel.merge([input1.output, input2.output, input3.output], sink.input);
 
 // input1 ↘
 // input2 → sink
@@ -410,16 +417,20 @@ Modules advertise capabilities for dynamic discovery:
 
 ```typescript
 // Register with capabilities
-kernel.register('xterm-parser', {
-  type: 'transform',
-  accepts: ['raw-ansi'],
-  produces: ['terminal-state'],
-  features: ['vt100', 'xterm-256color', 'unicode']
-}, parserPipe);
+kernel.register(
+  'xterm-parser',
+  {
+    type: 'transform',
+    accepts: ['raw-ansi'],
+    produces: ['terminal-state'],
+    features: ['vt100', 'xterm-256color', 'unicode'],
+  },
+  parserPipe,
+);
 
 // Find compatible modules
 const parsers = kernel.lookup({
-  accepts: ['raw-ansi']
+  accepts: ['raw-ansi'],
 });
 
 // Returns Map of matching modules
@@ -488,7 +499,7 @@ Modules are testable in isolation:
 describe('ANSIParser', () => {
   it('parses color codes', () => {
     const mockKernel = {
-      createPipe: () => new PassThrough({ objectMode: true })
+      createPipe: () => new PassThrough({ objectMode: true }),
     };
 
     const parser = new ANSIParser(mockKernel);
@@ -516,6 +527,7 @@ The tutorial includes complete code examples, Hostess registration, debugging ti
 ## Next Steps
 
 See:
+
 - **[First Server Tutorial](../../devex/first-server-tutorial.md)** - Build your own module (start here!)
 - **[PTY Use Cases](04-pty-use-cases.md)** - Real-world module compositions
 - **[Distributed Service Mesh](06-distributed-service-mesh.md)** - Routing module details

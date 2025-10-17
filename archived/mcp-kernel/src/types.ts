@@ -3,21 +3,21 @@ export type Json = null | boolean | number | string | Json[] | { [k: string]: Js
 export type JsonRpcId = string | number | null;
 
 export interface JsonRpcRequest {
-  jsonrpc: "2.0";
+  jsonrpc: '2.0';
   id?: JsonRpcId;
   method: string;
   params?: Json;
 }
 
 export interface JsonRpcResponse {
-  jsonrpc: "2.0";
+  jsonrpc: '2.0';
   id: JsonRpcId;
   result?: Json;
   error?: { code: number; message: string; data?: Json };
 }
 
 export interface McpNotification {
-  jsonrpc: "2.0";
+  jsonrpc: '2.0';
   method: string;
   params?: Json;
 }
@@ -25,7 +25,7 @@ export interface McpNotification {
 export interface SessionIdentity {
   agentId: string;
   token?: string;
-  transport: "inproc" | "stdio" | "http";
+  transport: 'inproc' | 'stdio' | 'http';
   sessionId: string;
 }
 

@@ -30,7 +30,7 @@ class Kernel {
         // TODO: UnixSocketPipe implementation
         throw new Error('Not implemented');
       case 'tcp':
-        // TODO: TCPPipe implementation  
+        // TODO: TCPPipe implementation
         throw new Error('Not implemented');
     }
   }
@@ -81,12 +81,12 @@ class Kernel {
       }
 
       if (query.accepts && caps.accepts) {
-        const hasAccepts = query.accepts.some(a => caps.accepts!.includes(a));
+        const hasAccepts = query.accepts.some((a) => caps.accepts!.includes(a));
         if (!hasAccepts) matches = false;
       }
 
       if (query.produces && caps.produces) {
-        const hasProduces = query.produces.some(p => caps.produces!.includes(p));
+        const hasProduces = query.produces.some((p) => caps.produces!.includes(p));
         if (!hasProduces) matches = false;
       }
 
@@ -118,7 +118,7 @@ pipe.write({ type: 'data', value: 42 });
 
 // Read from pipe
 pipe.on('data', (data) => {
-  console.log(data);  // { type: 'data', value: 42 }
+  console.log(data); // { type: 'data', value: 42 }
 });
 ```
 
@@ -170,9 +170,9 @@ const pty = kernel.createPipe();
 
 kernel.merge([keyboard, voice, ai], pty);
 
-keyboard.write('ls\n');   // PTY receives 'ls\n'
-voice.write('cd /\n');    // PTY receives 'cd /\n'
-ai.write('pwd\n');        // PTY receives 'pwd\n'
+keyboard.write('ls\n'); // PTY receives 'ls\n'
+voice.write('cd /\n'); // PTY receives 'cd /\n'
+ai.write('pwd\n'); // PTY receives 'pwd\n'
 ```
 
 **Use case:** Multi-input (keyboard + voice + AI → single PTY)
@@ -182,12 +182,16 @@ ai.write('pwd\n');        // PTY receives 'pwd\n'
 Advertise a service for discovery:
 
 ```typescript
-kernel.register('xterm-parser', {
-  type: 'transform',
-  accepts: ['raw-ansi'],
-  produces: ['terminal-state'],
-  features: ['vt100', 'xterm-256color']
-}, parserPipe);
+kernel.register(
+  'xterm-parser',
+  {
+    type: 'transform',
+    accepts: ['raw-ansi'],
+    produces: ['terminal-state'],
+    features: ['vt100', 'xterm-256color'],
+  },
+  parserPipe,
+);
 ```
 
 **Use case:** Dynamic service discovery, capability-based routing
@@ -199,12 +203,12 @@ Find services by capabilities:
 ```typescript
 // Find all parsers that produce terminal-state
 const parsers = kernel.lookup({
-  produces: ['terminal-state']
+  produces: ['terminal-state'],
 });
 
 // Find all AI-compatible modules
 const aiModules = kernel.lookup({
-  produces: ['ai-text']
+  produces: ['ai-text'],
 });
 ```
 
@@ -256,9 +260,9 @@ const parser = new ANSIParser(kernel);
 const screen = new ScreenRenderer(kernel);
 
 // Wire up the flow
-kernel.connect(keyboard.output, pty.input);   // Keyboard → PTY
-kernel.connect(pty.output, parser.input);     // PTY → Parser
-kernel.connect(parser.output, screen.input);  // Parser → Screen
+kernel.connect(keyboard.output, pty.input); // Keyboard → PTY
+kernel.connect(pty.output, parser.input); // PTY → Parser
+kernel.connect(parser.output, screen.input); // Parser → Screen
 
 // Start typing
 // keyboard → pty → parser → screen
@@ -272,8 +276,9 @@ kernel.connect(parser.output, screen.input);  // Parser → Screen
 ### 1. Node.js Streams Do the Heavy Lifting
 
 We don't implement:
+
 - Buffering (Node.js does it)
-- Backpressure (Node.js does it)  
+- Backpressure (Node.js does it)
 - Error propagation (Node.js does it)
 - Pause/resume (Node.js does it)
 
@@ -282,6 +287,7 @@ We don't implement:
 ### 2. The Kernel Never Changes
 
 To add a new feature:
+
 1. ❌ Don't modify the kernel
 2. ✅ Create a new module
 3. ✅ Wire it up with connect/split/merge
@@ -296,7 +302,7 @@ A single `Pipe` can both read and write:
 // Write to pipe
 pipe.write(data);
 
-// Read from pipe  
+// Read from pipe
 pipe.on('data', (data) => { ... });
 ```
 
@@ -305,12 +311,13 @@ This enables request/response patterns without multiple pipes.
 ### 4. Object Mode by Default
 
 ```typescript
-createPipe({ objectMode: true })
+createPipe({ objectMode: true });
 ```
 
 Pipes carry **objects** (not just bytes), which is perfect for:
+
 - JSON-RPC messages
-- MCP protocol  
+- MCP protocol
 - Structured terminal state
 - Any JavaScript object
 
@@ -320,9 +327,9 @@ For raw bytes (PTY output), modules can convert:
 class PTY {
   constructor(kernel) {
     this.output = kernel.createPipe();
-    
+
     pty.stdout.on('data', (buffer: Buffer) => {
-      this.output.write(buffer);  // Buffer flows through pipe
+      this.output.write(buffer); // Buffer flows through pipe
     });
   }
 }
@@ -363,7 +370,7 @@ Same API, different stream implementation!
 ❌ Implement transports  
 ❌ Compress/encrypt  
 ❌ Authenticate  
-❌ Log events  
+❌ Log events
 
 **All of those are module responsibilities.**
 
@@ -372,6 +379,7 @@ Same API, different stream implementation!
 ### Overview
 
 Endpoints provide addressability and metadata for modules in the system. Each registered module has an associated endpoint that describes:
+
 - **Type** - The execution environment (inproc, worker, external, pty)
 - **Coordinates** - Location/identifier for reaching the module
 - **Metadata** - Additional context specific to the endpoint type
@@ -380,15 +388,16 @@ Endpoints provide addressability and metadata for modules in the system. Each re
 
 ```typescript
 interface HostessEndpoint {
-  type: string;           // Execution environment type
-  coordinates: string;    // Location/identifier
-  metadata?: Record<string, any>;  // Type-specific metadata
+  type: string; // Execution environment type
+  coordinates: string; // Location/identifier
+  metadata?: Record<string, any>; // Type-specific metadata
 }
 ```
 
 ### Endpoint Types
 
 **inproc** - In-process modules
+
 ```typescript
 {
   type: 'inproc',
@@ -401,6 +410,7 @@ interface HostessEndpoint {
 ```
 
 **worker** - Worker thread modules
+
 ```typescript
 {
   type: 'worker',
@@ -413,6 +423,7 @@ interface HostessEndpoint {
 ```
 
 **external** - External process via stdio
+
 ```typescript
 {
   type: 'external',
@@ -425,6 +436,7 @@ interface HostessEndpoint {
 ```
 
 **pty** - PTY-based process
+
 ```typescript
 {
   type: 'pty',
@@ -442,22 +454,24 @@ interface HostessEndpoint {
 Endpoints are registered automatically when modules are instantiated:
 
 **Via Executor:**
+
 ```typescript
 // Executor registers endpoints during node instantiation
 const executor = new Executor(kernel, hostess, stateManager);
 executor.load(topologyConfig);
-await executor.up();  // Registers endpoints for all nodes
+await executor.up(); // Registers endpoints for all nodes
 ```
 
 **Via Wrappers:**
+
 ```typescript
 // PTY wrapper registers on spawn
 const ptyWrapper = new PTYServerWrapper(kernel, hostess, manifest);
-await ptyWrapper.spawn();  // Registers pty endpoint
+await ptyWrapper.spawn(); // Registers pty endpoint
 
 // External wrapper registers on spawn
 const extWrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-await extWrapper.spawn();  // Registers external endpoint
+await extWrapper.spawn(); // Registers external endpoint
 ```
 
 ### Discovery Pattern
@@ -475,6 +489,7 @@ for (const [id, endpoint] of endpoints) {
 ```
 
 **CLI Discovery:**
+
 ```bash
 # List all registered endpoints
 node dist/scripts/mkctl.js endpoints
@@ -504,6 +519,7 @@ Process adapters enable kernel pipes to communicate with external processes over
 Implements bidirectional data streaming over Unix domain sockets by wrapping a `Socket` in a Node.js `Duplex` stream.
 
 **Key Features:**
+
 - Automatic backpressure via `socket.pause()`/`socket.resume()`
 - Graceful shutdown with `_final()` hook
 - Socket lifecycle tied to stream lifecycle
@@ -580,6 +596,7 @@ Writer                  Adapter                 Socket
 Implements control-plane messaging over Unix domain sockets using JSON-line protocol.
 
 **Key Features:**
+
 - Pub/sub for control messages
 - Automatic heartbeat (1000ms interval)
 - Graceful shutdown signaling
@@ -619,7 +636,7 @@ control.subscribe('app.config', (data) => {
 control.publish('app.status', { status: 'ready' });
 
 // Shutdown
-control.shutdown();  // Sends shutdown signal, then closes
+control.shutdown(); // Sends shutdown signal, then closes
 ```
 
 **Heartbeat Mechanism:**
@@ -693,7 +710,7 @@ Gracefully terminate process:
 return new Promise((resolve) => {
   const killTimer = setTimeout(() => {
     if (proc && !proc.killed) {
-      proc.kill('SIGKILL');  // Force kill
+      proc.kill('SIGKILL'); // Force kill
     }
   }, 5000);
 
@@ -702,7 +719,7 @@ return new Promise((resolve) => {
     resolve();
   });
 
-  proc.kill('SIGTERM');  // Graceful termination
+  proc.kill('SIGTERM'); // Graceful termination
 });
 ```
 
@@ -755,14 +772,14 @@ return new Promise((resolve) => {
 
 ### Adapter Comparison
 
-| Feature | UnixPipeAdapter | UnixControlAdapter |
-|---------|----------------|-------------------|
-| **Purpose** | Data streaming | Control messaging |
-| **Protocol** | Raw bytes/objects | JSON-line |
-| **Backpressure** | Native stream | N/A |
-| **Heartbeat** | No | Yes (1000ms) |
-| **Bidirectional** | Yes | Yes |
-| **Use Case** | High-throughput data | Low-frequency control |
+| Feature           | UnixPipeAdapter      | UnixControlAdapter    |
+| ----------------- | -------------------- | --------------------- |
+| **Purpose**       | Data streaming       | Control messaging     |
+| **Protocol**      | Raw bytes/objects    | JSON-line             |
+| **Backpressure**  | Native stream        | N/A                   |
+| **Heartbeat**     | No                   | Yes (1000ms)          |
+| **Bidirectional** | Yes                  | Yes                   |
+| **Use Case**      | High-throughput data | Low-frequency control |
 
 ### Error Handling
 
@@ -787,11 +804,13 @@ control.subscribe('control.error', (err) => {
 ### Performance
 
 **UnixPipeAdapter:**
+
 - Throughput: ~500K msgs/sec (object mode)
 - Latency: <1ms (same machine)
 - Overhead: Socket + stream wrapping
 
 **UnixControlAdapter:**
+
 - Throughput: ~10K msgs/sec
 - Latency: 1-2ms
 - Overhead: JSON serialization + parsing
@@ -799,6 +818,7 @@ control.subscribe('control.error', (err) => {
 ## Next Steps
 
 See:
+
 - **[Module Types](03-module-types.md)** - How to build modules on this kernel
 - **[PTY Use Cases](04-pty-use-cases.md)** - Real-world examples
 - **[Worker Mode](worker-mode.md)** - Worker vs Process adapter comparison

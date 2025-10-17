@@ -27,14 +27,19 @@ try {
 
   // Read summary.jsonl
   const summaryContent = fs.readFileSync(SUMMARY_PATH, 'utf-8');
-  const lines = summaryContent.trim().split('\n').filter(line => line.length > 0);
+  const lines = summaryContent
+    .trim()
+    .split('\n')
+    .filter((line) => line.length > 0);
 
   // Filter to only test result lines (skip environment and metadata)
-  const testResults = lines.filter(line => {
+  const testResults = lines.filter((line) => {
     try {
       const obj = JSON.parse(line);
       // Skip non-test entries (environment, metadata)
-      return obj.status && (obj.status === 'pass' || obj.status === 'fail' || obj.status === 'skip');
+      return (
+        obj.status && (obj.status === 'pass' || obj.status === 'fail' || obj.status === 'skip')
+      );
     } catch {
       return false;
     }
@@ -63,7 +68,6 @@ try {
     console.error(`[Laminar] Failed to append history: ${err.message}`);
     process.exit(1);
   });
-
 } catch (err) {
   console.error(`[Laminar] Error: ${err.message}`);
   process.exit(1);

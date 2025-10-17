@@ -98,7 +98,7 @@ describe('SHA-256 verification', () => {
     writeFileSync(testFilePath, content);
 
     const hash = await calculateSHA256(testFilePath);
-    
+
     expect(hash).toBeTruthy();
     expect(hash).toHaveLength(64);
     expect(hash).toMatch(/^[a-f0-9]{64}$/);
@@ -107,35 +107,38 @@ describe('SHA-256 verification', () => {
   it('verifies tarball with matching hash', async () => {
     const content = 'test tarball content';
     writeFileSync(testFilePath, content);
-    
+
     const hash = await calculateSHA256(testFilePath);
     writeFileSync(testHashPath, hash + '\n');
 
     const isValid = await verifyTarball(testFilePath, testHashPath);
-    
+
     expect(isValid).toBe(true);
   });
 
   it('rejects tarball with mismatched hash', async () => {
     const content = 'test tarball content';
     writeFileSync(testFilePath, content);
-    writeFileSync(testHashPath, 'wronghash1234567890abcdef1234567890abcdef1234567890abcdef1234567\n');
+    writeFileSync(
+      testHashPath,
+      'wronghash1234567890abcdef1234567890abcdef1234567890abcdef1234567\n',
+    );
 
     const isValid = await verifyTarball(testFilePath, testHashPath);
-    
+
     expect(isValid).toBe(false);
   });
 
   it('returns false when hash file does not exist', async () => {
     const content = 'test tarball content';
     writeFileSync(testFilePath, content);
-    
+
     if (existsSync(testHashPath)) {
       rmSync(testHashPath);
     }
 
     const isValid = await verifyTarball(testFilePath, join(testDir, 'nonexistent.sha256'));
-    
+
     expect(isValid).toBe(false);
   });
 
@@ -145,7 +148,7 @@ describe('SHA-256 verification', () => {
 
     const hash1 = await calculateSHA256(testFilePath);
     const hash2 = await calculateSHA256(testFilePath);
-    
+
     expect(hash1).toBe(hash2);
   });
 
@@ -155,7 +158,7 @@ describe('SHA-256 verification', () => {
 
     writeFileSync(testFilePath, 'content B');
     const hash2 = await calculateSHA256(testFilePath);
-    
+
     expect(hash1).not.toBe(hash2);
   });
 });
@@ -164,7 +167,7 @@ describe('Cache structure', () => {
   it('creates cache directory under ~/.mk/toolchains/<tag>', () => {
     const expectedCacheRoot = join(homedir(), '.mk', 'toolchains');
     const exampleCacheDir = join(expectedCacheRoot, 'v0.2.0');
-    
+
     expect(expectedCacheRoot).toContain('.mk');
     expect(expectedCacheRoot).toContain('toolchains');
     expect(exampleCacheDir).toContain('v0.2.0');
@@ -173,14 +176,14 @@ describe('Cache structure', () => {
   it('stores tarball as mkolbol.tgz', () => {
     const cacheDir = join(homedir(), '.mk', 'toolchains', 'v0.2.0');
     const tarballPath = join(cacheDir, 'mkolbol.tgz');
-    
+
     expect(tarballPath).toContain('mkolbol.tgz');
   });
 
   it('stores hash as mkolbol.tgz.sha256', () => {
     const cacheDir = join(homedir(), '.mk', 'toolchains', 'v0.2.0');
     const hashPath = join(cacheDir, 'mkolbol.tgz.sha256');
-    
+
     expect(hashPath).toContain('mkolbol.tgz.sha256');
   });
 });

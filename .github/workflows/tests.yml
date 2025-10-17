@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -228,7 +228,7 @@ jobs:
           MK_LOCAL_NODE: '1'
         run: |
           echo "▶ Running TTL soak test under load..."
-          
+
           # Create topology for soak test
           mkdir -p reports
           cat > reports/ttl-soak-topology.yml << 'EOF'
@@ -261,13 +261,13 @@ jobs:
             - from: meter.output
               to: sink.input
           EOF
-          
+
           # Run topology for 10 seconds with high message volume
           timeout 12 node dist/scripts/mkctl.js run \
             --file reports/ttl-soak-topology.yml \
             --duration 10 \
             > /tmp/ttl-soak.log 2>&1 || true
-          
+
           # Validate throughput
           if [ -f reports/ttl-soak.jsonl ]; then
             SOAK_LINES=$(wc -l < reports/ttl-soak.jsonl)
@@ -279,7 +279,7 @@ jobs:
           else
             echo "⚠️  TTL soak test: No output file created"
           fi
-          
+
           # Check router heartbeat metadata
           if [ -f reports/router-endpoints.json ]; then
             echo "✅ Router endpoints snapshot available for TTL tracking"

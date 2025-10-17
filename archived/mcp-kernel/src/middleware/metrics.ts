@@ -1,4 +1,4 @@
-import { Middleware } from "../types";
+import { Middleware } from '../types';
 
 export const metricsMiddleware: Middleware = async (ctx, next) => {
   const start = Date.now();

@@ -40,7 +40,7 @@ class WorkerPipeDuplex extends Duplex {
             this.port.postMessage({ type: 'end' });
         });
     }
-    _read(size) {
+    _read(_size) {
         this.port.postMessage({ type: 'resume' });
     }
     _write(chunk, encoding, callback) {

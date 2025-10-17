@@ -23,7 +23,10 @@ export class MyModule {
   private options: MyModuleOptions;
 
   // Constructor: (kernel, options)
-  constructor(private kernel: Kernel, options: MyModuleOptions = {}) {
+  constructor(
+    private kernel: Kernel,
+    options: MyModuleOptions = {},
+  ) {
     this.options = options;
   }
 
@@ -77,12 +80,15 @@ export class MyModule {
   private options: Required<MyModuleOptions>;
 
   // 1. CONSTRUCTOR: Framework calls this
-  constructor(private kernel: Kernel, options: MyModuleOptions = {}) {
+  constructor(
+    private kernel: Kernel,
+    options: MyModuleOptions = {},
+  ) {
     // Set defaults for all options
     this.options = {
       enabled: options.enabled ?? true,
       timeout: options.timeout ?? 5000,
-      ...options  // Merge overrides
+      ...options, // Merge overrides
     };
 
     // Validate options
@@ -95,8 +101,8 @@ export class MyModule {
   }
 
   // 2. PIPES CONNECTED: Framework sets these properties
-  inputPipe?: NodeJS.ReadableStream;   // Set by framework
-  outputPipe?: NodeJS.WritableStream;  // Set by framework
+  inputPipe?: NodeJS.ReadableStream; // Set by framework
+  outputPipe?: NodeJS.WritableStream; // Set by framework
 
   // 3. START CALLED: Framework calls start() after pipes are connected
   start(): void {
@@ -137,39 +143,44 @@ export class BadModule {
 ### How the Framework Creates Modules
 
 1. **Config defines module**:
+
 ```yaml
 nodes:
   - id: my-processor
-    module: MyModule          # ← Framework looks this up in registry
+    module: MyModule # ← Framework looks this up in registry
     params:
-      timeout: 10000         # ← Passed as options to constructor
+      timeout: 10000 # ← Passed as options to constructor
 ```
 
 2. **Framework looks up in registry**:
+
 ```typescript
 const ModuleClass = moduleRegistry.get('MyModule');
 // Returns: typeof MyModule (the class itself)
 ```
 
 3. **Framework instantiates**:
+
 ```typescript
 // This is what the framework does internally:
 const module = new ModuleClass(kernel, {
-  timeout: 10000  // From config params
+  timeout: 10000, // From config params
 });
 ```
 
 4. **Framework connects pipes**:
+
 ```typescript
-module.inputPipe = createReadStream();    // If module needs input
-module.outputPipe = createWriteStream();  // If module produces output
+module.inputPipe = createReadStream(); // If module needs input
+module.outputPipe = createWriteStream(); // If module produces output
 ```
 
 5. **Framework calls lifecycle**:
+
 ```typescript
-module.start();   // When topology starts
+module.start(); // When topology starts
 // ... topology runs ...
-module.stop();    // When topology shuts down
+module.stop(); // When topology shuts down
 ```
 
 ### Registering in ModuleRegistry
@@ -191,8 +202,8 @@ export class ModuleRegistry {
     this.register('ConsoleSink', ConsoleSink);
 
     // Your custom modules
-    this.register('MyModule', MyModule);        // Add this
-    this.register('MyTransform', MyTransform);  // Add this
+    this.register('MyModule', MyModule); // Add this
+    this.register('MyTransform', MyTransform); // Add this
   }
 
   register(name: string, constructor: any): void {
@@ -259,10 +270,13 @@ export class ReverseTransform {
 
   private options: ReverseTransformOptions;
 
-  constructor(private kernel: Kernel, options: ReverseTransformOptions = {}) {
+  constructor(
+    private kernel: Kernel,
+    options: ReverseTransformOptions = {},
+  ) {
     this.options = {
       preserveNewlines: options.preserveNewlines ?? true,
-      ...options
+      ...options,
     };
   }
 
@@ -290,7 +304,7 @@ export class ReverseTransform {
     if (this.options.preserveNewlines) {
       // Keep newlines in place
       const lines = text.split('\n');
-      return lines.map(line => [...line].reverse().join('')).join('\n');
+      return lines.map((line) => [...line].reverse().join('')).join('\n');
     }
     return [...text].reverse().join('');
   }
@@ -320,7 +334,7 @@ nodes:
   - id: output
     module: ConsoleSink
     params:
-      prefix: "[reversed]"
+      prefix: '[reversed]'
 
 connections:
   - from: timer.output
@@ -375,7 +389,10 @@ start(): void {
 export class TimerSource {
   outputPipe?: NodeJS.WritableStream;
 
-  constructor(private kernel: Kernel, private options: TimerOptions) {}
+  constructor(
+    private kernel: Kernel,
+    private options: TimerOptions,
+  ) {}
 
   start(): void {
     setInterval(() => {
@@ -410,7 +427,10 @@ export class UppercaseTransform {
 export class ConsoleSink {
   inputPipe?: NodeJS.ReadableStream;
 
-  constructor(private kernel: Kernel, private options: ConsoleSinkOptions) {}
+  constructor(
+    private kernel: Kernel,
+    private options: ConsoleSinkOptions,
+  ) {}
 
   start(): void {
     this.inputPipe!.on('data', (chunk: Buffer) => {
@@ -492,7 +512,9 @@ describe('MyModule', () => {
 
   beforeEach(() => {
     kernel = new Kernel();
-    module = new MyModule(kernel, { /* options */ });
+    module = new MyModule(kernel, {
+      /* options */
+    });
 
     // Create mock pipes
     input = Readable.from(['hello\n', 'world\n']);
@@ -500,7 +522,7 @@ describe('MyModule', () => {
       write(chunk, encoding, callback) {
         results.push(chunk);
         callback();
-      }
+      },
     });
 
     module.inputPipe = input;
@@ -515,7 +537,7 @@ describe('MyModule', () => {
     module.start();
 
     // Wait for all data to process
-    await new Promise(resolve => output.on('finish', resolve));
+    await new Promise((resolve) => output.on('finish', resolve));
 
     expect(results).toHaveLength(2);
     expect(results[0].toString()).toBe('HELLO\n');
@@ -527,7 +549,7 @@ describe('MyModule', () => {
     module.inputPipe = emptyInput;
 
     module.start();
-    await new Promise(resolve => output.on('finish', resolve));
+    await new Promise((resolve) => output.on('finish', resolve));
 
     expect(results).toHaveLength(0);
   });
@@ -536,18 +558,16 @@ describe('MyModule', () => {
     const errorInput = new Readable({
       read() {
         this.emit('error', new Error('test error'));
-      }
+      },
     });
 
     module.inputPipe = errorInput;
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     module.start();
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('test error')
-    );
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('test error'));
   });
 });
 ```
@@ -574,7 +594,7 @@ export class MyModule {
       enabled: options.enabled ?? true,
       timeout: options.timeout ?? 5000,
       maxRetries: options.maxRetries ?? 3,
-      prefix: options.prefix ?? '[module]'
+      prefix: options.prefix ?? '[module]',
     };
 
     // Validate
@@ -605,7 +625,10 @@ export class Counter {
   private count = 0;
   private options: CounterOptions;
 
-  constructor(private kernel: Kernel, options: CounterOptions = {}) {
+  constructor(
+    private kernel: Kernel,
+    options: CounterOptions = {},
+  ) {
     this.options = { format: options.format ?? 'raw' };
   }
 
@@ -613,9 +636,10 @@ export class Counter {
     this.inputPipe!.on('data', () => {
       this.count++;
 
-      const output = this.options.format === 'json'
-        ? JSON.stringify({ count: this.count, timestamp: Date.now() })
-        : this.count.toString();
+      const output =
+        this.options.format === 'json'
+          ? JSON.stringify({ count: this.count, timestamp: Date.now() })
+          : this.count.toString();
 
       this.outputPipe!.write(output + '\n');
     });
@@ -693,7 +717,10 @@ export class BufferTransform {
 
 ```typescript
 export class FilterTransform {
-  constructor(private kernel: Kernel, private predicate: (chunk: Buffer) => boolean) {}
+  constructor(
+    private kernel: Kernel,
+    private predicate: (chunk: Buffer) => boolean,
+  ) {}
 
   start(): void {
     this.inputPipe!.on('data', (chunk: Buffer) => {
@@ -755,6 +782,7 @@ npm run lam -- show mymodule --around "module.start"
 ## Best Practices
 
 ✅ **DO:**
+
 - Handle backpressure with pause/resume
 - Clean up resources in stop()
 - Validate options in constructor
@@ -764,6 +792,7 @@ npm run lam -- show mymodule --around "module.start"
 - Use TypeScript interfaces for options
 
 ❌ **DON'T:**
+
 - Ignore backpressure (causes memory issues)
 - Leave timers/intervals running after stop()
 - Assume pipes are always connected
@@ -804,4 +833,3 @@ Example package.json:
 - **Examples**: Browse `src/modules/` and `src/transforms/`
 - **Testing**: See [Wiring and Tests](./wiring-and-tests.md)
 - **Configuration**: See [mkctl Cookbook](./mkctl-cookbook.md)
-

@@ -7,6 +7,7 @@ The **StdIO path** in mkolbol provides a lightweight way to communicate with ext
 ## When to Use StdIO vs PTY
 
 ### Use StdIO when:
+
 - Your external process is a simple filter or transformer (e.g., `cat`, `jq`, `sed`)
 - You're piping plain text or binary data
 - You don't need terminal control sequences (cursor movement, colors, etc.)
@@ -14,6 +15,7 @@ The **StdIO path** in mkolbol provides a lightweight way to communicate with ext
 - Your process doesn't require a controlling terminal
 
 ### Use PTY when:
+
 - You need to run an interactive shell (e.g., `bash`, `zsh`)
 - Your process expects terminal capabilities (e.g., `vim`, `less`, `top`)
 - You need to handle ANSI escape sequences for colors/formatting
@@ -75,20 +77,20 @@ const manifest: ExternalServerManifest = {
   terminals: [
     { name: 'input', type: 'local', direction: 'input' },
     { name: 'output', type: 'local', direction: 'output' },
-    { name: 'error', type: 'local', direction: 'output' }
+    { name: 'error', type: 'local', direction: 'output' },
   ],
   capabilities: {
     type: 'transform',
     accepts: ['text'],
     produces: ['text'],
-    features: ['passthrough']
+    features: ['passthrough'],
   },
   command: '/bin/cat',
   args: [],
   env: {},
   cwd: process.cwd(),
-  ioMode: 'stdio',  // ← StdIO mode
-  restart: 'never'
+  ioMode: 'stdio', // ← StdIO mode
+  restart: 'never',
 };
 ```
 
@@ -103,6 +105,7 @@ The kernel creates standard Node.js `Duplex` streams that connect your applicati
 ### 3. No PTY Emulation
 
 Unlike PTY mode, StdIO mode:
+
 - Does **not** allocate a pseudo-terminal device
 - Does **not** handle terminal control sequences
 - Does **not** maintain terminal state (cursor position, scrollback, etc.)
@@ -112,7 +115,7 @@ Unlike PTY mode, StdIO mode:
 
 See [src/examples/stdio-echo-demo.ts](../../src/examples/stdio-echo-demo.ts) for a complete working example:
 
-```bash
+````bash
 # Build the project
 npm run build
 
@@ -126,14 +129,16 @@ When you launch a topology with `mkctl run`, the executor now publishes endpoint
 ```bash
 mkctl run --file examples/configs/external-stdio.yaml --duration 2
 mkctl endpoints
-```
+````
 
 Typical output lists endpoint IDs, coordinates, and the timestamp of the last announcement so you can confirm your StdIO adapters came online.
+
 ```
 
 ### Expected Output
 
 ```
+
 [stdio-echo-demo] Starting echo demo with stdio mode...
 
 [SEND] Hello from StdIO!
@@ -143,7 +148,8 @@ Typical output lists endpoint IDs, coordinates, and the timestamp of the last an
 
 [stdio-echo-demo] Demo completed successfully!
 [SUMMARY] Sent 2 messages, received 2 lines
-```
+
+````
 
 ## Performance Characteristics
 
@@ -171,7 +177,7 @@ wrapper.inputPipe.write(JSON.stringify({ name: 'test' }));
 wrapper.outputPipe.on('data', (data) => {
   console.log('Filtered:', data.toString());
 });
-```
+````
 
 ### 2. Batch Processor
 
@@ -180,7 +186,7 @@ const processor: ExternalServerManifest = {
   // ... manifest fields
   command: '/usr/bin/sed',
   args: ['s/foo/bar/g'],
-  ioMode: 'stdio'
+  ioMode: 'stdio',
 };
 
 // Send multiple lines
@@ -196,7 +202,7 @@ const compressor: ExternalServerManifest = {
   // ... manifest fields
   command: '/usr/bin/gzip',
   args: ['-c'],
-  ioMode: 'stdio'
+  ioMode: 'stdio',
 };
 
 wrapper.inputPipe.write(Buffer.from('binary data'));
@@ -237,14 +243,17 @@ await wrapper.shutdown(2000); // 2 second timeout
 ## Comparison with Other Patterns
 
 ### vs PTY Mode
+
 - **StdIO**: Direct pipes, no terminal emulation, best for data processing
 - **PTY**: Terminal emulation, ANSI support, best for interactive programs
 
 ### vs Worker Threads
+
 - **StdIO**: External processes, separate memory space, any language
 - **Worker Threads**: JavaScript only, shared memory, lower startup cost
 
 ### vs HTTP/WebSocket
+
 - **StdIO**: Local processes, low latency, no network overhead
 - **HTTP/WebSocket**: Network-capable, higher latency, standard protocols
 
@@ -285,6 +294,7 @@ Metadata:    {"cols":80,"rows":24,"terminalType":"xterm-256color","ioMode":"pty"
 ```
 
 **Key fields:**
+
 - **IO Mode: stdio** - Lightweight pipe-based process (no terminal emulation)
 - **IO Mode: pty** - Pseudo-terminal process (interactive, terminal emulation)
 - **Type: external** - External process (vs inproc, worker)

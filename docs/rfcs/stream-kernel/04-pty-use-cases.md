@@ -5,11 +5,13 @@ This document shows real-world examples of using the stream kernel for terminal 
 ## Vision
 
 Transform terminal systems from:
+
 ```
 [Keyboard] → [PTY] → [Screen]
 ```
 
 To:
+
 ```
 [Keyboard, Voice, AI, Network] → [PTY] → [Screen, Canvas, Video, Audio, AI, Browser]
 ```
@@ -58,12 +60,7 @@ const tts = new TextToSpeech(kernel);
 kernel.connect(keyboard.output, pty.input);
 
 // Output: PTY → all renderers simultaneously
-kernel.split(pty.output, [
-  screen.input,
-  canvas.input,
-  recorder.input,
-  tts.input
-]);
+kernel.split(pty.output, [screen.input, canvas.input, recorder.input, tts.input]);
 
 // User sees:
 // - Native terminal (screen)
@@ -87,7 +84,7 @@ const aiAgent = new MCPInput(kernel);
 // Source
 const pty = new DockerPTY(kernel, {
   image: 'ubuntu:latest',
-  command: 'bash'
+  command: 'bash',
 });
 
 // Transforms
@@ -99,18 +96,11 @@ const screen = new ScreenRenderer(kernel);
 const screenshotter = new Screenshotter(kernel, { interval: 1000 });
 
 // Multi-input → PTY
-kernel.merge([
-  keyboard.output,
-  voice.output,
-  aiAgent.output
-], pty.input);
+kernel.merge([keyboard.output, voice.output, aiAgent.output], pty.input);
 
 // PTY → Parser → Outputs
 kernel.connect(pty.output, parser.input);
-kernel.split(parser.output, [
-  screen.input,
-  aiFormatter.input
-]);
+kernel.split(parser.output, [screen.input, aiFormatter.input]);
 
 // Feed screenshots and formatted text to AI
 screenshotter.on('screenshot', (img) => {
@@ -147,15 +137,9 @@ const canvasRenderer = new CanvasRenderer(kernel, document.getElementById('termi
 const domRenderer = new XtermJSRenderer(kernel, document.getElementById('xterm'));
 
 // Wire up
-kernel.merge([
-  devToolsInput.output,
-  extensionMessaging.output
-], webWorkerPTY.input);
+kernel.merge([devToolsInput.output, extensionMessaging.output], webWorkerPTY.input);
 
-kernel.split(webWorkerPTY.output, [
-  canvasRenderer.input,
-  domRenderer.input
-]);
+kernel.split(webWorkerPTY.output, [canvasRenderer.input, domRenderer.input]);
 
 // Browser extension can now:
 // - Control terminal
@@ -225,7 +209,7 @@ const screen = new ScreenRenderer(kernel);
 
 // Add recorder
 const sessionRecorder = new SessionRecorder(kernel, {
-  filename: 'session.log'
+  filename: 'session.log',
 });
 
 // Normal flow
@@ -233,15 +217,12 @@ kernel.connect(keyboard.output, pty.input);
 kernel.connect(pty.output, screen.input);
 
 // Also record everything
-kernel.split(pty.output, [
-  screen.input,
-  sessionRecorder.input
-]);
+kernel.split(pty.output, [screen.input, sessionRecorder.input]);
 
 // Later: Replay session
 const replayer = new SessionReplayer(kernel, {
   filename: 'session.log',
-  speed: 2.0  // 2x speed
+  speed: 2.0, // 2x speed
 });
 
 const replayScreen = new ScreenRenderer(kernel);
@@ -263,16 +244,16 @@ const screen = new ScreenRenderer(kernel);
 
 // AI data collectors
 const screenshotter = new Screenshotter(kernel, {
-  interval: 100,  // Every 100ms
-  outputDir: '/training-data/screenshots'
+  interval: 100, // Every 100ms
+  outputDir: '/training-data/screenshots',
 });
 
 const actionLogger = new ActionLogger(kernel, {
-  outputFile: '/training-data/actions.jsonl'
+  outputFile: '/training-data/actions.jsonl',
 });
 
 const stateExtractor = new StateExtractor(kernel, {
-  outputFile: '/training-data/states.jsonl'
+  outputFile: '/training-data/states.jsonl',
 });
 
 // Normal flow
@@ -315,18 +296,10 @@ const user2Output = new WebSocketOutput(kernel, { userId: 'bob' });
 const user3Output = new WebSocketOutput(kernel, { userId: 'charlie' });
 
 // All inputs → PTY
-kernel.merge([
-  user1Input.output,
-  user2Input.output,
-  user3Input.output
-], pty.input);
+kernel.merge([user1Input.output, user2Input.output, user3Input.output], pty.input);
 
 // PTY → All outputs
-kernel.split(pty.output, [
-  user1Output.input,
-  user2Output.input,
-  user3Output.input
-]);
+kernel.split(pty.output, [user1Output.input, user2Output.input, user3Output.input]);
 
 // Alice, Bob, and Charlie can all:
 // - Send commands
@@ -350,11 +323,11 @@ const commandFilter = new CommandFilter(kernel, {
   blocked: ['rm -rf /', 'dd if=/dev/zero'],
   alertCallback: (cmd) => {
     console.warn(`Blocked dangerous command: ${cmd}`);
-  }
+  },
 });
 
 const auditLogger = new AuditLogger(kernel, {
-  outputFile: '/var/log/terminal-audit.log'
+  outputFile: '/var/log/terminal-audit.log',
 });
 
 // Input flow: keyboard → filter → audit → PTY
@@ -383,26 +356,21 @@ const pty = new LocalPTY(kernel);
 const screen = new ScreenRenderer(kernel);
 const tts = new TextToSpeech(kernel, {
   voice: 'en-US-Neural',
-  rate: 1.2
+  rate: 1.2,
 });
 const braille = new BrailleDisplay(kernel, {
-  device: '/dev/ttyUSB0'
+  device: '/dev/ttyUSB0',
 });
 const largeText = new LargeTextRenderer(kernel, {
   fontSize: 24,
-  highContrast: true
+  highContrast: true,
 });
 
 // Input
 kernel.connect(keyboard.output, pty.input);
 
 // Multi-modal accessibility output
-kernel.split(pty.output, [
-  screen.input,
-  tts.input,
-  braille.input,
-  largeText.input
-]);
+kernel.split(pty.output, [screen.input, tts.input, braille.input, largeText.input]);
 
 // User can:
 // - See normal screen
@@ -420,6 +388,7 @@ source → transform1 → transform2 → transform3 → sink
 ```
 
 Example:
+
 ```typescript
 pty → ansiParser → textFormatter → compressionFilter → networkSender
 ```
@@ -431,6 +400,7 @@ source → [sink1, sink2, sink3, ...]
 ```
 
 Example:
+
 ```typescript
 pty → [screen, recorder, logger, aiFormatter]
 ```
@@ -442,6 +412,7 @@ pty → [screen, recorder, logger, aiFormatter]
 ```
 
 Example:
+
 ```typescript
 [keyboard, voice, aiCommands] → pty
 ```
@@ -453,6 +424,7 @@ source → router → [sink1, sink2] (based on condition)
 ```
 
 Example:
+
 ```typescript
 pty → errorDetector → [normalScreen, errorHandler]
 ```
@@ -464,11 +436,12 @@ pty → errorDetector → [normalScreen, errorHandler]
 ✅ **Composability:** Complex behaviors from simple modules  
 ✅ **Reusability:** Same modules work in different compositions  
 ✅ **Extensibility:** New use cases = new module combinations  
-✅ **Location transparency:** Modules work locally or distributed  
+✅ **Location transparency:** Modules work locally or distributed
 
 ## Next Steps
 
 See:
+
 - **[Deployment Flexibility](05-deployment-flexibility.md)** - Run these examples in different deployment modes
 - **[Distributed Service Mesh](06-distributed-service-mesh.md)** - Multi-machine use cases
 - **[Module Types](03-module-types.md)** - How to build these modules

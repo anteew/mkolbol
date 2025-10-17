@@ -46,6 +46,7 @@ Traditional terminal emulators, multiplexers, and PTY wrappers are monolithic:
 ```
 
 **Limitations:**
+
 - Can't add new input sources without recompiling
 - Can't render output in multiple formats simultaneously
 - Can't intercept and transform I/O streams
@@ -86,11 +87,11 @@ interface Kernel {
   // Pipe management
   createPipe(options?: StreamOptions): Pipe;
   connect(from: Pipe, to: Pipe): void;
-  
-  // Stream operations  
-  split(source: Pipe, destinations: Pipe[]): void;  // Fan-out
-  merge(sources: Pipe[], destination: Pipe): void;   // Fan-in
-  
+
+  // Stream operations
+  split(source: Pipe, destinations: Pipe[]): void; // Fan-out
+  merge(sources: Pipe[], destination: Pipe): void; // Fan-in
+
   // Service registry
   register(name: string, capabilities: Capabilities, pipe: Pipe): void;
   lookup(query: CapabilityQuery): Pipe[];
@@ -98,6 +99,7 @@ interface Kernel {
 ```
 
 **What the kernel does NOT do:**
+
 - ❌ Understand message formats or protocols
 - ❌ Parse ANSI codes or terminal semantics
 - ❌ Handle authentication or authorization
@@ -117,6 +119,7 @@ const pipe = new PassThrough();
 ```
 
 **Why standard streams?**
+
 - Battle-tested (15+ years in Node.js)
 - Automatic backpressure handling
 - Composable via `.pipe()`
@@ -127,17 +130,18 @@ const pipe = new PassThrough();
 
 The kernel is the **physical layer** in networking terms:
 
-| OSI Layer | Responsibility | In Our System |
-|-----------|---------------|---------------|
-| Application | Business logic | Your code using the system |
-| Presentation | Data formatting | Parser/formatter modules |
-| Session | Connection mgmt | Session modules |
-| Transport | Flow control | Congestion control modules |
-| Network | Routing | Routing modules |
-| Data Link | Framing | Framing modules |
-| **Physical** | **Bit transmission** | **THE KERNEL** |
+| OSI Layer    | Responsibility       | In Our System              |
+| ------------ | -------------------- | -------------------------- |
+| Application  | Business logic       | Your code using the system |
+| Presentation | Data formatting      | Parser/formatter modules   |
+| Session      | Connection mgmt      | Session modules            |
+| Transport    | Flow control         | Congestion control modules |
+| Network      | Routing              | Routing modules            |
+| Data Link    | Framing              | Framing modules            |
+| **Physical** | **Bit transmission** | **THE KERNEL**             |
 
 **The kernel answers only:**
+
 - ✅ Is there a carrier? (Does a pipe exist?)
 - ✅ Can data flow? (Are pipes connected?)
 - ✅ Who provides what? (Service registry)
@@ -177,18 +181,15 @@ kernel.connect(keyboard.outputPipe, pty.inputPipe);
 kernel.connect(pty.outputPipe, screen.inputPipe);
 
 // Advanced: Multi-input, multi-output, with transforms
-kernel.merge(
-  [keyboard.outputPipe, voice.outputPipe, ai.outputPipe],
-  pty.inputPipe
-);
+kernel.merge([keyboard.outputPipe, voice.outputPipe, ai.outputPipe], pty.inputPipe);
 
 kernel.connect(pty.outputPipe, parser.inputPipe);
 
 kernel.split(parser.outputPipe, [
-  screen.inputPipe,      // Live display
-  mp4.inputPipe,         // Recording
-  tts.inputPipe,         // Audio output
-  aiFormatter.inputPipe  // AI-friendly format
+  screen.inputPipe, // Live display
+  mp4.inputPipe, // Recording
+  tts.inputPipe, // Audio output
+  aiFormatter.inputPipe, // AI-friendly format
 ]);
 ```
 
@@ -203,7 +204,7 @@ kernel.split(parser.outputPipe, [
 ```
 Traditional:
   [Keyboard] → [PTY] → [Screen]
-  
+
 Our System:
   [Keyboard, Voice, AI, Network] → [PTY] → [Screen, Canvas, Video, Audio, AI, Browser Extension]
 ```
@@ -215,30 +216,27 @@ const kernel = new Kernel();
 
 // Inputs
 const keyboard = new KeyboardInput(kernel);
-const whisper = new WhisperSTT(kernel);  // Speech-to-text
-const aiAgent = new MCPInput(kernel);    // AI agent commands
+const whisper = new WhisperSTT(kernel); // Speech-to-text
+const aiAgent = new MCPInput(kernel); // AI agent commands
 
 // Source (the actual terminal application)
-const pty = new DockerPTY(kernel, { 
+const pty = new DockerPTY(kernel, {
   command: 'bash',
-  image: 'ubuntu:latest'
+  image: 'ubuntu:latest',
 });
 
 // Transforms
 const ansiParser = new XtermParser(kernel);
-const aiFormatter = new AITextFormatter(kernel);  // Formats for LLM context
+const aiFormatter = new AITextFormatter(kernel); // Formats for LLM context
 
 // Outputs
-const xterm = new XtermJSRenderer(kernel);        // Native terminal UI
-const canvas = new CanvasRenderer(kernel);        // HTML5 canvas
-const screenshotter = new Screenshotter(kernel);  // Periodic screenshots
-const tts = new TextToSpeech(kernel);            // Audio output
+const xterm = new XtermJSRenderer(kernel); // Native terminal UI
+const canvas = new CanvasRenderer(kernel); // HTML5 canvas
+const screenshotter = new Screenshotter(kernel); // Periodic screenshots
+const tts = new TextToSpeech(kernel); // Audio output
 
 // Wire it up
-kernel.merge(
-  [keyboard.outputPipe, whisper.outputPipe, aiAgent.outputPipe],
-  pty.inputPipe
-);
+kernel.merge([keyboard.outputPipe, whisper.outputPipe, aiAgent.outputPipe], pty.inputPipe);
 
 kernel.connect(pty.outputPipe, ansiParser.inputPipe);
 
@@ -246,7 +244,7 @@ kernel.split(ansiParser.outputPipe, [
   xterm.inputPipe,
   canvas.inputPipe,
   aiFormatter.inputPipe,
-  tts.inputPipe
+  tts.inputPipe,
 ]);
 
 // Screenshot feed to AI
@@ -255,7 +253,8 @@ screenshotter.on('screenshot', (img) => {
 });
 ```
 
-**Result:** 
+**Result:**
+
 - Type with keyboard or speak commands via voice
 - AI can send commands and receive screenshots
 - See output in native terminal AND canvas
@@ -275,7 +274,7 @@ const webWorkerPTY = new WebWorkerPTY(kernel);
 
 // Renderers
 const canvasOutput = new CanvasRenderer(kernel, {
-  targetElement: document.getElementById('terminal')
+  targetElement: document.getElementById('terminal'),
 });
 
 // Connect browser extension to PTY
@@ -296,7 +295,7 @@ Generate user input and write to `outputPipe`:
 ```typescript
 interface InputModule {
   type: 'input';
-  outputPipe: Pipe;  // Sends commands/input
+  outputPipe: Pipe; // Sends commands/input
 }
 
 // Examples:
@@ -315,8 +314,8 @@ Run processes and expose bidirectional I/O:
 ```typescript
 interface SourceModule {
   type: 'source';
-  inputPipe: Pipe;   // Receives input/commands
-  outputPipe: Pipe;  // Sends output/results
+  inputPipe: Pipe; // Receives input/commands
+  outputPipe: Pipe; // Sends output/results
 }
 
 // Examples:
@@ -334,8 +333,8 @@ Process data in flight:
 ```typescript
 interface TransformModule {
   type: 'transform';
-  inputPipe: Pipe;   // Receives data
-  outputPipe: Pipe;  // Sends transformed data
+  inputPipe: Pipe; // Receives data
+  outputPipe: Pipe; // Sends transformed data
 }
 
 // Examples:
@@ -354,7 +353,7 @@ Display or record results:
 ```typescript
 interface OutputModule {
   type: 'output';
-  inputPipe: Pipe;  // Receives data to display/record
+  inputPipe: Pipe; // Receives data to display/record
 }
 
 // Examples:
@@ -375,29 +374,37 @@ Modules advertise capabilities to enable dynamic discovery:
 
 ```typescript
 // Module registration
-kernel.register('xterm-parser', {
-  accepts: ['raw-ansi'],
-  produces: ['terminal-state'],
-  type: 'transform',
-  features: ['vt100', 'xterm-256color', 'unicode']
-}, parserPipe);
+kernel.register(
+  'xterm-parser',
+  {
+    accepts: ['raw-ansi'],
+    produces: ['terminal-state'],
+    type: 'transform',
+    features: ['vt100', 'xterm-256color', 'unicode'],
+  },
+  parserPipe,
+);
 
-kernel.register('ai-formatter', {
-  accepts: ['terminal-state'],
-  produces: ['ai-text'],
-  type: 'transform',
-  features: ['context-aware', 'token-optimized']
-}, formatterPipe);
+kernel.register(
+  'ai-formatter',
+  {
+    accepts: ['terminal-state'],
+    produces: ['ai-text'],
+    type: 'transform',
+    features: ['context-aware', 'token-optimized'],
+  },
+  formatterPipe,
+);
 
 // Dynamic discovery
 const parsers = kernel.lookup({
   accepts: 'raw-ansi',
-  produces: 'terminal-state'
+  produces: 'terminal-state',
 });
 // Returns: [xterm-parser's pipe]
 
 const aiModules = kernel.lookup({
-  produces: 'ai-text'
+  produces: 'ai-text',
 });
 // Returns: [ai-formatter's pipe]
 ```
@@ -460,30 +467,30 @@ export class Kernel {
 
   lookup(query: CapabilityQuery): Pipe[] {
     const results: Pipe[] = [];
-    
+
     for (const [_, entry] of this.registry) {
       const caps = entry.capabilities;
-      
+
       // Match accepts
       if (query.accepts && caps.accepts && !caps.accepts.includes(query.accepts)) {
         continue;
       }
-      
+
       // Match produces
       if (query.produces && caps.produces && !caps.produces.includes(query.produces)) {
         continue;
       }
-      
+
       // Match features
       if (query.features) {
         if (!caps.features) continue;
-        const hasAll = query.features.every(f => caps.features!.includes(f));
+        const hasAll = query.features.every((f) => caps.features!.includes(f));
         if (!hasAll) continue;
       }
-      
+
       results.push(entry.pipe);
     }
-    
+
     return results;
   }
 }
@@ -507,12 +514,16 @@ export class XtermParser {
     this.inputPipe = kernel.createPipe();
     this.outputPipe = kernel.createPipe({ objectMode: true });
 
-    kernel.register('xterm-parser', {
-      accepts: ['raw-ansi'],
-      produces: ['terminal-state'],
-      type: 'transform',
-      features: ['vt100', 'xterm-256color']
-    }, this.inputPipe);
+    kernel.register(
+      'xterm-parser',
+      {
+        accepts: ['raw-ansi'],
+        produces: ['terminal-state'],
+        type: 'transform',
+        features: ['vt100', 'xterm-256color'],
+      },
+      this.inputPipe,
+    );
   }
 
   async init(): Promise<void> {
@@ -528,9 +539,9 @@ export class XtermParser {
         buffer: this.terminal.buffer.active,
         cursor: {
           x: this.terminal.buffer.active.cursorX,
-          y: this.terminal.buffer.active.cursorY
+          y: this.terminal.buffer.active.cursorY,
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.outputPipe.write(state);
@@ -575,18 +586,22 @@ The system is built in layers, each using the kernel's primitives:
 ```typescript
 // MCP router as a transform module
 export class MCPRouter {
-  inputPipe: Pipe;   // Receives JSON-RPC messages
-  outputPipe: Pipe;  // Sends JSON-RPC responses
+  inputPipe: Pipe; // Receives JSON-RPC messages
+  outputPipe: Pipe; // Sends JSON-RPC responses
 
   constructor(kernel: Kernel) {
     this.inputPipe = kernel.createPipe({ objectMode: true });
     this.outputPipe = kernel.createPipe({ objectMode: true });
 
-    kernel.register('mcp-router', {
-      accepts: ['json-rpc'],
-      produces: ['json-rpc'],
-      type: 'transform'
-    }, this.inputPipe);
+    kernel.register(
+      'mcp-router',
+      {
+        accepts: ['json-rpc'],
+        produces: ['json-rpc'],
+        type: 'transform',
+      },
+      this.inputPipe,
+    );
   }
 
   async init() {
@@ -617,7 +632,7 @@ version: 1.0
 inputs:
   - id: keyboard
     type: keyboard-input
-  
+
   - id: voice
     type: whisper-stt
     config:
@@ -640,20 +655,20 @@ transforms:
 outputs:
   - id: screen
     type: xterm-renderer
-  
+
   - id: ai-formatter
     type: ai-text-formatter
-  
+
   - id: tts
     type: text-to-speech
 
 routing:
   - from: [keyboard, voice]
     to: main-pty
-  
+
   - from: main-pty
     to: parser
-  
+
   - from: parser
     to: [screen, ai-formatter, tts]
 ```
@@ -680,8 +695,8 @@ describe('XtermParser', () => {
     await parser.init();
 
     parser.inputPipe.write('\x1b[32mGreen\x1b[0m');
-    
-    const state = await new Promise(resolve => {
+
+    const state = await new Promise((resolve) => {
       parser.outputPipe.once('data', resolve);
     });
 
@@ -705,7 +720,7 @@ describe('Keyboard → PTY → Screen', () => {
     kernel.connect(pty.outputPipe, screen.inputPipe);
 
     keyboard.type('ls\n');
-    
+
     await waitFor(() => screen.hasOutput());
     expect(screen.content).toContain('total');
   });
@@ -745,11 +760,13 @@ kernel.connect(pty.outputPipe, canvas.inputPipe);
 ```
 
 **Browser limitations:**
+
 - No native PTY (use WebWorker or remote PTY)
 - No file system access (use virtual FS or remote storage)
 - Network restrictions (CORS, WebSocket only)
 
 **Browser strengths:**
+
 - Browser extension APIs
 - HTML5 Canvas rendering
 - WebGL acceleration
@@ -770,6 +787,7 @@ kernel.connect(pty.outputPipe, parser.inputPipe);
 ```
 
 For stronger isolation:
+
 - Run modules in separate processes (IPC via pipes)
 - Run modules in worker threads
 - Run modules in containers
@@ -784,8 +802,8 @@ const pty = new DockerPTY(kernel, {
     noNetwork: true,
     cpuLimit: '1.0',
     memoryLimit: '512m',
-    dropCapabilities: ['ALL']
-  }
+    dropCapabilities: ['ALL'],
+  },
 });
 ```
 
@@ -807,6 +825,7 @@ class SafePTY extends LocalPTY {
 ## Roadmap
 
 ### Phase 1: Core Kernel (Week 1)
+
 - [ ] Kernel implementation (~100 lines)
 - [ ] Basic modules: KeyboardInput, LocalPTY, TerminalOutput
 - [ ] Configuration loader
@@ -815,6 +834,7 @@ class SafePTY extends LocalPTY {
 **Success:** Run `bash` with keyboard → PTY → screen
 
 ### Phase 2: Parsers & Renderers (Week 2)
+
 - [ ] XtermParser (ANSI → structured state)
 - [ ] CanvasRenderer (HTML5 canvas output)
 - [ ] XtermJSRenderer (xterm.js integration)
@@ -823,6 +843,7 @@ class SafePTY extends LocalPTY {
 **Success:** Display terminal in canvas AND xterm.js simultaneously
 
 ### Phase 3: AI Integration (Week 3)
+
 - [ ] AITextFormatter (terminal → LLM context)
 - [ ] Screenshotter (periodic screenshots)
 - [ ] WhisperSTT (speech input)
@@ -831,6 +852,7 @@ class SafePTY extends LocalPTY {
 **Success:** AI can see screenshots and send commands
 
 ### Phase 4: Advanced Modules (Week 4)
+
 - [ ] DockerPTY (isolated containers)
 - [ ] MP4Recorder (video recording)
 - [ ] TextToSpeech (audio output)
@@ -839,6 +861,7 @@ class SafePTY extends LocalPTY {
 **Success:** Full multi-modal I/O system
 
 ### Phase 5: Browser Extension (Week 5-6)
+
 - [ ] Chrome extension scaffolding
 - [ ] DevTools panel integration
 - [ ] Native messaging bridge
@@ -847,6 +870,7 @@ class SafePTY extends LocalPTY {
 **Success:** Terminal running in DevTools with extension control
 
 ### Phase 6: MCP/Protocol Layer (Week 7)
+
 - [ ] MCPRouter module (Layer 3)
 - [ ] JSON-RPC transport module
 - [ ] HTTP/SSE transport module
@@ -890,12 +914,14 @@ main();
 **Pipe implementation:** `PassThrough` (in-memory)
 
 **Ship as:** Single executable via `pkg`
+
 ```bash
 $ pkg single-binary.ts -o terminal-renderer
 $ ./terminal-renderer  # One file, runs everything
 ```
 
 **Advantages:**
+
 - ✅ Fast (no serialization overhead)
 - ✅ Simple (one process to debug)
 - ✅ Easy (`node index.js` and it runs)
@@ -924,6 +950,7 @@ async function main() {
 **Pipe implementation:** `UnixSocketPipe` (IPC)
 
 **Configuration:**
+
 ```yaml
 # multi-process.yml
 servers:
@@ -933,6 +960,7 @@ servers:
 ```
 
 **Advantages:**
+
 - ✅ Isolation (crash one server, others survive)
 - ✅ Realistic (tests actual IPC)
 - ✅ Debugging (can restart single server)
@@ -975,6 +1003,7 @@ parser.outputPipe = new TCPPipe('mp4-server', 9002);
 ```
 
 **Advantages:**
+
 - ✅ Scale (different machines for different workloads)
 - ✅ Fault tolerance (machine failure ≠ system failure)
 - ✅ Performance (PTY on fast machine, MP4 encoding on GPU machine)
@@ -987,7 +1016,7 @@ Port to embedded systems without OS:
 // Kernel adapted for no-OS
 class Kernel {
   createPipe(): Pipe {
-    return new RingBufferPipe();  // Instead of PassThrough
+    return new RingBufferPipe(); // Instead of PassThrough
   }
 }
 
@@ -998,6 +1027,7 @@ const flashWriter = new FlashWriterServer(kernel);
 ```
 
 **Advantages:**
+
 - ✅ Minimal footprint (embedded devices)
 - ✅ Direct hardware access
 - ✅ Real-time performance
@@ -1012,11 +1042,11 @@ class Kernel {
   createPipe(type: 'local' | 'unix' | 'tcp' = 'local'): Pipe {
     switch (type) {
       case 'local':
-        return new PassThrough();      // In-process
+        return new PassThrough(); // In-process
       case 'unix':
-        return new UnixSocketPipe();   // Cross-process
+        return new UnixSocketPipe(); // Cross-process
       case 'tcp':
-        return new TCPPipe();          // Cross-machine
+        return new TCPPipe(); // Cross-machine
     }
   }
 }
@@ -1028,12 +1058,13 @@ class Kernel {
 // This code works whether local, multi-process, or distributed
 class PTYServer {
   constructor(kernel: Kernel) {
-    this.outputPipe = kernel.createPipe();  // Type determined by config
+    this.outputPipe = kernel.createPipe(); // Type determined by config
   }
 }
 ```
 
 **Inspired by QNX Neutrino:** QNX's IPC is network-transparent:
+
 ```c
 // Open file (could be local or remote - you don't know!)
 fd = open("/net/machine2/dev/serial1", O_RDWR);
@@ -1043,12 +1074,12 @@ Same API whether server is in same process, different process, or different mach
 
 ### Deployment Roadmap Summary
 
-| Phase | Deployment | Transport | Use Case |
-|-------|------------|-----------|----------|
-| 1 (now) | Single process | PassThrough | Development, simple apps |
-| 2 | Multi-process | Unix sockets | Testing, isolation |
-| 3 | Distributed | TCP/WebSocket | Scale, fault tolerance |
-| 4 (maybe) | Bare metal | Ring buffers | Embedded, hardware |
+| Phase     | Deployment     | Transport     | Use Case                 |
+| --------- | -------------- | ------------- | ------------------------ |
+| 1 (now)   | Single process | PassThrough   | Development, simple apps |
+| 2         | Multi-process  | Unix sockets  | Testing, isolation       |
+| 3         | Distributed    | TCP/WebSocket | Scale, fault tolerance   |
+| 4 (maybe) | Bare metal     | Ring buffers  | Embedded, hardware       |
 
 **The kernel never changes. Only pipe implementations change.**
 
@@ -1082,6 +1113,7 @@ Think of a routing server as an **airport** with **terminals** (connection point
 ```
 
 **Terminals** are connection points that can be:
+
 - **Local:** Connect to servers in the same process/machine
 - **Network:** Connect to remote machines via TCP/WebSocket
 - **Loopback:** For testing or special routing scenarios
@@ -1093,7 +1125,7 @@ Think of a routing server as an **airport** with **terminals** (connection point
 ```typescript
 /**
  * Routing Server - Like an IP router for pipes
- * 
+ *
  * Manages "terminals" (connection points) and routes
  * data between them based on service discovery
  */
@@ -1106,10 +1138,14 @@ class RoutingServer {
     this.kernel = kernel;
 
     // Register as router
-    kernel.register('router', {
-      type: 'transform',
-      capabilities: ['routing', 'service-discovery']
-    }, kernel.createPipe());
+    kernel.register(
+      'router',
+      {
+        type: 'transform',
+        capabilities: ['routing', 'service-discovery'],
+      },
+      kernel.createPipe(),
+    );
   }
 
   /**
@@ -1121,7 +1157,7 @@ class RoutingServer {
       type,
       inputPipe: this.kernel.createPipe(),
       outputPipe: this.kernel.createPipe(),
-      remoteAddress: type === 'network' ? this.getRemoteAddress(name) : null
+      remoteAddress: type === 'network' ? this.getRemoteAddress(name) : null,
     };
 
     // Wire up routing logic
@@ -1170,7 +1206,7 @@ class RoutingServer {
       serviceName,
       terminal,
       machineId,
-      hops
+      hops,
     });
 
     console.log(`[Router] Route added: ${serviceName} → ${terminal} (${hops} hops)`);
@@ -1192,9 +1228,9 @@ interface Terminal {
 
 interface Route {
   serviceName: string;
-  terminal: string;      // Which terminal to send to
-  machineId?: string;    // Which machine (null = local)
-  hops: number;          // Distance metric
+  terminal: string; // Which terminal to send to
+  machineId?: string; // Which machine (null = local)
+  hops: number; // Distance metric
 }
 ```
 
@@ -1244,9 +1280,9 @@ const frame = ptyServer.captureFrame();
 // Wrap in envelope with routing info
 const envelope = {
   source: 'pty-server@machine-a',
-  destination: 'gpu-server',           // Let router find it!
-  replyTo: 'mp4-encoder@machine-a',    // Where to send result
-  data: frame
+  destination: 'gpu-server', // Let router find it!
+  replyTo: 'mp4-encoder@machine-a', // Where to send result
+  data: frame,
 };
 
 // Send to router - it handles everything!
@@ -1259,8 +1295,8 @@ gpuServer.inputPipe.on('data', (envelope) => {
   // Send result back
   const reply = {
     source: 'gpu-server@machine-c',
-    destination: envelope.replyTo,  // "mp4-encoder@machine-a"
-    data: processed
+    destination: envelope.replyTo, // "mp4-encoder@machine-a"
+    data: processed,
   };
 
   router.inputPipe.write(reply);
@@ -1280,7 +1316,7 @@ class RoutingServer {
   startHeartbeat(): void {
     setInterval(() => {
       this.announceServices();
-    }, 5000);  // Every 5 seconds
+    }, 5000); // Every 5 seconds
   }
 
   announceServices(): void {
@@ -1288,8 +1324,8 @@ class RoutingServer {
       type: 'service-announcement',
       machineId: this.machineId,
       services: this.getLocalServices(),
-      routes: this.getKnownRoutes(),  // Re-broadcast learned routes!
-      hops: 0  // We're 0 hops from ourselves
+      routes: this.getKnownRoutes(), // Re-broadcast learned routes!
+      hops: 0, // We're 0 hops from ourselves
     };
 
     // Broadcast on all network terminals
@@ -1321,18 +1357,21 @@ class RoutingServer {
 After announcements propagate:
 
 **Machine A knows:**
+
 - pty-server (local, 0 hops)
 - parser-server (via B, 1 hop)
 - gpu-server (via C, 1 hop)
 - mp4-server (local, 0 hops)
 
 **Machine B knows:**
+
 - parser-server (local, 0 hops)
 - pty-server (via A, 1 hop)
 - gpu-server (via C, 1 hop)
-- gpu-server (via A→C, 2 hops)  ← Alternative route!
+- gpu-server (via A→C, 2 hops) ← Alternative route!
 
 **Machine C knows:**
+
 - gpu-server (local, 0 hops)
 - pty-server (via A, 1 hop)
 - parser-server (via B, 1 hop)
@@ -1401,7 +1440,6 @@ machines:
       - name: to-machine-b
         type: network
         address: 10.0.0.2:9002
-
 # Routing is automatic via service discovery!
 ```
 
@@ -1410,18 +1448,22 @@ machines:
 This pattern has been proven in production systems:
 
 **Plan 9's Distributed Filesystem:**
+
 ```
 /net/tcp!server!9001/data  ← Network connection as a file
 ```
+
 Exactly like our terminals! Plan 9 called them "network dialers."
 
 **QNX Neutrino's Network IPC:**
+
 ```c
 fd = open("/net/machine2/dev/serial1", O_RDWR);
 // Automatically routed to machine2
 ```
 
 **Erlang's Distributed Processes:**
+
 ```erlang
 % Send message to process on any node
 {gpu_server, 'machine_c@cluster'} ! {process_frame, Frame}
@@ -1429,6 +1471,7 @@ fd = open("/net/machine2/dev/serial1", O_RDWR);
 ```
 
 **Kubernetes Service Mesh:**
+
 ```yaml
 apiVersion: v1
 kind: Service
@@ -1452,7 +1495,7 @@ spec:
 ✅ **Automatic discovery** - Service mesh finds routes  
 ✅ **Location transparency** - Servers don't know where peers are  
 ✅ **Multi-hop routing** - Data flows through multiple machines seamlessly  
-✅ **Hairpin/loopback** - Remote processing with local return  
+✅ **Hairpin/loopback** - Remote processing with local return
 
 **The routing server is policy, not mechanism.** The kernel provides pipes; the routing server uses them to implement distributed routing.
 
@@ -1491,6 +1534,7 @@ In GNU Hurd, the kernel (Mach) does NOT restart servers. Instead:
 ```
 
 **Who restarts crashed servers?**
+
 1. Bootstrap/supervisor server - monitors critical servers
 2. `proc` server - tracks all processes, notifies of deaths
 3. Peer servers - servers can monitor each other
@@ -1564,6 +1608,7 @@ mp4Server.on('error', (err) => {
 ### ✅ Correct Phrasings (like Mach/Hurd)
 
 **Good:**
+
 - "Servers run **on top of** the kernel"
 - "Servers communicate **through** the kernel"
 - "The kernel provides pipes **for** servers"
@@ -1572,6 +1617,7 @@ mp4Server.on('error', (err) => {
 - "Each server is a separate module **outside** the kernel"
 
 **Emphasize the boundary:**
+
 - "The kernel provides IPC (pipes), servers provide logic"
 - "The kernel never knows about server semantics"
 - "Servers implement all business logic"
@@ -1580,6 +1626,7 @@ mp4Server.on('error', (err) => {
 ### ❌ Incorrect Phrasings (sound monolithic)
 
 **Bad:**
+
 - "Servers run **in** the kernel" ← implies kernel space (monolithic)
 - "The kernel **contains** servers" ← wrong architecture
 - "Servers are **part of** the kernel" ← defeats the purpose
@@ -1596,9 +1643,11 @@ mp4Server.on('error', (err) => {
 ### Example Documentation
 
 **Good:**
+
 > "The terminal-renderer system uses a microkernel architecture. The kernel provides stream-based IPC primitives (pipes) and a service registry. All functionality is implemented as separate servers that communicate through kernel-provided pipes. For example, the PTY server, parser server, and MP4 recorder server all run as independent modules outside the kernel."
 
 **Bad:**
+
 > "Our kernel runs PTY servers, parsers, and recorders in it." ← Sounds monolithic!
 
 ---
@@ -1606,41 +1655,45 @@ mp4Server.on('error', (err) => {
 ## Comparison to Current mkolbol
 
 ### Current mkolbol (MCP-focused)
+
 ```typescript
 // JSON-RPC/MCP is built INTO the kernel
 class Router {
-  async handle(session, req: JsonRpcRequest): Promise<JsonRpcResponse>
+  async handle(session, req: JsonRpcRequest): Promise<JsonRpcResponse>;
 }
 
 class InProcBus {
-  async dispatch(session, msg: JsonRpcRequest | McpNotification, handler)
+  async dispatch(session, msg: JsonRpcRequest | McpNotification, handler);
 }
 ```
 
 **Limitations:**
+
 - Kernel knows about JSON-RPC, MCP, sessions
 - Hard to support other protocols
 - Not suitable for raw byte streams (PTY, video, audio)
 - Single deployment mode (in-process only)
 
 ### Stream Kernel (Protocol-agnostic)
+
 ```typescript
 // Kernel is pure plumbing
 class Kernel {
-  createPipe(type?: 'local' | 'unix' | 'tcp'): Pipe
-  connect(from: Pipe, to: Pipe): void
-  split(source: Pipe, destinations: Pipe[]): void
+  createPipe(type?: 'local' | 'unix' | 'tcp'): Pipe;
+  connect(from: Pipe, to: Pipe): void;
+  split(source: Pipe, destinations: Pipe[]): void;
 }
 
 // MCP is a MODULE on top
 class MCPRouter {
-  inputPipe: Pipe
-  outputPipe: Pipe
+  inputPipe: Pipe;
+  outputPipe: Pipe;
   // Handles JSON-RPC in a transform module
 }
 ```
 
 **Advantages:**
+
 - Kernel never changes (rock solid)
 - Any protocol can be implemented as modules
 - Raw byte streams (PTY) work perfectly
@@ -1662,7 +1715,7 @@ This architecture succeeds if:
 ✅ **Browser support** - Runs in browser with extension capabilities  
 ✅ **Testability** - Each module is independently testable  
 ✅ **Composability** - Complex systems emerge from simple compositions  
-✅ **Performance** - Zero-copy fast paths, automatic backpressure  
+✅ **Performance** - Zero-copy fast paths, automatic backpressure
 
 ---
 
@@ -1678,6 +1731,7 @@ This architecture succeeds if:
 **Location is policy, not mechanism!**
 
 Key insights from L4 family:
+
 1. **Location transparency:** Servers don't know if peer is local or remote
 2. **Migration:** Server can move from process A to process B without API changes
 3. **Replication:** Multiple instances of a server can run; clients don't care
@@ -1703,7 +1757,7 @@ Same `open()`/`read()`/`write()` API for everything.
 **From L4:** Mechanism vs policy separation, performance optimization  
 **From QNX:** Network-transparent IPC, location transparency  
 **From Plan 9:** Everything-is-a-stream abstraction  
-**From GNU Hurd:** Server architecture, supervision patterns  
+**From GNU Hurd:** Server architecture, supervision patterns
 
 **Our contribution:** Apply these principles to terminal I/O and AI agent systems.
 

@@ -13,6 +13,7 @@
 ```
 
 ## Guidelines
+
 - **Append only.** Each sprint block goes to the end of `ampcode.log`.
 - **One block per sprint.** Group all tasks for the sprint beneath the sprint header.
 - **Keep it concise.** Summaries, commands, and outcomes only; reference `reports/*.jsonl` instead of pasting long logs.

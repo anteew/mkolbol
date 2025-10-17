@@ -27,7 +27,7 @@ const LEVEL_VALUES: Record<LogLevel, number> = {
   debug: 3,
 };
 
-function parseDebugLog(line: string): LogEntry | null {
+function _parseDebugLog(line: string): LogEntry | null {
   try {
     const timestampMatch = line.match(/^\[([\d-T:.Z]+)\]/);
     const levelMatch = line.match(/\[([A-Z]+)\]/);
@@ -56,7 +56,7 @@ function parseDebugLog(line: string): LogEntry | null {
         payload,
       };
     }
-  } catch (e) {
+  } catch {
     return null;
   }
   return null;
@@ -65,12 +65,12 @@ function parseDebugLog(line: string): LogEntry | null {
 function parseJsonlLog(line: string): LogEntry | null {
   try {
     const data = JSON.parse(line);
-    
+
     if (data.evt && data.evt.startsWith('debug.')) {
       const parts = data.evt.split('.');
       const module = parts[1] || 'unknown';
       const event = parts.slice(2).join('.') || 'unknown';
-      
+
       return {
         timestamp: data.ts ? new Date(data.ts).toISOString() : new Date().toISOString(),
         level: (data.lvl as LogLevel) || 'info',
@@ -79,7 +79,7 @@ function parseJsonlLog(line: string): LogEntry | null {
         payload: data.payload,
       };
     }
-  } catch (e) {
+  } catch {
     return null;
   }
   return null;
@@ -113,9 +113,9 @@ function formatLogJson(entry: LogEntry): string {
   return JSON.stringify(entry);
 }
 
-async function tailDebugLogs(options: LogsOptions): Promise<void> {
+async function tailDebugLogs(_options: LogsOptions): Promise<void> {
   const debugLog = process.env.DEBUG === '1' || process.env.MK_DEBUG_MODULES;
-  
+
   if (!debugLog) {
     console.error('Debug logging is not enabled. Set DEBUG=1 or MK_DEBUG_MODULES to enable.');
     return;
@@ -214,13 +214,13 @@ async function followJsonlLogs(logPath: string, options: LogsOptions): Promise<v
 
 export async function tailLogs(options: LogsOptions): Promise<void> {
   const reportsDir = path.join(process.cwd(), 'reports');
-  
+
   if (!fs.existsSync(reportsDir)) {
     await tailDebugLogs(options);
     return;
   }
 
-  const suites = fs.readdirSync(reportsDir).filter(f => {
+  const suites = fs.readdirSync(reportsDir).filter((f) => {
     const stat = fs.statSync(path.join(reportsDir, f));
     return stat.isDirectory();
   });
@@ -232,7 +232,7 @@ export async function tailLogs(options: LogsOptions): Promise<void> {
 
   const suite = suites[0];
   const suiteDir = path.join(reportsDir, suite);
-  const logFiles = fs.readdirSync(suiteDir).filter(f => f.endsWith('.jsonl'));
+  const logFiles = fs.readdirSync(suiteDir).filter((f) => f.endsWith('.jsonl'));
 
   if (logFiles.length === 0) {
     await tailDebugLogs(options);
@@ -240,7 +240,7 @@ export async function tailLogs(options: LogsOptions): Promise<void> {
   }
 
   const latestLog = logFiles
-    .map(f => ({
+    .map((f) => ({
       name: f,
       path: path.join(suiteDir, f),
       mtime: fs.statSync(path.join(suiteDir, f)).mtime,

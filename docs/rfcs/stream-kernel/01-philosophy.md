@@ -7,13 +7,15 @@ A microkernel does **one thing perfectly**: provide mechanism. All policy lives 
 ### Mechanism vs Policy
 
 **Mechanism** (kernel provides):
+
 - Create pipes (data channels)
 - Connect pipes together
-- Split data to multiple destinations  
+- Split data to multiple destinations
 - Merge data from multiple sources
 - Register services
 
 **Policy** (modules decide):
+
 - What data formats to use (JSON, bytes, MCP, etc.)
 - How to parse/transform data
 - Where to route messages
@@ -31,7 +33,7 @@ The kernel is the "physical layer" - like pneumatic tubes that move packages thr
 ```typescript
 class Kernel {
   createPipe(): Pipe { ... }              // ~10 lines
-  connect(from: Pipe, to: Pipe) { ... }   // ~5 lines  
+  connect(from: Pipe, to: Pipe) { ... }   // ~5 lines
   split(from: Pipe, to: Pipe[]) { ... }   // ~10 lines
   merge(from: Pipe[], to: Pipe) { ... }   // ~10 lines
   register(name, caps, pipe) { ... }      // ~20 lines
@@ -44,9 +46,10 @@ class Kernel {
 ### 2. Protocol Agnostic
 
 The kernel works with **any** data format:
+
 - Raw bytes (terminal escape sequences)
 - JSON objects (structured data)
-- JSON-RPC messages (AI agent communication)  
+- JSON-RPC messages (AI agent communication)
 - MCP protocol (Model Context Protocol)
 - Binary data (video frames)
 - Custom protocols (your future invention)
@@ -61,7 +64,7 @@ Same kernel API works with different "wire protocols":
 // In same process
 createPipe('local')    → PassThrough stream (in-memory)
 
-// Different processes  
+// Different processes
 createPipe('unix')     → Unix domain socket
 
 // Different machines
@@ -82,8 +85,8 @@ Servers don't know where their peers are located:
 // Server code - same everywhere
 class ParserServer {
   constructor(kernel: Kernel) {
-    this.input = kernel.createPipe();   // Could be local or remote!
-    this.output = kernel.createPipe();  // Could be local or remote!
+    this.input = kernel.createPipe(); // Could be local or remote!
+    this.output = kernel.createPipe(); // Could be local or remote!
   }
 }
 ```
@@ -104,14 +107,10 @@ Example - multi-modal output (one PTY → many renderers):
 ```typescript
 const pty = new PTY(kernel);
 const xterm = new XtermRenderer(kernel);
-const canvas = new CanvasRenderer(kernel);  
+const canvas = new CanvasRenderer(kernel);
 const tts = new TTSRenderer(kernel);
 
-kernel.split(pty.output, [
-  xterm.input,
-  canvas.input,
-  tts.input
-]);
+kernel.split(pty.output, [xterm.input, canvas.input, tts.input]);
 ```
 
 **Same data flows to all renderers simultaneously.**
@@ -124,7 +123,7 @@ Even "system" services are modules:
 // Routing? Module!
 const router = new RoutingServer(kernel);
 
-// Service discovery? Module!  
+// Service discovery? Module!
 const registry = new RegistryServer(kernel);
 
 // Supervision? Module!
@@ -141,6 +140,7 @@ const mcp = new MCPRouter(kernel);
 ### ✅ Deployment Flexibility
 
 Same code, different deployment:
+
 - **Development:** Single Node.js process
 - **Testing:** Multi-process with isolation
 - **Production:** Distributed across machines
@@ -156,9 +156,9 @@ describe('Kernel', () => {
     const kernel = new Kernel();
     const p1 = kernel.createPipe();
     const p2 = kernel.createPipe();
-    
+
     kernel.connect(p1, p2);
-    
+
     p1.write('test');
     expect(p2.read()).toBe('test');
   });
@@ -172,7 +172,7 @@ describe('ParserModule', () => {
   it('parses ANSI', () => {
     const mockKernel = { createPipe: () => new PassThrough() };
     const parser = new ANSIParser(mockKernel);
-    
+
     parser.input.write('\x1b[31m');
     expect(parser.output.read()).toEqual({ color: 'red' });
   });
@@ -189,7 +189,7 @@ class HolographicRenderer {
   constructor(kernel: Kernel) {
     this.input = kernel.createPipe();
   }
-  
+
   render(data) {
     // Render to hologram!
   }
@@ -198,7 +198,7 @@ class HolographicRenderer {
 // Works with existing system - no kernel changes!
 kernel.split(pty.output, [
   xterm.input,
-  hologram.input  // New renderer!
+  hologram.input, // New renderer!
 ]);
 ```
 
@@ -210,18 +210,20 @@ kernel.split(pty.output, [
 class MCPServer {
   // Kernel knows about JSON-RPC
   private rpcHandler: JSONRPCHandler;
-  
+
   // Kernel knows about transports
   private transports: (StdioTransport | HTTPTransport)[];
-  
+
   // Kernel knows about middleware
   private middleware: (Compression | Auth | Metrics)[];
-  
+
   // Kernel knows about subscriptions
   private subscriptions: Map<string, Subscriber[]>;
-  
+
   // To add a feature: modify kernel
-  addFeature() { /* change kernel code */ }
+  addFeature() {
+    /* change kernel code */
+  }
 }
 ```
 
@@ -270,6 +272,7 @@ kernel.connect(auth.output, mcp.input);
 ## The Payoff
 
 With ~100 lines of kernel code, we get:
+
 - ✅ Works in Node.js and browsers
 - ✅ Single process → distributed deployment
 - ✅ Any protocol (JSON-RPC, MCP, custom)

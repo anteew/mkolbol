@@ -5,9 +5,11 @@ Status: Planned
 Scope: Parser enhancements + tests + docs (no kernel changes)
 
 Goals
+
 - Improve ANSI Parser fidelity (UTF‑8/wide chars, additional CSI/OSC handling), reduce allocations, and add scrollback + snapshot/export hooks.
 
 Tasks
+
 - T6451 — UTF‑8 & Wide Characters
   - Properly handle multi‑byte UTF‑8 and wide glyphs; update buffer indexing and wrapping logic.
 
@@ -27,6 +29,6 @@ Tasks
   - Update `docs/rfcs/stream-kernel/ansi-parser.md` with P2 coverage and perf notes.
 
 Success Criteria
+
 - New tests pass in threads lane; perf harness shows improvement over baseline.
 - Parser remains API‑compatible; no kernel changes.
-

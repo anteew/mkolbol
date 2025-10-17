@@ -13,19 +13,24 @@ async function runFastAcceptance(): Promise<void> {
   console.log('[1/3] Testing FrameCodec...');
   const frameTest = await runTest('npx vitest run tests/net/frame.spec.ts --reporter=default');
   results.push({ name: 'FrameCodec', ...frameTest });
-  if (frameTest.passed) passed++; else failed++;
+  if (frameTest.passed) passed++;
+  else failed++;
 
   // Test 2: TCPPipe
   console.log('[2/3] Testing TCPPipe...');
-  const tcpTest = await runTest('npx vitest run tests/integration/tcpPipe.spec.ts --reporter=default');
+  const tcpTest = await runTest(
+    'npx vitest run tests/integration/tcpPipe.spec.ts --reporter=default',
+  );
   results.push({ name: 'TCPPipe', ...tcpTest });
-  if (tcpTest.passed) passed++; else failed++;
+  if (tcpTest.passed) passed++;
+  else failed++;
 
   // Test 3: Remote viewer example (smoke)
   console.log('[3/3] Testing remote viewer example...');
   const viewerTest = await testRemoteViewer();
   results.push({ name: 'RemoteViewer', ...viewerTest });
-  if (viewerTest.passed) passed++; else failed++;
+  if (viewerTest.passed) passed++;
+  else failed++;
 
   // Summary
   console.log('\n' + '='.repeat(60));
@@ -43,18 +48,20 @@ async function runFastAcceptance(): Promise<void> {
   process.exit(failed > 0 ? 1 : 0);
 }
 
-async function runTest(command: string): Promise<{ passed: boolean; duration: number; error?: string }> {
+async function runTest(
+  command: string,
+): Promise<{ passed: boolean; duration: number; error?: string }> {
   const start = Date.now();
-  
+
   return new Promise((resolve) => {
     const proc = spawn(command, { shell: true, stdio: 'pipe' });
-    
+
     proc.on('close', (code) => {
       const duration = Date.now() - start;
       resolve({
         passed: code === 0,
         duration,
-        error: code !== 0 ? `Exit code ${code}` : undefined
+        error: code !== 0 ? `Exit code ${code}` : undefined,
       });
     });
   });
@@ -62,18 +69,18 @@ async function runTest(command: string): Promise<{ passed: boolean; duration: nu
 
 async function testRemoteViewer(): Promise<{ passed: boolean; duration: number; error?: string }> {
   const start = Date.now();
-  
+
   return new Promise((resolve) => {
     // Start server
     const server = spawn('npx', ['tsx', 'examples/network/remote-viewer/server.ts'], {
-      stdio: 'pipe'
+      stdio: 'pipe',
     });
 
     // Wait for server to start
     setTimeout(() => {
       // Start client (connect and receive one message)
       const client = spawn('npx', ['tsx', 'examples/network/remote-viewer/client.ts'], {
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
       let received = false;
@@ -94,7 +101,7 @@ async function testRemoteViewer(): Promise<{ passed: boolean; duration: number; 
         resolve({
           passed: received,
           duration,
-          error: received ? undefined : 'No data received'
+          error: received ? undefined : 'No data received',
         });
       });
     }, 1000);

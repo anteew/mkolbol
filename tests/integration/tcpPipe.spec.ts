@@ -23,7 +23,7 @@ describe('TCPPipe', () => {
     client.on('data', (c) => data.push(c));
     client.write('test');
 
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 200));
     expect(Buffer.concat(data).toString()).toBe('echo: test');
   });
 });

@@ -2,13 +2,14 @@
 
 **Date:** October 16, 2025  
 **Platform:** Ubuntu 24.04.3 LTS, Node.js 20+  
-**Test Framework:** Vitest 1.6.1 + fast-check 4.3.0  
+**Test Framework:** Vitest 1.6.1 + fast-check 4.3.0
 
 ---
 
 ## Summary
 
 ✅ **All 29 tests passing**
+
 - 16 existing unit tests
 - 6 new stress tests
 - 5 new property-based tests
@@ -22,6 +23,7 @@
 ## Stress Test Results
 
 ### 1. High-Throughput Writes (10K+ messages)
+
 ```
 ✓ should handle 10K+ high-throughput writes (204-213ms)
   Performance: ~303,030 msg/sec
@@ -30,6 +32,7 @@
 ```
 
 ### 2. Concurrent Writes (Multiple Sinks)
+
 ```
 ✓ should handle concurrent writes from multiple sinks (100-146ms)
   Sinks: 5 concurrent
@@ -39,6 +42,7 @@
 ```
 
 ### 3. Large File Handling (10MB+)
+
 ```
 ✓ should handle large file writes (10MB+) (52-187ms)
   File size: 10.00 MB
@@ -48,6 +52,7 @@
 ```
 
 ### 4. Data Integrity with fsync=always
+
 ```
 ✓ should maintain data integrity under stress with fsync=always (33-88ms)
   Messages: 1,000 with backpressure
@@ -57,6 +62,7 @@
 ```
 
 ### 5. Mixed Size Writes
+
 ```
 ✓ should handle mixed size writes efficiently (28-37ms)
   Writes: 5,000 mixed sizes
@@ -65,6 +71,7 @@
 ```
 
 ### 6. Rapid Start/Stop Cycles
+
 ```
 ✓ should handle rapid start/stop cycles (46-57ms)
   Cycles: 50 complete start/stop sequences
@@ -77,6 +84,7 @@
 ## Property-Based Test Results
 
 ### 1. Write Order Preservation
+
 ```
 ✓ should preserve write order for any sequence of strings (138-147ms)
   Property: Order of writes equals order in file
@@ -86,6 +94,7 @@
 ```
 
 ### 2. Byte Counting Accuracy
+
 ```
 ✓ should correctly count bytes for any buffer sequence (47-61ms)
   Property: stats.byteCount equals file size
@@ -95,6 +104,7 @@
 ```
 
 ### 3. File Path Structure Handling
+
 ```
 ✓ should handle any valid file path structure (47-55ms)
   Property: Nested directories created automatically
@@ -104,6 +114,7 @@
 ```
 
 ### 4. JSONL Format Validation
+
 ```
 ✓ should produce valid JSONL for any input strings (17-61ms)
   Property: Every line is valid JSON with ts + data
@@ -113,6 +124,7 @@
 ```
 
 ### 5. Statistics Invariants
+
 ```
 ✓ should maintain statistics invariants (49-97ms)
   Property: writeCount ≥ 0, byteCount ≥ 0, byteCount = file size
@@ -125,19 +137,20 @@
 
 ## Performance Benchmarks
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| **Peak throughput** | ~303K msg/sec | 10K sequential writes |
-| **Large file write** | ~270-310 MB/sec | 64KB chunks |
-| **fsync overhead** | ~30-50ms | 1K messages with fsync=always |
-| **Concurrent sinks** | 5 simultaneous | No conflicts or errors |
-| **Lifecycle overhead** | ~1ms/cycle | 50 start/stop cycles |
+| Metric                 | Value           | Notes                         |
+| ---------------------- | --------------- | ----------------------------- |
+| **Peak throughput**    | ~303K msg/sec   | 10K sequential writes         |
+| **Large file write**   | ~270-310 MB/sec | 64KB chunks                   |
+| **fsync overhead**     | ~30-50ms        | 1K messages with fsync=always |
+| **Concurrent sinks**   | 5 simultaneous  | No conflicts or errors        |
+| **Lifecycle overhead** | ~1ms/cycle      | 50 start/stop cycles          |
 
 ---
 
 ## Test Coverage
 
 ### Unit Tests (16 existing)
+
 - ✅ Basic file creation and writing
 - ✅ Append vs truncate modes
 - ✅ Nested directory creation
@@ -153,6 +166,7 @@
 - ✅ Partial line buffering
 
 ### Stress Tests (6 new)
+
 - ✅ High-throughput writes (10K+)
 - ✅ Concurrent writes (multiple sinks)
 - ✅ Large files (10MB+)
@@ -161,6 +175,7 @@
 - ✅ Rapid lifecycle cycles
 
 ### Property-Based Tests (5 new)
+
 - ✅ Write order preservation
 - ✅ Byte counting accuracy
 - ✅ Path structure handling
@@ -187,6 +202,7 @@
 ✅ **READY FOR PRODUCTION**
 
 **Strengths:**
+
 - Excellent throughput for logging workloads
 - Robust error handling and backpressure management
 - Property-based tests ensure correctness across edge cases
@@ -194,6 +210,7 @@
 - Clean lifecycle management (start/stop)
 
 **Use Cases:**
+
 - High-throughput application logging (>100K msg/sec)
 - Structured log aggregation (JSONL format)
 - Large file batch processing
@@ -201,6 +218,7 @@
 - Audit trail persistence with fsync guarantees
 
 **Limitations:**
+
 - Single-file per sink (by design)
 - No built-in log rotation (use external tools)
 - fsync=always reduces throughput (expected tradeoff)

@@ -7,6 +7,7 @@ Scope: Technical summary of terminology and deployment/ supervision discussion (
 ## Terminology: How Microkernel Folks Say It
 
 Correct phrasings (Mach/Hurd style):
+
 - “Servers run in user space”
 - “Servers run on top of the kernel”
 - “Servers communicate through the kernel”
@@ -14,11 +15,13 @@ Correct phrasings (Mach/Hurd style):
 - “Servers use kernel‑provided IPC” / “Servers are kernel clients”
 
 Avoid (monolithic connotation):
+
 - “Servers run in the kernel”
 - “The kernel contains/has servers”
 - “The kernel executes servers”
 
 Boundary emphasis:
+
 - Kernel = plumbing (IPC, connections, registry)
 - Servers = logic (PTY, parsing, recording, networking)
 - Kernel is mechanism; server behavior is policy
@@ -83,11 +86,13 @@ Boundary emphasis:
 ## Terminology Cheat Sheet (summary)
 
 Say this:
+
 - “Servers run on the kernel / through the kernel”
 - “Kernel provides pipes; servers use kernel IPC”
 - “Servers are kernel clients; servers run in user space”
 
 Not this:
+
 - “Servers run in the kernel / kernel has servers / kernel executes servers”
 
 ## Recap: Philosophy Statements

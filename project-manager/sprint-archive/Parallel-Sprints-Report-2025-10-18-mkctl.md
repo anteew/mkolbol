@@ -11,6 +11,7 @@ Two parallel sprints have been completed and merged into `main` via Pull Request
 2.  **`SB-DEVEX-MKCTL-P1` (Vex):** This sprint focused on documenting the new `mkctl run` command and further improving the "First Five Minutes" experience for new developers.
 
 **Outcome:**
+
 - All tasks for both sprints were completed successfully.
 - The work was integrated into the `main` branch via the merge of Pull Request #63, which passed all CI checks.
 
@@ -18,8 +19,8 @@ Two parallel sprints have been completed and merged into `main` via Pull Request
 
 Continuing our data-driven analysis of Laminar, I have compared the raw test output with the Laminar summary from the CI run for PR #63.
 
--   **Raw Vitest Log (`threads_raw.log`):** 27,441 bytes
--   **Laminar Summary (`summary.jsonl`):** 2,571 bytes
+- **Raw Vitest Log (`threads_raw.log`):** 27,441 bytes
+- **Laminar Summary (`summary.jsonl`):** 2,571 bytes
 
 **Result:**
 For this sprint, Laminar provided a **91% reduction** in the size of the test summary output. This is consistent with our previous findings and continues to demonstrate the powerful token-saving capabilities of our observability pipeline.
@@ -27,7 +28,7 @@ For this sprint, Laminar provided a **91% reduction** in the size of the test su
 ## 3. Key Events & Observations
 
 - The parallel sprint workflow continues to be highly effective.
-- The PR description noted that the *next* sprint (`SB-MK-ANSI-PARSER-P3`) is already staged in `ampcode.md`. This is a great process improvement, as it gives us early visibility.
+- The PR description noted that the _next_ sprint (`SB-MK-ANSI-PARSER-P3`) is already staged in `ampcode.md`. This is a great process improvement, as it gives us early visibility.
 
 ## 4. Questions for Danny
 

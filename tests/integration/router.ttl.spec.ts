@@ -108,7 +108,7 @@ describe('RoutingServer TTL and Expiry', () => {
       const expectedExpiry = endpoint.expiresAt;
 
       await new Promise((resolve) => setTimeout(resolve, 150));
-      
+
       expect(Date.now()).toBeGreaterThan(expectedExpiry);
       router.sweep();
 
@@ -120,10 +120,10 @@ describe('RoutingServer TTL and Expiry', () => {
 
       router.announce(baseAnnouncement);
       await new Promise((resolve) => setTimeout(resolve, 100));
-      
+
       const endpoint = router.list()[0];
       expect(Date.now()).toBeLessThan(endpoint.expiresAt);
-      
+
       router.sweep();
       expect(router.list()).toHaveLength(1);
     });
@@ -133,7 +133,7 @@ describe('RoutingServer TTL and Expiry', () => {
 
       router.announce(baseAnnouncement);
       const endpoint = router.list()[0];
-      
+
       router.startSweeper();
       expect(router.list()).toHaveLength(1);
 
@@ -170,9 +170,9 @@ describe('RoutingServer TTL and Expiry', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
       router.announce({ ...baseAnnouncement, id: 'ep2' });
       await new Promise((resolve) => setTimeout(resolve, 60));
-      
+
       router.sweep();
-      
+
       const remaining = router.list();
       expect(remaining).toHaveLength(1);
       expect(remaining[0].id).toBe('ep2');
@@ -188,7 +188,7 @@ describe('RoutingServer TTL and Expiry', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       router.announce(baseAnnouncement);
       const second = router.list()[0];
-      
+
       expect(second.announcedAt).toBe(first.announcedAt);
       expect(second.updatedAt).toBeGreaterThan(first.updatedAt);
       expect(second.expiresAt).toBe(second.updatedAt + 1000);
@@ -238,16 +238,16 @@ describe('RoutingServer TTL and Expiry', () => {
       router = new RoutingServer({ ttlMs: 200, sweepIntervalMs: 50 });
 
       router.announce({ ...baseAnnouncement, id: 'ep1' });
-      const ep1Expiry = router.list().find(e => e.id === 'ep1')!.expiresAt;
+      const ep1Expiry = router.list().find((e) => e.id === 'ep1')!.expiresAt;
 
       await new Promise((resolve) => setTimeout(resolve, 100));
       router.announce({ ...baseAnnouncement, id: 'ep2' });
-      const ep2Expiry = router.list().find(e => e.id === 'ep2')!.expiresAt;
+      const ep2Expiry = router.list().find((e) => e.id === 'ep2')!.expiresAt;
 
       expect(ep2Expiry).toBeGreaterThan(ep1Expiry);
 
       await new Promise((resolve) => setTimeout(resolve, 120));
-      
+
       const now = Date.now();
       expect(now).toBeGreaterThan(ep1Expiry);
       expect(now).toBeLessThan(ep2Expiry);

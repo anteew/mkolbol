@@ -32,6 +32,7 @@ kernel.connect(pty.output, screen.input);
 **Pipes:** `PassThrough` streams (Node.js in-memory)
 
 **Deployment:**
+
 ```bash
 # Ship as single executable
 pkg index.js --target node18-linux-x64 --output terminal-app
@@ -41,12 +42,14 @@ pkg index.js --target node18-linux-x64 --output terminal-app
 ```
 
 **Advantages:**
+
 - ✅ Simplest deployment
 - ✅ Fastest (no IPC overhead)
 - ✅ Easy to debug
 - ✅ Single binary
 
 **Disadvantages:**
+
 - ❌ No crash isolation
 - ❌ All modules in same memory space
 - ❌ Cannot scale across machines
@@ -76,7 +79,7 @@ const keyboard = new KeyboardInput(kernel);
 const screen = new ScreenRenderer(kernel);
 
 // Connect to PTY in separate process
-const ptyPipe = kernel.createPipe('unix');  // Unix domain socket!
+const ptyPipe = kernel.createPipe('unix'); // Unix domain socket!
 
 kernel.connect(keyboard.output, ptyPipe);
 kernel.connect(ptyPipe, screen.input);
@@ -95,12 +98,14 @@ kernelPTY.connect(pty.output, ipcPipe);
 **Pipes:** `UnixSocketPipe` (Unix domain sockets)
 
 **Advantages:**
+
 - ✅ Crash isolation (PTY crashes, main process survives)
 - ✅ Resource limits per process
 - ✅ Security boundaries
 - ✅ Still on same machine (fast)
 
 **Disadvantages:**
+
 - ❌ IPC overhead (minimal with Unix sockets)
 - ❌ More complex deployment
 - ❌ Cannot scale across machines
@@ -156,12 +161,14 @@ kernelC.connect(gpuProcessor.output, fromMachineA.input);
 **Pipes:** `TCPPipe` or `WebSocketPipe` (network)
 
 **Advantages:**
+
 - ✅ Scale across multiple machines
 - ✅ Specialized hardware (GPU, storage, compute)
 - ✅ Fault tolerance (machine fails, system continues)
 - ✅ Geographic distribution
 
 **Disadvantages:**
+
 - ❌ Network latency
 - ❌ More complex deployment (Docker, K8s)
 - ❌ Network failures to handle
@@ -187,6 +194,7 @@ kernel.connect(uart.output, lcd.input);
 **Pipes:** `RingBufferPipe` (zero-copy shared memory)
 
 **Advantages:**
+
 - ✅ Minimal overhead
 - ✅ Deterministic latency
 - ✅ Direct hardware access
@@ -202,16 +210,16 @@ class Kernel {
     switch (type) {
       case 'local':
         return new PassThrough({ objectMode: true });
-      
+
       case 'unix':
         return new UnixSocketPipe(socketPath);
-      
+
       case 'tcp':
         return new TCPPipe(host, port);
-      
+
       case 'websocket':
         return new WebSocketPipe(url);
-      
+
       case 'ringbuf':
         return new RingBufferPipe(sharedMemory);
     }
@@ -290,20 +298,20 @@ services:
     volumes:
       - ./config:/config
     ports:
-      - "8080:8080"
-  
+      - '8080:8080'
+
   pty:
     image: stream-kernel:latest
     environment:
       - CONFIG=pty.yml
     volumes:
       - ./config:/config
-  
+
   gpu:
     image: stream-kernel:latest
     environment:
       - CONFIG=gpu.yml
-    runtime: nvidia  # GPU access
+    runtime: nvidia # GPU access
     volumes:
       - ./config:/config
 ```
@@ -329,13 +337,13 @@ spec:
   template:
     spec:
       containers:
-      - name: frontend
-        image: stream-kernel:latest
-        env:
-        - name: CONFIG
-          value: "frontend.yml"
-        - name: PTY_SERVICE
-          value: "pty-service:9001"
+        - name: frontend
+          image: stream-kernel:latest
+          env:
+            - name: CONFIG
+              value: 'frontend.yml'
+            - name: PTY_SERVICE
+              value: 'pty-service:9001'
 
 ---
 # pty-service.yml
@@ -347,7 +355,7 @@ spec:
   selector:
     app: pty
   ports:
-  - port: 9001
+    - port: 9001
 ```
 
 **Kubernetes handles service discovery!**
@@ -392,13 +400,14 @@ Pid ! Message
 // This module runs anywhere
 class ParserServer {
   constructor(kernel: Kernel) {
-    this.input = kernel.createPipe();   // Local? Unix? TCP? Doesn't care!
-    this.output = kernel.createPipe();  // Local? Unix? TCP? Doesn't care!
+    this.input = kernel.createPipe(); // Local? Unix? TCP? Doesn't care!
+    this.output = kernel.createPipe(); // Local? Unix? TCP? Doesn't care!
   }
 }
 ```
 
 Whether it runs:
+
 - In-process
 - Different process on same machine
 - Different machine across network
@@ -412,10 +421,11 @@ Whether it runs:
 ✅ **Go distributed:** Multi-machine for scale  
 ✅ **Same code everywhere:** No rewrites  
 ✅ **Test easily:** Local deployment for testing  
-✅ **Deploy flexibly:** Choose deployment per environment  
+✅ **Deploy flexibly:** Choose deployment per environment
 
 ## Next Steps
 
 See:
+
 - **[Distributed Service Mesh](06-distributed-service-mesh.md)** - Multi-machine routing patterns
 - **[Core Architecture](02-core-architecture.md)** - The `createPipe(type)` API

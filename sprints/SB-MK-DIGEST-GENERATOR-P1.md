@@ -5,9 +5,11 @@ Status: Planned
 Scope: Implement minimal digest generator to re‑enable digest tests; add basic rulepacks and redaction stub (no kernel changes)
 
 Goals
+
 - Provide `src/digest/generator.ts` with a minimal but typed `DigestGenerator` that reads JSONL logs, applies include/exclude rules, and emits a digest suitable for the existing digest tests.
 
 Tasks
+
 - T6601 — Types & Interfaces
   - Define `DigestEvent`, `DigestConfig`, `DigestRule`, `DigestOutput` in `src/digest/types.ts`.
 
@@ -21,12 +23,12 @@ Tasks
   - Ship `src/digest/rulepacks/node-defaults.ts` with a small set of useful defaults (errors, asserts, stack-like messages). Allow `rules: [...]` override/extend.
 
 - T6604 — Redaction stub
-  - Add a simple redaction function (regex‑based) to mask obvious tokens (e.g., sk_*, ghp_*, JWT‑like) to satisfy tests that expect redaction; keep pluggable.
+  - Add a simple redaction function (regex‑based) to mask obvious tokens (e.g., sk*\*, ghp*\*, JWT‑like) to satisfy tests that expect redaction; keep pluggable.
 
 - T6605 — Tests
   - Ensure `tests/digest/rulepacks.spec.ts` passes with the new generator. If tests require additional fields, extend `DigestOutput` minimally to satisfy assertions.
 
 Success Criteria
+
 - `npm run test:ci` passes digest suite without excluding it.
 - Generator is small, typed, and documented; no kernel changes.
-

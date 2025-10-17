@@ -7,10 +7,12 @@
 ## Overview
 
 mkolbol provides two primary CLI tools:
+
 - **mk** - Developer orchestrator (init, run, doctor, build, package, ci plan)
 - **mkctl** - Microkernel control (run topologies, inspect endpoints)
 
 This guide shows you how to:
+
 1. Install mkolbol using tarball, git tag, or vendor paths (no npm registry)
 2. Configure your system for "mk anywhere" usage
 3. Troubleshoot common installation issues
@@ -39,6 +41,7 @@ tar -xzf mkolbol-0.2.0.tgz -C /opt/mkolbol
 ```
 
 **Verify:**
+
 ```bash
 ls -la node_modules/mkolbol/dist/scripts/
 # Should see mk.js and mkctl.js
@@ -129,12 +132,14 @@ mkctl --help    # → Shows mkctl help
 ```
 
 **For zsh users:**
+
 ```bash
 echo "export PATH=\"$MKOLBOL_PATH/dist/scripts:\$PATH\"" >> ~/.zshrc
 source ~/.zshrc
 ```
 
 **For fish users:**
+
 ```fish
 set -Ux fish_user_paths /path/to/mkolbol/dist/scripts $fish_user_paths
 ```
@@ -156,11 +161,13 @@ mk --help       # → Shows mk help
 ```
 
 **Pros:**
+
 - No shell config changes needed
 - Works for all users on the system
 - Clean separation of system binaries
 
 **Cons:**
+
 - Requires sudo/root access
 - Manual updates when mkolbol moves
 
@@ -197,6 +204,7 @@ mk --help       # → Shows mk help
 #### Option 1: Add to PATH via System Properties (GUI)
 
 1. **Find mkolbol path:**
+
    ```powershell
    cd C:\path\to\mkolbol
    pwd
@@ -320,6 +328,7 @@ rm -rf test-project
 **Cause:** PATH not updated or shell not reloaded
 
 **Fix (Linux/macOS):**
+
 ```bash
 # Check if PATH includes mkolbol
 echo $PATH | grep mkolbol
@@ -332,6 +341,7 @@ source ~/.bashrc  # or source ~/.zshrc
 ```
 
 **Fix (Windows):**
+
 ```powershell
 # Check if PATH includes mkolbol
 $env:Path -split ';' | Select-String mkolbol
@@ -349,6 +359,7 @@ exit
 **Cause:** Script not executable (Linux/macOS only)
 
 **Fix:**
+
 ```bash
 chmod +x /path/to/mkolbol/dist/scripts/*.js
 ```
@@ -358,6 +369,7 @@ chmod +x /path/to/mkolbol/dist/scripts/*.js
 **Cause:** Multiple mk installations in PATH
 
 **Fix (Linux/macOS):**
+
 ```bash
 # Find all mk installations
 which -a mk
@@ -370,6 +382,7 @@ export PATH="/correct/path/to/mkolbol/dist/scripts:$PATH"
 ```
 
 **Fix (Windows):**
+
 ```powershell
 # Find all mk installations
 where.exe mk
@@ -383,6 +396,7 @@ where.exe mk
 **Cause:** Node not installed or not in PATH
 
 **Fix:**
+
 ```bash
 # Install Node 20+ (Ubuntu/Debian)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -396,6 +410,7 @@ brew install node@20
 ```
 
 **Verify:**
+
 ```bash
 node --version  # Should be v20.x or v24.x
 npm --version
@@ -406,6 +421,7 @@ npm --version
 **Cause:** Build failed or incomplete
 
 **Fix:**
+
 ```bash
 cd /path/to/mkolbol
 
@@ -424,6 +440,7 @@ ls -la dist/scripts/
 **Cause:** Absolute symlinks point to old location
 
 **Fix:**
+
 ```bash
 # Remove old symlinks
 sudo rm /usr/local/bin/mk /usr/local/bin/mkctl
@@ -439,6 +456,7 @@ sudo ln -s "$(pwd)/dist/scripts/mkctl.js" /usr/local/bin/mkctl
 **Cause:** Node path not absolute or spaces in path
 
 **Fix:**
+
 ```powershell
 # Get Node path
 where.exe node  # → C:\Program Files\nodejs\node.exe

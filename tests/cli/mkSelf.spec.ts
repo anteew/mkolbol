@@ -38,9 +38,13 @@ describe('mk self command', () => {
 
   describe('mk self install', () => {
     it('installs shim to specified bin directory', () => {
-      const r = spawnSync('node', [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo'], {
-        encoding: 'utf8',
-      });
+      const r = spawnSync(
+        'node',
+        [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo'],
+        {
+          encoding: 'utf8',
+        },
+      );
 
       expect(r.status).toBe(0);
       expect(r.stdout).toContain('✓ Installed mk to');
@@ -48,45 +52,61 @@ describe('mk self command', () => {
     });
 
     it('creates Windows .cmd shim on Windows platform', () => {
-      const r = spawnSync('node', [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo'], {
-        encoding: 'utf8',
-      });
+      const r = spawnSync(
+        'node',
+        [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo'],
+        {
+          encoding: 'utf8',
+        },
+      );
 
       expect(r.status).toBe(0);
-      
+
       if (process.platform === 'win32') {
         expect(existsSync(join(testBinDir, 'mk.cmd'))).toBe(true);
       }
     });
 
     it('creates executable Unix shim', () => {
-      const r = spawnSync('node', [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo'], {
-        encoding: 'utf8',
-      });
+      const r = spawnSync(
+        'node',
+        [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo'],
+        {
+          encoding: 'utf8',
+        },
+      );
 
       expect(r.status).toBe(0);
-      
+
       const shimPath = join(testBinDir, 'mk');
       expect(existsSync(shimPath)).toBe(true);
-      
+
       const content = readFileSync(shimPath, 'utf8');
       expect(content).toContain('#!/usr/bin/env bash');
       expect(content).toContain('node');
     });
 
     it('supports --copy flag to copy files instead of creating wrapper', () => {
-      const r = spawnSync('node', [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo', '--copy'], {
-        encoding: 'utf8',
-      });
+      const r = spawnSync(
+        'node',
+        [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo', '--copy'],
+        {
+          encoding: 'utf8',
+        },
+      );
 
       expect(r.status).toBe(0);
       expect(existsSync(join(testBinDir, 'mk'))).toBe(true);
     });
 
     it('supports --verbose flag for detailed output', () => {
-      const r = spawnSync('node', [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo', '--verbose'], {
-        encoding: 'utf8',
-      });
+      const r = spawnSync(
+        'node',
+        [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'repo', '--verbose'],
+        {
+          encoding: 'utf8',
+        },
+      );
 
       expect(r.status).toBe(0);
       expect(r.stdout).toContain('Created');
@@ -94,9 +114,13 @@ describe('mk self command', () => {
 
     it('fails gracefully when entry point not found', () => {
       const fakePath = join(testDir, 'nonexistent-bin');
-      const r = spawnSync('node', [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'global'], {
-        encoding: 'utf8',
-      });
+      const r = spawnSync(
+        'node',
+        [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'global'],
+        {
+          encoding: 'utf8',
+        },
+      );
 
       // Might fail or succeed depending on whether global mkolbol is installed
       expect(r.status).toBeGreaterThanOrEqual(0);
@@ -123,7 +147,9 @@ describe('mk self command', () => {
     });
 
     it('reports when no shims found', () => {
-      spawnSync('node', [mkPath, 'self', 'uninstall', '--bin-dir', testBinDir], { encoding: 'utf8' });
+      spawnSync('node', [mkPath, 'self', 'uninstall', '--bin-dir', testBinDir], {
+        encoding: 'utf8',
+      });
 
       const r = spawnSync('node', [mkPath, 'self', 'uninstall', '--bin-dir', testBinDir], {
         encoding: 'utf8',
@@ -154,7 +180,7 @@ describe('mk self command', () => {
 
       // Status can be 0 (found) or 1 (not found)
       expect([0, 1]).toContain(r.status);
-      
+
       if (r.status === 0) {
         expect(r.stdout).toContain('Found');
         expect(r.stdout).toContain('installation');
@@ -169,7 +195,7 @@ describe('mk self command', () => {
       });
 
       if (r.status === 0) {
-        const lines = r.stdout.split('\n').filter(l => l.trim().length > 0);
+        const lines = r.stdout.split('\n').filter((l) => l.trim().length > 0);
         expect(lines.length).toBeGreaterThan(0);
       }
     });
@@ -229,9 +255,13 @@ describe('mk self command', () => {
     });
 
     it('validates --from argument', () => {
-      const r = spawnSync('node', [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'invalid'], {
-        encoding: 'utf8',
-      });
+      const r = spawnSync(
+        'node',
+        [mkPath, 'self', 'install', '--bin-dir', testBinDir, '--from', 'invalid'],
+        {
+          encoding: 'utf8',
+        },
+      );
 
       expect(r.status).toBe(64);
       expect(r.stderr).toContain('--from must be "repo" or "global"');

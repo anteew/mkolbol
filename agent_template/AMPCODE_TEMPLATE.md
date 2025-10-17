@@ -200,18 +200,20 @@ At completion, aggregate to `ampcode.log` with:
 - [Any tricky parts the architect wants to flag upfront]
 
 Orchestration Log (amp)
+
 - amp should write a JSON Lines log to `reports/amp.log.jsonl` with entries:
   `ts`, `waveId`, `taskId`, `agent`, `state` (queued|running|pass|fail),
   `message`, and `exception`/`error` when applicable.
 - Keep the human-readable `ampcode.log` if desired; JSONL is the source of truth for tools.
 
-
 ## Lint Debt Clean Sweep (Pattern)
+
 - Branch name: `mkolbol-devex-pXX-lint-cleanup`
 - Goals: remove unused vars/args; drop obsolete eslint-disable comments; run Prettier; keep warnings policy as warn-only.
 - Exclude generated artifacts from formatting: add `dist/`, `reports/`, `patches/` to `.prettierignore` if not present.
 - Local gate: `npm run lint && npm run ci:local:fast` before push.
 
 ## Large File Archiving (Docs & Logs)
+
 - Rotate large logs (e.g., `ampcode.log`) into `archives/ampcode.log.<UTC>` and replace with a short pointer file.
 - When `devex.md` grows beyond ~10k lines, move completed sprint blocks into `archives/devex-<date>-archive.md` and leave links.

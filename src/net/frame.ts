@@ -44,7 +44,7 @@ export class FrameCodec {
 
     return {
       frame: { metadata, payload: payloadBuffer },
-      bytesConsumed: totalLength
+      bytesConsumed: totalLength,
     };
   }
 
@@ -52,7 +52,7 @@ export class FrameCodec {
     const payloadBuffer = typeof payload === 'string' ? Buffer.from(payload, 'utf8') : payload;
     return {
       metadata: { type: 'data', timestamp: Date.now(), sequenceId },
-      payload: payloadBuffer
+      payload: payloadBuffer,
     };
   }
 

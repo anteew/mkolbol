@@ -6,7 +6,7 @@ export class PassthroughRenderer {
 
   constructor(kernel: Kernel) {
     this.inputPipe = kernel.createPipe();
-    
+
     this.inputPipe.on('data', (data: Buffer) => {
       process.stdout.write(data);
     });

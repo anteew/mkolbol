@@ -28,6 +28,7 @@ node dist/scripts/mkctl.js run --file examples/configs/external-pty.yaml --durat
 ```
 
 **Why use mkctl run?**
+
 - No need to write TypeScript/JavaScript code
 - Config is shareable and version-controllable
 - Same approach scales from local development to distributed deployments
@@ -44,6 +45,7 @@ mkctl endpoints
 You’ll see the endpoint id, module type, coordinates (`node:<id>` for in-process modules), and the timestamps when the announcement was recorded. Re-run the command any time to confirm which modules are currently live.
 
 ---
+
 ### Local Node Mode (MK_LOCAL_NODE=1)
 
 By default, mkolbol runs in Local Node mode with in-process routing only. This is enforced via the `MK_LOCAL_NODE=1` environment variable:
@@ -54,11 +56,13 @@ MK_LOCAL_NODE=1 node dist/scripts/mkctl.js run --file examples/configs/basic.yml
 ```
 
 **What Local Node mode does:**
+
 - **Enables:** In-process RoutingServer, Executor, Hostess, StateManager
 - **Disables:** Network transports, distributed routing, multi-machine topologies
 - **Validates:** Config loader rejects any node with `type=network` or `address` parameters
 
 **When to use Local Node mode:**
+
 - Local development and testing
 - Single-machine deployments
 - When you don't need network communication
@@ -70,6 +74,7 @@ MK_LOCAL_NODE=1 node dist/scripts/mkctl.js run --file examples/configs/basic.yml
 ## Local Node v1.0 Demo: HTTP to Console
 
 This is the canonical "hello world" for Local Node routing. It demonstrates:
+
 - ExternalProcess (HTTP server) → ConsoleSink (terminal output)
 - RoutingServer endpoint discovery
 - Local Node topology lifecycle (spawn, run, shutdown)
@@ -84,6 +89,7 @@ node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --dur
 ```
 
 Expected output:
+
 ```
 Loading config from: examples/configs/http-logs-local.yml
 Bringing topology up...
@@ -99,6 +105,7 @@ curl -s http://localhost:3000/hello
 ```
 
 You'll see logged in Terminal 1:
+
 ```
 [http] [2025-10-17T04:15:23.456Z] GET /hello
 ```
@@ -115,6 +122,7 @@ node dist/scripts/mkctl.js endpoints --watch
 ```
 
 You'll see:
+
 ```
 Registered Endpoints (RoutingServer snapshot)
 
@@ -141,15 +149,18 @@ Coordinates: node:sink
 ### Today vs Soon
 
 **Today (Current):**
+
 - Output → ConsoleSink (terminal console)
 - Users who want persistent logs can tee output: `… | tee reports/http-demo.log`
 
 **FilesystemSink with PipeMeter (file output with metrics):**
+
 - Output → PipeMeter → FilesystemSink (writes to `reports/http-logs.jsonl`)
 - Use the ready-made config: `examples/configs/http-logs-local-file.yml`
 - Topology: ExternalProcess (HTTP server) → PipeMeterTransform → FilesystemSink (JSONL format)
 
 Run it:
+
 ```bash
 export MK_LOCAL_NODE=1
 node dist/scripts/mkctl.js run --file examples/configs/http-logs-local-file.yml --duration 5
@@ -160,6 +171,7 @@ cat reports/http-logs.jsonl
 ```
 
 Expected output in `reports/http-logs.jsonl`:
+
 ```jsonl
 {"ts":"2025-10-16T12:34:56.789Z","data":"Server listening on http://localhost:3000"}
 {"ts":"2025-10-16T12:34:57.123Z","data":"[2025-10-16T12:34:57.123Z] GET /"}
@@ -173,40 +185,45 @@ Expected output in `reports/http-logs.jsonl`:
 FilesystemSink supports two output formats:
 
 **Raw format (default):**
+
 ```yaml
 - id: sink
   module: FilesystemSink
   params:
     path: reports/output.log
-    format: raw  # default, can be omitted
+    format: raw # default, can be omitted
 ```
 
 **JSONL format with timestamps:**
+
 ```yaml
 - id: sink
   module: FilesystemSink
   params:
     path: reports/output.jsonl
-    format: jsonl  # wraps each chunk as {"ts": "2025-10-16T...", "data": "..."}
+    format: jsonl # wraps each chunk as {"ts": "2025-10-16T...", "data": "..."}
 ```
 
 Example JSONL output:
+
 ```jsonl
 {"ts":"2025-10-16T12:34:56.789Z","data":"[http] GET /hello"}
 {"ts":"2025-10-16T12:34:57.123Z","data":"[http] GET /test"}
 ```
 
 **Raw format with timestamps:**
+
 ```yaml
 - id: sink
   module: FilesystemSink
   params:
     path: reports/output.log
     format: raw
-    includeTimestamp: true  # prepends ISO timestamp to each line
+    includeTimestamp: true # prepends ISO timestamp to each line
 ```
 
 Example timestamped raw output:
+
 ```
 2025-10-16T12:34:56.789Z [http] GET /hello
 2025-10-16T12:34:57.123Z [http] GET /test
@@ -225,16 +242,16 @@ nodes:
       args:
         - -e
         - "require('http').createServer((req,res)=>{ … }).listen(3000)"
-      ioMode: stdio  # stdio for non-interactive (vs. pty for shells)
+      ioMode: stdio # stdio for non-interactive (vs. pty for shells)
 
   - id: sink
     module: ConsoleSink
     params:
-      prefix: "[http]"  # Add prefix to all console output
+      prefix: '[http]' # Add prefix to all console output
 
 connections:
   - from: web.output
-    to: sink.input  # Wire HTTP logs to console
+    to: sink.input # Wire HTTP logs to console
 ```
 
 Learn more: **[Wiring and Testing](./wiring-and-tests.md)** for complete config schema.
@@ -257,6 +274,7 @@ node dist/scripts/mkctl.js run --file examples/configs/tty-external.yml --durati
 This topology pipes `ls --color=always -la` output through TTYRenderer to your terminal with full ANSI color support.
 
 **Expected output:**
+
 ```
 total 456
 drwxr-xr-x  25 user  staff    800 Oct 16 14:32 .
@@ -288,7 +306,7 @@ nodes:
   - id: tty-renderer
     module: XtermTTYRenderer
     params:
-      altBuffer: false  # false = inline output; true = alternate screen
+      altBuffer: false # false = inline output; true = alternate screen
 
 connections:
   - from: ls-command.output
@@ -296,6 +314,7 @@ connections:
 ```
 
 **Key parameters:**
+
 - `ioMode: stdio` - Non-interactive command output (vs. `pty` for shells)
 - `altBuffer: false` - Inline rendering (set `true` to use alternate screen buffer)
 - `--color=always` - Force ANSI colors even when piped
@@ -303,6 +322,7 @@ connections:
 ### Other TTY Examples
 
 **Colorized grep output:**
+
 ```bash
 # Create config with grep --color=always
 cat > examples/configs/tty-grep.yml <<EOF
@@ -325,6 +345,7 @@ node dist/scripts/mkctl.js run --file examples/configs/tty-grep.yml --duration 3
 ```
 
 **Tail colored logs:**
+
 ```bash
 # Watch a log file with color highlighting
 node dist/scripts/mkctl.js run --file examples/configs/tty-tail-logs.yml --duration 10
@@ -346,10 +367,10 @@ node dist/scripts/mkctl.js run --file examples/configs/tty-external-alt.yml --du
 
 ### When to Use TTYRenderer vs ConsoleSink
 
-| Module | Use Case |
-|--------|----------|
+| Module               | Use Case                                                                  |
+| -------------------- | ------------------------------------------------------------------------- |
 | **XtermTTYRenderer** | Commands with ANSI colors, terminal control sequences, or rich formatting |
-| **ConsoleSink** | Plain text logs, structured data, or when you need prefix/formatting |
+| **ConsoleSink**      | Plain text logs, structured data, or when you need prefix/formatting      |
 
 ---
 
@@ -393,6 +414,7 @@ node dist/src/examples/tty-renderer-demo.js
 ### What You'll See
 
 The demo will:
+
 1. Enter alternate screen buffer (clears your terminal view)
 2. Spawn a bash shell in a PTY
 3. Send the command: `echo "xterm TTY renderer demo"`
@@ -411,6 +433,7 @@ echo "xterm TTY renderer demo"
 ```
 
 The output includes:
+
 - ANSI escape codes for colors (e.g., `[01;32m` for green bold text)
 - Bracketed paste mode sequences (`[?2004h` and `[?2004l`)
 - Terminal title sequences (`]0;...`)
@@ -467,10 +490,12 @@ npm run build
 **Problem:** Insufficient permissions to create a PTY.
 
 **macOS Solution:**
+
 - Check System Preferences → Security & Privacy → Privacy → Developer Tools
 - Grant Terminal.app or your terminal emulator full disk access
 
 **Linux Solution:**
+
 - Ensure your user is in the `tty` group:
   ```bash
   groups | grep tty
@@ -539,8 +564,8 @@ This demo uses mkolbol's **ExternalProcess** support with PTY mode. The PTYServe
 ```yaml
 params:
   command: /bin/bash
-  ioMode: 'pty'                    # PTY mode (vs. stdio)
-  terminalType: 'xterm-256color'   # Terminal emulation
+  ioMode: 'pty' # PTY mode (vs. stdio)
+  terminalType: 'xterm-256color' # Terminal emulation
 ```
 
 To understand how to configure external processes from YAML/JSON files, see **[Wiring and Testing](./wiring-and-tests.md#external-process-configuration)** guide.
@@ -552,11 +577,13 @@ For non-interactive data pipelines using `stdio` mode, see the **[StdIO Path](./
 Congratulations on running your first topology! Here's what to explore next:
 
 ### Continue Your Journey
+
 - **[Early Adopter Guide - Quick Start](./early-adopter-guide.md#quick-start-choose-your-path)** - Choose your next path (build, deploy, or dive deeper)
 - **[Interactive Topology](./interactive-topology.md)** - Build keyboard → PTY → TTY pipelines
 - **[StdIO Path](./stdio-path.md)** - Explore non-interactive data processing
 
 ### Learn More
+
 - **[Wiring and Testing](./wiring-and-tests.md)** - Configuration and testing with external processes
 - **[First Server Tutorial](./first-server-tutorial.md)** - Build your first custom module
 - **[Stream Kernel RFC](../rfcs/stream-kernel/00-index.md)** - Architecture deep dive

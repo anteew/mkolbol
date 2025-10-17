@@ -12,6 +12,7 @@ Number Generator → Calculator → Display Results
 ```
 
 **Time breakdown:**
+
 - 2 min: Create project structure
 - 3 min: Write the calculator logic
 - 2 min: Create config file
@@ -31,6 +32,7 @@ npm init -y
 ### Install mkolbol (Recommended: Tarball)
 
 **Tarball (Reproducible, Recommended):**
+
 ```bash
 # Local tarball from this repo
 git clone https://github.com/anteew/mkolbol.git
@@ -39,6 +41,7 @@ cd - && npm install ./mkolbol/mkolbol-*.tgz
 ```
 
 **Or from Git tag:**
+
 ```bash
 npm install github:anteew/mkolbol#v0.2.0
 ```
@@ -141,12 +144,12 @@ nodes:
   - id: generator
     module: TimerSource
     params:
-      periodMs: 1000  # Emit every 1 second
+      periodMs: 1000 # Emit every 1 second
 
   - id: display
     module: ConsoleSink
     params:
-      prefix: "[calc]"
+      prefix: '[calc]'
 
 connections:
   - from: generator.output
@@ -170,6 +173,7 @@ npx mkctl run --file config/calculator.yml --duration 10
 ```
 
 **Expected output:**
+
 ```
 [calc] tick
 [calc] tick
@@ -202,7 +206,7 @@ nodes:
   - id: display
     module: ConsoleSink
     params:
-      prefix: "[result]"
+      prefix: '[result]'
 
 connections:
   - from: generator.output
@@ -229,6 +233,7 @@ npx mkctl run --file config/calculator.yml --duration 10
 ```
 
 **Expected output:**
+
 ```
 [result] tick → 10 (operation #1)
 [result] tick → 20 (operation #2)
@@ -245,6 +250,7 @@ params:
 ```
 
 Output:
+
 ```
 [result] tick → tick squared
 [result] tick → tick squared
@@ -312,6 +318,7 @@ connections:
 Here's the full calculator module for reference:
 
 **src/calculator.ts**
+
 ```typescript
 import { Kernel } from 'mkolbol';
 
@@ -373,6 +380,7 @@ export class Calculator {
 ```
 
 **config/calculator.yml**
+
 ```yaml
 nodes:
   - id: generator
@@ -389,7 +397,7 @@ nodes:
   - id: display
     module: ConsoleSink
     params:
-      prefix: "[result]"
+      prefix: '[result]'
 
 connections:
   - from: generator.output
@@ -399,6 +407,7 @@ connections:
 ```
 
 **package.json**
+
 ```json
 {
   "name": "hello-calculator",

@@ -1,13 +1,16 @@
 # Sprint SB-MK-WORKER-PIPE-P1 (P1)
 
 Goal
+
 - Implement a proper Worker data pipe adapter so worker-mode nodes have a real Duplex transport with backpressure and error propagation, then wire Executor 'worker' runMode to use it end‑to‑end with tests. Keep the kernel unchanged.
 
 Constraints
+
 - No kernel changes. Focus on `src/transport/worker/*`, `Executor` wiring, and tests.
 - Maintain lane split; worker tests run in threads lane (unit) and forks lane (integration) as needed.
 
 Tasks
+
 - T5301 — WorkerPipeAdapter: full Duplex
   - Outcome: `src/transport/worker/WorkerPipeAdapter.ts` implements Duplex over `MessagePort` with backpressure, pause/resume, end/close, and error propagation.
   - DoD:
@@ -35,10 +38,12 @@ Tasks
     - Append a short subsection to `docs/rfcs/stream-kernel/02-core-architecture.md` or add `docs/rfcs/stream-kernel/worker-mode.md`.
 
 Verification
+
 - Build: `npm ci && npm run build`
 - Threads: `npm run test:ci` — worker unit tests pass
 - Forks: `npm run test:pty` — worker integration spec passes
 - Artifacts: `reports/summary.jsonl`, relevant per‑case logs
 
 Reporting
+
 - Update `ampcode.log` with PASS/FAIL per task, file diffs, and verification commands. Do not branch/commit/push (VEGA handles git).

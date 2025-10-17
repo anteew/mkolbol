@@ -38,6 +38,7 @@ Thank you for being an early adopter! Your feedback is invaluable in shaping mko
 ### What Makes Good Feedback
 
 **Good feedback is:**
+
 - **Specific** - "The lam summary command fails with Error X" vs. "Laminar doesn't work"
 - **Reproducible** - Include steps or a repo link so we can reproduce the issue
 - **Contextual** - Include environment details (OS, Node version, etc.)
@@ -58,6 +59,7 @@ A **minimal reproducible example** (repro) is the fastest way to get your issue 
 ### When to Create a GitHub Repo
 
 Create a separate GitHub repository if:
+
 - The issue requires multiple files or a specific directory structure
 - You're using custom configuration files (vitest.config.ts, laminar.config.json, etc.)
 - The issue involves build/compilation steps
@@ -78,6 +80,7 @@ your-mkolbol-repro/
 **Steps to create:**
 
 1. **Initialize a new repo:**
+
    ```bash
    mkdir mkolbol-issue-123
    cd mkolbol-issue-123
@@ -86,11 +89,13 @@ your-mkolbol-repro/
    ```
 
 2. **Install minimal dependencies:**
+
    ```bash
    npm install mkolbol vitest
    ```
 
 3. **Add a single test file** that reproduces the issue:
+
    ```typescript
    // tests/repro.spec.ts
    import { describe, it, expect } from 'vitest';
@@ -105,19 +110,24 @@ your-mkolbol-repro/
    ```
 
 4. **Add a README** with repro steps:
+
    ```markdown
    # Repro for mkolbol issue #123
 
    ## Setup
+
    npm install
 
    ## Reproduce
+
    npm test
 
    ## Expected
+
    Test should pass
 
    ## Actual
+
    Test fails with error: [paste error]
    ```
 
@@ -126,6 +136,7 @@ your-mkolbol-repro/
 ### When to Use an Inline Example
 
 Use an inline code snippet if:
+
 - The issue can be reproduced with <20 lines of code
 - No custom configuration is needed
 - The issue is a simple API misuse or unexpected behavior
@@ -139,7 +150,7 @@ const kernel = new Kernel();
 const pipe = kernel.createPipe();
 
 // This throws an unexpected error
-pipe.write('test');  // TypeError: Cannot read property 'write' of undefined
+pipe.write('test'); // TypeError: Cannot read property 'write' of undefined
 ```
 
 ### What to Include
@@ -147,18 +158,23 @@ pipe.write('test');  // TypeError: Cannot read property 'write' of undefined
 Your minimal repro should include:
 
 #### Code
+
 - **Only the code necessary to reproduce the issue** - Remove unrelated logic
 - **Use default configurations** - Avoid custom configs unless they're part of the issue
 - **Isolate the problem** - One test case that fails, not an entire test suite
 
 #### Configuration
+
 Include configuration files only if they're relevant:
+
 - `package.json` - Only dependencies needed for the repro
 - `vitest.config.ts` - Only if custom config triggers the issue
 - `laminar.config.json` - Only if digest rules or config affect the issue
 
 #### Commands
+
 Document the exact commands to reproduce:
+
 ```bash
 # Install
 npm install
@@ -183,6 +199,7 @@ npx lam run --lane auto
 5. **Remove external dependencies** - Avoid databases, APIs, or third-party services
 
 **Before (not minimal):**
+
 ```typescript
 describe('Complex integration test suite', () => {
   let db, cache, api, kernel, executor, stateManager;
@@ -206,6 +223,7 @@ describe('Complex integration test suite', () => {
 ```
 
 **After (minimal):**
+
 ```typescript
 import { Executor, Kernel } from 'mkolbol';
 
@@ -214,7 +232,7 @@ it('fails when loading invalid topology', async () => {
   const executor = new Executor(kernel);
 
   const topology = { nodes: [], connections: [{ from: 'invalid', to: 'invalid' }] };
-  await executor.load(topology);  // Throws error
+  await executor.load(topology); // Throws error
 });
 ```
 
@@ -245,12 +263,14 @@ reports/
 **When to attach**: Always
 
 **What it contains**:
+
 - Pass/fail status for all tests
 - Durations
 - Error messages (if failed)
 - Artifact URIs (paths to detailed logs)
 
 **How to generate**:
+
 ```bash
 npx lam summary > summary.txt
 ```
@@ -262,6 +282,7 @@ Paste the output in your issue or attach `reports/summary.jsonl`.
 **When to attach**: For failing tests
 
 **What it contains**:
+
 - Full event stream for the test case
 - Setup, run, and teardown phases
 - stdout/stderr output
@@ -269,6 +290,7 @@ Paste the output in your issue or attach `reports/summary.jsonl`.
 - Error stack traces
 
 **How to find**:
+
 ```bash
 # List all case logs
 ls reports/*/*.jsonl
@@ -278,6 +300,7 @@ cat reports/kernel.spec/connect_moves_data_1_1.jsonl
 ```
 
 **What to include in issue**:
+
 - Attach the `.jsonl` file as a file attachment, OR
 - Paste relevant excerpts (first 50 lines, or events around the failure)
 
@@ -286,12 +309,14 @@ cat reports/kernel.spec/connect_moves_data_1_1.jsonl
 **When to attach**: Always
 
 **What it contains**:
+
 - Raw console output from your command
 - Error messages in their original format
 - Stack traces
 - Warnings and debug output
 
 **How to capture**:
+
 ```bash
 # Redirect both stdout and stderr to a file
 npm test > test-output.log 2>&1
@@ -306,9 +331,10 @@ Paste the full output in a `<details>` block:
 ```markdown
 <details>
 <summary>Full Terminal Output</summary>
-
 ```
+
 [paste output here]
+
 ```
 
 </details>
@@ -319,11 +345,13 @@ Paste the full output in a `<details>` block:
 **When to attach**: If you ran `npx lam digest`
 
 **What it contains**:
+
 - Filtered/sliced view of the failing test
 - Events around assertion failures
 - Structured failure summary
 
 **How to generate**:
+
 ```bash
 npx lam digest
 ```
@@ -336,6 +364,7 @@ Attach the `.digest.json` file(s) for failing tests.
 **When to attach**: Always
 
 **What to include**:
+
 ```bash
 # Node.js version
 node --version
@@ -360,18 +389,22 @@ Paste this information in the "Environment" section of the bug report.
 **What to attach**:
 
 1. **Summary**:
+
    ```bash
    npx lam summary > reports/SUMMARY.txt
    ```
+
    Attach `reports/SUMMARY.txt`
 
 2. **Case log**:
    Attach `reports/kernel.spec/connect_moves_data_1_1.jsonl`
 
 3. **Terminal output**:
+
    ```bash
    npx lam run --lane auto > lam-run.log 2>&1
    ```
+
    Paste `lam-run.log` in a `<details>` block
 
 4. **System info**:
@@ -390,6 +423,7 @@ Paste this information in the "Environment" section of the bug report.
 4. **Use gists** - For very large logs, create a GitHub Gist and link it
 
 **Tips**:
+
 - Compress large files: `tar czf reports.tar.gz reports/`
 - Use `.txt` extension for better GitHub preview: `mv output.log output.txt`
 
@@ -405,6 +439,7 @@ Follow these best practices to ensure your feedback is actionable:
 ![screenshot of error message]
 
 **✅ Do this:**
+
 ```
 Error: Cannot find module 'mkolbol'
   at Function.Module._resolveFilename (internal/modules/cjs/loader.js:889:15)
@@ -419,11 +454,13 @@ Error: Cannot find module 'mkolbol'
 ### 2. Include Full Error Messages
 
 **❌ Partial error:**
+
 ```
 Error: Invalid config
 ```
 
 **✅ Full stack trace:**
+
 ```
 Error: Invalid config: 'nodes' is required
   at Executor.load (/srv/repos0/mkolbol/dist/src/executor/Executor.js:42:15)
@@ -439,16 +476,19 @@ Error: Invalid config: 'nodes' is required
 When creating an issue, use labels to categorize it:
 
 **Bug reports:**
+
 - `devex` - DevEx-related issue
 - `bug` - Confirmed bug
 - `needs-repro` - Waiting for reproducible example
 
 **Feature requests:**
+
 - `devex` - DevEx-related request
 - `feature-request` - New feature
 - `enhancement` - Improvement to existing feature
 
 **Documentation:**
+
 - `docs` - Documentation issue/request
 - `examples` - Example code request
 
@@ -469,6 +509,7 @@ Fixes #18
 ### 5. Provide Context
 
 Don't just say "it doesn't work" - explain:
+
 - What you were trying to accomplish
 - What you expected to happen
 - What actually happened
@@ -491,6 +532,7 @@ If you're stuck or need help before filing an issue, here are your options:
 **How to access**: [GitHub Discussions](https://github.com/anteew/mkolbol/discussions)
 
 **Topics**:
+
 - **Q&A** - Ask questions about usage, APIs, or best practices
 - **Show and Tell** - Share what you've built with mkolbol
 - **Ideas** - Propose features or improvements (before creating a formal issue)
@@ -498,6 +540,7 @@ If you're stuck or need help before filing an issue, here are your options:
 ### FAQ and Documentation
 
 **Check these resources first:**
+
 - [Early Adopter Guide](docs/devex/early-adopter-guide.md) - 5-minute intro
 - [Quickstart](README.md#quickstart) - Installation and first steps
 - [Laminar Workflow Guide](docs/devex/laminar-workflow.md) - Test observability
@@ -505,6 +548,7 @@ If you're stuck or need help before filing an issue, here are your options:
 - [Testing CI Guide](docs/testing/ci.md) - CI integration
 
 **Common questions:**
+
 - **Installation issues** → [README Installation](README.md#installation)
 - **Test failures** → [Laminar Workflow](docs/devex/laminar-workflow.md)
 - **PTY/process mode** → [Process Mode CI](docs/testing/process-mode-ci.md)
@@ -519,6 +563,7 @@ If a community chat is added in the future, it will be linked in the README.
 ### Direct Issue Filing
 
 If you've:
+
 - Checked existing issues and docs
 - Have a reproducible bug or clear feature request
 - Can provide the necessary logs/context
@@ -557,7 +602,7 @@ If you're contributing code (PRs), here's what to expect:
 ### Tips for Faster Reviews
 
 - **Keep PRs small** - <300 lines of code change when possible
-- **Write clear commit messages** - Explain *why*, not just *what*
+- **Write clear commit messages** - Explain _why_, not just _what_
 - **Add tests** - Reviewers prioritize tested code
 - **Link to issues** - Reference the issue your PR addresses
 - **Respond to feedback** - Engage constructively with reviewer comments
@@ -566,22 +611,27 @@ If you're contributing code (PRs), here's what to expect:
 
 ```markdown
 ## Summary
+
 Fixes #123 - Add support for custom ANSI escape sequences in AnsiParser
 
 ## Changes
+
 - Extended AnsiParserModule to handle custom CSI sequences
 - Added configurable parser hooks for unknown sequences
 - Updated tests to cover new functionality
 
 ## Test Plan
+
 - [x] Added unit tests for custom sequence handling
 - [x] Verified existing tests still pass
 - [x] Tested with real PTY output (attached example in issue #123)
 
 ## Breaking Changes
+
 None
 
 ## Documentation
+
 - Updated AnsiParserModule JSDoc
 - Added example in examples/ansi-parser-custom.ts
 ```
@@ -589,6 +639,7 @@ None
 ### How to Follow Up
 
 If your PR hasn't received feedback in the expected timeframe:
+
 1. **Add a polite comment** - "Friendly ping - any feedback on this PR?"
 2. **Check CI status** - Ensure all checks are passing
 3. **Be patient** - Maintainers may be busy; they'll get to it
@@ -602,6 +653,7 @@ We provide two issue templates to streamline feedback:
 ### When to Use `devex_bug.md`
 
 Use this template when:
+
 - You encountered an error or unexpected behavior
 - Tests are failing
 - Installation or setup failed
@@ -609,6 +661,7 @@ Use this template when:
 - Performance is degraded
 
 **Required fields:**
+
 - Bug description
 - Steps to reproduce
 - Expected vs. actual behavior
@@ -618,18 +671,21 @@ Use this template when:
 - Full error messages and logs
 
 **Optional fields:**
+
 - Laminar reports (if using Laminar)
 - Additional context
 
 ### When to Use `devex_request.md`
 
 Use this template when:
+
 - You want a new feature
 - You have an idea for improvement
 - Documentation is missing or unclear
 - Integration with another tool would be helpful
 
 **Required fields:**
+
 - Feature summary
 - Motivation (why is this needed?)
 - Proposed solution (if you have one)
@@ -638,6 +694,7 @@ Use this template when:
 - Related documentation/RFCs
 
 **Optional fields:**
+
 - Implementation considerations
 - Related issues
 - Example workflow
@@ -647,6 +704,7 @@ Use this template when:
 #### Bug Report (`devex_bug.md`)
 
 **Required** (issue may be closed if missing):
+
 - [x] Bug description
 - [x] Steps to reproduce
 - [x] Expected vs. actual behavior
@@ -656,12 +714,14 @@ Use this template when:
 - [x] Full error message
 
 **Optional** (nice to have):
+
 - [ ] Laminar summary output
 - [ ] Laminar per-case logs
 - [ ] Digest output
 - [ ] Additional context
 
 **Checklist items** (required):
+
 - [x] Read Early Adopter Guide
 - [x] Checked for duplicates
 - [x] Provided minimal repro
@@ -670,11 +730,13 @@ Use this template when:
 #### Feature Request (`devex_request.md`)
 
 **Required**:
+
 - [x] Feature summary
 - [x] Motivation (why needed?)
 - [x] Pain point addressed
 
 **Optional**:
+
 - [ ] Proposed solution
 - [ ] Alternatives considered
 - [ ] Related docs/RFCs
@@ -682,6 +744,7 @@ Use this template when:
 - [ ] Related issues
 
 **Checklist items** (required):
+
 - [x] Read Early Adopter Guide
 - [x] Checked for duplicates
 - [x] Described motivation clearly
@@ -691,6 +754,7 @@ Use this template when:
 ## Final Tips for Early Adopters
 
 ### Do:
+
 - ✅ Read the Early Adopter Guide before diving in
 - ✅ Try the Quickstart examples to understand the basics
 - ✅ Provide minimal, reproducible examples
@@ -699,6 +763,7 @@ Use this template when:
 - ✅ Use the issue templates
 
 ### Don't:
+
 - ❌ File duplicate issues (search first!)
 - ❌ Provide vague descriptions ("doesn't work")
 - ❌ Skip the reproducible example
@@ -706,6 +771,7 @@ Use this template when:
 - ❌ Expect instant responses (maintainers are humans too!)
 
 ### Remember:
+
 Your feedback shapes mkolbol's future. Even "small" bugs or suggestions are valuable. We appreciate your time and effort in helping us improve!
 
 ---

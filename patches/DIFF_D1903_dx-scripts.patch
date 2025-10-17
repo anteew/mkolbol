@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index 444286b..524a566 100644
+--- a/package.json
++++ b/package.json
+@@ -84,6 +84,7 @@
+     "lint": "eslint .",
+     "lint:fix": "eslint . --fix",
+     "format": "prettier -w .",
++    "format:write": "prettier -w .",
+     "format:check": "prettier -c .",
+     "ci:local": "tsx scripts/ci-local.ts",
+     "ci:local:fast": "CI_FAST=1 tsx scripts/ci-local.ts",

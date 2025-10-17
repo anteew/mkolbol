@@ -23,26 +23,30 @@ describe('Hostess', () => {
       classHex: '0x0002',
       owner: 'system',
       terminals: [{ name: 'display', type: 'local', direction: 'input' }],
-      capabilities: { type: 'output', accepts: ['terminal-state'], produces: [] }
+      capabilities: { type: 'output', accepts: ['terminal-state'], produces: [] },
     });
     return hostess.register(manifest);
   }
 
   it('registers and queries by capabilities', () => {
     const id = registerRenderer();
-    const results = hostess.query({ type: 'output', accepts: 'terminal-state', availableOnly: true });
-    expect(results.find(e => e.identity === id)).toBeTruthy();
+    const results = hostess.query({
+      type: 'output',
+      accepts: 'terminal-state',
+      availableOnly: true,
+    });
+    expect(results.find((e) => e.identity === id)).toBeTruthy();
   });
 
   it('marks in-use and back to available', () => {
     const id = registerRenderer();
     hostess.markInUse(id, 'display', 'connectome-1');
     let results = hostess.query({ type: 'output', accepts: 'terminal-state', availableOnly: true });
-    expect(results.find(e => e.identity === id)).toBeFalsy();
+    expect(results.find((e) => e.identity === id)).toBeFalsy();
 
     hostess.markAvailable(id, 'display');
     results = hostess.query({ type: 'output', accepts: 'terminal-state', availableOnly: true });
-    expect(results.find(e => e.identity === id)).toBeTruthy();
+    expect(results.find((e) => e.identity === id)).toBeTruthy();
   });
 
   it('evicts after missed heartbeats', () => {
@@ -50,7 +54,7 @@ describe('Hostess', () => {
     vi.advanceTimersByTime(21000);
     vi.advanceTimersByTime(3000);
     const results = hostess.query({ availableOnly: true });
-    expect(results.find(e => e.identity === id)).toBeFalsy();
+    expect(results.find((e) => e.identity === id)).toBeFalsy();
   });
 
   it('heartbeat maintains liveness', () => {
@@ -61,6 +65,6 @@ describe('Hostess', () => {
       vi.advanceTimersByTime(200);
     }
     const results = hostess.query({ availableOnly: true });
-    expect(results.find(e => e.identity === id)).toBeTruthy();
+    expect(results.find((e) => e.identity === id)).toBeTruthy();
   });
 });

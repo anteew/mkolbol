@@ -41,7 +41,7 @@ class WorkerPipeAdapterDuplex extends Duplex {
         });
         // Rely on _final() for end signalling; avoid duplicate 'end' frames here.
     }
-    _read(size) {
+    _read(_size) {
         this.port.postMessage({ type: 'resume' });
     }
     _write(chunk, encoding, callback) {

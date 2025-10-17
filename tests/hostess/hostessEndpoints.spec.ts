@@ -14,7 +14,7 @@ describe('Hostess Endpoints', () => {
       const endpoint: HostessEndpoint = {
         type: 'inproc',
         coordinates: 'node:test1',
-        metadata: { module: 'TestModule' }
+        metadata: { module: 'TestModule' },
       };
 
       hostess.registerEndpoint('test-id-1', endpoint);
@@ -27,11 +27,11 @@ describe('Hostess Endpoints', () => {
     it('should register multiple endpoints with different ids', () => {
       const endpoint1: HostessEndpoint = {
         type: 'inproc',
-        coordinates: 'node:test1'
+        coordinates: 'node:test1',
       };
       const endpoint2: HostessEndpoint = {
         type: 'worker',
-        coordinates: 'node:test2'
+        coordinates: 'node:test2',
       };
 
       hostess.registerEndpoint('id1', endpoint1);
@@ -46,11 +46,11 @@ describe('Hostess Endpoints', () => {
     it('should overwrite endpoint if registered with same id', () => {
       const endpoint1: HostessEndpoint = {
         type: 'inproc',
-        coordinates: 'node:test1'
+        coordinates: 'node:test1',
       };
       const endpoint2: HostessEndpoint = {
         type: 'external',
-        coordinates: '/bin/bash'
+        coordinates: '/bin/bash',
       };
 
       hostess.registerEndpoint('same-id', endpoint1);
@@ -64,7 +64,7 @@ describe('Hostess Endpoints', () => {
     it('should handle endpoint without metadata', () => {
       const endpoint: HostessEndpoint = {
         type: 'pty',
-        coordinates: 'pid:12345'
+        coordinates: 'pid:12345',
       };
 
       hostess.registerEndpoint('pty-id', endpoint);
@@ -84,7 +84,7 @@ describe('Hostess Endpoints', () => {
     it('should return a copy of the endpoints map', () => {
       const endpoint: HostessEndpoint = {
         type: 'inproc',
-        coordinates: 'node:test'
+        coordinates: 'node:test',
       };
 
       hostess.registerEndpoint('test-id', endpoint);
@@ -120,8 +120,8 @@ describe('Hostess Endpoints', () => {
         coordinates: 'node:timer1',
         metadata: {
           module: 'TimerSource',
-          runMode: 'inproc'
-        }
+          runMode: 'inproc',
+        },
       };
 
       hostess.registerEndpoint('timer1-id', endpoint);
@@ -136,8 +136,8 @@ describe('Hostess Endpoints', () => {
         coordinates: 'node:worker1',
         metadata: {
           module: 'UppercaseTransform',
-          runMode: 'worker'
-        }
+          runMode: 'worker',
+        },
       };
 
       hostess.registerEndpoint('worker1-id', endpoint);
@@ -152,8 +152,8 @@ describe('Hostess Endpoints', () => {
         coordinates: '/usr/bin/python3 script.py',
         metadata: {
           cwd: '/tmp',
-          ioMode: 'stdio'
-        }
+          ioMode: 'stdio',
+        },
       };
 
       hostess.registerEndpoint('external-id', endpoint);
@@ -169,8 +169,8 @@ describe('Hostess Endpoints', () => {
         metadata: {
           cols: 80,
           rows: 24,
-          terminalType: 'xterm-256color'
-        }
+          terminalType: 'xterm-256color',
+        },
       };
 
       hostess.registerEndpoint('pty-id', endpoint);
@@ -193,18 +193,18 @@ describe('Hostess Endpoints', () => {
         authMechanism: 'none',
         terminals: [
           { name: 'input', type: 'local', direction: 'input' },
-          { name: 'output', type: 'local', direction: 'output' }
+          { name: 'output', type: 'local', direction: 'output' },
         ],
         capabilities: {
-          type: 'transform'
-        }
+          type: 'transform',
+        },
       });
 
       // Register endpoint for the server
       hostess.registerEndpoint(serverId, {
         type: 'inproc',
         coordinates: 'node:test-server',
-        metadata: { servername: 'test-server' }
+        metadata: { servername: 'test-server' },
       });
 
       // Verify both work

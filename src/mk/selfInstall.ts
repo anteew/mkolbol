@@ -1,5 +1,13 @@
-import { existsSync, mkdirSync, writeFileSync, unlinkSync, readlinkSync, symlinkSync, copyFileSync, chmodSync, readdirSync, statSync } from 'node:fs';
-import { resolve, dirname, join, isAbsolute } from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+  unlinkSync,
+  copyFileSync,
+  chmodSync,
+  statSync,
+} from 'node:fs';
+import { resolve, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { platform } from 'node:os';
 import { execSync } from 'node:child_process';
@@ -53,41 +61,41 @@ function createWindowsShim(targetScript: string, shimPath: string): void {
 export function install(options: InstallOptions): InstallResult {
   try {
     const { binDir, from, copy = false, verbose = false } = options;
-    
+
     const absBinDir = isAbsolute(binDir) ? binDir : resolve(process.cwd(), binDir);
-    
+
     if (!existsSync(absBinDir)) {
       mkdirSync(absBinDir, { recursive: true });
       if (verbose) {
         console.log(`Created directory: ${absBinDir}`);
       }
     }
-    
+
     const mkScript = getMkEntryPoint(from);
-    
+
     if (!existsSync(mkScript)) {
       return {
         success: false,
         message: `Entry point not found: ${mkScript}. Run 'npm run build' first.`,
       };
     }
-    
+
     const shimPaths: string[] = [];
     const isWindows = platform() === 'win32';
-    
+
     const mkShimPath = resolve(absBinDir, 'mk');
     createUnixShim(mkScript, mkShimPath, copy);
     shimPaths.push(mkShimPath);
-    
+
     if (isWindows) {
       createWindowsShim(mkScript, mkShimPath);
       shimPaths.push(mkShimPath + '.cmd');
     }
-    
+
     if (verbose) {
-      shimPaths.forEach(p => console.log(`Created shim: ${p}`));
+      shimPaths.forEach((p) => console.log(`Created shim: ${p}`));
     }
-    
+
     return {
       success: true,
       message: `✓ Installed mk to ${absBinDir}`,
@@ -104,10 +112,10 @@ export function install(options: InstallOptions): InstallResult {
 export function uninstall(binDir: string): InstallResult {
   try {
     const absBinDir = isAbsolute(binDir) ? binDir : resolve(process.cwd(), binDir);
-    
+
     const shimNames = ['mk', 'mk.cmd'];
     const removedPaths: string[] = [];
-    
+
     for (const name of shimNames) {
       const shimPath = resolve(absBinDir, name);
       if (existsSync(shimPath)) {
@@ -115,14 +123,14 @@ export function uninstall(binDir: string): InstallResult {
         removedPaths.push(shimPath);
       }
     }
-    
+
     if (removedPaths.length === 0) {
       return {
         success: false,
         message: `No mk shims found in ${absBinDir}`,
       };
     }
-    
+
     return {
       success: true,
       message: `✓ Removed ${removedPaths.length} shim(s) from ${absBinDir}`,
@@ -140,13 +148,13 @@ export function where(): InstallResult {
   try {
     const paths = (process.env.PATH || '').split(platform() === 'win32' ? ';' : ':');
     const foundInstalls: string[] = [];
-    
+
     for (const dir of paths) {
       if (!dir || !existsSync(dir)) continue;
-      
+
       const mkPath = resolve(dir, 'mk');
       const mkCmdPath = resolve(dir, 'mk.cmd');
-      
+
       if (existsSync(mkPath)) {
         try {
           const stats = statSync(mkPath);
@@ -157,22 +165,24 @@ export function where(): InstallResult {
           // Skip inaccessible files
         }
       }
-      
+
       if (platform() === 'win32' && existsSync(mkCmdPath)) {
         foundInstalls.push(mkCmdPath);
       }
     }
-    
+
     if (foundInstalls.length === 0) {
       return {
         success: false,
         message: 'No mk installations found in PATH',
       };
     }
-    
+
     return {
       success: true,
-      message: `Found ${foundInstalls.length} installation(s):\n` + foundInstalls.map(p => `  ${p}`).join('\n'),
+      message:
+        `Found ${foundInstalls.length} installation(s):\n` +
+        foundInstalls.map((p) => `  ${p}`).join('\n'),
       shimPaths: foundInstalls,
     };
   } catch (error) {
@@ -186,7 +196,7 @@ export function where(): InstallResult {
 export function switchVersion(version: string): InstallResult {
   try {
     execSync(`npm install -g mkolbol@${version}`, { stdio: 'inherit' });
-    
+
     return {
       success: true,
       message: `✓ Switched to mkolbol@${version}`,

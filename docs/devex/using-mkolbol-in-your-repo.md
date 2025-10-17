@@ -9,12 +9,14 @@ This guide shows you how to bootstrap mkolbol applications in your own repositor
 ## Overview
 
 **What is bootstrapping?**
+
 - Create a new mkolbol project from a template
 - Generate project structure, configs, and starter code
 - Install mkolbol as a dependency (tarball, git tag, or vendor)
 - Get a runnable topology in under 5 minutes
 
 **What you'll create:**
+
 - A complete hello-calculator app (3-node topology)
 - All project files (package.json, tsconfig.json, src/, .mk/)
 - Ready to run, test, and customize
@@ -26,6 +28,7 @@ This guide shows you how to bootstrap mkolbol applications in your own repositor
 **Before bootstrapping, you need mkolbol available:**
 
 1. **Clone and build mkolbol** (one-time setup):
+
    ```bash
    git clone https://github.com/anteew/mkolbol.git
    cd mkolbol
@@ -60,12 +63,14 @@ mk init hello-calculator --lang ts --preset tty
 ```
 
 **What happens:**
+
 1. Creates `hello-calculator/` directory
 2. Generates project structure (src/, .mk/, package.json, tsconfig.json)
 3. Scaffolds 3-node topology (CalculatorServer → XtermTTYRenderer → FilesystemSink)
 4. Adds README.md and .gitignore
 
 **Output:**
+
 ```
 ✓ Created hello-calculator/
 ✓ Initialized package.json
@@ -87,6 +92,7 @@ Next steps:
 Choose your distribution method (see [Distribution Matrix](./distribution.md) for details):
 
 **Option 1: Tarball (Recommended)**
+
 ```bash
 cd hello-calculator
 
@@ -100,12 +106,14 @@ npm install /path/to/mkolbol/mkolbol-0.2.0.tgz
 ```
 
 **Option 2: Git Tag**
+
 ```bash
 cd hello-calculator
 npm install github:anteew/mkolbol#v0.2.0
 ```
 
 **Option 3: Vendor (Monorepo)**
+
 ```bash
 # Copy mkolbol into your monorepo
 cp -r /path/to/mkolbol ~/my-monorepo/packages/mkolbol
@@ -130,6 +138,7 @@ curl 'http://localhost:4000/subtract?a=10&b=7' # → {"result":3}
 ```
 
 **Expected output:**
+
 ```
 [mk] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.
 [mk] Loading config from: mk.json
@@ -230,7 +239,7 @@ export class CalculatorServer {
 
   constructor(
     private kernel: Kernel,
-    private options: { port: number; precision: number }
+    private options: { port: number; precision: number },
   ) {}
 
   start() {
@@ -262,11 +271,11 @@ export class CalculatorServer {
 
 > **Note:** mkolbol is not published to npm. Choose one of these methods:
 
-| Method | Use Case | Pros | Cons |
-|--------|----------|------|------|
-| **Tarball** | Production, CI/CD | Reproducible, version-pinned, offline installs | Manual tarball management |
-| **Git Tag** | Development, testing | Easy version switching | Requires git access |
-| **Vendor** | Monorepo, offline builds | Full control, no external deps | Repo bloat, manual updates |
+| Method      | Use Case                 | Pros                                           | Cons                       |
+| ----------- | ------------------------ | ---------------------------------------------- | -------------------------- |
+| **Tarball** | Production, CI/CD        | Reproducible, version-pinned, offline installs | Manual tarball management  |
+| **Git Tag** | Development, testing     | Easy version switching                         | Requires git access        |
+| **Vendor**  | Monorepo, offline builds | Full control, no external deps                 | Repo bloat, manual updates |
 
 ### Tarball Installation (Detailed)
 
@@ -327,6 +336,7 @@ After bootstrapping with `mk init`, customize the generated files:
 ### Customize Topology (mk.json)
 
 **Change ports:**
+
 ```json
 {
   "params": { "port": 5000, "precision": 3 }
@@ -334,6 +344,7 @@ After bootstrapping with `mk init`, customize the generated files:
 ```
 
 **Add more nodes:**
+
 ```json
 {
   "nodes": [
@@ -345,6 +356,7 @@ After bootstrapping with `mk init`, customize the generated files:
 ```
 
 **Change connections:**
+
 ```json
 {
   "connections": [
@@ -357,6 +369,7 @@ After bootstrapping with `mk init`, customize the generated files:
 ### Customize Module (src/index.ts)
 
 **Add new endpoints:**
+
 ```typescript
 if (url.pathname === '/multiply') {
   const a = parseFloat(url.searchParams.get('a') || '0');
@@ -367,6 +380,7 @@ if (url.pathname === '/multiply') {
 ```
 
 **Add request logging:**
+
 ```typescript
 console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 ```
@@ -374,6 +388,7 @@ console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 ### Customize Profiles (.mk/options.json)
 
 **Add staging profile:**
+
 ```json
 {
   "profiles": {
@@ -483,6 +498,7 @@ connections:
 ```
 
 **Usage:**
+
 ```bash
 # Run for 60 seconds
 npx mkctl run --file http-logging.yml --duration 60
@@ -539,7 +555,7 @@ nodes:
 
   - id: console-sink
     module: ConsoleSink
-    params: { prefix: "[console]" }
+    params: { prefix: '[console]' }
 
   - id: file-sink
     module: FilesystemSink
@@ -559,13 +575,7 @@ connections:
 ### Creating a Topology in Code
 
 ```typescript
-import {
-  Kernel,
-  Hostess,
-  StateManager,
-  Executor,
-  RoutingServer
-} from 'mkolbol';
+import { Kernel, Hostess, StateManager, Executor, RoutingServer } from 'mkolbol';
 
 async function runTopology() {
   // Create core components
@@ -583,17 +593,15 @@ async function runTopology() {
       {
         id: 'timer',
         module: 'TimerSource',
-        params: { periodMs: 1000 }
+        params: { periodMs: 1000 },
       },
       {
         id: 'console',
         module: 'ConsoleSink',
-        params: { prefix: '[log]' }
-      }
+        params: { prefix: '[log]' },
+      },
     ],
-    connections: [
-      { from: 'timer.output', to: 'console.input' }
-    ]
+    connections: [{ from: 'timer.output', to: 'console.input' }],
   };
 
   try {
@@ -601,7 +609,7 @@ async function runTopology() {
     await executor.up();
 
     // Run for 10 seconds
-    await new Promise(resolve => setTimeout(resolve, 10000));
+    await new Promise((resolve) => setTimeout(resolve, 10000));
 
     await executor.down();
   } catch (err) {
@@ -622,7 +630,10 @@ export class MyCustomModule {
   inputPipe?: NodeJS.ReadableStream;
   outputPipe?: NodeJS.WritableStream;
 
-  constructor(private kernel: Kernel, private options: any = {}) {}
+  constructor(
+    private kernel: Kernel,
+    private options: any = {},
+  ) {}
 
   start(): void {
     this.inputPipe?.on('data', (chunk: Buffer) => {
@@ -648,17 +659,20 @@ executor.registerModule('MyCustomModule', MyCustomModule);
 ### 1. Configuration Management
 
 **Do's:**
+
 - ✅ Use environment variables for paths and ports
 - ✅ Validate configs with `--dry-run` before deployment
 - ✅ Version control your topology files
 - ✅ Use absolute paths for external processes
 
 **Don'ts:**
+
 - ❌ Hardcode ports or file paths
 - ❌ Use relative paths for external commands
 - ❌ Mix logic and configuration
 
 **Example:**
+
 ```yaml
 # ❌ Bad
 nodes:
@@ -776,13 +790,13 @@ services:
 
 ### Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| "Config file not found" | Use absolute path: `mkctl run --file $(pwd)/topology.yml` |
-| "Command not found" | Use full path: `/usr/bin/node` instead of `node` |
-| "Health check failed" | Verify service is running: `curl http://localhost:3000/health` |
-| "Port already in use" | Find/kill process: `lsof -i :3000 && kill -9 <pid>` |
-| "Permission denied" | Fix file permissions: `chmod 755 logs/` |
+| Issue                   | Solution                                                       |
+| ----------------------- | -------------------------------------------------------------- |
+| "Config file not found" | Use absolute path: `mkctl run --file $(pwd)/topology.yml`      |
+| "Command not found"     | Use full path: `/usr/bin/node` instead of `node`               |
+| "Health check failed"   | Verify service is running: `curl http://localhost:3000/health` |
+| "Port already in use"   | Find/kill process: `lsof -i :3000 && kill -9 <pid>`            |
+| "Permission denied"     | Fix file permissions: `chmod 755 logs/`                        |
 
 ### Getting Help
 
@@ -805,6 +819,7 @@ After bootstrapping your first project:
 ## Quick Reference
 
 **Bootstrap a new project:**
+
 ```bash
 mk init my-project --lang ts --preset tty
 cd my-project
@@ -814,12 +829,14 @@ mk run --file mk.json --duration 10
 ```
 
 **Verify your project:**
+
 ```bash
 mk doctor --file mk.json
 mk run --file mk.json --dry-run
 ```
 
 **Package for distribution:**
+
 ```bash
 mk build
 mk package
@@ -827,6 +844,7 @@ mk package
 ```
 
 **Generate CI config:**
+
 ```bash
 mk ci plan --output
 # → .github/workflows/test.yml

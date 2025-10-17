@@ -10,7 +10,7 @@ describe('LoggerRenderer', () => {
 
   beforeEach(() => {
     kernel = new Kernel();
-    
+
     if (fs.existsSync(testLogPath)) {
       fs.unlinkSync(testLogPath);
     }
@@ -20,7 +20,7 @@ describe('LoggerRenderer', () => {
     if (renderer) {
       renderer.destroy();
     }
-    
+
     if (fs.existsSync(testLogPath)) {
       fs.unlinkSync(testLogPath);
     }

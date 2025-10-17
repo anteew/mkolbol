@@ -4,18 +4,18 @@ nodes:
     params:
       periodMs: 2000
       message: "\x1b[1;32mGreen Bold\x1b[0m Normal \x1b[4mUnderline\x1b[0m"
-  
+
   - id: parser1
     module: AnsiParser
-  
+
   - id: console1
     module: ConsoleSink
     params:
-      prefix: "[parsed-events]"
+      prefix: '[parsed-events]'
 
 connections:
   - from: timer1.output
     to: parser1.input
-  
+
   - from: parser1.output
     to: console1.input

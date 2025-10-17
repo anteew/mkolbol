@@ -127,10 +127,10 @@ describe('mk doctor command', () => {
       const r = spawnSync('node', [mkPath, 'doctor'], { encoding: 'utf8' });
 
       const lines = r.stdout.split('\n');
-      const checkLines = lines.filter(l => /^[✓⚠✗]\s+\w/.test(l) && l.includes(':'));
+      const checkLines = lines.filter((l) => /^[✓⚠✗]\s+\w/.test(l) && l.includes(':'));
 
       expect(checkLines.length).toBeGreaterThan(0);
-      checkLines.forEach(line => {
+      checkLines.forEach((line) => {
         expect(line).toMatch(/^[✓⚠✗]\s+[\w\s.]+:/);
       });
     });
@@ -139,7 +139,7 @@ describe('mk doctor command', () => {
       const r = spawnSync('node', [mkPath, 'doctor'], { encoding: 'utf8' });
 
       if (r.stdout.includes('(warning)') || r.stdout.includes('(failed)')) {
-        const remediationLines = r.stdout.split('\n').filter(l => l.includes('→'));
+        const remediationLines = r.stdout.split('\n').filter((l) => l.includes('→'));
         expect(remediationLines.length).toBeGreaterThan(0);
       }
     });
@@ -147,7 +147,9 @@ describe('mk doctor command', () => {
 
   describe('--section flag', () => {
     it('supports --section toolchain', () => {
-      const r = spawnSync('node', [mkPath, 'doctor', '--section', 'toolchain'], { encoding: 'utf8' });
+      const r = spawnSync('node', [mkPath, 'doctor', '--section', 'toolchain'], {
+        encoding: 'utf8',
+      });
 
       expect([0, 1]).toContain(r.status);
       expect(r.stdout).toMatch(/Toolchain PATH/i);
@@ -157,7 +159,9 @@ describe('mk doctor command', () => {
     });
 
     it('supports --section environment', () => {
-      const r = spawnSync('node', [mkPath, 'doctor', '--section', 'environment'], { encoding: 'utf8' });
+      const r = spawnSync('node', [mkPath, 'doctor', '--section', 'environment'], {
+        encoding: 'utf8',
+      });
 
       expect([0, 1]).toContain(r.status);
       expect(r.stdout).toContain('Node.js version');
@@ -188,7 +192,7 @@ describe('mk doctor command', () => {
 
       expect([0, 1]).toContain(r.status);
       expect(() => JSON.parse(r.stdout)).not.toThrow();
-      
+
       const result = JSON.parse(r.stdout);
       expect(result).toHaveProperty('summary');
       expect(result).toHaveProperty('checks');
@@ -200,7 +204,9 @@ describe('mk doctor command', () => {
     });
 
     it('works with --section toolchain and --json together', () => {
-      const r = spawnSync('node', [mkPath, 'doctor', '--section', 'toolchain', '--json'], { encoding: 'utf8' });
+      const r = spawnSync('node', [mkPath, 'doctor', '--section', 'toolchain', '--json'], {
+        encoding: 'utf8',
+      });
 
       expect([0, 1]).toContain(r.status);
       const result = JSON.parse(r.stdout);

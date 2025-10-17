@@ -28,7 +28,7 @@ export class TCPPipeClient extends Duplex {
         const frame = FrameCodec.createDataFrame(chunk, this.sequenceId++);
         this.socket.write(FrameCodec.encode(frame), cb);
     }
-    _read() { }
+    _read(_size) { }
     handleData(chunk) {
         this.buffer = Buffer.concat([this.buffer, chunk]);
         while (this.buffer.length > 0) {
@@ -96,7 +96,7 @@ class TCPServerPipe extends Duplex {
     _write(chunk, _, cb) {
         this.socket.write(FrameCodec.encode(FrameCodec.createDataFrame(chunk, this.sequenceId++)), cb);
     }
-    _read() { }
+    _read(_size) { }
     handleData(chunk) {
         this.buffer = Buffer.concat([this.buffer, chunk]);
         while (this.buffer.length > 0) {

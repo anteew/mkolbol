@@ -5,9 +5,11 @@ Status: Planned
 Scope: Scripts + PM feedback (no kernel changes)
 
 Goals
+
 - Run the full test workflow through Laminar and produce actionable feedback artifacts for the Laminar repo.
 
 Tasks
+
 - T6101 — Run dogfood (threads lane)
   - Command: `npm run lam:dogfood:ci`
   - Output: `reports/LAMINAR_*.txt`, `project-manager/laminar-feedback/latest.md`
@@ -23,8 +25,9 @@ Tasks
   - Update `ampcode.log` with what you ran and paste the feature request bullets.
 
 Non-Goals
+
 - Changing Laminar behavior; this is consumption + feedback only.
 
 Success Criteria
-- Feedback artifacts exist and are useful for the Laminar implementer to pick up.
 
+- Feedback artifacts exist and are useful for the Laminar implementer to pick up.

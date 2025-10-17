@@ -25,20 +25,20 @@ nodes:
     module: ExternalProcess
     params:
       # Process spawn
-      command: /bin/bash              # Executable path or name
-      args: ["-c", "cat"]             # Command arguments
-      env:                            # Environment variables
-        DEBUG: "1"
-      cwd: /tmp                       # Working directory
-      
+      command: /bin/bash # Executable path or name
+      args: ['-c', 'cat'] # Command arguments
+      env: # Environment variables
+        DEBUG: '1'
+      cwd: /tmp # Working directory
+
       # I/O mode
-      ioMode: stdio                   # 'stdio' | 'pty'
-      
+      ioMode: stdio # 'stdio' | 'pty'
+
       # Restart policy
-      restart: on-failure             # 'never' | 'on-failure' | 'always'
-      restartDelay: 5000              # ms between restarts
-      maxRestarts: 3                  # Max restart attempts
-      
+      restart: on-failure # 'never' | 'on-failure' | 'always'
+      restartDelay: 5000 # ms between restarts
+      maxRestarts: 3 # Max restart attempts
+
       # PTY-specific (when ioMode: pty)
       terminalType: xterm-256color
       initialCols: 80
@@ -52,6 +52,7 @@ nodes:
 Lightweight pipe-based I/O without terminal emulation. Use for filters, data processors, and non-interactive programs.
 
 **When to use:**
+
 - Plain text or binary data processing
 - CLI tools (jq, sed, grep)
 - No ANSI/terminal control needed
@@ -65,17 +66,17 @@ nodes:
     module: TimerSource
     params:
       periodMs: 1000
-  
+
   - id: filter1
     module: ExternalProcess
     params:
       command: /bin/cat
       ioMode: stdio
-  
+
   - id: sink1
     module: ConsoleSink
     params:
-      prefix: "[filtered]"
+      prefix: '[filtered]'
 
 connections:
   - { from: source1.output, to: filter1.input }
@@ -89,6 +90,7 @@ connections:
 Pseudo-terminal emulation for interactive applications. Use for shells, TUIs, and programs requiring terminal capabilities.
 
 **When to use:**
+
 - Interactive shells (bash, zsh)
 - TUI applications (vim, htop)
 - ANSI escape sequences
@@ -107,10 +109,10 @@ nodes:
       terminalType: xterm-256color
       initialCols: 80
       initialRows: 24
-  
+
   - id: parser1
     module: AnsiParserModule
-  
+
   - id: renderer1
     module: XtermTTYRenderer
 
@@ -149,7 +151,7 @@ nodes:
 nodes:
   - { id: timer1, module: TimerSource, params: { periodMs: 1000 } }
   - { id: echo1, module: ExternalProcess, params: { command: /bin/cat, ioMode: stdio } }
-  - { id: console1, module: ConsoleSink, params: { prefix: "[echo]" } }
+  - { id: console1, module: ConsoleSink, params: { prefix: '[echo]' } }
 
 connections:
   - { from: timer1.output, to: echo1.input }
@@ -164,13 +166,13 @@ nodes:
     module: ExternalProcess
     params:
       command: /bin/bash
-      args: ["-c", "while true; do echo -e '\\e[1;32mGreen\\e[0m'; sleep 1; done"]
+      args: ['-c', "while true; do echo -e '\\e[1;32mGreen\\e[0m'; sleep 1; done"]
       ioMode: pty
       terminalType: xterm-256color
-  
+
   - id: ansi1
     module: AnsiParserModule
-  
+
   - id: console1
     module: ConsoleSink
 
@@ -188,14 +190,14 @@ nodes:
     params:
       command: /bin/bash
       ioMode: pty
-  
+
   - id: tty1
     module: XtermTTYRenderer
-  
+
   - id: log1
     module: ConsoleSink
     params:
-      prefix: "[raw]"
+      prefix: '[raw]'
 
 connections:
   - { from: shell1.output, to: tty1.input }
@@ -228,6 +230,7 @@ npx tsx examples/config-runner.ts --file examples/configs/my-topology.yml
 ```
 
 **Why mkctl run?**
+
 - Unified interface for running any topology
 - Automatically registers modules with Hostess
 - Endpoint metadata is captured for `mkctl endpoints` discovery
@@ -250,15 +253,18 @@ npm run test:ci
 ## Troubleshooting
 
 **Process not spawning:**
+
 - Check `command` path is absolute or in PATH
 - Verify `cwd` exists
 - Inspect stderr via `errorPipe`
 
 **stdio vs pty confusion:**
+
 - stdio: Binary/text data, no terminal
 - pty: Interactive, ANSI codes, terminal emulation
 
 **Restart not working:**
+
 - Ensure `restart` policy is set
 - Check `maxRestarts` limit not exceeded
 - Review `restartDelay` timing
@@ -278,11 +284,13 @@ MK_DEVEX_EXECUTOR=1 npm run test:pty:lam
 ```
 
 **What this flag does:**
+
 - Enables tests that exercise the full Executor topology loading and wiring flow
 - Requires forks lane for process-mode isolation (prevents stdio/pty cross-talk)
 - Tests complete topology lifecycle: load → up → down
 
 **Why gate executor tests?**
+
 - Executor tests spawn real processes and are resource-intensive
 - Longer execution time than basic unit tests
 - Optional for simple server implementations

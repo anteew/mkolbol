@@ -3,6 +3,7 @@
 ## Current State Analysis
 
 ### Laminar Status
+
 - ✅ Installed: `@agent_vega/laminar` in devDependencies
 - ✅ Test Reporter: JSONL reporter configured in test:ci and test:pty
 - ✅ Artifacts: Summary, trends, per-test JSONL reports generated
@@ -13,12 +14,14 @@
 - ❌ **Gap**: No LAMINAR_REPRO.md for failures
 
 ### Test Infrastructure
+
 - 3 lanes: threads, forks, process-unix
 - All lanes output JSONL reports per test
 - Latest run: 36 tests passed, 9 digest/diff test failures (known)
 - No failures in core mkolbol functionality
 
 ### DevEx Status (P9 Complete)
+
 - ✅ Local Node v1.0 acceptance pack delivered
 - ✅ http-logs-local.yml exists (ConsoleSink version)
 - ❌ **Gap**: No FilesystemSink variant (http-logs-local-file.yml)
@@ -30,6 +33,7 @@
 ### Wave DX-10A (Laminar): 4 Tasks
 
 **Priority 1: LAM-1001 (Trends Cache)**
+
 - Goal: Persist history.jsonl across CI runs
 - Impact: Enables trends to show historical patterns
 - Implementation:
@@ -38,6 +42,7 @@
   3. Test that trends accumulate over multiple runs
 
 **Priority 2: LAM-1002 (Suite Tags)**
+
 - Goal: Tag tests by lane (threads/forks/process-unix)
 - Impact: Trends can distinguish which lane is flaky
 - Implementation:
@@ -45,6 +50,7 @@
   2. Test that trends show lane-specific failure patterns
 
 **Priority 3: LAM-1003 (PR Comments)**
+
 - Goal: Automated Laminar summary in PRs
 - Impact: Developers see test health at a glance
 - Implementation:
@@ -52,6 +58,7 @@
   2. Show summary + top 5 trends offenders
 
 **Priority 4: LAM-1004 (Repro Hints)**
+
 - Goal: Generate LAMINAR_REPRO.md for failures
 - Impact: Faster reproduction of failures
 - Implementation:
@@ -61,32 +68,38 @@
 ### Wave DX-10B (DevEx): 3 Tasks
 
 **DEVEX-101: FilesystemSink Quickstart**
+
 - Depends on: Susan's FilesystemSink sprint completion
 - Create: examples/configs/http-logs-local-file.yml
 - Update: quickstart, cookbook, acceptance docs
 
 **DEVEX-102: First Five Minutes**
+
 - Create: docs/devex/first-five-minutes.md (5-min onboarding)
 - Update: README.md landing page
 
 **DEVEX-103: mkctl Docs Polish**
+
 - Update: mkctl-cookbook.md with exit code matrix
 - Reference: scripts/mkctl.ts EXIT_CODES enum
 
 ## Execution Plan
 
 ### Phase 1: Setup & Investigation (Done)
+
 - [x] Explored Laminar CLI and current setup
 - [x] Analyzed current CI workflow
 - [x] Identified gaps
 
 ### Phase 2: Laminar Implementation (Next)
+
 - [ ] LAM-1001: Configure history persistence + CI caching
 - [ ] LAM-1002: Add suite tags to reporter invocations
 - [ ] LAM-1003: Create PR comment GitHub action
 - [ ] LAM-1004: Generate LAMINAR_REPRO.md artifact
 
 ### Phase 3: DevEx Implementation (Parallel)
+
 - [ ] DEVEX-103: mkctl docs polish (immediate, no dependencies)
 - [ ] DEVEX-101: FilesystemSink quickstart (blocked until Susan delivers)
 - [ ] DEVEX-102: First five minutes (can start in parallel)

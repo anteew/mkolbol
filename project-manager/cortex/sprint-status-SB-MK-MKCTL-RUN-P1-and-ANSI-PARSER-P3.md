@@ -6,10 +6,10 @@
 
 **Goal:** Add `mkctl run` command and improve ANSI parser fidelity.
 
-| Task ID | Description                               | Status    | Notes |
-|---------|-------------------------------------------|-----------|-------|
-| T8801   | mkctl run --file <config> (wrap config-runner) | Complete  |       |
-| T8802   | CLI tests + example configs for mkctl run   | Complete  |       |
-| T8811   | ANSI Parser P3 — truecolor/256 SGR        | Complete  |       |
-| T8812   | ANSI Parser P3 — resize events + DEC subset | Complete  |       |
-| T8813   | Parser P3 tests + perf guard + docs       | Complete  |       |
+| Task ID | Description                                    | Status   | Notes |
+| ------- | ---------------------------------------------- | -------- | ----- |
+| T8801   | mkctl run --file <config> (wrap config-runner) | Complete |       |
+| T8802   | CLI tests + example configs for mkctl run      | Complete |       |
+| T8811   | ANSI Parser P3 — truecolor/256 SGR             | Complete |       |
+| T8812   | ANSI Parser P3 — resize events + DEC subset    | Complete |       |
+| T8813   | Parser P3 tests + perf guard + docs            | Complete |       |

@@ -43,11 +43,13 @@ This repo integrates Laminar in two ways:
   - Forks lane + summary/trends: `npm run test:pty:lam`
 
 Artifacts you’ll see:
+
 - `reports/summary.jsonl` — per-run ledger
 - `reports/index.json` — index manifest (deterministic mtime ≥ summary)
 - `reports/LAMINAR_SUMMARY.txt` — human-readable summary
 - `reports/LAMINAR_TRENDS.txt` — top recurring signals
 
 ## Notes
+
 - The repo also ships a minimal `lam` stub bin for packaging; use `npm run lam` for the full Laminar CLI.
 - See `docs/rfcs/stream-kernel/status.md` for implementation status.

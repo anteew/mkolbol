@@ -5,7 +5,7 @@ describe('Golden Transcript Harness', () => {
   it('should create and compare snapshots with masking', () => {
     const harness = createGoldenHarness({
       suite: 'golden',
-      case: 'sample-transcript'
+      case: 'sample-transcript',
     });
 
     const transcript = `
@@ -24,7 +24,7 @@ describe('Golden Transcript Harness', () => {
   it('should detect mismatches', () => {
     const harness = createGoldenHarness({
       suite: 'golden',
-      case: 'mismatch-test'
+      case: 'mismatch-test',
     });
 
     const original = 'Original content with timestamp: 2024-10-12T14:32:45.123Z';
@@ -42,9 +42,7 @@ describe('Golden Transcript Harness', () => {
     const harness = createGoldenHarness({
       suite: 'golden',
       case: 'custom-masks',
-      masks: [
-        { pattern: /PID:\d+/g, replacement: 'PID:<REDACTED>' }
-      ]
+      masks: [{ pattern: /PID:\d+/g, replacement: 'PID:<REDACTED>' }],
     });
 
     const transcript = `

@@ -1,9 +1,7 @@
 ```json
 {
   "ampcode": "v1",
-  "waves": [
-    { "id": "DX-A", "parallel": true,  "tasks": ["D9901", "D9902"] }
-  ],
+  "waves": [{ "id": "DX-A", "parallel": true, "tasks": ["D9901", "D9902"] }],
   "tasks": [
     {
       "id": "D9901",
@@ -30,10 +28,11 @@
 Goal: Provide ready‑to‑adopt acceptance templates and Laminar documentation for third‑party servers.
 
 Constraints
+
 - Docs/templates only; no kernel/Executor changes.
 
 Verification Commands
+
 ```bash
 npm run build
 ```
-

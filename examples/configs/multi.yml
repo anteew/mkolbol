@@ -3,37 +3,37 @@ nodes:
     module: TimerSource
     params:
       periodMs: 800
-  
+
   - id: timer2
     module: TimerSource
     params:
       periodMs: 1200
-  
+
   - id: upper1
     module: UppercaseTransform
-  
+
   - id: upper2
     module: UppercaseTransform
-  
+
   - id: console1
     module: ConsoleSink
     params:
-      prefix: "[stream-1]"
-  
+      prefix: '[stream-1]'
+
   - id: console2
     module: ConsoleSink
     params:
-      prefix: "[stream-2]"
+      prefix: '[stream-2]'
 
 connections:
   - from: timer1.output
     to: upper1.input
-  
+
   - from: upper1.output
     to: console1.input
-  
+
   - from: timer2.output
     to: upper2.input
-  
+
   - from: upper2.output
     to: console2.input

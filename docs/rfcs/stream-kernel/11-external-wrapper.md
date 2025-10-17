@@ -32,55 +32,55 @@ This RFC defines the architecture for wrapping external executables (npm package
 ```typescript
 interface ExternalServerWrapper {
   // Module interface (standard for all servers)
-  inputPipe: Pipe;     // Commands/data to external process
-  outputPipe: Pipe;    // Output from external process
-  
+  inputPipe: Pipe; // Commands/data to external process
+  outputPipe: Pipe; // Output from external process
+
   // Lifecycle management
   spawn(): Promise<void>;
   shutdown(): Promise<void>;
   restart(): Promise<void>;
-  
+
   // Status
   isRunning(): boolean;
   getProcessInfo(): ProcessInfo;
-  
+
   // Configuration
   manifest: ServerManifest;
 }
 
 interface ServerManifest {
   // Identity (for Hostess registration)
-  name: string;              // e.g., "sql-server"
-  fqdn: string;              // e.g., "localhost"
-  class: string;             // e.g., "0xFFFF" (external wrapper class)
-  owner: string;             // e.g., "system" or "user"
-  uuid: string;              // Unique identifier
-  
+  name: string; // e.g., "sql-server"
+  fqdn: string; // e.g., "localhost"
+  class: string; // e.g., "0xFFFF" (external wrapper class)
+  owner: string; // e.g., "system" or "user"
+  uuid: string; // Unique identifier
+
   // External process configuration
-  command: string;           // Executable path or name
-  args: string[];            // Command-line arguments
-  env: Record<string, string>;  // Environment variables
-  cwd: string;               // Working directory
-  
+  command: string; // Executable path or name
+  args: string[]; // Command-line arguments
+  env: Record<string, string>; // Environment variables
+  cwd: string; // Working directory
+
   // I/O configuration
   ioMode: 'stdio' | 'pty' | 'socket' | 'file';
-  
+
   // Terminals (for Hostess registration)
   terminals: TerminalDefinition[];
-  
+
   // Capabilities
   capabilities: ServiceCapabilities;
-  
+
   // Lifecycle policies
   restart: 'always' | 'on-failure' | 'never';
-  restartDelay: number;      // ms between restarts
-  maxRestarts: number;       // Max restart attempts
+  restartDelay: number; // ms between restarts
+  maxRestarts: number; // Max restart attempts
 }
 
 interface TerminalDefinition {
-  name: string;              // e.g., "input", "output", "error"
+  name: string; // e.g., "input", "output", "error"
   direction: 'input' | 'output' | 'bidirectional';
-  protocol: string;          // e.g., "raw-bytes", "json-rpc", "sql"
+  protocol: string; // e.g., "raw-bytes", "json-rpc", "sql"
 }
 
 interface ProcessInfo {
@@ -102,20 +102,20 @@ For non-interactive programs:
 ```typescript
 class StdioWrapper implements ExternalServerWrapper {
   private process: ChildProcess;
-  
+
   async spawn(): Promise<void> {
     this.process = spawn(this.manifest.command, this.manifest.args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: this.manifest.env,
-      cwd: this.manifest.cwd
+      cwd: this.manifest.cwd,
     });
-    
+
     // Connect stdout to outputPipe
     this.process.stdout.pipe(this.outputPipe);
-    
+
     // Connect inputPipe to stdin
     this.inputPipe.pipe(this.process.stdin);
-    
+
     // Optional: stderr handling
     this.process.stderr.on('data', (data) => {
       this.errorPipe?.write(data);
@@ -125,6 +125,7 @@ class StdioWrapper implements ExternalServerWrapper {
 ```
 
 **Use cases:**
+
 - CLI tools that read stdin, write stdout
 - Data processors (filters, formatters)
 - Batch processing scripts
@@ -140,8 +141,8 @@ const sqlWrapper = new StdioWrapper({
   ioMode: 'stdio',
   terminals: [
     { name: 'input', direction: 'input', protocol: 'sql' },
-    { name: 'output', direction: 'output', protocol: 'json' }
-  ]
+    { name: 'output', direction: 'output', protocol: 'json' },
+  ],
 });
 ```
 
@@ -152,25 +153,25 @@ For TUI applications (see [RFC 12](12-pty-wrapper-patterns.md) for details):
 ```typescript
 class PTYWrapper implements ExternalServerWrapper {
   private ptyProcess: IPty;
-  
+
   async spawn(): Promise<void> {
     this.ptyProcess = pty.spawn(this.manifest.command, this.manifest.args, {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
       env: this.manifest.env,
-      cwd: this.manifest.cwd
+      cwd: this.manifest.cwd,
     });
-    
+
     this.ptyProcess.onData((data) => {
       this.outputPipe.write(Buffer.from(data));
     });
-    
+
     this.inputPipe.on('data', (data) => {
       this.ptyProcess.write(data.toString());
     });
   }
-  
+
   resize(cols: number, rows: number): void {
     this.ptyProcess.resize(cols, rows);
   }
@@ -178,6 +179,7 @@ class PTYWrapper implements ExternalServerWrapper {
 ```
 
 **Use cases:**
+
 - TUI applications (vim, htop, Claude Code)
 - Interactive shells (bash, zsh)
 - Terminal-based UIs
@@ -190,20 +192,20 @@ For network services:
 class SocketWrapper implements ExternalServerWrapper {
   private process: ChildProcess;
   private socket: Socket;
-  
+
   async spawn(): Promise<void> {
     // Start the external process
     this.process = spawn(this.manifest.command, this.manifest.args, {
       env: this.manifest.env,
-      cwd: this.manifest.cwd
+      cwd: this.manifest.cwd,
     });
-    
+
     // Wait for socket to be ready
     await this.waitForSocket(this.manifest.socketPath);
-    
+
     // Connect to socket
     this.socket = connect(this.manifest.socketPath);
-    
+
     // Bridge socket ↔ pipes
     this.socket.pipe(this.outputPipe);
     this.inputPipe.pipe(this.socket);
@@ -212,6 +214,7 @@ class SocketWrapper implements ExternalServerWrapper {
 ```
 
 **Use cases:**
+
 - Database servers (PostgreSQL, Redis)
 - Message queues (RabbitMQ)
 - Web servers
@@ -228,15 +231,15 @@ const standardEnv = {
   MKOLBOL_SERVER_NAME: manifest.name,
   MKOLBOL_SERVER_UUID: manifest.uuid,
   MKOLBOL_SERVER_CLASS: manifest.class,
-  
+
   // Hostess information
   MKOLBOL_HOSTESS_URL: hostessUrl,
-  
+
   // Terminal definitions (JSON)
   MKOLBOL_TERMINALS: JSON.stringify(manifest.terminals),
-  
+
   // User-provided environment
-  ...manifest.env
+  ...manifest.env,
 };
 ```
 
@@ -252,7 +255,7 @@ const wrapper = new StdioWrapper({
     DATABASE_URL: 'sqlite:///data/db.sqlite',
     LOG_LEVEL: 'info',
     // Standard vars added automatically
-  }
+  },
 });
 ```
 
@@ -267,16 +270,20 @@ const wrapper = new StdioWrapper({
   name: 'transcoder',
   command: 'ffmpeg',
   args: [
-    '-i', '${INPUT_FILE}',        // Template replaced at spawn
-    '-c:v', 'libx264',
-    '-preset', 'fast',
-    '-f', 'mp4',
-    '${OUTPUT_FILE}'
+    '-i',
+    '${INPUT_FILE}', // Template replaced at spawn
+    '-c:v',
+    'libx264',
+    '-preset',
+    'fast',
+    '-f',
+    'mp4',
+    '${OUTPUT_FILE}',
   ],
   env: {
     INPUT_FILE: '/tmp/input.mov',
-    OUTPUT_FILE: '/tmp/output.mp4'
-  }
+    OUTPUT_FILE: '/tmp/output.mp4',
+  },
 });
 ```
 
@@ -286,13 +293,15 @@ Pass arguments from inputPipe:
 
 ```typescript
 // Send command via pipe
-wrapper.inputPipe.write(JSON.stringify({
-  command: 'transcode',
-  args: {
-    INPUT_FILE: '/videos/source.mov',
-    OUTPUT_FILE: '/videos/output.mp4'
-  }
-}));
+wrapper.inputPipe.write(
+  JSON.stringify({
+    command: 'transcode',
+    args: {
+      INPUT_FILE: '/videos/source.mov',
+      OUTPUT_FILE: '/videos/output.mp4',
+    },
+  }),
+);
 
 // Wrapper spawns new process with injected args
 ```
@@ -312,23 +321,23 @@ export const SERVER_MANIFEST: ServerManifest = {
   owner: 'system',
   uuid: '550e8400-e29b-41d4-a716-446655440000',
   command: 'ffmpeg',
-  args: ['-version'],  // Default args
+  args: ['-version'], // Default args
   env: {},
   cwd: '/opt/video-processor',
   ioMode: 'stdio',
   terminals: [
     { name: 'input', direction: 'input', protocol: 'video-commands' },
-    { name: 'output', direction: 'output', protocol: 'video-stream' }
+    { name: 'output', direction: 'output', protocol: 'video-stream' },
   ],
   capabilities: {
     type: 'transform',
     accepts: ['video/mp4', 'video/mov'],
     produces: ['video/mp4'],
-    features: ['transcode', 'resize', 'compress']
+    features: ['transcode', 'resize', 'compress'],
   },
   restart: 'on-failure',
   restartDelay: 5000,
-  maxRestarts: 3
+  maxRestarts: 3,
 };
 ```
 
@@ -347,7 +356,7 @@ args:
   - node_modules/.bin/sql-server
 env:
   DATABASE_PATH: /data/db.sqlite
-  MAX_CONNECTIONS: "100"
+  MAX_CONNECTIONS: '100'
 ioMode: stdio
 terminals:
   - name: input
@@ -394,27 +403,27 @@ class ExternalServerWrapper {
       class: this.manifest.class,
       owner: this.manifest.owner,
       uuid: this.manifest.uuid,
-      terminals: this.manifest.terminals.map(t => ({
+      terminals: this.manifest.terminals.map((t) => ({
         name: t.name,
         direction: t.direction,
         protocol: t.protocol,
         inUse: false,
-        connectomeId: null
+        connectomeId: null,
       })),
       capabilities: this.manifest.capabilities,
       metadata: {
         pid: this.getProcessInfo().pid,
         uptime: this.getProcessInfo().uptime,
-        wrapperType: this.manifest.ioMode
-      }
+        wrapperType: this.manifest.ioMode,
+      },
     };
-    
+
     await hostess.register(entry);
-    
+
     // Start heartbeat
     this.startHeartbeat();
   }
-  
+
   private startHeartbeat(): void {
     setInterval(() => {
       hostess.heartbeat(this.manifest.uuid);
@@ -440,20 +449,20 @@ For external servers that don't speak mkolbol protocols:
 
 ```typescript
 class TranslationLayer {
-  inputPipe: Pipe;    // Receives mkolbol protocol
-  outputPipe: Pipe;   // Sends mkolbol protocol
-  
+  inputPipe: Pipe; // Receives mkolbol protocol
+  outputPipe: Pipe; // Sends mkolbol protocol
+
   private externalWrapper: ExternalServerWrapper;
-  
+
   constructor(wrapper: ExternalServerWrapper, translator: Translator) {
     this.externalWrapper = wrapper;
-    
+
     // Translate mkolbol → external protocol
     this.inputPipe.on('data', (mkolbolData) => {
       const externalData = translator.toExternal(mkolbolData);
       wrapper.inputPipe.write(externalData);
     });
-    
+
     // Translate external → mkolbol protocol
     wrapper.outputPipe.on('data', (externalData) => {
       const mkolbolData = translator.fromExternal(externalData);
@@ -471,7 +480,7 @@ const sqlWrapper = new StdioWrapper({
   name: 'sql-server',
   command: 'sql-server-binary',
   args: [],
-  ioMode: 'stdio'
+  ioMode: 'stdio',
 });
 
 // Translation layer converts JSON → binary
@@ -510,23 +519,23 @@ const sqlServer = new StdioWrapper({
   args: ['node_modules/.bin/sqlite-server', '--db', 'data.db'],
   env: {
     MAX_CONNECTIONS: '10',
-    LOG_LEVEL: 'info'
+    LOG_LEVEL: 'info',
   },
   cwd: '/opt/db',
   ioMode: 'stdio',
   terminals: [
     { name: 'query', direction: 'input', protocol: 'sql' },
-    { name: 'results', direction: 'output', protocol: 'json' }
+    { name: 'results', direction: 'output', protocol: 'json' },
   ],
   capabilities: {
     type: 'source',
     accepts: ['sql-query'],
     produces: ['json-result'],
-    features: ['transactions', 'prepared-statements']
+    features: ['transactions', 'prepared-statements'],
   },
   restart: 'on-failure',
   restartDelay: 5000,
-  maxRestarts: 3
+  maxRestarts: 3,
 });
 
 // Spawn and register
@@ -548,29 +557,31 @@ const imageProcessor = new StdioWrapper({
   class: '0xFFFF',
   owner: 'user',
   uuid: uuidv4(),
-  command: '/usr/bin/convert',  // ImageMagick
+  command: '/usr/bin/convert', // ImageMagick
   args: [
-    '-',              // Read from stdin
-    '-resize', '800x600',
-    '-quality', '85',
-    'png:-'          // Write to stdout
+    '-', // Read from stdin
+    '-resize',
+    '800x600',
+    '-quality',
+    '85',
+    'png:-', // Write to stdout
   ],
   env: {},
   cwd: '/tmp',
   ioMode: 'stdio',
   terminals: [
     { name: 'input', direction: 'input', protocol: 'image-binary' },
-    { name: 'output', direction: 'output', protocol: 'image-binary' }
+    { name: 'output', direction: 'output', protocol: 'image-binary' },
   ],
   capabilities: {
     type: 'transform',
     accepts: ['image/jpeg', 'image/png', 'image/gif'],
     produces: ['image/png'],
-    features: ['resize', 'convert', 'compress']
+    features: ['resize', 'convert', 'compress'],
   },
   restart: 'never',
   restartDelay: 0,
-  maxRestarts: 0
+  maxRestarts: 0,
 });
 
 // Use in pipeline
@@ -588,7 +599,7 @@ const restAPI = new SocketWrapper({
   args: ['api-server.js'],
   env: { PORT: '3000' },
   ioMode: 'socket',
-  socketPath: 'http://localhost:3000'
+  socketPath: 'http://localhost:3000',
 });
 
 // Translate HTTP ↔ Streams
@@ -612,50 +623,50 @@ describe('StdioWrapper', () => {
       name: 'test',
       command: 'cat',
       args: [],
-      ioMode: 'stdio'
+      ioMode: 'stdio',
     });
-    
+
     await wrapper.spawn();
-    
+
     expect(wrapper.isRunning()).toBe(true);
     expect(wrapper.getProcessInfo().pid).toBeGreaterThan(0);
   });
-  
+
   it('should pipe data through external process', async () => {
     const wrapper = new StdioWrapper({
       name: 'test',
-      command: 'cat',  // Echo stdin to stdout
+      command: 'cat', // Echo stdin to stdout
       args: [],
-      ioMode: 'stdio'
+      ioMode: 'stdio',
     });
-    
+
     await wrapper.spawn();
-    
+
     const output: Buffer[] = [];
     wrapper.outputPipe.on('data', (data) => output.push(data));
-    
+
     wrapper.inputPipe.write('Hello, World!');
-    
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     expect(Buffer.concat(output).toString()).toBe('Hello, World!');
   });
-  
+
   it('should restart on failure when configured', async () => {
     const wrapper = new StdioWrapper({
       name: 'test',
       command: 'bash',
-      args: ['-c', 'exit 1'],  // Exits immediately
+      args: ['-c', 'exit 1'], // Exits immediately
       ioMode: 'stdio',
       restart: 'on-failure',
       restartDelay: 100,
-      maxRestarts: 3
+      maxRestarts: 3,
     });
-    
+
     await wrapper.spawn();
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     expect(wrapper.getProcessInfo().restartCount).toBeGreaterThan(0);
   });
 });
@@ -668,15 +679,15 @@ Test with Hostess and Executor:
 ```typescript
 it('should register with Hostess on spawn', async () => {
   const executor = new Executor(kernel, hostess);
-  
+
   const wrapper = new StdioWrapper({
     name: 'test-server',
     command: 'cat',
-    ioMode: 'stdio'
+    ioMode: 'stdio',
   });
-  
+
   await executor.spawnWrapper(wrapper);
-  
+
   const servers = await hostess.query({ name: 'test-server' });
   expect(servers).toHaveLength(1);
   expect(servers[0].name).toBe('test-server');
@@ -694,20 +705,20 @@ class Executor {
   async spawnWrapper(wrapper: ExternalServerWrapper): Promise<void> {
     // Spawn external process
     await wrapper.spawn();
-    
+
     // Register with Hostess
     await this.hostess.register({
       id: wrapper.manifest.uuid,
       servername: wrapper.manifest.name,
       class: wrapper.manifest.class,
       terminals: wrapper.manifest.terminals,
-      capabilities: wrapper.manifest.capabilities
+      capabilities: wrapper.manifest.capabilities,
     });
-    
+
     // Monitor health
     this.monitorWrapper(wrapper);
   }
-  
+
   private monitorWrapper(wrapper: ExternalServerWrapper): void {
     setInterval(() => {
       if (!wrapper.isRunning() && wrapper.manifest.restart !== 'never') {
@@ -726,14 +737,14 @@ Wrappers register as external servers:
 ```typescript
 // Query for external wrappers
 const wrappers = await hostess.query({
-  class: '0xFFFF'  // External wrapper class
+  class: '0xFFFF', // External wrapper class
 });
 
 // Query by capability
 const sqlServers = await hostess.query({
   capabilities: {
-    accepts: ['sql-query']
-  }
+    accepts: ['sql-query'],
+  },
 });
 ```
 
@@ -747,13 +758,13 @@ const config: WiringConfig = {
   connections: [
     {
       source: 'client-server.output',
-      target: 'sql-wrapper.query'  // External wrapper terminal
+      target: 'sql-wrapper.query', // External wrapper terminal
     },
     {
       source: 'sql-wrapper.results',
-      target: 'client-server.input'
-    }
-  ]
+      target: 'client-server.input',
+    },
+  ],
 };
 
 // Topology visualization shows wrapped processes
@@ -767,6 +778,7 @@ const mermaid = stateManager.exportMermaid();
 ### Sandboxing (Out of Scope)
 
 Wrapper doesn't provide sandboxing. Use OS-level mechanisms:
+
 - Docker containers
 - systemd units with restrictions
 - AppArmor/SELinux profiles
@@ -779,12 +791,12 @@ Never pass secrets in environment variables visible to `ps`:
 ```typescript
 // BAD: Secret visible in process list
 const wrapper = new StdioWrapper({
-  env: { DATABASE_PASSWORD: 'secret123' }
+  env: { DATABASE_PASSWORD: 'secret123' },
 });
 
 // GOOD: Pass secrets via secure input
 const wrapper = new StdioWrapper({
-  env: { DATABASE_PASSWORD_FILE: '/run/secrets/db_password' }
+  env: { DATABASE_PASSWORD_FILE: '/run/secrets/db_password' },
 });
 ```
 
@@ -809,6 +821,7 @@ class SQLTranslator implements Translator {
 ### Process Overhead
 
 Each wrapper spawns a process:
+
 - Typical overhead: 5-10 MB RAM
 - Startup time: 10-100 ms
 - Consider pooling for short-lived tasks
@@ -816,6 +829,7 @@ Each wrapper spawns a process:
 ### Pipe Buffering
 
 Node.js streams buffer automatically:
+
 - Default buffer: 16 KB
 - Adjust with `highWaterMark` option
 - Monitor backpressure
@@ -823,6 +837,7 @@ Node.js streams buffer automatically:
 ### Translation Overhead
 
 Translation layers add latency:
+
 - Typical overhead: 0.1-1 ms per message
 - Use binary protocols when possible
 - Cache translations for repeated data
@@ -854,18 +869,21 @@ The External Server Wrapper architecture enables:
 6. ✅ **Standard lifecycle** - Spawn, restart, shutdown, monitoring
 
 **Key principles:**
+
 - Wrapper is just another module type
 - Follows microkernel philosophy (mechanism, not policy)
 - Testable in isolation
 - Composable with other modules
 
 **Integration:**
+
 - Executor spawns wrappers
 - Hostess tracks wrapped servers
 - StateManager wires wrapper terminals
 - Kernel provides pipe plumbing (unchanged)
 
 See also:
+
 - **[RFC 12: PTY Wrapper Patterns](12-pty-wrapper-patterns.md)** - Wrapping interactive TUI applications
 - **[RFC 10: Executor Server](10-executor-server.md)** - External process lifecycle management
 - **[RFC 08: Registry Server](08-registry-server.md)** - Server registration and discovery

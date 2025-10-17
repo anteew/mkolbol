@@ -5,9 +5,11 @@ Status: Planned
 Scope: Executor(process), Unix adapters, tests, docs (no kernel changes)
 
 Goals
+
 - Provide a real process‑mode data path using Unix domain sockets with backpressure and error propagation, achieving parity with WorkerPipeAdapter behavior.
 
 Tasks
+
 - T6301 — UnixPipeAdapter: real Duplex over Unix domain sockets
   - Implement `_read/_write/_final/_destroy`, backpressure (pause/resume), end/close, error propagation.
   - File: `src/transport/unix/UnixPipeAdapter.ts` (currently stubs)
@@ -36,11 +38,12 @@ Tasks
   - Update `docs/rfcs/stream-kernel/02-core-architecture.md` and/or add `docs/rfcs/stream-kernel/process-mode.md` with adapter behavior and cutover notes.
 
 Success Criteria
+
 - `processUnix.spec.ts` passes with `MK_PROCESS_EXPERIMENTAL=1`.
 - Backpressure and error propagation match WorkerPipeAdapter semantics.
 - Executor process cutover drains data without loss.
 
 Out of Scope
+
 - Kernel changes (keep core inert).
 - Ungating worker-mode tests (handled separately when stable).
-

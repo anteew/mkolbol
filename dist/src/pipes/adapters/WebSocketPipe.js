@@ -58,7 +58,7 @@ export class WebSocketPipeClient extends Duplex {
             callback(err);
         }
     }
-    _read(size) {
+    _read(_size) {
         // Backpressure handled by WebSocket
     }
     handleIncomingData(data) {
@@ -130,7 +130,7 @@ export class WebSocketPipeServer {
             });
             this.server.on('listening', () => {
                 const address = this.server.address();
-                const actualPort = (address && typeof address === 'object') ? address.port : port;
+                const actualPort = address && typeof address === 'object' ? address.port : port;
                 debug.emit('ws-pipe', 'server.listen', { port: actualPort }, 'info');
                 resolve(actualPort);
             });
@@ -185,7 +185,7 @@ class WebSocketServerPipe extends Duplex {
             callback(err);
         }
     }
-    _read(size) {
+    _read(_size) {
         // Backpressure handled by WebSocket
     }
     handleIncomingData(data) {

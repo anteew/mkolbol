@@ -40,10 +40,7 @@
   "links": {
     "status_doc": "docs/rfcs/stream-kernel/status.md",
     "open_pr_url": "https://github.com/<owner>/<repo>/pull/<number>",
-    "open_pr_checks": [
-      "Smoke Test (Node 20): <pass|fail>",
-      "Smoke Test (Node 24): <pass|fail>"
-    ],
+    "open_pr_checks": ["Smoke Test (Node 20): <pass|fail>", "Smoke Test (Node 24): <pass|fail>"],
     "ampcode_sprint_id": "<SB-...>",
     "ampcode_file": "ampcode.md"
   },

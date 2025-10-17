@@ -25,11 +25,13 @@ $ mk build
 ```
 
 **Output files:**
+
 - `dist/bundle.js` - Your bundled application
 - `dist/bundle.js.map` - Source maps for debugging
 - `dist/build-info.json` - Build provenance metadata
 
 **Provenance metadata includes:**
+
 - Version, timestamp, and Node.js version
 - Platform and architecture
 - Source files list
@@ -47,6 +49,7 @@ $ mk package
 ```
 
 **Output:**
+
 - Deterministic filename: `mkolbol-{version}-{platform}-{arch}-{timestamp}.capsule.tgz`
 - Contains: bundle.js, bundle.js.map, build-info.json
 - SHA256 hash for integrity verification
@@ -92,6 +95,7 @@ mk fetch latest
 ```
 
 **What it does**:
+
 1. Queries GitHub releases API for the specified tag
 2. Downloads the `.tgz` asset to your current directory
 3. Runs `npm install <tarball>` to install it
@@ -116,6 +120,7 @@ Installation complete
 ```
 
 **Limitations**:
+
 - Requires internet connection to GitHub
 - Only works with published GitHub releases
 - Does not support pre-release tags (alpha, beta)
@@ -179,18 +184,21 @@ npm install
 ```
 
 **Pros**:
+
 - Pin to any commit, tag, or branch
 - No need to wait for npm registry publish
 - Works in CI/CD environments
 - Reproducible builds
 
 **Cons**:
+
 - Requires git checkout and build on install
 - Slower than tarball install
 - Requires build dependencies (TypeScript, etc.)
 - Not suitable for production deployments
 
 **When to use**:
+
 - Development against unreleased features
 - Testing release candidates
 - CI/CD pipelines with specific version requirements
@@ -199,6 +207,7 @@ npm install
 ## Overview
 
 When you build an application with mkolbol, you typically have:
+
 - Your custom server modules (TypeScript/JavaScript)
 - The mkolbol kernel and its dependencies
 - External process scripts (Python, Go, Rust, etc.)
@@ -216,12 +225,14 @@ There are three popular tools for packaging Node.js applications:
 **Overview**: An extremely fast JavaScript bundler and minifier written in Go.
 
 **How it works**:
+
 - Bundles all JavaScript/TypeScript into a single file
 - Tree-shakes unused code
 - Minifies output
 - Outputs a JavaScript file that still requires Node.js to run
 
 **Pros**:
+
 - Blazingly fast (10-100x faster than webpack)
 - Simple configuration
 - Excellent TypeScript support
@@ -230,12 +241,14 @@ There are three popular tools for packaging Node.js applications:
 - Minimal overhead for native modules
 
 **Cons**:
+
 - Still requires Node.js runtime on target
 - Limited support for dynamic requires
 - No binary executable output
 - Native modules (like node-pty) need special handling
 
 **Best for**:
+
 - Fast development iteration
 - Docker/container deployments (Node.js is available)
 - Cloud functions / serverless
@@ -246,12 +259,14 @@ There are three popular tools for packaging Node.js applications:
 **Overview**: Simple CLI for compiling Node.js modules into a single file, designed by Vercel.
 
 **How it works**:
+
 - Uses webpack under the hood
 - Bundles everything into one .js file
 - Includes all dependencies
 - Optimized for serverless deployments
 
 **Pros**:
+
 - Zero configuration required
 - Designed specifically for Node.js applications
 - Good native module support
@@ -259,6 +274,7 @@ There are three popular tools for packaging Node.js applications:
 - Small learning curve
 
 **Cons**:
+
 - Still requires Node.js runtime
 - Slower than esbuild
 - Less flexibility in configuration
@@ -266,6 +282,7 @@ There are three popular tools for packaging Node.js applications:
 - Can struggle with complex dependency trees
 
 **Best for**:
+
 - Serverless deployments (Vercel, AWS Lambda, etc.)
 - Simple applications with straightforward dependencies
 - Quick prototyping without configuration overhead
@@ -275,12 +292,14 @@ There are three popular tools for packaging Node.js applications:
 **Overview**: Package Node.js projects into standalone executables for Windows, macOS, and Linux.
 
 **How it works**:
+
 - Bundles Node.js runtime + your code
 - Creates platform-specific native executables
 - Embeds file system (snapshots your app)
 - No Node.js required on target
 
 **Pros**:
+
 - Produces true standalone executables
 - No Node.js required on target system
 - Cross-platform builds from single machine
@@ -288,6 +307,7 @@ There are three popular tools for packaging Node.js applications:
 - Users get native binary experience
 
 **Cons**:
+
 - Large binary size (40-50MB+, includes Node.js)
 - Slow build times
 - Native modules can be problematic
@@ -296,6 +316,7 @@ There are three popular tools for packaging Node.js applications:
 - Project is less actively maintained
 
 **Best for**:
+
 - Distributing CLI tools to non-technical users
 - Environments where Node.js can't be installed
 - Desktop applications
@@ -303,18 +324,18 @@ There are three popular tools for packaging Node.js applications:
 
 ## Comparison Table
 
-| Feature | esbuild | @vercel/ncc | pkg |
-|---------|---------|-------------|-----|
-| **Speed** | Extremely fast (< 1s) | Fast (2-5s) | Slow (10-30s) |
-| **Bundle Size** | Small (< 1MB) | Medium (1-3MB) | Large (40-50MB+) |
-| **Requires Node.js** | Yes | Yes | No |
-| **Native Modules** | Moderate support | Good support | Difficult |
-| **Configuration** | Simple | Zero config | Moderate |
-| **Tree-shaking** | Excellent | Good | Limited |
-| **Output Format** | .js file | .js file | Native executable |
-| **Cross-platform** | Yes (code) | Yes (code) | Yes (binaries) |
-| **Dynamic requires** | Limited | Good | Requires config |
-| **Active Development** | Very active | Active | Less active |
+| Feature                | esbuild               | @vercel/ncc    | pkg               |
+| ---------------------- | --------------------- | -------------- | ----------------- |
+| **Speed**              | Extremely fast (< 1s) | Fast (2-5s)    | Slow (10-30s)     |
+| **Bundle Size**        | Small (< 1MB)         | Medium (1-3MB) | Large (40-50MB+)  |
+| **Requires Node.js**   | Yes                   | Yes            | No                |
+| **Native Modules**     | Moderate support      | Good support   | Difficult         |
+| **Configuration**      | Simple                | Zero config    | Moderate          |
+| **Tree-shaking**       | Excellent             | Good           | Limited           |
+| **Output Format**      | .js file              | .js file       | Native executable |
+| **Cross-platform**     | Yes (code)            | Yes (code)     | Yes (binaries)    |
+| **Dynamic requires**   | Limited               | Good           | Requires config   |
+| **Active Development** | Very active           | Active         | Less active       |
 
 ## Recommendation: esbuild
 
@@ -357,6 +378,7 @@ npx esbuild src/index.ts \
 ```
 
 **Explanation**:
+
 - `--bundle`: Combine all dependencies into one file
 - `--platform=node`: Target Node.js (not browser)
 - `--target=node20`: Use Node.js 20+ features
@@ -393,11 +415,13 @@ dist/
 ```
 
 The bundle includes:
+
 - Your application code
 - mkolbol kernel
 - All JavaScript dependencies
 
 Excluded (must be installed separately):
+
 - node-pty (native module)
 - yaml (if marked external)
 
@@ -417,6 +441,7 @@ const CONFIG_PATH = process.env.CONFIG_PATH || './config.yml';
 ```
 
 **Usage**:
+
 ```bash
 DEBUG=1 PORT=3000 node dist/runner.js
 ```
@@ -442,6 +467,7 @@ const configData = readFileSync(configPath, 'utf-8');
 ```
 
 **Directory structure for deployment**:
+
 ```
 deployment/
 ├── dist/
@@ -454,6 +480,7 @@ deployment/
 ```
 
 **Minimal package.json for deployment**:
+
 ```json
 {
   "name": "my-mkolbol-app",
@@ -506,7 +533,7 @@ Always exclude native modules from the bundle:
 
 ```javascript
 // build-bundle.mjs
-external: ['node-pty', 'fsevents', 'better-sqlite3']
+external: ['node-pty', 'fsevents', 'better-sqlite3'];
 ```
 
 ### 2. Use Tree-shaking
@@ -530,6 +557,7 @@ npm list --depth=0
 ```
 
 Remove unused packages:
+
 ```bash
 npm uninstall unused-package
 ```
@@ -540,9 +568,9 @@ npm uninstall unused-package
 // build-bundle.mjs
 esbuild.build({
   // ...
-  minify: true,        // Minify code
-  treeShaking: true,   // Remove dead code
-})
+  minify: true, // Minify code
+  treeShaking: true, // Remove dead code
+});
 ```
 
 ### 5. Analyze Bundle Size
@@ -564,10 +592,10 @@ For very large apps, consider code splitting:
 esbuild.build({
   // ...
   splitting: true,
-  outdir: 'dist',  // Use outdir instead of outfile
+  outdir: 'dist', // Use outdir instead of outfile
   entryPoints: ['src/index.ts'],
   format: 'esm',
-})
+});
 ```
 
 ## Debugging Bundled Applications
@@ -578,11 +606,12 @@ esbuild.build({
 // build-bundle.mjs
 esbuild.build({
   // ...
-  sourcemap: 'linked',  // or 'inline' or 'external'
-})
+  sourcemap: 'linked', // or 'inline' or 'external'
+});
 ```
 
 Run with source map support:
+
 ```bash
 node --enable-source-maps dist/runner.js
 ```
@@ -593,8 +622,8 @@ node --enable-source-maps dist/runner.js
 // build-bundle.mjs
 esbuild.build({
   // ...
-  keepNames: true,  // Preserve function/class names
-})
+  keepNames: true, // Preserve function/class names
+});
 ```
 
 ### Add Debug Logging
@@ -657,7 +686,7 @@ Use paths relative to bundle or environment variables:
 
 ```typescript
 // Before bundling
-command: './scripts/echo-server.py'
+command: './scripts/echo-server.py';
 
 // After bundling (use absolute paths)
 import { dirname, join } from 'path';
@@ -666,7 +695,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const scriptsDir = join(__dirname, '../scripts');
 
-command: join(scriptsDir, 'echo-server.py')
+command: join(scriptsDir, 'echo-server.py');
 ```
 
 Or use environment variables:
@@ -706,6 +735,7 @@ npx ncc build src/index.ts \
 ```
 
 Output:
+
 ```
 dist/
 └── index.js  # Everything bundled (larger than esbuild)
@@ -730,15 +760,8 @@ npm install --save-dev pkg
   "bin": "dist/runner.js",
   "pkg": {
     "scripts": "dist/**/*.js",
-    "assets": [
-      "config/**/*",
-      "scripts/**/*"
-    ],
-    "targets": [
-      "node20-linux-x64",
-      "node20-macos-x64",
-      "node20-win-x64"
-    ],
+    "assets": ["config/**/*", "scripts/**/*"],
+    "targets": ["node20-linux-x64", "node20-macos-x64", "node20-win-x64"],
     "outputPath": "build"
   }
 }
@@ -755,6 +778,7 @@ npx pkg .
 ```
 
 Output:
+
 ```
 build/
 ├── runner-linux
@@ -853,8 +877,9 @@ After packaging your application:
 **Problem**: Bundle can't find external modules.
 
 **Solution**: Mark them as external in build script:
+
 ```javascript
-external: ['node-pty', 'yaml']
+external: ['node-pty', 'yaml'];
 ```
 
 ### Native module errors
@@ -862,6 +887,7 @@ external: ['node-pty', 'yaml']
 **Problem**: `node-pty` fails to load.
 
 **Solution**:
+
 1. Don't bundle native modules
 2. Ensure node_modules/node-pty exists in deployment
 3. Rebuild for target platform: `npm rebuild node-pty`
@@ -871,6 +897,7 @@ external: ['node-pty', 'yaml']
 **Problem**: Bundle can't find topology.yml.
 
 **Solution**: Use proper path resolution:
+
 ```typescript
 const configPath = join(process.cwd(), 'config/topology.yml');
 ```
@@ -880,6 +907,7 @@ const configPath = join(process.cwd(), 'config/topology.yml');
 **Problem**: Bundle is several megabytes.
 
 **Solution**:
+
 1. Mark large dependencies as external
 2. Enable tree-shaking and minification
 3. Remove unused dependencies
@@ -890,11 +918,13 @@ const configPath = join(process.cwd(), 'config/topology.yml');
 **Problem**: Python/Bash scripts fail with permission errors.
 
 **Solution**:
+
 ```bash
 chmod +x scripts/*.py scripts/*.sh
 ```
 
 Or in deployment script:
+
 ```typescript
 import { chmodSync } from 'fs';
 chmodSync('scripts/echo-server.py', 0o755);

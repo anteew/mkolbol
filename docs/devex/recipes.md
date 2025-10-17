@@ -17,6 +17,7 @@ mk recipes --show http-logs-jsonl
 ## Available Recipes
 
 ### tee-filesink
+
 **Description**: Duplicate output to console and file simultaneously  
 **Use Case**: Log to file while monitoring console output  
 **Tags**: logging, monitoring, fan-out
@@ -24,6 +25,7 @@ mk recipes --show http-logs-jsonl
 **Pattern**: Timer → Tee → [Console, FileSink]
 
 **When to use**:
+
 - Need both live console output and persistent logs
 - Debugging while capturing full session
 - Multi-destination output
@@ -31,6 +33,7 @@ mk recipes --show http-logs-jsonl
 ---
 
 ### rate-limit
+
 **Description**: Throttle message flow with token bucket rate limiting  
 **Use Case**: Prevent overwhelming downstream systems  
 **Tags**: rate-limiting, backpressure, throttling
@@ -38,12 +41,14 @@ mk recipes --show http-logs-jsonl
 **Pattern**: Source → RateLimiter → Sink
 
 **When to use**:
+
 - API rate limiting
 - Resource protection
 - Burst smoothing
 - Fair queuing
 
 **Configuration options**:
+
 - `capacity`: Token bucket size
 - `refillRate`: Tokens per interval
 - `refillInterval`: Refill frequency (ms)
@@ -51,6 +56,7 @@ mk recipes --show http-logs-jsonl
 ---
 
 ### http-logs-jsonl
+
 **Description**: Fetch HTTP responses and log as JSONL with metrics  
 **Use Case**: API monitoring and structured logging  
 **Tags**: http, logging, metrics, jsonl
@@ -58,12 +64,14 @@ mk recipes --show http-logs-jsonl
 **Pattern**: ExternalProcess (curl) → PipeMeter → FileSink (JSONL)
 
 **When to use**:
+
 - HTTP endpoint monitoring
 - API response logging
 - Structured log analysis
 - Throughput measurement
 
 **Features**:
+
 - JSONL format for easy parsing (jq, logq)
 - Throughput metrics (bytes/sec, msg/sec)
 - Timestamped entries
@@ -71,6 +79,7 @@ mk recipes --show http-logs-jsonl
 ---
 
 ### transform-chain
+
 **Description**: Chain multiple transforms for data processing pipeline  
 **Use Case**: Multi-stage data transformation  
 **Tags**: pipeline, transform, processing
@@ -78,12 +87,14 @@ mk recipes --show http-logs-jsonl
 **Pattern**: Source → Transform1 → Transform2 → ... → Sink
 
 **When to use**:
+
 - Multi-step processing
 - Data enrichment pipelines
 - Format conversions
 - Filtering and routing
 
 **Example transforms**:
+
 - UppercaseTransform
 - PipeMeterTransform (metrics)
 - RateLimiterTransform (throttling)
@@ -92,6 +103,7 @@ mk recipes --show http-logs-jsonl
 ---
 
 ### health-check
+
 **Description**: External process with startup health verification  
 **Use Case**: Ensure service is healthy before routing traffic  
 **Tags**: health-check, external-process, reliability
@@ -99,16 +111,19 @@ mk recipes --show http-logs-jsonl
 **Pattern**: ExternalProcess (with healthCheck) → Sink
 
 **When to use**:
+
 - Running external services (HTTP servers, daemons)
 - Need startup verification
 - Circuit breaker patterns
 - Graceful degradation
 
 **Health check types**:
+
 - **HTTP**: GET request, expect 2xx status
 - **Command**: Shell command, expect exit 0
 
 **Configuration**:
+
 ```yaml
 healthCheck:
   type: http
@@ -124,6 +139,7 @@ healthCheck:
 To create your own recipe:
 
 1. Start with an existing recipe as template:
+
    ```bash
    mk recipes --show tee-filesink > my-topology.yml
    ```
@@ -131,6 +147,7 @@ To create your own recipe:
 2. Modify for your use case
 
 3. Test with `mk run`:
+
    ```bash
    mk run my-topology.yml --dry-run   # Validate
    mk run my-topology.yml              # Execute

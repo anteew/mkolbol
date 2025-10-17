@@ -17,6 +17,7 @@ The Executor has three primary responsibilities:
 ### 1. Service Startup (Phase 1)
 
 When the kernel starts, the Executor:
+
 1. Reads service configuration (initially hardcoded, later from config file)
 2. Instantiates service instances
 3. Registers services with the Hostess
@@ -25,6 +26,7 @@ When the kernel starts, the Executor:
 ### 2. Probe Spawning (Phase 2)
 
 For connection testing, the Executor:
+
 1. Spawns probe servers in separate processes on request
 2. Passes connection testing instructions to probes
 3. Coordinates probe/beacon authentication
@@ -33,6 +35,7 @@ For connection testing, the Executor:
 ### 3. External Process Management (Phase 3)
 
 Future capability to:
+
 1. Spawn arbitrary external processes
 2. Monitor process health
 3. Restart failed processes
@@ -53,6 +56,7 @@ STREAM KERNEL (Pure plumbing)
 ```
 
 **Why this matters:**
+
 - Can be replaced with different implementations
 - Can run on a separate machine
 - Can be tested in isolation
@@ -62,20 +66,21 @@ STREAM KERNEL (Pure plumbing)
 
 The Executor is distinct from other infrastructure servers:
 
-| Server | Responsibility |
-|--------|---------------|
-| **Kernel** | Pipes, connections, basic registry |
-| **Executor** | Service startup, probe spawning, process management |
-| **Hostess** | Server registry, capability tracking, availability |
+| Server           | Responsibility                                           |
+| ---------------- | -------------------------------------------------------- |
+| **Kernel**       | Pipes, connections, basic registry                       |
+| **Executor**     | Service startup, probe spawning, process management      |
+| **Hostess**      | Server registry, capability tracking, availability       |
 | **StateManager** | Topology tracking, wiring configs, connection management |
-| **Probe** | Connection method testing |
-| **Beacon** | Connection endpoint listening, authentication |
+| **Probe**        | Connection method testing                                |
+| **Beacon**       | Connection endpoint listening, authentication            |
 
 ## Phase 1: Service Startup
 
 ### Minimal Implementation
 
 The initial Executor is ~50-100 lines that:
+
 1. Instantiates services from hardcoded list
 2. Calls `hostess.register()` for each service
 3. Waits for all services to be ready
@@ -86,16 +91,16 @@ The initial Executor is ~50-100 lines that:
 class Executor {
   constructor(
     private kernel: Kernel,
-    private hostess: HostessServer
+    private hostess: HostessServer,
   ) {}
 
   async start() {
     const services = this.getServiceList();
-    
+
     for (const serviceDef of services) {
       const service = this.instantiate(serviceDef);
       await service.initialize();
-      
+
       await this.hostess.register({
         name: serviceDef.name,
         fqdn: serviceDef.fqdn,
@@ -104,13 +109,13 @@ class Executor {
         auth: serviceDef.auth,
         mechanism: serviceDef.authMechanism,
         uuid: serviceDef.uuid,
-        terminals: service.getTerminals()
+        terminals: service.getTerminals(),
       });
     }
-    
+
     console.log(`Executor: Started ${services.length} services`);
   }
-  
+
   private getServiceList(): ServiceDefinition[] {
     return [
       {
@@ -121,7 +126,7 @@ class Executor {
         auth: 'no',
         authMechanism: 'none',
         uuid: crypto.randomUUID(),
-        factory: () => new PTYServer(this.kernel)
+        factory: () => new PTYServer(this.kernel),
       },
       {
         name: 'renderer-server',
@@ -131,11 +136,11 @@ class Executor {
         auth: 'no',
         authMechanism: 'none',
         uuid: crypto.randomUUID(),
-        factory: () => new RendererServer(this.kernel)
-      }
+        factory: () => new RendererServer(this.kernel),
+      },
     ];
   }
-  
+
   private instantiate(def: ServiceDefinition): Server {
     return def.factory();
   }
@@ -152,6 +157,7 @@ await executor.start();
 ```
 
 **Advantages:**
+
 - Simple to implement
 - Easy to test
 - No config file parsing
@@ -185,18 +191,18 @@ class Executor {
         PORT_END: request.portRange.end.toString(),
         PROBE_HASH: request.probeHash,
         PASSPHRASE: request.passphrase,
-        EXPECTED_BEACON_HASH: request.beaconHash
-      }
+        EXPECTED_BEACON_HASH: request.beaconHash,
+      },
     });
-    
+
     return await probe.waitForResults();
   }
-  
+
   private spawnProcess(config: ProcessConfig): Process {
     const child = spawn(config.command, config.args, {
-      env: { ...process.env, ...config.env }
+      env: { ...process.env, ...config.env },
     });
-    
+
     return new Process(child);
   }
 }
@@ -233,14 +239,14 @@ class Executor {
       command: config.command,
       args: config.args,
       env: config.env,
-      cwd: config.cwd
+      cwd: config.cwd,
     });
-    
+
     this.monitorProcess(process);
-    
+
     return new ManagedProcess(process, config);
   }
-  
+
   private monitorProcess(process: Process) {
     process.on('exit', (code) => {
       if (config.restart && code !== 0) {
@@ -255,26 +261,29 @@ class Executor {
 ### Use Cases
 
 **Docker containers:** Spawn containerized services
+
 ```typescript
 await executor.spawnExternal({
   command: 'docker',
-  args: ['run', '-p', '8080:8080', 'my-service']
+  args: ['run', '-p', '8080:8080', 'my-service'],
 });
 ```
 
 **GPU servers:** Start remote GPU processing
+
 ```typescript
 await executor.spawnExternal({
   command: 'python',
-  args: ['gpu_server.py']
+  args: ['gpu_server.py'],
 });
 ```
 
 **PTY applications:** Launch terminal applications
+
 ```typescript
 await executor.spawnExternal({
   command: 'bash',
-  env: { TERM: 'xterm-256color' }
+  env: { TERM: 'xterm-256color' },
 });
 ```
 
@@ -341,7 +350,7 @@ Services are specified in code:
 ```typescript
 const services = [
   { name: 'pty-server', class: '0x0001', factory: () => new PTYServer(kernel) },
-  { name: 'renderer', class: '0x0002', factory: () => new RendererServer(kernel) }
+  { name: 'renderer', class: '0x0002', factory: () => new RendererServer(kernel) },
 ];
 ```
 
@@ -360,7 +369,7 @@ services:
     auth_mechanism: none
     command: node
     args: [pty-server.js]
-    
+
   - name: renderer-server
     fqdn: localhost
     class: 0x0002
@@ -380,7 +389,7 @@ await executor.addService({
   name: 'gpu-server',
   class: '0x0003',
   command: 'python',
-  args: ['gpu_server.py']
+  args: ['gpu_server.py'],
 });
 ```
 
@@ -393,11 +402,11 @@ class Executor {
   validateWiringConfig(config: WiringConfig): ValidationResult {
     const availableServices = this.getServiceList();
     const errors: string[] = [];
-    
+
     for (const connection of config.connections) {
-      const sourceExists = availableServices.some(s => s.name === connection.source);
-      const targetExists = availableServices.some(s => s.name === connection.target);
-      
+      const sourceExists = availableServices.some((s) => s.name === connection.source);
+      const targetExists = availableServices.some((s) => s.name === connection.target);
+
       if (!sourceExists) {
         errors.push(`Source service not found: ${connection.source}`);
       }
@@ -405,7 +414,7 @@ class Executor {
         errors.push(`Target service not found: ${connection.target}`);
       }
     }
-    
+
     return { valid: errors.length === 0, errors };
   }
 }
@@ -425,13 +434,13 @@ describe('Executor', () => {
     const kernel = new MockKernel();
     const hostess = new MockHostess();
     const executor = new Executor(kernel, hostess);
-    
+
     await executor.start();
-    
+
     expect(hostess.registeredServices).toHaveLength(2);
     expect(hostess.registeredServices[0].name).toBe('pty-server');
   });
-  
+
   it('should spawn probe with correct configuration', async () => {
     const executor = new Executor(kernel, hostess);
     const request: ProbeRequest = {
@@ -439,19 +448,19 @@ describe('Executor', () => {
       portRange: { start: 10000, end: 10100 },
       beaconHash: 'abc123',
       probeHash: 'def456',
-      passphrase: 'secret'
+      passphrase: 'secret',
     };
-    
+
     const mockSpawn = jest.spyOn(executor as any, 'spawnProcess');
     await executor.spawnProbe(request);
-    
+
     expect(mockSpawn).toHaveBeenCalledWith(
       expect.objectContaining({
         env: expect.objectContaining({
           PROBE_HASH: 'def456',
-          PASSPHRASE: 'secret'
-        })
-      })
+          PASSPHRASE: 'secret',
+        }),
+      }),
     );
   });
 });
@@ -466,13 +475,11 @@ it('should register services with hostess on startup', async () => {
   const kernel = new Kernel();
   const hostess = new HostessServer(kernel);
   const executor = new Executor(kernel, hostess);
-  
+
   await executor.start();
-  
+
   const services = await hostess.listServices();
-  expect(services).toContainEqual(
-    expect.objectContaining({ name: 'pty-server' })
-  );
+  expect(services).toContainEqual(expect.objectContaining({ name: 'pty-server' }));
 });
 ```
 
@@ -483,12 +490,14 @@ it('should register services with hostess on startup', async () => {
 **Scenario:** User ships two systems, wants them to discover each other
 
 **Machine A:**
+
 ```typescript
 const executor = new Executor(kernel, hostess);
 await executor.start();
 ```
 
 **Machine B:**
+
 ```typescript
 const executor = new Executor(kernel, hostess);
 await executor.start();
@@ -501,6 +510,7 @@ Both Executors start their local services. Hostesses communicate via LLDP. Conne
 **Scenario:** User needs compile-time wiring specification
 
 **wiring-config.yaml:**
+
 ```yaml
 connections:
   - source: pty-server.output
@@ -510,6 +520,7 @@ connections:
 ```
 
 **Startup:**
+
 ```typescript
 const executor = new Executor(kernel, hostess);
 await executor.start();
@@ -542,6 +553,7 @@ await stateManager.applyWiring(wiringConfig);
 ### Why Not in Kernel?
 
 Service startup is **policy**, not **mechanism**:
+
 - Different systems need different services
 - Service configuration changes, kernel doesn't
 - Testing: Can test kernel without any services
@@ -560,6 +572,7 @@ Service startup is **policy**, not **mechanism**:
 ### Why Not Supervisor Pattern?
 
 The Executor **starts** services, but doesn't **supervise** them:
+
 - Supervision = monitoring, restarting on failure
 - That's a different concern (SupervisorServer)
 - Executor does one thing: lifecycle management
@@ -567,6 +580,7 @@ The Executor **starts** services, but doesn't **supervise** them:
 ## Implementation Checklist
 
 **Phase 1: Minimal Service Startup**
+
 - [ ] Executor class with hardcoded service list
 - [ ] Service instantiation
 - [ ] Hostess registration
@@ -574,6 +588,7 @@ The Executor **starts** services, but doesn't **supervise** them:
 - [ ] Integration test with Hostess
 
 **Phase 2: Probe Spawning**
+
 - [ ] ProbeRequest interface
 - [ ] Process spawning utility
 - [ ] Probe lifecycle management
@@ -582,6 +597,7 @@ The Executor **starts** services, but doesn't **supervise** them:
 - [ ] Integration test: Executor → Probe → Beacon
 
 **Phase 3: Config File Loading**
+
 - [ ] YAML config parser
 - [ ] Service definition validation
 - [ ] Config-driven service instantiation
@@ -589,6 +605,7 @@ The Executor **starts** services, but doesn't **supervise** them:
 - [ ] Unit tests for config loading
 
 **Phase 4: External Process Management**
+
 - [ ] External process spawning
 - [ ] Process health monitoring
 - [ ] Restart on failure
@@ -606,12 +623,14 @@ The Executor is a minimal server (~50-100 lines initially) that:
 5. ✅ **Manages process lifecycle** (future)
 
 **Key principles:**
+
 - Not kernel code - just another server
 - Follows microkernel philosophy
 - Testable in isolation
 - Swappable implementation
 
 **Integration:**
+
 - Works with Hostess for service registry
 - Works with StateManager for topology wiring
 - Spawns Probe for connection testing

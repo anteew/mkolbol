@@ -19,7 +19,7 @@ async function calculateFileHash(filepath) {
     }
     return hash.digest('hex');
 }
-export async function packageHandler(args) {
+export async function packageHandler(_args) {
     const startTime = performance.now();
     try {
         const projectRoot = process.cwd();

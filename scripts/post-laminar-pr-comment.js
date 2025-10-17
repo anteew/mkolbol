@@ -79,14 +79,19 @@ async function main() {
     const summaryTruncated = summaryLines.join('\n');
 
     // Build comment body with flake budget and acceptance results
-    const commentBody = buildCommentBody(summaryTruncated, trends, nodeVersion, flakeBudget, acceptanceResults);
+    const commentBody = buildCommentBody(
+      summaryTruncated,
+      trends,
+      nodeVersion,
+      flakeBudget,
+      acceptanceResults,
+    );
 
     // Post comment using gh CLI
     await postComment(commentBody);
 
     console.log('[Laminar] Successfully posted aggregated PR comment');
     process.exit(0);
-
   } catch (err) {
     console.error(`[Laminar] Error posting PR comment: ${err.message}`);
     // Don't fail the workflow
@@ -104,7 +109,10 @@ function readAcceptanceResults() {
   }
 
   try {
-    const lines = fs.readFileSync(ACCEPTANCE_PATH, 'utf-8').split('\n').filter(l => l.trim());
+    const lines = fs
+      .readFileSync(ACCEPTANCE_PATH, 'utf-8')
+      .split('\n')
+      .filter((l) => l.trim());
 
     if (lines.length === 0) {
       return '';
@@ -140,7 +148,10 @@ function calculateFlakeBudget() {
   }
 
   try {
-    const lines = fs.readFileSync(HISTORY_PATH, 'utf-8').split('\n').filter(l => l.trim());
+    const lines = fs
+      .readFileSync(HISTORY_PATH, 'utf-8')
+      .split('\n')
+      .filter((l) => l.trim());
 
     // Parse JSONL and group by runId to get distinct runs
     const runIds = new Set();
@@ -240,7 +251,7 @@ async function postComment(body) {
   return stdout;
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(`[Laminar] Fatal error: ${err.message}`);
   process.exit(0); // Still exit 0 to not fail workflow
 });

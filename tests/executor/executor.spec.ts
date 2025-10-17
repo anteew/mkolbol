@@ -20,10 +20,8 @@ describe('Executor', () => {
 
   it('should load configuration', () => {
     const config: TopologyConfig = {
-      nodes: [
-        { id: 'timer1', module: 'TimerSource', params: { periodMs: 500 } }
-      ],
-      connections: []
+      nodes: [{ id: 'timer1', module: 'TimerSource', params: { periodMs: 500 } }],
+      connections: [],
     };
 
     expect(() => executor.load(config)).not.toThrow();
@@ -37,9 +35,9 @@ describe('Executor', () => {
     const config: TopologyConfig = {
       nodes: [
         { id: 'timer1', module: 'TimerSource', params: { periodMs: 500 } },
-        { id: 'sink1', module: 'ConsoleSink', params: { prefix: '[test]' } }
+        { id: 'sink1', module: 'ConsoleSink', params: { prefix: '[test]' } },
       ],
-      connections: []
+      connections: [],
     };
 
     executor.load(config);
@@ -47,8 +45,8 @@ describe('Executor', () => {
 
     const services = hostess.list();
     expect(services).toHaveLength(2);
-    expect(services.find(s => s.servername === 'timer1')).toBeDefined();
-    expect(services.find(s => s.servername === 'sink1')).toBeDefined();
+    expect(services.find((s) => s.servername === 'timer1')).toBeDefined();
+    expect(services.find((s) => s.servername === 'sink1')).toBeDefined();
 
     await executor.down();
   });
@@ -58,12 +56,12 @@ describe('Executor', () => {
       nodes: [
         { id: 'timer1', module: 'TimerSource' },
         { id: 'upper1', module: 'UppercaseTransform' },
-        { id: 'sink1', module: 'ConsoleSink' }
+        { id: 'sink1', module: 'ConsoleSink' },
       ],
       connections: [
         { from: 'timer1.output', to: 'upper1.input' },
-        { from: 'upper1.output', to: 'sink1.input' }
-      ]
+        { from: 'upper1.output', to: 'sink1.input' },
+      ],
     };
 
     executor.load(config);
@@ -78,10 +76,8 @@ describe('Executor', () => {
 
   it('should support restartNode', async () => {
     const config: TopologyConfig = {
-      nodes: [
-        { id: 'timer1', module: 'TimerSource', params: { periodMs: 500 } }
-      ],
-      connections: []
+      nodes: [{ id: 'timer1', module: 'TimerSource', params: { periodMs: 500 } }],
+      connections: [],
     };
 
     executor.load(config);
@@ -95,7 +91,7 @@ describe('Executor', () => {
   it('should throw on restartNode for non-existent node', async () => {
     const config: TopologyConfig = {
       nodes: [],
-      connections: []
+      connections: [],
     };
 
     executor.load(config);

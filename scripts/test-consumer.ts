@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Consumer acceptance test
- * 
+ *
  * Tests mkolbol installation from a local tarball in a fresh fixture app.
  * This validates the packaging, exports, and basic functionality from a
  * consumer's perspective.
@@ -19,10 +19,10 @@ const DIST_DIR = join(PROJECT_ROOT, 'dist');
 function exec(cmd: string, cwd: string = PROJECT_ROOT): string {
   console.log(`\n[test-consumer] $ ${cmd}`);
   try {
-    return execSync(cmd, { 
-      cwd, 
+    return execSync(cmd, {
+      cwd,
       encoding: 'utf8',
-      stdio: ['inherit', 'pipe', 'pipe']
+      stdio: ['inherit', 'pipe', 'pipe'],
     });
   } catch (err: any) {
     console.error(`Command failed: ${cmd}`);
@@ -32,26 +32,30 @@ function exec(cmd: string, cwd: string = PROJECT_ROOT): string {
   }
 }
 
-function execAsync(cmd: string, args: string[], cwd: string): Promise<{ code: number, stdout: string, stderr: string }> {
+function execAsync(
+  cmd: string,
+  args: string[],
+  cwd: string,
+): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     console.log(`\n[test-consumer] $ ${cmd} ${args.join(' ')}`);
     const proc = spawn(cmd, args, { cwd });
-    
+
     let stdout = '';
     let stderr = '';
-    
+
     proc.stdout?.on('data', (data) => {
       const str = data.toString();
       stdout += str;
       process.stdout.write(str);
     });
-    
+
     proc.stderr?.on('data', (data) => {
       const str = data.toString();
       stderr += str;
       process.stderr.write(str);
     });
-    
+
     proc.on('close', (code) => {
       resolve({ code: code || 0, stdout, stderr });
     });
@@ -87,7 +91,7 @@ async function main() {
     cpSync(FIXTURE_DIR, tempDir, { recursive: true });
     console.log('  ✓ Copied fixture app');
 
-    // Copy tarball to temp directory  
+    // Copy tarball to temp directory
     const tarballPath = join(PROJECT_ROOT, tarballName);
     const targetTarball = join(tempDir, '..', tarballName);
     cpSync(tarballPath, targetTarball);
@@ -108,7 +112,10 @@ async function main() {
     // Step 5: Verify installation
     console.log('\n[5/6] Verifying installation...');
     try {
-      exec('node -e "import(\\"mkolbol\\").then(() => console.log(\\"✓ Import successful\\"))"', tempDir);
+      exec(
+        'node -e "import(\\"mkolbol\\").then(() => console.log(\\"✓ Import successful\\"))"',
+        tempDir,
+      );
     } catch (err) {
       console.error('  ✗ Failed to import mkolbol');
       throw err;
@@ -117,7 +124,7 @@ async function main() {
     // Step 6: Run the test
     console.log('\n[6/6] Running topology test...');
     const result = await execAsync('npm', ['test'], tempDir);
-    
+
     if (result.code !== 0) {
       console.error(`\n❌ Test failed with exit code ${result.code}`);
       process.exit(1);
@@ -133,13 +140,12 @@ async function main() {
     rmSync(targetTarball, { force: true });
     rmSync(tempDir, { recursive: true, force: true });
     console.log('  ✓ Cleanup complete');
-
   } catch (error: any) {
     console.error('\n==========================================');
     console.error('❌ Consumer Acceptance Test FAILED');
     console.error('==========================================');
     console.error(error.message || error);
-    
+
     // Clean up on failure
     rmSync(tempDir, { recursive: true, force: true });
     process.exit(1);

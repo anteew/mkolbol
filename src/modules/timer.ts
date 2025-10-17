@@ -5,7 +5,10 @@ export class TimerSource {
   public readonly outputPipe: Pipe;
   private interval?: NodeJS.Timeout;
 
-  constructor(private kernel: Kernel, private periodMs = 500) {
+  constructor(
+    private kernel: Kernel,
+    private periodMs = 500,
+  ) {
     this.outputPipe = kernel.createPipe({ objectMode: true });
   }
 

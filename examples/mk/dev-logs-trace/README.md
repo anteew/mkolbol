@@ -13,11 +13,13 @@ This directory contains working examples demonstrating hot-reload, structured lo
 **Purpose**: Demonstrates hot-reload with a calculator server.
 
 **What it shows**:
+
 - In-process module that recompiles on file change
 - Output piped to persistent log file
 - Real-time iteration without restart
 
 **Usage**:
+
 ```bash
 # Start with hot reload enabled
 mk dev --file examples/mk/dev-logs-trace/hot-reload-demo.json
@@ -28,6 +30,7 @@ mk dev --file examples/mk/dev-logs-trace/hot-reload-demo.json
 ```
 
 **Expected behavior**:
+
 1. Topology starts, server listens on port 4000
 2. Requests are logged to `reports/requests.jsonl`
 3. Edit calculator module source
@@ -36,6 +39,7 @@ mk dev --file examples/mk/dev-logs-trace/hot-reload-demo.json
 6. No data loss; previous requests remain in log
 
 **Acceptance criteria**:
+
 - [ ] Topology starts successfully
 - [ ] Server is listening on port 4000
 - [ ] Initial requests are logged to JSONL
@@ -49,11 +53,13 @@ mk dev --file examples/mk/dev-logs-trace/hot-reload-demo.json
 **Purpose**: Demonstrates structured logging with filters and multiple output streams.
 
 **What it shows**:
+
 - HTTP server with request logging
 - Multiple sink modules for different log types
 - Pattern-based filtering
 
 **Usage**:
+
 ```bash
 # Start topology
 mk run --file examples/mk/dev-logs-trace/logs-filter-demo.json
@@ -72,12 +78,14 @@ mk logs --output logs/session.log --watch
 ```
 
 **Expected behavior**:
+
 1. HTTP server starts on port 5000
 2. All output goes to `reports/http-requests.log`
 3. With filters, you see only matching logs
 4. Each filter operation is instant (< 50ms)
 
 **Acceptance criteria**:
+
 - [ ] Topology starts successfully
 - [ ] Server listens on port 5000
 - [ ] Requests are logged to file with timestamp
@@ -92,11 +100,13 @@ mk logs --output logs/session.log --watch
 **Purpose**: Demonstrates latency tracing across modules.
 
 **What it shows**:
+
 - Multiple modules in a pipeline
 - Flow timing from input to output
 - Latency distribution analysis
 
 **Usage**:
+
 ```bash
 # Start topology (logs-filter-demo works here)
 mk run --file examples/mk/dev-logs-trace/logs-filter-demo.json
@@ -115,12 +125,14 @@ mk trace --duration 30 --sort throughput
 ```
 
 **Expected behavior**:
+
 1. Trace captures ~1,667 messages/sec
 2. Summary shows per-module latency
 3. Percentiles (p50/p95/p99) are reported
 4. JSON export includes message timestamps and routing
 
 **Acceptance criteria**:
+
 - [ ] Trace runs for specified duration
 - [ ] Summary shows module list with timings
 - [ ] Percentiles are computed correctly (p50 < p95 < p99)

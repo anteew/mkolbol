@@ -25,17 +25,20 @@ Tests are gated with environment flags to control experimental features:
 **Pool:** `--pool=threads` (vitest tinypool worker threads)
 
 **Excluded tests:**
+
 - `ptyServerWrapper.spec.ts` - Requires PTY isolation
 - `multiModalOutput.spec.ts` - Requires PTY
 - `endpointsList.spec.ts` - Requires process spawning
 - `processMode.spec.ts` - Requires process isolation
 
 **Run command:**
+
 ```bash
 npm run test:ci
 ```
 
 **Direct vitest command:**
+
 ```bash
 npx vitest run \
   --pool=threads \
@@ -44,6 +47,7 @@ npx vitest run \
 ```
 
 **Characteristics:**
+
 - Fast execution (parallel workers)
 - Shared process space (lighter weight)
 - Safe for pure functions, transforms, and kernel logic
@@ -58,6 +62,7 @@ npx vitest run \
 **Pool:** `--pool=forks --poolOptions.forks.singleFork=true`
 
 **Included tests:**
+
 - `tests/wrappers/ptyServerWrapper.spec.ts` - PTY wrapper lifecycle
 - `tests/integration/multiModalOutput.spec.ts` - PTY output parsing
 - `tests/integration/endpointsList.spec.ts` - Endpoint registration
@@ -66,11 +71,13 @@ npx vitest run \
 - `tests/integration/workerMode.spec.ts` - Worker threads (gated)
 
 **Run command:**
+
 ```bash
 npm run test:pty
 ```
 
 **Direct vitest command:**
+
 ```bash
 npx vitest run \
   --pool=forks \
@@ -85,6 +92,7 @@ npx vitest run \
 ```
 
 **Characteristics:**
+
 - Isolated process per test suite
 - Single fork mode (`singleFork=true`) prevents concurrency issues
 - Required for PTY (node-pty) which needs real process lifecycle
@@ -99,6 +107,7 @@ npx vitest run \
 **Purpose:** Enable Unix process adapter tests (pipes, PTY control, teardown).
 
 **Gated tests:**
+
 - `tests/integration/processUnix.spec.ts`
   - `UnixPipeAdapter` - stdio/stdout/stderr pipe lifecycle
   - `UnixControlAdapter` - PTY control (resize, signal)
@@ -110,6 +119,7 @@ npx vitest run \
   - Comparable scenarios
 
 **Usage:**
+
 ```bash
 # Run forks lane with process-mode (REQUIRED)
 npm run test:pty
@@ -122,6 +132,7 @@ MK_PROCESS_EXPERIMENTAL=1 npx vitest run \
 ```
 
 **Implementation:**
+
 ```typescript
 // Tests skip if gate is not set
 describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('UnixPipeAdapter', () => {
@@ -130,6 +141,7 @@ describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('UnixPipeAdapter', () => {
 ```
 
 **CI behavior:**
+
 - Forks lane **REQUIRES** `MK_PROCESS_EXPERIMENTAL=1` (no longer optional)
 - Process-mode tests run in main forks lane (not experimental step)
 - Ensures adapter parity and PTY control coverage
@@ -141,6 +153,7 @@ describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('UnixPipeAdapter', () => {
 **Purpose:** Gate worker thread module tests (not currently run in CI).
 
 **Gated tests:**
+
 - `tests/integration/workerMode.spec.ts`
   - Timer → Worker(Uppercase) → Console topology
   - Worker node lifecycle (up → run → down)
@@ -149,6 +162,7 @@ describe.skipIf(!process.env.MK_PROCESS_EXPERIMENTAL)('UnixPipeAdapter', () => {
   - Worker endpoint registration
 
 **Usage (when ready):**
+
 ```bash
 # Enable gate and run test
 MK_WORKER_EXPERIMENTAL=1 npx vitest run \
@@ -156,11 +170,15 @@ MK_WORKER_EXPERIMENTAL=1 npx vitest run \
 ```
 
 **Implementation:**
+
 ```typescript
 // Tests skip if gate is not set
-it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)('should execute Timer → Worker(Uppercase) → Console topology', async () => {
-  // ... test logic
-});
+it.skipIf(!process.env.MK_WORKER_EXPERIMENTAL)(
+  'should execute Timer → Worker(Uppercase) → Console topology',
+  async () => {
+    // ... test logic
+  },
+);
 ```
 
 **Why disabled:** Worker-mode is experimental and not yet needed for P0 PTY metasurface product.
@@ -172,12 +190,14 @@ Location: `.github/workflows/tests.yml`
 ### Job Matrix
 
 **Strategy:**
+
 - `fail-fast: false` (continue all matrix combinations even if one fails)
 - Node versions: `[20, 24]`
 
 ### Steps
 
 1. **Checkout + Setup**
+
    ```yaml
    - uses: actions/checkout@v4
    - uses: actions/setup-node@v4
@@ -186,6 +206,7 @@ Location: `.github/workflows/tests.yml`
    ```
 
 2. **Threads lane** (continue-on-error: true)
+
    ```bash
    npx vitest run \
      --pool=threads \
@@ -196,6 +217,7 @@ Location: `.github/workflows/tests.yml`
    ```
 
 3. **Forks lane** (continue-on-error: true)
+
    ```bash
    npx vitest run \
      --pool=forks \
@@ -211,6 +233,7 @@ Location: `.github/workflows/tests.yml`
    ```
 
 4. **Process-mode experimental** (continue-on-error: true)
+
    ```bash
    MK_PROCESS_EXPERIMENTAL=1 npx vitest run \
      --pool=forks \
@@ -221,6 +244,7 @@ Location: `.github/workflows/tests.yml`
    ```
 
 5. **Laminar summary/trends** (if: always, continue-on-error: true)
+
    ```bash
    npm run lam -- summary > reports/LAMINAR_SUMMARY.txt
    npm run lam -- trends --top 10 > reports/LAMINAR_TRENDS.txt
@@ -242,11 +266,13 @@ Location: `.github/workflows/tests.yml`
 ### Viewing CI Results
 
 **GitHub Actions:**
+
 1. Navigate to [Actions tab](https://github.com/anteew/mkolbol/actions)
 2. Click on workflow run
 3. Download artifacts: `laminar-reports-20` or `laminar-reports-24`
 
 **Artifacts include:**
+
 - `threads_raw.log` - Full output from threads lane
 - `forks_raw.log` - Full output from forks lane
 - `reports/summary.jsonl` - Structured test results
@@ -296,6 +322,7 @@ npm run lam:dogfood:pty
 ```
 
 **Dogfooding scripts location:**
+
 - `scripts/dogfood-ci.ts` - Threads lane
 - `scripts/dogfood-pty.ts` - Forks lane (with MK_PROCESS_EXPERIMENTAL)
 
@@ -324,6 +351,7 @@ npx vitest run tests/kernel.spec.ts -t "connect moves data"
 **Symptom:** `ptyServerWrapper.spec.ts` fails with isolation or concurrency errors.
 
 **Solution:** PTY tests require process isolation. Use forks lane:
+
 ```bash
 npm run test:pty
 ```
@@ -333,6 +361,7 @@ npm run test:pty
 **Symptom:** Tests in `processUnix.spec.ts` show as skipped.
 
 **Solution:** Process-mode is now **required**. Use `npm run test:pty` (sets `MK_PROCESS_EXPERIMENTAL=1` automatically):
+
 ```bash
 npm run test:pty
 ```
@@ -342,6 +371,7 @@ npm run test:pty
 **Symptom:** `Maximum call stack size exceeded` or worker pool errors.
 
 **Solution:** Use `--pool=threads` explicitly (already in `test:ci` script):
+
 ```bash
 npx vitest run --pool=threads
 ```
@@ -351,6 +381,7 @@ npx vitest run --pool=threads
 **Symptom:** Tests timeout in GitHub Actions but complete locally.
 
 **Solution:** CI uses `continue-on-error: true` for lanes to prevent build failures. Check:
+
 - Artifact logs: `reports/threads_raw.log` or `reports/forks_raw.log`
 - Increase timeout in test file if needed:
   ```typescript
@@ -364,6 +395,7 @@ npx vitest run --pool=threads
 **Symptom:** Tests in `workerMode.spec.ts` show as skipped.
 
 **Solution:** Worker mode is gated off in CI (not yet production-ready). To run locally:
+
 ```bash
 MK_WORKER_EXPERIMENTAL=1 npm run test:pty
 ```
@@ -373,6 +405,7 @@ MK_WORKER_EXPERIMENTAL=1 npm run test:pty
 **Symptom:** `reports/summary.jsonl` or case files are empty or missing.
 
 **Solution:** Ensure Laminar reporter is installed:
+
 ```bash
 npm ci  # Clean install
 npm run build
@@ -382,6 +415,7 @@ npm run test:ci  # Should generate reports/
 ### Debug Techniques
 
 **Enable debug output:**
+
 ```bash
 # All debug output
 DEBUG=1 npm run test:ci
@@ -394,12 +428,14 @@ MK_DEBUG_LEVEL=trace npm run test:ci
 ```
 
 **Laminar debug mode:**
+
 ```bash
 # Run tests with Laminar debug logging
 LAMINAR_DEBUG=1 npm run test:ci
 ```
 
 **Check test event logs:**
+
 ```bash
 # View structured events for a specific test
 npm run logq -- case=kernel.spec/connect reports/kernel.spec/*.jsonl
@@ -412,6 +448,7 @@ npm run logq -- --around corr=abc123 --window 5 reports/**/*.jsonl
 ```
 
 **Generate repro commands:**
+
 ```bash
 # List all failures with reproduction commands
 npm run repro
@@ -424,30 +461,34 @@ npm run lam -- repro --bundle --case kernel.spec/connect_moves_data_1_1
 
 ### Test Execution Times (approximate)
 
-| Lane | Test Count | Duration | Pool |
-|------|-----------|----------|------|
-| Threads | ~30-40 tests | ~5-10s | threads (parallel) |
-| Forks (no gates) | ~10-15 tests | ~10-15s | forks (isolated) |
-| Forks (with MK_PROCESS_EXPERIMENTAL) | ~15-20 tests | ~15-20s | forks (isolated) |
+| Lane                                 | Test Count   | Duration | Pool               |
+| ------------------------------------ | ------------ | -------- | ------------------ |
+| Threads                              | ~30-40 tests | ~5-10s   | threads (parallel) |
+| Forks (no gates)                     | ~10-15 tests | ~10-15s  | forks (isolated)   |
+| Forks (with MK_PROCESS_EXPERIMENTAL) | ~15-20 tests | ~15-20s  | forks (isolated)   |
 
 ### Optimization Tips
 
 **1. Keep threads lane fast**
+
 - Avoid PTY, process spawning, or heavy I/O in threaded tests
 - Use mocks for external dependencies
 - Keep tests focused and isolated
 
 **2. Use forks lane for integration**
+
 - Real process spawning (node-pty)
 - Full lifecycle tests (up → run → down)
 - Tests that modify global state
 
 **3. Gate experimental features**
+
 - Use environment flags for unstable features
 - Skip expensive tests by default (opt-in with gate)
 - Keep CI builds fast and reliable
 
 **4. Leverage continue-on-error**
+
 - CI lanes use `continue-on-error: true` to prevent flake-induced build failures
 - Review artifacts to catch real issues
 - Use Laminar summaries to track trends
@@ -455,17 +496,20 @@ npm run lam -- repro --bundle --case kernel.spec/connect_moves_data_1_1
 ## Next Steps
 
 **For contributors:**
+
 - Run `npm run test:ci` before submitting PRs (threads lane)
 - Run `npm run test:pty` for PTY-related changes (forks lane)
 - Check `reports/summary.jsonl` for test results
 - Use `npm run repro` to debug failures
 
 **For CI/CD:**
+
 - Both lanes run in GitHub Actions on Node 20 and 24
 - Artifacts uploaded for each run (30-day retention)
 - Laminar summaries generated automatically
 
 **For AI agents:**
+
 - Test artifacts in `reports/` directory
 - Use `npm run lam -- logq` to query logs
 - Use `npm run lam -- digest` to analyze failures

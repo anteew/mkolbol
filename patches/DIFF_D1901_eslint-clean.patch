@@ -1,0 +1,370 @@
+diff --git a/dist/src/pipes/adapters/WebSocketPipe.js b/dist/src/pipes/adapters/WebSocketPipe.js
+index 56fc7a2..c16f1d9 100644
+--- a/dist/src/pipes/adapters/WebSocketPipe.js
++++ b/dist/src/pipes/adapters/WebSocketPipe.js
+@@ -130,7 +130,7 @@ export class WebSocketPipeServer {
+             });
+             this.server.on('listening', () => {
+                 const address = this.server.address();
+-                const actualPort = (address && typeof address === 'object') ? address.port : port;
++                const actualPort = address && typeof address === 'object' ? address.port : port;
+                 debug.emit('ws-pipe', 'server.listen', { port: actualPort }, 'info');
+                 resolve(actualPort);
+             });
+diff --git a/dist/src/pipes/adapters/WebSocketPipe.js.map b/dist/src/pipes/adapters/WebSocketPipe.js.map
+index 85c50f1..1fc7ec1 100644
+--- a/dist/src/pipes/adapters/WebSocketPipe.js.map
++++ b/dist/src/pipes/adapters/WebSocketPipe.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"WebSocketPipe.js","sourceRoot":"","sources":["../../../../src/pipes/adapters/WebSocketPipe.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"WebSocketPipe.js","sourceRoot":"","sources":["../../../../src/pipes/adapters/WebSocketPipe.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,QAAQ,CAAC;AAChC,OAAO,SAAS,EAAE,EAAE,eAAe,EAAE,MAAM,IAAI,CAAC;AAChD,OAAO,EAAE,UAAU,EAAE,MAAM,oBAAoB,CAAC;AAEhD,OAAO,EAAE,KAAK,EAAE,MAAM,oBAAoB,CAAC;AAU3C,MAAM,OAAO,mBAAoB,SAAQ,MAAM;IAKzB;IAJZ,EAAE,CAAa;IACf,MAAM,GAAW,MAAM,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC;IACjC,UAAU,GAAG,CAAC,CAAC;IAEvB,YAAoB,OAA6B;QAC/C,KAAK,CAAC,EAAE,UAAU,EAAE,OAAO,CAAC,UAAU,IAAI,KAAK,EAAE,CAAC,CAAC;QADjC,YAAO,GAAP,OAAO,CAAsB;IAEjD,CAAC;IAED,OAAO;QACL,OAAO,IAAI,OAAO,CAAC,CAAC,OAAO,EAAE,MAAM,EAAE,EAAE;YACrC,MAAM,IAAI,GAAG,IAAI,CAAC,OAAO,CAAC,IAAI,IAAI,WAAW,CAAC;YAC9C,MAAM,IAAI,GAAG,IAAI,CAAC,OAAO,CAAC,IAAI,CAAC;YAC/B,MAAM,IAAI,GAAG,IAAI,CAAC,OAAO,CAAC,IAAI,IAAI,GAAG,CAAC;YACtC,MAAM,GAAG,GAAG,QAAQ,IAAI,IAAI,IAAI,GAAG,IAAI,EAAE,CAAC;YAE1C,IAAI,CAAC,EAAE,GAAG,IAAI,SAAS,CAAC,GAAG,CAAC,CAAC;YAE7B,IAAI,IAAI,CAAC,OAAO,CAAC,OAAO,EAAE,CAAC;gBACzB,MAAM,OAAO,GAAG,UAAU,CAAC,GAAG,EAAE;oBAC9B,IAAI,CAAC,EAAE,EAAE,SAAS,EAAE,CAAC;oBACrB,MAAM,CAAC,IAAI,KAAK,CAAC,oBAAoB,CAAC,CAAC,CAAC;gBAC1C,CAAC,EAAE,IAAI,CAAC,OAAO,CAAC,OAAO,CAAC,CAAC;gBAEzB,IAAI,CAAC,EAAE,CAAC,EAAE,CAAC,MAAM,EAAE,GAAG,EAAE;oBACtB,YAAY,CAAC,OAAO,CAAC,CAAC;gBACxB,CAAC,CAAC,CAAC;YACL,CAAC;YAED,IAAI,CAAC,EAAE,CAAC,EAAE,CAAC,MAAM,EAAE,GAAG,EAAE;gBACtB,KAAK,CAAC,IAAI,CAAC,SAAS,EAAE,gBAAgB,EAAE,EAAE,GAAG,EAAE,EAAE,MAAM,CAAC,CAAC;gBACzD,OAAO,EAAE,CAAC;YACZ,CAAC,CAAC,CAAC;YAEH,IAAI,CAAC,EAAE,CAAC,EAAE,CAAC,SAAS,EAAE,CAAC,IAAY,EAAE,EAAE;gBACrC,IAAI,CAAC,kBAAkB,CAAC,IAAI,CAAC,CAAC;YAChC,CAAC,CAAC,CAAC;YAEH,IAAI,CAAC,EAAE,CAAC,EAAE,CAAC,OAAO,EAAE,CAAC,GAAG,EAAE,EAAE;gBAC1B,KAAK,CAAC,IAAI,CAAC,SAAS,EAAE,cAAc,EAAE,EAAE,KAAK,EAAE,GAAG,CAAC,OAAO,EAAE,EAAE,OAAO,CAAC,CAAC;gBACvE,MAAM,CAAC,GAAG,CAAC,CAAC;YACd,CAAC,CAAC,CAAC;YAEH,IAAI,CAAC,EAAE,CAAC,EAAE,CAAC,OAAO,EAAE,GAAG,EAAE;gBACvB,KAAK,CAAC,IAAI,CAAC,SAAS,EAAE,cAAc,EAAE,EAAE,EAAE,MAAM,CAAC,CAAC;gBAClD,IAAI,CAAC,IAAI,CAAC,IAAI,CAAC,CAAC;YAClB,CAAC,CAAC,CAAC;QACL,CAAC,CAAC,CAAC;IACL,CAAC;IAED,MAAM,CAAC,KAAU,EAAE,QAAwB,EAAE,QAAwC;QACnF,IAAI,CAAC,IAAI,CAAC,EAAE,IAAI,IAAI,CAAC,EAAE,CAAC,UAAU,KAAK,SAAS,CAAC,IAAI,EAAE,CAAC;YACtD,QAAQ,CAAC,IAAI,KAAK,CAAC,yBAAyB,CAAC,CAAC,CAAC;YAC/C,OAAO;QACT,CAAC;QAED,IAAI,CAAC;YACH,MAAM,KAAK,GAAG,UAAU,CAAC,eAAe,CAAC,KAAK,EAAE,IAAI,CAAC,UAAU,EAAE,CAAC,CAAC;YACnE,MAAM,OAAO,GAAG,UAAU,CAAC,MAAM,CAAC,KAAK,CAAC,CAAC;YACzC,IAAI,CAAC,EAAE,CAAC,IAAI,CAAC,OAAO,EAAE,QAAQ,CAAC,CAAC;QAClC,CAAC;QAAC,OAAO,GAAG,EAAE,CAAC;YACb,QAAQ,CAAC,GAAY,CAAC,CAAC;QACzB,CAAC;IACH,CAAC;IAED,KAAK,CAAC,IAAY;QAChB,oCAAoC;IACtC,CAAC;IAEO,kBAAkB,CAAC,IAAY;QACrC,IAAI,CAAC,MAAM,GAAG,MAAM,CAAC,MAAM,CAAC,CAAC,IAAI,CAAC,MAAM,EAAE,IAAI,CAAC,CAAC,CAAC;QAEjD,OAAO,IAAI,CAAC,MAAM,CAAC,MAAM,GAAG,CAAC,EAAE,CAAC;YAC9B,MAAM,MAAM,GAAG,UAAU,CAAC,MAAM,CAAC,IAAI,CAAC,MAAM,CAAC,CAAC;YAE9C,IAAI,CAAC,MAAM,EAAE,CAAC;gBACZ,MAAM;YACR,CAAC;YAED,MAAM,EAAE,KAAK,EAAE,aAAa,EAAE,GAAG,MAAM,CAAC;YACxC,IAAI,CAAC,MAAM,GAAG,IAAI,CAAC,MAAM,CAAC,KAAK,CAAC,aAAa,CAAC,CAAC;YAE/C,IAAI,KAAK,CAAC,QAAQ,CAAC,IAAI,KAAK,MAAM,EAAE,CAAC;gBACnC,IAAI,CAAC,IAAI,CAAC,KAAK,CAAC,OAAO,CAAC,CAAC;YAC3B,CAAC;iBAAM,IAAI,KAAK,CAAC,QAAQ,CAAC,IAAI,KAAK,MAAM,EAAE,CAAC;gBAC1C,IAAI,CAAC,QAAQ,EAAE,CAAC;YAClB,CAAC;iBAAM,IAAI,KAAK,CAAC,QAAQ,CAAC,IAAI,KAAK,OAAO,EAAE,CAAC;gBAC3C,IAAI,CAAC,IAAI,CAAC,IAAI,CAAC,CAAC;YAClB,CAAC;QACH,CAAC;IACH,CAAC;IAEO,QAAQ;QACd,IAAI,IAAI,CAAC,EAAE,IAAI,IAAI,CAAC,EAAE,CAAC,UAAU,KAAK,SAAS,CAAC,IAAI,EAAE,CAAC;YACrD,MAAM,IAAI,GAAG,UAAU,CAAC,eAAe,EAAE,CAAC;YAC1C,MAAM,OAAO,GAAG,UAAU,CAAC,MAAM,CAAC,IAAI,CAAC,CAAC;YACxC,IAAI,CAAC,EAAE,CAAC,IAAI,CAAC,OAAO,CAAC,CAAC;QACxB,CAAC;IACH,CAAC;IAED,KAAK;QACH,IAAI,IAAI,CAAC,EAAE,EAAE,CAAC;YACZ,MAAM,UAAU,GAAG,UAAU,CAAC,gBAAgB,EAAE,CAAC;YACjD,MAAM,OAAO,GAAG,UAAU,CAAC,MAAM,CAAC,UAAU,CAAC,CAAC;YAC9C,IAAI,CAAC,EAAE,CAAC,IAAI,CAAC,OAAO,EAAE,GAAG,EAAE;gBACzB,IAAI,CAAC,EAAE,EAAE,KAAK,EAAE,CAAC;YACnB,CAAC,CAAC,CAAC;QACL,CAAC;IACH,CAAC;IAED,MAAM,CAAC,QAAwC;QAC7C,IAAI,CAAC,KAAK,EAAE,CAAC;QACb,QAAQ,EAAE,CAAC;IACb,CAAC;CACF;AAED,MAAM,OAAO,mBAAmB;IAIV;IAHZ,MAAM,CAAmB;IACzB,WAAW,GAAmB,IAAI,GAAG,EAAE,CAAC;IAEhD,YAAoB,OAA6B;QAA7B,YAAO,GAAP,OAAO,CAAsB;IAAG,CAAC;IAErD,MAAM,CAAC,QAAkC;QACvC,OAAO,IAAI,OAAO,CAAC,CAAC,OAAO,EAAE,MAAM,EAAE,EAAE;YACrC,MAAM,IAAI,GAAG,IAAI,CAAC,OAAO,CAAC,IAAI,CAAC;YAC/B,MAAM,IAAI,GAAG,IAAI,CAAC,OAAO,CAAC,IAAI,IAAI,GAAG,CAAC;YAEtC,IAAI,CAAC,MAAM,GAAG,IAAI,eAAe,CAAC,EAAE,IAAI,EAAE,IAAI,EAAE,CAAC,CAAC;YAElD,IAAI,CAAC,MAAM,CAAC,EAAE,CAAC,YAAY,EAAE,CAAC,EAAE,EAAE,EAAE;gBAClC,MAAM,aAAa,GAAI,EAAU,CAAC,OAAO,EAAE,aAAa,IAAI,SAAS,CAAC;gBACtE,KAAK,CAAC,IAAI,CAAC,SAAS,EAAE,mBAAmB,EAAE,EAAE,aAAa,EAAE,EAAE,MAAM,CAAC,CAAC;gBACtE,IAAI,CAAC,WAAW,CAAC,GAAG,CAAC,EAAE,CAAC,CAAC;gBAEzB,MAAM,IAAI,GAAG,IAAI,mBAAmB,CAAC,EAAE,CAAC,CAAC;gBACzC,QAAQ,CAAC,IAAI,CAAC,CAAC;gBAEf,EAAE,CAAC,EAAE,CAAC,OAAO,EAAE,GAAG,EAAE;oBAClB,IAAI,CAAC,WAAW,CAAC,MAAM,CAAC,EAAE,CAAC,CAAC;gBAC9B,CAAC,CAAC,CAAC;YACL,CAAC,CAAC,CAAC;YAEH,IAAI,CAAC,MAAM,CAAC,EAAE,CAAC,OAAO,EAAE,CAAC,GAAG,EAAE,EAAE;gBAC9B,KAAK,CAAC,IAAI,CAAC,SAAS,EAAE,cAAc,EAAE,EAAE,KAAK,EAAE,GAAG,CAAC,OAAO,EAAE,EAAE,OAAO,CAAC,CAAC;gBACvE,MAAM,CAAC,GAAG,CAAC,CAAC;YACd,CAAC,CAAC,CAAC;YAEH,IAAI,CAAC,MAAM,CAAC,EAAE,CAAC,WAAW,EAAE,GAAG,EAAE;gBAC/B,MAAM,OAAO,GAAG,IAAI,CAAC,MAAO,CAAC,OAAO,EAAE,CAAC;gBACvC,MAAM,UAAU,GAAG,OAAO,IAAI,OAAO,OAAO,KAAK,QAAQ,CAAC,CAAC,CAAC,OAAO,CAAC,IAAI,CAAC,CAAC,CAAC,IAAI,CAAC;gBAChF,KAAK,CAAC,IAAI,CAAC,SAAS,EAAE,eAAe,EAAE,EAAE,IAAI,EAAE,UAAU,EAAE,EAAE,MAAM,CAAC,CAAC;gBACrE,OAAO,CAAC,UAAU,CAAC,CAAC;YACtB,CAAC,CAAC,CAAC;QACL,CAAC,CAAC,CAAC;IACL,CAAC;IAED,KAAK;QACH,OAAO,IAAI,OAAO,CAAC,CAAC,OAAO,EAAE,EAAE;YAC7B,KAAK,MAAM,EAAE,IAAI,IAAI,CAAC,WAAW,EAAE,CAAC;gBAClC,EAAE,CAAC,KAAK,EAAE,CAAC;YACb,CAAC;YACD,IAAI,CAAC,WAAW,CAAC,KAAK,EAAE,CAAC;YAEzB,IAAI,IAAI,CAAC,MAAM,EAAE,CAAC;gBAChB,IAAI,CAAC,MAAM,CAAC,KAAK,CAAC,GAAG,EAAE;oBACrB,KAAK,CAAC,IAAI,CAAC,SAAS,EAAE,cAAc,EAAE,EAAE,EAAE,MAAM,CAAC,CAAC;oBAClD,OAAO,EAAE,CAAC;gBACZ,CAAC,CAAC,CAAC;YACL,CAAC;iBAAM,CAAC;gBACN,OAAO,EAAE,CAAC;YACZ,CAAC;QACH,CAAC,CAAC,CAAC;IACL,CAAC;CACF;AAED,MAAM,mBAAoB,SAAQ,MAAM;IAIlB;IAHZ,MAAM,GAAW,MAAM,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC;IACjC,UAAU,GAAG,CAAC,CAAC;IAEvB,YAAoB,EAAa;QAC/B,KAAK,CAAC,EAAE,UAAU,EAAE,KAAK,EAAE,CAAC,CAAC;QADX,OAAE,GAAF,EAAE,CAAW;QAG/B,EAAE,CAAC,EAAE,CAAC,SAAS,EAAE,CAAC,IAAY,EAAE,EAAE;YAChC,IAAI,CAAC,kBAAkB,CAAC,IAAI,CAAC,CAAC;QAChC,CAAC,CAAC,CAAC;QAEH,EAAE,CAAC,EAAE,CAAC,OAAO,EAAE,GAAG,EAAE;YAClB,IAAI,CAAC,IAAI,CAAC,IAAI,CAAC,CAAC;QAClB,CAAC,CAAC,CAAC;QAEH,EAAE,CAAC,EAAE,CAAC,OAAO,EAAE,CAAC,GAAG,EAAE,EAAE;YACrB,IAAI,CAAC,IAAI,CAAC,OAAO,EAAE,GAAG,CAAC,CAAC;QAC1B,CAAC,CAAC,CAAC;IACL,CAAC;IAED,MAAM,CAAC,KAAU,EAAE,QAAwB,EAAE,QAAwC;QACnF,IAAI,IAAI,CAAC,EAAE,CAAC,UAAU,KAAK,SAAS,CAAC,IAAI,EAAE,CAAC;YAC1C,QAAQ,CAAC,IAAI,KAAK,CAAC,oBAAoB,CAAC,CAAC,CAAC;YAC1C,OAAO;QACT,CAAC;QAED,IAAI,CAAC;YACH,MAAM,KAAK,GAAG,UAAU,CAAC,eAAe,CAAC,KAAK,EAAE,IAAI,CAAC,UAAU,EAAE,CAAC,CAAC;YACnE,MAAM,OAAO,GAAG,UAAU,CAAC,MAAM,CAAC,KAAK,CAAC,CAAC;YACzC,IAAI,CAAC,EAAE,CAAC,IAAI,CAAC,OAAO,EAAE,QAAQ,CAAC,CAAC;QAClC,CAAC;QAAC,OAAO,GAAG,EAAE,CAAC;YACb,QAAQ,CAAC,GAAY,CAAC,CAAC;QACzB,CAAC;IACH,CAAC;IAED,KAAK,CAAC,IAAY;QAChB,oCAAoC;IACtC,CAAC;IAEO,kBAAkB,CAAC,IAAY;QACrC,IAAI,CAAC,MAAM,GAAG,MAAM,CAAC,MAAM,CAAC,CAAC,IAAI,CAAC,MAAM,EAAE,IAAI,CAAC,CAAC,CAAC;QAEjD,OAAO,IAAI,CAAC,MAAM,CAAC,MAAM,GAAG,CAAC,EAAE,CAAC;YAC9B,MAAM,MAAM,GAAG,UAAU,CAAC,MAAM,CAAC,IAAI,CAAC,MAAM,CAAC,CAAC;YAE9C,IAAI,CAAC,MAAM,EAAE,CAAC;gBACZ,MAAM;YACR,CAAC;YAED,MAAM,EAAE,KAAK,EAAE,aAAa,EAAE,GAAG,MAAM,CAAC;YACxC,IAAI,CAAC,MAAM,GAAG,IAAI,CAAC,MAAM,CAAC,KAAK,CAAC,aAAa,CAAC,CAAC;YAE/C,IAAI,KAAK,CAAC,QAAQ,CAAC,IAAI,KAAK,MAAM,EAAE,CAAC;gBACnC,IAAI,CAAC,IAAI,CAAC,KAAK,CAAC,OAAO,CAAC,CAAC;YAC3B,CAAC;iBAAM,IAAI,KAAK,CAAC,QAAQ,CAAC,IAAI,KAAK,MAAM,EAAE,CAAC;gBAC1C,IAAI,CAAC,QAAQ,EAAE,CAAC;YAClB,CAAC;iBAAM,IAAI,KAAK,CAAC,QAAQ,CAAC,IAAI,KAAK,OAAO,EAAE,CAAC;gBAC3C,IAAI,CAAC,IAAI,CAAC,IAAI,CAAC,CAAC;YAClB,CAAC;QACH,CAAC;IACH,CAAC;IAEO,QAAQ;QACd,IAAI,IAAI,CAAC,EAAE,CAAC,UAAU,KAAK,SAAS,CAAC,IAAI,EAAE,CAAC;YAC1C,MAAM,IAAI,GAAG,UAAU,CAAC,eAAe,EAAE,CAAC;YAC1C,MAAM,OAAO,GAAG,UAAU,CAAC,MAAM,CAAC,IAAI,CAAC,CAAC;YACxC,IAAI,CAAC,EAAE,CAAC,IAAI,CAAC,OAAO,CAAC,CAAC;QACxB,CAAC;IACH,CAAC;CACF"}
+\ No newline at end of file
+diff --git a/scripts/lam.ts b/scripts/lam.ts
+index ec48361..cda7687 100644
+--- a/scripts/lam.ts
++++ b/scripts/lam.ts
+@@ -23,7 +23,6 @@ if (args.includes('--help') || args.includes('-h')) {
+ 
+ if (args[0] === 'version' || args[0] === '--version' || args[0] === '-v') {
+   try {
+-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     const pkg = require('../package.json');
+     console.log(pkg.version || 'unknown');
+   } catch {
+diff --git a/src/config/loader.ts b/src/config/loader.ts
+index 30a812c..5e46d3a 100644
+--- a/src/config/loader.ts
++++ b/src/config/loader.ts
+@@ -1,6 +1,6 @@
+ import { readFileSync } from 'fs';
+ import { parse as parseYaml } from 'yaml';
+-import type { TopologyConfig, NodeConfig, ConnectionConfig } from './schema.js';
++import type { TopologyConfig } from './schema.js';
+ 
+ export interface LoadConfigOptions {
+   validate?: boolean;
+diff --git a/src/init/scaffold.ts b/src/init/scaffold.ts
+index f484dd2..f50eaed 100644
+--- a/src/init/scaffold.ts
++++ b/src/init/scaffold.ts
+@@ -1,5 +1,4 @@
+ import * as fs from 'node:fs';
+-import * as path from 'node:path';
+ 
+ export interface ScaffoldOptions {
+   template?: 'node-defaults' | 'go-defaults' | 'minimal';
+diff --git a/src/mk/bootstrap.ts b/src/mk/bootstrap.ts
+index aec702f..ff2905d 100644
+--- a/src/mk/bootstrap.ts
++++ b/src/mk/bootstrap.ts
+@@ -1,4 +1,4 @@
+-import { mkdir, writeFile, copyFile, readFile, cp, readdir } from 'node:fs/promises';
++import { mkdir, writeFile, readFile, cp, readdir } from 'node:fs/promises';
+ import { existsSync } from 'node:fs';
+ import { join, resolve, dirname } from 'node:path';
+ import { fileURLToPath } from 'node:url';
+diff --git a/src/mk/build.ts b/src/mk/build.ts
+index d707a02..246e9d3 100644
+--- a/src/mk/build.ts
++++ b/src/mk/build.ts
+@@ -21,7 +21,7 @@ interface BuildProvenance {
+   bundleHash: string;
+ }
+ 
+-export async function buildHandler(args: string[]): Promise<number> {
++export async function buildHandler(_args: string[]): Promise<number> {
+   const startTime = performance.now();
+   
+   try {
+diff --git a/src/mk/ciPlan.ts b/src/mk/ciPlan.ts
+index f43b375..f1cedd2 100644
+--- a/src/mk/ciPlan.ts
++++ b/src/mk/ciPlan.ts
+@@ -1,4 +1,4 @@
+-import { createError, formatError } from './errors.js';
++import { formatError } from './errors.js';
+ 
+ const EXIT_SUCCESS = 0;
+ const EXIT_ERROR = 1;
+diff --git a/src/mk/dev.ts b/src/mk/dev.ts
+index 4160057..401b4bc 100644
+--- a/src/mk/dev.ts
++++ b/src/mk/dev.ts
+@@ -1,5 +1,5 @@
+ import { watch, FSWatcher } from 'node:fs';
+-import { resolve, dirname } from 'node:path';
++import { resolve } from 'node:path';
+ import type { TopologyConfig } from '../config/schema.js';
+ import type { Executor } from '../executor/Executor.js';
+ 
+@@ -72,7 +72,7 @@ export class DevWatcher {
+ 
+   private watchModule(nodeId: string, modulePath: string): void {
+     try {
+-      const watcher = watch(modulePath, (eventType, filename) => {
++      const watcher = watch(modulePath, (eventType, _filename) => {
+         if (eventType === 'change') {
+           this.handleFileChange(nodeId, modulePath);
+         }
+diff --git a/src/mk/doctor.ts b/src/mk/doctor.ts
+index 403720b..a1827eb 100644
+--- a/src/mk/doctor.ts
++++ b/src/mk/doctor.ts
+@@ -12,7 +12,7 @@ export type CheckResult = {
+ export type CheckSection = 'all' | 'toolchain' | 'environment';
+ 
+ export async function runDoctorChecks(
+-  verbose: boolean = false,
++  _verbose: boolean = false,
+   section: CheckSection = 'all'
+ ): Promise<CheckResult[]> {
+   const results: CheckResult[] = [];
+@@ -325,7 +325,7 @@ function checkMkVersionConsistency(): CheckResult {
+         remediation: 'Run: npm run build',
+       };
+     }
+-  } catch (error) {
++  } catch {
+     return {
+       name: 'mk version consistency',
+       status: 'fail',
+diff --git a/src/mk/fetch.ts b/src/mk/fetch.ts
+index 09d9ed9..d2c6d8d 100644
+--- a/src/mk/fetch.ts
++++ b/src/mk/fetch.ts
+@@ -1,5 +1,5 @@
+ import { createWriteStream, existsSync, createReadStream } from 'node:fs';
+-import { mkdir, chmod, access, constants as fsConstants, readFile } from 'node:fs/promises';
++import { mkdir, access, constants as fsConstants, readFile } from 'node:fs/promises';
+ import { dirname, join } from 'node:path';
+ import { pipeline } from 'node:stream/promises';
+ import { execSync } from 'node:child_process';
+diff --git a/src/mk/logs.ts b/src/mk/logs.ts
+index 9d20ca9..45305e0 100644
+--- a/src/mk/logs.ts
++++ b/src/mk/logs.ts
+@@ -27,7 +27,7 @@ const LEVEL_VALUES: Record<LogLevel, number> = {
+   debug: 3,
+ };
+ 
+-function parseDebugLog(line: string): LogEntry | null {
++function _parseDebugLog(line: string): LogEntry | null {
+   try {
+     const timestampMatch = line.match(/^\[([\d-T:.Z]+)\]/);
+     const levelMatch = line.match(/\[([A-Z]+)\]/);
+@@ -56,7 +56,7 @@ function parseDebugLog(line: string): LogEntry | null {
+         payload,
+       };
+     }
+-  } catch (e) {
++  } catch {
+     return null;
+   }
+   return null;
+@@ -79,7 +79,7 @@ function parseJsonlLog(line: string): LogEntry | null {
+         payload: data.payload,
+       };
+     }
+-  } catch (e) {
++  } catch {
+     return null;
+   }
+   return null;
+@@ -113,7 +113,7 @@ function formatLogJson(entry: LogEntry): string {
+   return JSON.stringify(entry);
+ }
+ 
+-async function tailDebugLogs(options: LogsOptions): Promise<void> {
++async function tailDebugLogs(_options: LogsOptions): Promise<void> {
+   const debugLog = process.env.DEBUG === '1' || process.env.MK_DEBUG_MODULES;
+   
+   if (!debugLog) {
+diff --git a/src/mk/options.ts b/src/mk/options.ts
+index 996b35e..ac3cfb9 100644
+--- a/src/mk/options.ts
++++ b/src/mk/options.ts
+@@ -74,7 +74,7 @@ function loadOptionsFile(filePath: string, profile: string): Record<string, any>
+     }
+ 
+     return {};
+-  } catch (err) {
++  } catch {
+     return {};
+   }
+ }
+diff --git a/src/mk/package.ts b/src/mk/package.ts
+index 2d28f70..97da77d 100644
+--- a/src/mk/package.ts
++++ b/src/mk/package.ts
+@@ -6,11 +6,6 @@ import { promisify } from 'util';
+ 
+ const execAsync = promisify(exec);
+ 
+-interface CapsuleInfo {
+-  filename: string;
+-  size: number;
+-  sha256: string;
+-}
+ 
+ function formatSize(bytes: number): string {
+   if (bytes < 1024) return `${bytes}B`;
+@@ -29,7 +24,7 @@ async function calculateFileHash(filepath: string): Promise<string> {
+   return hash.digest('hex');
+ }
+ 
+-export async function packageHandler(args: string[]): Promise<number> {
++export async function packageHandler(_args: string[]): Promise<number> {
+   const startTime = performance.now();
+   
+   try {
+diff --git a/src/mk/selfInstall.ts b/src/mk/selfInstall.ts
+index 9187968..72049c4 100644
+--- a/src/mk/selfInstall.ts
++++ b/src/mk/selfInstall.ts
+@@ -1,5 +1,5 @@
+-import { existsSync, mkdirSync, writeFileSync, unlinkSync, readlinkSync, symlinkSync, copyFileSync, chmodSync, readdirSync, statSync } from 'node:fs';
+-import { resolve, dirname, join, isAbsolute } from 'node:path';
++import { existsSync, mkdirSync, writeFileSync, unlinkSync, copyFileSync, chmodSync, statSync } from 'node:fs';
++import { resolve, dirname, isAbsolute } from 'node:path';
+ import { fileURLToPath } from 'node:url';
+ import { platform } from 'node:os';
+ import { execSync } from 'node:child_process';
+diff --git a/src/mk/trace.ts b/src/mk/trace.ts
+index bbdac59..ca93400 100644
+--- a/src/mk/trace.ts
++++ b/src/mk/trace.ts
+@@ -186,8 +186,7 @@ export async function captureTrace(
+   const unsubscribe = stateManager.subscribe((event) => {
+     if (event.type === 'connected') {
+       const connectionId = event.connection.id;
+-      const startTime = Date.now();
+-      
++
+       collector.recordFlow(connectionId, 0);
+     }
+   });
+diff --git a/src/modules/filesystem-sink.ts b/src/modules/filesystem-sink.ts
+index 7205347..3ac5a41 100644
+--- a/src/modules/filesystem-sink.ts
++++ b/src/modules/filesystem-sink.ts
+@@ -1,4 +1,4 @@
+-import { Writable, Transform } from 'stream';
++import { Transform } from 'stream';
+ import { createWriteStream, WriteStream, fsync } from 'fs';
+ import { mkdir } from 'fs/promises';
+ import { dirname } from 'path';
+diff --git a/src/parsers/ANSIParser.ts b/src/parsers/ANSIParser.ts
+index fe41a69..069d49e 100644
+--- a/src/parsers/ANSIParser.ts
++++ b/src/parsers/ANSIParser.ts
+@@ -1,4 +1,4 @@
+-import type { TerminalState, Cell, EscapeSequence } from '../types.js';
++import type { TerminalState, EscapeSequence } from '../types.js';
+ 
+ export class ANSIParser {
+   private state: TerminalState;
+diff --git a/src/pipes/adapters/TCPPipe.ts b/src/pipes/adapters/TCPPipe.ts
+index 73b825c..e027552 100644
+--- a/src/pipes/adapters/TCPPipe.ts
++++ b/src/pipes/adapters/TCPPipe.ts
+@@ -37,7 +37,7 @@ export class TCPPipeClient extends Duplex {
+     this.socket.write(FrameCodec.encode(frame), cb);
+   }
+ 
+-  _read(): void {}
++  _read(_size?: number): void {}
+ 
+   private handleData(chunk: Buffer): void {
+     this.buffer = Buffer.concat([this.buffer, chunk]);
+@@ -107,7 +107,7 @@ class TCPServerPipe extends Duplex {
+     this.socket.write(FrameCodec.encode(FrameCodec.createDataFrame(chunk, this.sequenceId++)), cb);
+   }
+ 
+-  _read(): void {}
++  _read(_size?: number): void {}
+ 
+   private handleData(chunk: Buffer): void {
+     this.buffer = Buffer.concat([this.buffer, chunk]);
+diff --git a/src/pipes/adapters/WebSocketPipe.ts b/src/pipes/adapters/WebSocketPipe.ts
+index 0c93c5c..c6bc8d6 100644
+--- a/src/pipes/adapters/WebSocketPipe.ts
++++ b/src/pipes/adapters/WebSocketPipe.ts
+@@ -1,7 +1,6 @@
+ import { Duplex } from 'stream';
+ import WebSocket, { WebSocketServer } from 'ws';
+ import { FrameCodec } from '../../net/frame.js';
+-import type { Frame } from '../../net/transport.js';
+ import { debug } from '../../debug/api.js';
+ 
+ export interface WebSocketPipeOptions {
+@@ -77,7 +76,7 @@ export class WebSocketPipeClient extends Duplex {
+     }
+   }
+ 
+-  _read(size: number): void {
++  _read(_size: number): void {
+     // Backpressure handled by WebSocket
+   }
+ 
+@@ -222,7 +221,7 @@ class WebSocketServerPipe extends Duplex {
+     }
+   }
+ 
+-  _read(size: number): void {
++  _read(_size: number): void {
+     // Backpressure handled by WebSocket
+   }
+ 
+diff --git a/src/pipes/adapters/WorkerPipe.ts b/src/pipes/adapters/WorkerPipe.ts
+index e6d8d45..65b805b 100644
+--- a/src/pipes/adapters/WorkerPipe.ts
++++ b/src/pipes/adapters/WorkerPipe.ts
+@@ -55,7 +55,7 @@ class WorkerPipeDuplex extends Duplex {
+     });
+   }
+ 
+-  _read(size: number): void {
++  _read(_size: number): void {
+     this.port.postMessage({ type: 'resume' });
+   }
+ 
+diff --git a/src/transport/unix/UnixPipeAdapter.ts b/src/transport/unix/UnixPipeAdapter.ts
+index ec715f6..6be9de4 100644
+--- a/src/transport/unix/UnixPipeAdapter.ts
++++ b/src/transport/unix/UnixPipeAdapter.ts
+@@ -43,7 +43,7 @@ class UnixPipeAdapterDuplex extends Duplex {
+     });
+   }
+ 
+-  _read(size: number): void {
++  _read(_size: number): void {
+     this.socket.resume();
+   }
+ 
+diff --git a/src/transport/worker/WorkerPipeAdapter.ts b/src/transport/worker/WorkerPipeAdapter.ts
+index 705218b..3ec2f8c 100644
+--- a/src/transport/worker/WorkerPipeAdapter.ts
++++ b/src/transport/worker/WorkerPipeAdapter.ts
+@@ -60,7 +60,7 @@ class WorkerPipeAdapterDuplex extends Duplex {
+     // Rely on _final() for end signalling; avoid duplicate 'end' frames here.
+   }
+ 
+-  _read(size: number): void {
++  _read(_size: number): void {
+     this.port.postMessage({ type: 'resume' });
+   }
+ 
+diff --git a/src/wrappers/PTYServerWrapper.ts b/src/wrappers/PTYServerWrapper.ts
+index 8a7eacf..2b03f0d 100644
+--- a/src/wrappers/PTYServerWrapper.ts
++++ b/src/wrappers/PTYServerWrapper.ts
+@@ -119,7 +119,7 @@ export class PTYServerWrapper extends ExternalServerWrapper {
+     
+     try {
+       pty.kill('SIGKILL');
+-    } catch (err) {
++    } catch {
+     }
+     
+     debug.emit('pty', 'server.stopped', { servername: this.manifest.servername }, 'info');

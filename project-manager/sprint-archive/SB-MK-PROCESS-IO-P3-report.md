@@ -8,6 +8,7 @@
 The sprint `SB-MK-PROCESS-IO-P3` is **complete**. The goal was to harden the process I/O capabilities of the microkernel, making them production-ready.
 
 **Outcome:**
+
 - All 6 tasks assigned to Susan's agents were completed successfully.
 - The work was integrated into the `main` branch via the merge of Pull Request #54.
 - The project now has robust, production-ready I/O for `process-mode` nodes, including backpressure, heartbeats, and graceful shutdowns.

@@ -29,13 +29,13 @@ async function main() {
     terminals: [
       { name: 'input', type: 'local', direction: 'input' },
       { name: 'output', type: 'local', direction: 'output' },
-      { name: 'error', type: 'local', direction: 'output' }
+      { name: 'error', type: 'local', direction: 'output' },
     ],
     capabilities: {
       type: 'transform',
       accepts: ['text'],
       produces: ['text'],
-      features: ['interactive', 'pty']
+      features: ['interactive', 'pty'],
     },
     command: '/bin/cat',
     args: [],
@@ -45,7 +45,7 @@ async function main() {
     terminalType: 'xterm-256color',
     initialCols: 80,
     initialRows: 24,
-    restart: 'never'
+    restart: 'never',
   };
 
   const catPTY = new PTYServerWrapper(kernel, hostess, catManifest);

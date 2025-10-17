@@ -34,8 +34,8 @@ describe('KeyboardInput', () => {
       expect(errorSpy).toHaveBeenCalledOnce();
       expect(errorSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: 'stdin is not a TTY'
-        })
+          message: 'stdin is not a TTY',
+        }),
       );
     });
 
@@ -129,7 +129,7 @@ describe('KeyboardInput', () => {
         name: 'a',
         ctrl: false,
         meta: false,
-        shift: false
+        shift: false,
       });
 
       expect(keypressSpy).toHaveBeenCalledWith({
@@ -137,7 +137,7 @@ describe('KeyboardInput', () => {
         sequence: 'a',
         ctrl: false,
         meta: false,
-        shift: false
+        shift: false,
       });
     });
 
@@ -154,7 +154,7 @@ describe('KeyboardInput', () => {
         name: 'a',
         ctrl: true,
         meta: false,
-        shift: false
+        shift: false,
       });
 
       expect(keypressSpy).toHaveBeenCalledWith({
@@ -162,7 +162,7 @@ describe('KeyboardInput', () => {
         sequence: '\u0001',
         ctrl: true,
         meta: false,
-        shift: false
+        shift: false,
       });
     });
 
@@ -179,7 +179,7 @@ describe('KeyboardInput', () => {
         name: 'a',
         ctrl: false,
         meta: true,
-        shift: true
+        shift: true,
       });
 
       expect(keypressSpy).toHaveBeenCalledWith({
@@ -187,7 +187,7 @@ describe('KeyboardInput', () => {
         sequence: 'A',
         ctrl: false,
         meta: true,
-        shift: true
+        shift: true,
       });
     });
 
@@ -197,7 +197,7 @@ describe('KeyboardInput', () => {
 
       const ctrlcSpy = vi.fn();
       const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
-      
+
       keyboard.on('ctrl-c', ctrlcSpy);
       keyboard.start();
 
@@ -205,7 +205,7 @@ describe('KeyboardInput', () => {
         name: 'c',
         ctrl: true,
         meta: false,
-        shift: false
+        shift: false,
       });
 
       expect(ctrlcSpy).toHaveBeenCalledOnce();
@@ -229,7 +229,7 @@ describe('KeyboardInput', () => {
         name: 'a',
         ctrl: false,
         meta: false,
-        shift: false
+        shift: false,
       });
 
       expect(keypressSpy).not.toHaveBeenCalled();
@@ -260,7 +260,7 @@ describe('KeyboardInput', () => {
         name: 'return',
         ctrl: false,
         meta: false,
-        shift: false
+        shift: false,
       });
 
       expect(keypressSpy).toHaveBeenCalledWith({
@@ -268,7 +268,7 @@ describe('KeyboardInput', () => {
         sequence: '\r',
         ctrl: false,
         meta: false,
-        shift: false
+        shift: false,
       });
     });
   });

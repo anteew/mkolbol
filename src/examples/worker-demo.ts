@@ -28,15 +28,25 @@ async function main() {
       { id: 'timer-1', module: 'TimerSource', params: { periodMs: 600 }, runMode: 'inproc' },
       { id: 'upper-1', module: 'UppercaseTransform', runMode: 'worker' },
       { id: 'upper-2', module: 'UppercaseTransform', runMode: 'inproc' },
-      { id: 'sink-1', module: 'ConsoleSink', params: { prefix: '[WORKER-PATH]' }, runMode: 'inproc' },
-      { id: 'sink-2', module: 'ConsoleSink', params: { prefix: '[INPROC-PATH]' }, runMode: 'worker' }
+      {
+        id: 'sink-1',
+        module: 'ConsoleSink',
+        params: { prefix: '[WORKER-PATH]' },
+        runMode: 'inproc',
+      },
+      {
+        id: 'sink-2',
+        module: 'ConsoleSink',
+        params: { prefix: '[INPROC-PATH]' },
+        runMode: 'worker',
+      },
     ],
     connections: [
       { from: 'timer-1.output', to: 'upper-1.input' },
       { from: 'timer-1.output', to: 'upper-2.input' },
       { from: 'upper-1.output', to: 'sink-1.input' },
-      { from: 'upper-2.output', to: 'sink-2.input' }
-    ]
+      { from: 'upper-2.output', to: 'sink-2.input' },
+    ],
   };
 
   console.log('[worker-demo] Loading topology with 5 nodes:');
@@ -59,7 +69,7 @@ async function main() {
   console.log('[worker-demo] Topology UP. Data flowing across boundaries...');
   console.log('[worker-demo] Watch for messages from both paths:\n');
 
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   setTimeout(async () => {
     console.log('\n' + '='.repeat(60));

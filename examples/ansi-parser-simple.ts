@@ -10,7 +10,7 @@ const output = new Writable({
   write: (events, _enc, cb) => {
     console.log('Parsed Events:', JSON.stringify(events, null, 2));
     cb();
-  }
+  },
 });
 
 kernel.connect(parser.outputPipe, output as any);

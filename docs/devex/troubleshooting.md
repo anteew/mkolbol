@@ -11,6 +11,7 @@ Running into issues? This guide maps common errors to solutions.
 **Cause**: Native dependencies not built for your platform
 
 **Fix**:
+
 ```bash
 # 1. Ensure build tools are installed
 # macOS:
@@ -34,6 +35,7 @@ npm install
 **Cause**: Package not installed or wrong directory
 
 **Fix**:
+
 ```bash
 # Install locally in your project
 npm install mkolbol
@@ -56,6 +58,7 @@ npx lam init
 **Cause**: The `mkctl` script is in `dist/scripts/`
 
 **Fix**:
+
 ```bash
 # Use the full path
 node dist/scripts/mkctl.js run --file examples/configs/basic.yml
@@ -71,6 +74,7 @@ npm run build
 **Cause**: Config file path is wrong or relative path is off
 
 **Fix**:
+
 ```bash
 # Check the file exists
 ls examples/configs/
@@ -89,6 +93,7 @@ ls -la examples/configs/
 **Cause**: YAML syntax error (indentation, colons, quotes)
 
 **Fix**:
+
 ```yaml
 # ✗ Wrong
 nodes:
@@ -104,6 +109,7 @@ nodes:
 ```
 
 Validate your YAML before running:
+
 ```bash
 # Use an online validator: https://www.yamllint.com/
 # Or pipe to Python validator:
@@ -117,6 +123,7 @@ python3 -m yaml examples/configs/my-topology.yml
 **Cause**: Command path doesn't exist or isn't in PATH
 
 **Fix**:
+
 ```yaml
 # ✗ Wrong
 nodes:
@@ -136,6 +143,7 @@ nodes:
 ```
 
 Verify the command exists:
+
 ```bash
 which jq        # Find path
 /usr/bin/jq --version  # Test it
@@ -152,12 +160,14 @@ which jq        # Find path
 **Cause**: Insufficient terminal permissions
 
 **macOS Fix**:
+
 ```
 System Preferences → Security & Privacy → Privacy → Developer Tools
 → Add Terminal.app (or your terminal emulator)
 ```
 
 **Linux Fix**:
+
 ```bash
 # Check if user is in tty group
 groups | grep tty
@@ -175,6 +185,7 @@ sudo usermod -a -G tty $USER
 **Cause**: `lam` not in PATH or not installed
 
 **Fix**:
+
 ```bash
 # Install locally (recommended)
 npm install mkolbol
@@ -195,6 +206,7 @@ lam init
 **Cause**: Terminal state not reset properly after PTY exit
 
 **Fix**:
+
 ```bash
 # Reset terminal to clean state
 reset
@@ -217,6 +229,7 @@ stty sane
 **Cause**: Running on Node 18 or earlier
 
 **Fix**:
+
 ```bash
 # Check your version
 node --version
@@ -239,6 +252,7 @@ node --version  # Should be v20.x.x or v24.x.x
 **Cause**: version-specific behavior differences
 
 **Fix**:
+
 ```bash
 # Test on both supported versions
 nvm use 20
@@ -263,19 +277,21 @@ nvm use
 **Cause**: Command path wrong, or process exiting immediately
 
 **Fix**:
+
 ```yaml
 # Verify command and args
 nodes:
   - id: my-process
     module: ExternalProcess
     params:
-      command: /bin/bash  # Use absolute path
-      args: ["-c", "cat"]  # Test: /bin/bash -c "cat"
+      command: /bin/bash # Use absolute path
+      args: ['-c', 'cat'] # Test: /bin/bash -c "cat"
       cwd: /tmp
       ioMode: stdio
 ```
 
 Test the command manually:
+
 ```bash
 # Test command directly
 /bin/bash -c "cat"
@@ -291,6 +307,7 @@ node dist/scripts/mkctl.js run --file examples/configs/external-stdio.yaml --dur
 **Cause**: Wrong ioMode for the process
 
 **Fix**:
+
 ```yaml
 # ✗ Wrong: interactive shell on stdio
 nodes:
@@ -310,6 +327,7 @@ nodes:
 ```
 
 **Quick guide**:
+
 - **stdio**: For filters, data processing, non-interactive programs
 - **pty**: For shells, TUI apps, anything needing terminal features
 
@@ -326,6 +344,7 @@ See **[I/O Modes Guide](./wiring-and-tests.md#i-o-modes)** for more details.
 **Cause**: Missing `.end()` call or process not terminating
 
 **Fix**:
+
 ```typescript
 // ✗ Hangs
 wrapper.inputPipe.write('data\n');
@@ -333,7 +352,7 @@ wrapper.inputPipe.write('data\n');
 
 // ✓ Works
 wrapper.inputPipe.write('data\n');
-wrapper.inputPipe.end();  // ← Signal EOF
+wrapper.inputPipe.end(); // ← Signal EOF
 ```
 
 ### "Tests fail locally but pass in CI"
@@ -343,9 +362,10 @@ wrapper.inputPipe.end();  // ← Signal EOF
 **Cause**: Fixed timeouts too short for your hardware
 
 **Fix**: Use event-driven waiting instead of timers:
+
 ```typescript
 // ✗ Bad (fixed timeout)
-await new Promise(resolve => setTimeout(resolve, 500));
+await new Promise((resolve) => setTimeout(resolve, 500));
 
 // ✓ Good (event-driven)
 await new Promise<void>((resolve) => {
@@ -360,6 +380,7 @@ await new Promise<void>((resolve) => {
 **Cause**: Flag not set or tests gated
 
 **Fix**:
+
 ```bash
 # Enable executor integration tests
 MK_DEVEX_EXECUTOR=1 npm run test:pty
@@ -379,6 +400,7 @@ MK_DEVEX_EXECUTOR=1 npm run test:pty:lam
 **Cause**: Topology never ran or Hostess didn't register
 
 **Fix**:
+
 ```bash
 # 1. Run a topology first
 node dist/scripts/mkctl.js run --file examples/configs/basic.yml --duration 5
@@ -397,6 +419,7 @@ node dist/scripts/mkctl.js endpoints
 **Cause**: Wire (connection) defined but target module not running
 
 **Fix**:
+
 ```yaml
 # ✓ Check your connections match node IDs exactly
 nodes:
@@ -407,7 +430,7 @@ nodes:
 
 connections:
   - from: source1.output
-    to: filter1.input  # ← Must match node ID "filter1"
+    to: filter1.input # ← Must match node ID "filter1"
 ```
 
 ---
@@ -421,6 +444,7 @@ connections:
 **Cause**: Backpressure not handled, buffer bloat
 
 **Fix**:
+
 ```yaml
 # Add restart policy to shed load
 nodes:
@@ -429,7 +453,7 @@ nodes:
     params:
       command: /bin/cat
       ioMode: stdio
-      restart: on-failure  # ← Restart on crash
+      restart: on-failure # ← Restart on crash
       maxRestarts: 3
       restartDelay: 5000
 ```
@@ -441,6 +465,7 @@ nodes:
 **Cause**: Wrong ioMode (overhead), or tight loop
 
 **Fix**:
+
 ```yaml
 # Use stdio instead of pty if terminal features not needed
 params:
@@ -460,6 +485,7 @@ params:
 **Cause**: File not in watch patterns, or module runMode doesn't support hot reload
 
 **Fix**:
+
 ```bash
 # 1. Check which files are being watched
 mk dev --verbose
@@ -485,6 +511,7 @@ mk dev --dry-run
 **Cause**: Error output not being printed; compile fails but topology keeps previous version
 
 **Fix**:
+
 ```bash
 # Use verbose mode to see compile errors
 mk dev --verbose
@@ -503,20 +530,13 @@ mk doctor --section types
 **Cause**: Large codebase or many watch patterns; TypeScript compilation overhead
 
 **Fix**:
+
 ```json
 // .mk/options.json: ignore unnecessary paths
 {
   "dev": {
-    "watch": [
-      "src/**/*.ts",
-      "mk.json"
-    ],
-    "ignore": [
-      "**/*.test.ts",
-      "**/node_modules",
-      "dist/**",
-      "reports/**"
-    ]
+    "watch": ["src/**/*.ts", "mk.json"],
+    "ignore": ["**/*.test.ts", "**/node_modules", "dist/**", "reports/**"]
   }
 }
 ```
@@ -533,7 +553,7 @@ Modules should persist important state externally. For example:
 ```typescript
 // ✗ Bad: State lost on reload
 class MyModule {
-  cache: Map<string, any> = new Map();  // ← Gone on reload!
+  cache: Map<string, any> = new Map(); // ← Gone on reload!
 }
 
 // ✓ Good: State in shared storage
@@ -559,6 +579,7 @@ See **[Authoring a Module](./authoring-a-module.md)** for patterns.
 **Cause**: Topology not running or modules not outputting
 
 **Fix**:
+
 ```bash
 # 1. Verify topology is running
 mk dev --file my-topology.json &
@@ -581,6 +602,7 @@ mk logs --tail 50  # Show recent lines without watching
 **Cause**: Default is ISO 8601 UTC
 
 **Fix**:
+
 ```bash
 # Show in local time
 mk logs --timezone local --watch
@@ -602,6 +624,7 @@ mk logs --watch
 ```
 
 **Timezone options**:
+
 - `ISO` (default): 2025-10-17T10:23:45.123Z
 - `local`: Oct 17, 10:23:45 AM (respects system timezone)
 - `epoch`: 1729163025123 (milliseconds since epoch)
@@ -613,6 +636,7 @@ mk logs --watch
 **Cause**: Capturing all levels (info, debug, trace)
 
 **Fix**:
+
 ```bash
 # Filter to errors and warnings only
 mk logs --level error,warning --watch
@@ -637,6 +661,7 @@ mk logs --output debug.log --watch  # File, no console
 **Cause**: JSONL (newline-delimited) not pure JSON array
 
 **Fix**:
+
 ```bash
 # JSONL format (correct for streaming)
 mk logs --format jsonl --output logs.jsonl
@@ -659,6 +684,7 @@ jq -s '.' logs.jsonl > logs-array.json
 **Cause**: Tracing all messages; can add ~50 microseconds per message
 
 **Fix**:
+
 ```bash
 # Option 1: Trace only 10% of messages
 mk trace --sample-rate 0.1 --duration 30
@@ -671,6 +697,7 @@ mk trace --duration 60 &  # Background it
 ```
 
 **Performance targets**:
+
 - CPU overhead: ~0.5% per topology (usually negligible)
 - Latency impact: < 50 microseconds per message
 - Safe to leave enabled during development
@@ -682,6 +709,7 @@ mk trace --duration 60 &  # Background it
 **Cause**: Topology not running or no messages flowing
 
 **Fix**:
+
 ```bash
 # 1. Verify topology is active
 ps aux | grep mkctl
@@ -703,6 +731,7 @@ mk dev --file my-topology.json --graph
 **Cause**: Insufficient message volume for statistical significance
 
 **Fix**:
+
 ```bash
 # Trace for longer to collect more data
 mk trace --duration 60 --top 5
@@ -721,6 +750,7 @@ mk trace --duration 60 --top 5
 **Cause**: Module is fast (low latency) and not in top N
 
 **Fix**:
+
 ```bash
 # Increase top N to see more modules
 mk trace --duration 30 --top 20
@@ -739,6 +769,7 @@ mk trace --module my-module --duration 30
 **Cause**: Format incompatibility
 
 **Fix**:
+
 ```bash
 # Verify JSON is valid
 mk trace --format json --output trace.json
@@ -758,6 +789,7 @@ cat trace.json | head -5  # Inspect structure
 **Still stuck?**
 
 1. **Check the logs:**
+
    ```bash
    npx lam summary     # Test results
    npx lam digest      # Failure details
@@ -775,6 +807,7 @@ cat trace.json | head -5  # Inspect structure
 ---
 
 **Pro tip**: Most "failed to run" issues come down to:
+
 1. **Wrong command path** → Use absolute paths
 2. **Wrong ioMode** → Use stdio for filters, pty for shells
 3. **Missing .end()** → Always signal EOF when done writing

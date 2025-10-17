@@ -6,7 +6,7 @@ describe('FrameCodec', () => {
     const frame = FrameCodec.createDataFrame('hello', 42);
     const encoded = FrameCodec.encode(frame);
     const decoded = FrameCodec.decode(encoded);
-    
+
     expect(decoded).not.toBeNull();
     expect(decoded!.frame.metadata.type).toBe('data');
     expect(decoded!.frame.payload.toString()).toBe('hello');
@@ -20,7 +20,7 @@ describe('FrameCodec', () => {
     const ping = FrameCodec.encode(FrameCodec.createPingFrame());
     const pong = FrameCodec.encode(FrameCodec.createPongFrame());
     const close = FrameCodec.encode(FrameCodec.createCloseFrame());
-    
+
     expect(FrameCodec.decode(ping)!.frame.metadata.type).toBe('ping');
     expect(FrameCodec.decode(pong)!.frame.metadata.type).toBe('pong');
     expect(FrameCodec.decode(close)!.frame.metadata.type).toBe('close');

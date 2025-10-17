@@ -14,7 +14,7 @@ export declare class WebSocketPipeClient extends Duplex {
     constructor(options: WebSocketPipeOptions);
     connect(): Promise<void>;
     _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void;
-    _read(size: number): void;
+    _read(_size: number): void;
     private handleIncomingData;
     private sendPong;
     close(): void;

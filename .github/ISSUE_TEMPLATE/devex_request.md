@@ -1,7 +1,7 @@
 ---
 name: DevEx Feature Request
 about: Suggest an improvement or new feature for mkolbol
-title: "[REQUEST] "
+title: '[REQUEST] '
 labels: devex, feature-request
 assignees: ''
 ---
@@ -15,12 +15,15 @@ assignees: ''
 <!-- WHY is this feature needed? What problem does it solve? -->
 
 **Problem Statement**:
+
 <!-- Describe the pain point or limitation you're facing -->
 
 **Use Case**:
+
 <!-- Describe your specific use case or scenario -->
 
 **Impact**:
+
 <!-- Who would benefit from this? How would it improve workflows? -->
 
 ## Proposed Solution
@@ -28,6 +31,7 @@ assignees: ''
 <!-- If you have a specific idea for how this should work, describe it here -->
 
 **API/Interface**:
+
 <!-- What would the API or user interface look like? -->
 
 ```typescript
@@ -35,6 +39,7 @@ assignees: ''
 ```
 
 **Configuration**:
+
 <!-- Any new configuration options? -->
 
 ```yaml
@@ -42,6 +47,7 @@ assignees: ''
 ```
 
 **Behavior**:
+
 <!-- Describe how this feature would behave -->
 
 ## Alternatives Considered
@@ -94,13 +100,17 @@ assignees: ''
 <!-- Optional: If you have thoughts on implementation complexity or challenges -->
 
 **Complexity Estimate**:
+
 <!-- Low / Medium / High / Unknown -->
 
 **Potential Challenges**:
+
 <!-- Any technical challenges you foresee? -->
 
 **Breaking Changes**:
+
 <!-- Would this require breaking changes to existing APIs? -->
+
 - [ ] Yes (describe):
 - [ ] No
 - [ ] Unknown
@@ -110,6 +120,7 @@ assignees: ''
 <!-- Add any other context, screenshots, or examples about the feature request here -->
 
 **Example Workflow**:
+
 <!-- How would you use this feature in practice? -->
 
 ```bash
@@ -117,6 +128,7 @@ assignees: ''
 ```
 
 **Benefits**:
+
 <!-- Summarize the key benefits -->
 
 1.

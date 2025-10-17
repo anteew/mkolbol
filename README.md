@@ -36,6 +36,7 @@ alias mk="node $(pwd)/dist/scripts/mk.js"
 ```
 
 Notes
+
 - You can always run mk directly with `node dist/scripts/mk.js ...`.
 - The `mk` and `mkctl` binaries are also exposed as npm scripts: `npm run mk -- …`, `npm run mkctl -- …`.
 - Local‑node gate: keep `MK_LOCAL_NODE=1` set while dogfooding.
@@ -51,12 +52,12 @@ Notes
   - Remote? Use `ssh -L 9090:localhost:9090 host` from your laptop.
 
 ## Primary Architect
- - **Architect Name** - VEGA
- - **Architect Model** - GPT-5 Thinking HIGH
- - **AI AGENT SELF files** - In this repo in the subdirectory VEGA
- - **AI AGENT reads self files on startup** - YES
- - **Relation to human user** - Vega is the technical brains, helping to keep the human on track with what he or she is needing built.
 
+- **Architect Name** - VEGA
+- **Architect Model** - GPT-5 Thinking HIGH
+- **AI AGENT SELF files** - In this repo in the subdirectory VEGA
+- **AI AGENT reads self files on startup** - YES
+- **Relation to human user** - Vega is the technical brains, helping to keep the human on track with what he or she is needing built.
 
 ## New to mkolbol?
 
@@ -67,6 +68,7 @@ Notes
 ## Quickstart — Demos & Testing
 
 **Try the Live Demos:**
+
 - [PTY to XtermTTYRenderer Demo](docs/devex/quickstart.md) - See PTY and terminal rendering in action in under 2 minutes
 - [StdIO Echo Demo](docs/devex/stdio-path.md) - Learn the lightweight StdIO path without PTY overhead
 - [Interactive Topology: Keyboard → PTY → TTY](docs/devex/interactive-topology.md) - Build interactive terminal applications with bidirectional I/O
@@ -101,6 +103,7 @@ npx lam repro
 ```
 
 **Laminar Basic Commands:**
+
 - `npx lam init` — Create laminar.config.json with defaults
 - `npx lam run [--lane ci|pty|auto] [--filter <pattern>]` — Execute tests with structured logging
 - `npx lam summary` — List all test results
@@ -108,6 +111,7 @@ npx lam repro
 - `npx lam show` — Inspect test artifacts and events
 
 📖 **Documentation:**
+
 - **[Laminar Workflow Guide](docs/devex/laminar-workflow.md)** - Install from GitHub, run tests, analyze failures, CI integration
 - **[Full Laminar Reference](docs/testing/laminar.md)** - Complete API and advanced features
 
@@ -128,7 +132,7 @@ Define stream topologies in YAML and run them with the config loader:
 nodes:
   - { id: timer1, module: TimerSource, params: { periodMs: 1000 } }
   - { id: upper1, module: UppercaseTransform }
-  - { id: console1, module: ConsoleSink, params: { prefix: "[basic]" } }
+  - { id: console1, module: ConsoleSink, params: { prefix: '[basic]' } }
 connections:
   - { from: timer1.output, to: upper1.input }
   - { from: upper1.output, to: console1.input }
@@ -143,11 +147,13 @@ node dist/examples/config-runner.js --file examples/configs/basic.yml
 ```
 
 **Using mkctl run:**
+
 - `mkctl run --file <path>` - Load and execute a topology (runs for 5 seconds by default)
 - `mkctl run --file <path> --duration 10` - Customize duration in seconds
 - Automatically registers modules with Hostess and tracks endpoints
 
 **Learn more about configuration:**
+
 - **[Quickstart with mkctl](docs/devex/quickstart.md#quick-start-with-mkctl-recommended)** - Get running in 2 minutes
 - **[Wiring and Testing Guide](docs/devex/wiring-and-tests.md)** - Complete config schema, external processes (stdio/pty modes), and test lanes
 - **[Config Examples](examples/configs/)** - Real working topologies with stdio and pty modes
@@ -157,13 +163,13 @@ node dist/examples/config-runner.js --file examples/configs/basic.yml
 
 ### mkctl Troubleshooting
 
-| Exit Code | Meaning | Friendly Hint |
-|-----------|---------|---------------|
-| `64` | Usage error (missing flags, bad duration) | Run `mkctl run --file <path> [--duration <seconds>]` and double-check your arguments. |
-| `65` | Config parse/validation failure | Ensure the file is valid YAML/JSON and that `nodes[]` / `connections[]` are present with unique IDs. |
-| `66` | Config file not found | Verify the path or reuse one of the samples in `examples/configs/`. |
-| `70` | Topology runtime error | Confirm module names exist (or external commands can spawn) before launching the topology. |
-| `130` | Interrupted via Ctrl+C | mkctl caught the signal and shut the topology down cleanly. |
+| Exit Code | Meaning                                   | Friendly Hint                                                                                        |
+| --------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `64`      | Usage error (missing flags, bad duration) | Run `mkctl run --file <path> [--duration <seconds>]` and double-check your arguments.                |
+| `65`      | Config parse/validation failure           | Ensure the file is valid YAML/JSON and that `nodes[]` / `connections[]` are present with unique IDs. |
+| `66`      | Config file not found                     | Verify the path or reuse one of the samples in `examples/configs/`.                                  |
+| `70`      | Topology runtime error                    | Confirm module names exist (or external commands can spawn) before launching the topology.           |
+| `130`     | Interrupted via Ctrl+C                    | mkctl caught the signal and shut the topology down cleanly.                                          |
 
 mkctl error messages now include matching hints; the CLI prefixes every message with `[mkctl]` so they’re easy to spot in logs.
 
@@ -193,6 +199,7 @@ parser.inputPipe.write('\x1b[1;32mGreen Bold\x1b[0m\n');
 ```
 
 Run the example:
+
 ```bash
 npx tsx examples/ansi-parser-simple.ts
 npx tsx examples/ansi-parser-p3.ts   # Demonstrates truecolor, resize, DEC modes
@@ -208,6 +215,7 @@ A minimal stream kernel with examples and tests is present. APIs are still evolv
 ## Vision
 
 Build the most flexible terminal I/O and AI agent system ever created:
+
 - **PTY hijacking** - Intercept and transform any terminal application's I/O
 - **Multi-modal rendering** - Display terminal output as xterm.js, Canvas, Video, TTS, AI-formatted text
 - **Multi-source input** - Accept input from keyboard, voice (STT), AI agents, network
@@ -234,6 +242,7 @@ Product focus (P0)
 **Modular Version:** [docs/rfcs/stream-kernel/00-index.md](docs/rfcs/stream-kernel/00-index.md)
 
 The RFC is organized into focused documents:
+
 - **[Philosophy & Design Principles](docs/rfcs/stream-kernel/01-philosophy.md)** - Microkernel vision, mechanism vs policy
 - **[Core Architecture](docs/rfcs/stream-kernel/02-core-architecture.md)** - The ~100 line kernel API
 - **[Module Types](docs/rfcs/stream-kernel/03-module-types.md)** - Input, Source, Transform, Output, Routing modules
@@ -272,6 +281,7 @@ sudo chmod +x /usr/local/bin/mk /usr/local/bin/mkctl
 ```
 
 **Verify:**
+
 ```bash
 which mk        # Should show /usr/local/bin/mk or your PATH location
 mk --help       # Should display mk help
@@ -304,6 +314,7 @@ node "C:\path\to\mkolbol\dist\scripts\mkctl.js" %*
 ```
 
 **Verify:**
+
 ```powershell
 where.exe mk    # Should show C:\Windows\System32\mk.cmd or PATH location
 mk --help       # Should display mk help
@@ -312,12 +323,12 @@ mkctl --help    # Should display mkctl help
 
 ### Troubleshooting Self-Install
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| **mk: command not found** | PATH not updated or shell not reloaded | Run `source ~/.bashrc` (Linux/macOS) or restart terminal (Windows) |
-| **Permission denied** | Script not executable | Run `chmod +x /path/to/mkolbol/dist/scripts/*.js` (Linux/macOS) |
-| **Wrong version executing** | Multiple mk installations in PATH | Run `which mk` (Linux/macOS) or `where.exe mk` (Windows) to find conflicts |
-| **Node.js not found** | Node not installed or not in PATH | Install Node 20+ and add to PATH |
+| Issue                       | Cause                                  | Fix                                                                        |
+| --------------------------- | -------------------------------------- | -------------------------------------------------------------------------- |
+| **mk: command not found**   | PATH not updated or shell not reloaded | Run `source ~/.bashrc` (Linux/macOS) or restart terminal (Windows)         |
+| **Permission denied**       | Script not executable                  | Run `chmod +x /path/to/mkolbol/dist/scripts/*.js` (Linux/macOS)            |
+| **Wrong version executing** | Multiple mk installations in PATH      | Run `which mk` (Linux/macOS) or `where.exe mk` (Windows) to find conflicts |
+| **Node.js not found**       | Node not installed or not in PATH      | Install Node 20+ and add to PATH                                           |
 
 ---
 
@@ -344,17 +355,21 @@ npx lam digest
 ### Troubleshooting
 
 **Command not found: lam**
+
 - Local install: Use `npx lam` instead of `lam`
 - Global install: Ensure npm global bin is in PATH: `npm config get prefix`
 
 **npx hangs or prompts for confirmation**
+
 - Add `-y` flag to auto-confirm: `npx -y mkolbol lam init`
 
 **Wrong version executing**
+
 - Clear npx cache: `npx clear-npx-cache`
 - Force specific version: `npx mkolbol@0.2.0 lam init`
 
 **Requirements:**
+
 - Node 20+ (tested on 20.x and 24.x)
 - macOS or Linux (Windows support coming soon)
 
@@ -376,11 +391,12 @@ const screen = new ScreenRenderer(kernel);
 const ai = new AIFormatter(kernel);
 
 // Wire up the flow
-kernel.connect(keyboard.output, pty.input);     // Keyboard → PTY
-kernel.connect(pty.output, parser.input);       // PTY → Parser
-kernel.split(parser.output, [                   // Parser → Multiple outputs
-  screen.input,                                 //   → Screen
-  ai.input                                      //   → AI formatter
+kernel.connect(keyboard.output, pty.input); // Keyboard → PTY
+kernel.connect(pty.output, parser.input); // PTY → Parser
+kernel.split(parser.output, [
+  // Parser → Multiple outputs
+  screen.input, //   → Screen
+  ai.input, //   → AI formatter
 ]);
 
 // Start the system
@@ -434,6 +450,7 @@ See [PTY Use Cases RFC](docs/rfcs/stream-kernel/04-pty-use-cases.md) for detaile
 The repository previously contained an MCP (Model Context Protocol) based microkernel implementation. This has been **archived** to `archived/mcp-kernel/` to prevent confusion with the new Stream Kernel architecture.
 
 **Why archived?** The Stream Kernel design provides:
+
 - More minimal kernel (~100 lines vs ~200 lines)
 - Protocol agnostic (not tied to JSON-RPC/MCP)
 - Greater deployment flexibility
@@ -449,7 +466,7 @@ The repository previously contained an MCP (Model Context Protocol) based microk
 
 ```bash
 npm test
-# or  
+# or
 npm run test:watch
 # For CI environments (Node 20/24)
 npm run test:ci
@@ -460,19 +477,23 @@ npm run test:ci
 **CI Artifacts:** Laminar reports (`summary.jsonl`, case logs) and raw test logs (`threads_raw.log`, `forks_raw.log`) are uploaded to GitHub Actions as artifacts (`laminar-reports-node-20`, `laminar-reports-node-24`). Download from the [Actions tab](https://github.com/anteew/mkolbol/actions).
 
 **Auto-Debug Rerun:** For CI pipelines with fast triage, use:
+
 ```bash
 npm run laminar:run || true
 ```
+
 This runs tests normally first, then automatically reruns failures with `LAMINAR_DEBUG=1` to capture debug output. Failed test logs are written to `reports/<suite>/<case>.jsonl` for analysis.
 
 ### Test Event Logging
 
 The project includes structured test event logging in JSONL format:
+
 - **Schema:** [src/logging/TestEvent.ts](src/logging/TestEvent.ts) defines envelope with ts, lvl, case, phase, evt, id, corr, path, payload
 - **Logger:** [src/logging/logger.ts](src/logging/logger.ts) provides `beginCase()`, `endCase()`, `emit()` helpers
 - **Output:** Events written to `reports/<suite>/<case>.jsonl` for test analysis and reporting
 
 **Artifact Structure:**
+
 ```
 reports/
 ├── index.json                    # Manifest of all test artifacts
@@ -503,6 +524,7 @@ DEBUG=1 MK_DEBUG_MODULES=executor MK_DEBUG_LEVEL=debug npm run dev
 ```
 
 **Implementation:**
+
 - [src/debug/config.ts](src/debug/config.ts) - Parse environment variables at startup
 - [src/debug/api.ts](src/debug/api.ts) - `debug.on(module)` and `debug.emit(module, event, payload, level)` API
 - **Laminar Integration:** When `LAMINAR_DEBUG=1` is set, debug events emit as `TestEventEnvelope` for structured logging
@@ -514,6 +536,7 @@ The project includes an MCP (Model Context Protocol) server for exposing Laminar
 **Location:** [src/mcp/laminar/server.ts](src/mcp/laminar/server.ts)
 
 **Features:**
+
 - **Resources:** Exposes `summary.jsonl` and digest files as MCP resources
 - **12 MCP Tools:** Complete test execution, querying, and digest management
 - **Focus Overlay:** Ephemeral digest rule overlay for temporary filtering
@@ -530,7 +553,7 @@ import { createLaminarServer } from './src/mcp/laminar/server.js';
 const server = await createLaminarServer({
   reportsDir: 'reports',
   summaryFile: 'reports/summary.jsonl',
-  configFile: 'laminar.config.json'
+  configFile: 'laminar.config.json',
 });
 
 // List available resources
@@ -551,11 +574,13 @@ const failures = await server.callTool('list_failures', {});
 #### MCP Tools (14)
 
 **Test Execution:**
+
 - `run` - Execute tests with options for suite, case, and flake detection
   - Input: `{ suite?: string, case?: string, flakeDetect?: boolean, flakeRuns?: number }`
   - Output: `{ exitCode: number, message: string }`
 
 **Digest Rule Management:**
+
 - `rules.get` - Get current digest rules from laminar.config.json
   - Input: `{}` (no parameters)
   - Output: `{ config: DigestConfig }`
@@ -564,11 +589,13 @@ const failures = await server.callTool('list_failures', {});
   - Output: `{ success: boolean, message: string }`
 
 **Digest Generation:**
+
 - `digest.generate` - Generate digests for specific cases or all failing cases
   - Input: `{ cases?: string[] }` (optional, all failures if omitted)
   - Output: `{ count: number, message: string }`
 
 **Log Access:**
+
 - `logs.case.get` - Retrieve per-case JSONL logs
   - Input: `{ caseName: string }` (required)
   - Output: `{ logs: string }` (raw JSONL content)
@@ -578,6 +605,7 @@ const failures = await server.callTool('list_failures', {});
   - Default limit: 100, max: 1000
 
 **Failure Analysis:**
+
 - `repro` - Get reproduction commands for failures
   - Input: `{ caseName?: string }` (optional, all failures if omitted)
   - Output: `{ commands: ReproCommand[] }` (vitest + logq commands)
@@ -589,6 +617,7 @@ const failures = await server.callTool('list_failures', {});
   - Output: `{ failures: SummaryEntry[] }`
 
 **Repro Bundles & Diffs:**
+
 - `repro.bundle` - Generate repro bundle with logs and digests
   - Input: `{ caseName?: string, format?: 'json' | 'markdown' }` (optional, all failures if omitted)
   - Output: `{ count: number, message: string, bundles: Array<{ caseName, jsonPath, mdPath }> }`
@@ -599,6 +628,7 @@ const failures = await server.callTool('list_failures', {});
   - Use case: Track regressions, verify fixes, analyze failure evolution
 
 **Focus Overlay (Ephemeral Rules):**
+
 - `focus.overlay.set` - Set ephemeral focus overlay rules (non-persistent)
   - Input: `{ rules: DigestRule[] }` (required)
   - Output: `{ success: boolean, message: string }`
@@ -613,6 +643,7 @@ const failures = await server.callTool('list_failures', {});
 #### Error Handling
 
 All operations use structured error codes:
+
 - `INVALID_INPUT` - Invalid input parameters (with validation details)
 - `RESOURCE_NOT_FOUND` - Resource URI not found
 - `TOOL_NOT_FOUND` - Tool name not recognized
@@ -621,6 +652,7 @@ All operations use structured error codes:
 - `INTERNAL_ERROR` - Unexpected internal error
 
 Error format:
+
 ```json
 {
   "error": {
@@ -634,6 +666,7 @@ Error format:
 #### Common Workflows
 
 **Workflow 1: Run tests and analyze failures**
+
 ```typescript
 // 1. Run tests
 await server.callTool('run', { suite: 'my-suite' });
@@ -642,24 +675,25 @@ await server.callTool('run', { suite: 'my-suite' });
 const failures = await server.callTool('list_failures', {});
 
 // 3. Get digest for specific failure
-const digest = await server.callTool('get_digest', { 
-  caseName: 'my-suite/failing-test' 
+const digest = await server.callTool('get_digest', {
+  caseName: 'my-suite/failing-test',
 });
 
 // 4. Get repro commands
-const repro = await server.callTool('repro', { 
-  caseName: 'my-suite/failing-test' 
+const repro = await server.callTool('repro', {
+  caseName: 'my-suite/failing-test',
 });
 ```
 
 **Workflow 2: Focus overlay for temporary filtering**
+
 ```typescript
 // 1. Set temporary overlay rules to focus on errors only
 await server.callTool('focus.overlay.set', {
   rules: [
     { match: { lvl: 'error' }, actions: [{ type: 'include' }] },
-    { match: { evt: 'assert.fail' }, actions: [{ type: 'slice', window: 5 }] }
-  ]
+    { match: { evt: 'assert.fail' }, actions: [{ type: 'slice', window: 5 }] },
+  ],
 });
 
 // 2. Generate digests with overlay rules
@@ -670,27 +704,29 @@ await server.callTool('focus.overlay.clear', {});
 ```
 
 **Workflow 3: Query and filter logs**
+
 ```typescript
 // 1. Query all error events for a test
 const errors = await server.callTool('query', {
   caseName: 'topology.spec/rewire',
   level: 'error',
-  limit: 50
+  limit: 50,
 });
 
 // 2. Query specific event types
 const assertions = await server.callTool('query', {
   caseName: 'topology.spec/rewire',
-  event: 'assert.fail'
+  event: 'assert.fail',
 });
 ```
 
 **Workflow 4: Flake detection**
+
 ```typescript
 // Run tests with flake detection (5 runs)
 const result = await server.callTool('run', {
   flakeDetect: true,
-  flakeRuns: 5
+  flakeRuns: 5,
 });
 
 // Check stability report
@@ -721,6 +757,7 @@ tsx scripts/ingest-pytest.ts --from-file pytest-report.json
 ```
 
 **Features:**
+
 - Preserves test phases (setup/call/teardown) with individual durations
 - Captures stdout/stderr output from tests
 - Extracts error messages, stack traces, and crash details
@@ -728,6 +765,7 @@ tsx scripts/ingest-pytest.ts --from-file pytest-report.json
 - Supports all pytest outcomes (passed/failed/error/skipped/xfailed/xpassed)
 
 **Event Mapping:**
+
 - `nodeid` → `case.begin` (with line numbers and keywords)
 - `setup/call/teardown.outcome` → phase-specific events
 - `crash` + `traceback` → `test.error` with formatted stack traces
@@ -761,6 +799,7 @@ cat test-output.xml | tsx scripts/ingest-junit.ts -
 ```
 
 **Features:**
+
 - Universal format supported by Maven, Gradle, Jest, pytest, NUnit, xUnit, RSpec
 - Parses `<failure>`, `<error>`, and `<skipped>` elements
 - Extracts stack traces and error messages from XML content
@@ -768,6 +807,7 @@ cat test-output.xml | tsx scripts/ingest-junit.ts -
 - Converts time attributes from seconds to milliseconds
 
 **Event Mapping:**
+
 - `<testcase>` → `case.begin` + `test.run` + `case.end`
 - `<failure>` → `test.error` (assertion failures)
 - `<error>` → `test.error` (exceptions)
@@ -788,6 +828,7 @@ lam ingest --go --cmd "go test -json ./..."
 **Complete Integration:**
 
 Ingested tests integrate seamlessly with all Laminar features:
+
 - Query with `logq` for precise event filtering
 - Generate digests with `lam digest` for failure analysis
 - Inspect details with `lam show --case <name>`
@@ -795,6 +836,7 @@ Ingested tests integrate seamlessly with all Laminar features:
 - Create repro bundles with `lam repro --bundle`
 
 See [docs/testing/laminar.md](docs/testing/laminar.md#cross-language-test-ingestion) for:
+
 - Complete event lifecycle examples
 - CI/CD integration patterns (GitHub Actions, GitLab CI)
 - Multi-environment testing workflows
@@ -816,10 +858,12 @@ node dist/scripts/mkctl.js
 The `mkctl` tool provides control and introspection for the microkernel. The `endpoints` command lists all endpoints registered with Hostess, showing their type (e.g., "pty", "executor"), coordinates (e.g., "localhost:3000"), and optional metadata including `ioMode`.
 
 **Understanding ioMode:**
+
 - **stdio** - Standard input/output (lightweight, non-interactive)
 - **pty** - Pseudo-terminal (interactive, ANSI escape sequences supported)
 
 **Example output:**
+
 ```
 Registered Endpoints:
 
@@ -837,6 +881,7 @@ Metadata:    {"cols":80,"rows":24,"terminalType":"xterm-256color","ioMode":"pty"
 ```
 
 **See Also:**
+
 - **[mkctl Cookbook](docs/devex/mkctl-cookbook.md)** - Quick reference for common commands and patterns
 - **[Wiring and Testing Guide](docs/devex/wiring-and-tests.md#external-process-configuration)** - Complete explanation of stdio vs pty modes
 - **[StdIO Path Guide](docs/devex/stdio-path.md)** - Deep dive on stdio mode for data pipelines
@@ -918,6 +963,7 @@ pnpm run dev:merge
 ```
 
 The Stream Kernel is designed to be testable in isolation:
+
 - Test kernel with no modules (just pipe connections)
 - Test modules with mock kernel
 - Property-based testing of pipe operations
@@ -926,14 +972,17 @@ The Stream Kernel is designed to be testable in isolation:
 ## Documentation
 
 ### Archived: MCP Kernel
+
 See [archived/mcp-kernel/KERNEL_RFC.md](archived/mcp-kernel/KERNEL_RFC.md) for detailed documentation of the prior MCP-based kernel.
 
 ### Proposed Architecture (Stream Kernel)
+
 A new stream-based microkernel architecture has been proposed with comprehensive documentation:
 
 **📖 [Stream Kernel RFC - Modular Version](docs/rfcs/stream-kernel/00-index.md)**
 
 The Stream Kernel RFC documents a ~100 line protocol-agnostic kernel design with:
+
 - Pure stream plumbing philosophy
 - Multi-modal terminal I/O capabilities
 - Deployment flexibility (single process → distributed)
@@ -941,6 +990,7 @@ The Stream Kernel RFC documents a ~100 line protocol-agnostic kernel design with
 - Complete separation of concerns for easier maintenance
 
 Key documents:
+
 - [Philosophy & Design Principles](docs/rfcs/stream-kernel/01-philosophy.md)
 - [Core Architecture (~100 lines)](docs/rfcs/stream-kernel/02-core-architecture.md)
 - [PTY Use Cases](docs/rfcs/stream-kernel/04-pty-use-cases.md)
@@ -953,6 +1003,7 @@ Key documents:
 ## Troubleshooting
 
 Running into issues? Check the comprehensive **[Troubleshooting Guide](docs/devex/troubleshooting.md)** for:
+
 - Installation errors (build tools, native dependencies)
 - Running topologies (mkctl run, config paths, YAML errors)
 - PTY & terminal issues (permissions, TTY corruption)

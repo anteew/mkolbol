@@ -9,10 +9,10 @@ import * as fs from 'fs';
 
 /**
  * PTY Test Group: Integration Tests
- * 
+ *
  * These tests use PTY (pseudoterminal) and require single-fork execution.
  * Run via: npm run test:pty
- * 
+ *
  * Rationale: Tests PTY output splitting across multiple renderers, which
  * requires an actual PTY session with real process interaction.
  */
@@ -27,7 +27,7 @@ describe('Multi-Modal Output Integration', () => {
   beforeEach(() => {
     kernel = new Kernel();
     hostess = new Hostess();
-    
+
     if (fs.existsSync(testLogPath)) {
       fs.unlinkSync(testLogPath);
     }
@@ -58,32 +58,29 @@ describe('Multi-Modal Output Integration', () => {
       authMechanism: 'none',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
-        type: 'transform'
+        type: 'transform',
       },
       command: '/bin/bash',
       args: [],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'pty'
+      ioMode: 'pty',
     };
 
     wrapper = new PTYServerWrapper(kernel, hostess, manifest);
     passthrough = new PassthroughRenderer(kernel);
     logger = new LoggerRenderer(kernel, testLogPath);
 
-    kernel.split(wrapper.outputPipe, [
-      passthrough.inputPipe,
-      logger.inputPipe
-    ]);
+    kernel.split(wrapper.outputPipe, [passthrough.inputPipe, logger.inputPipe]);
 
     await wrapper.spawn();
 
     wrapper.inputPipe.write('echo "multi-modal test"\n');
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const logContent = fs.readFileSync(testLogPath, 'utf8');
     expect(logContent).toContain('multi-modal test');
@@ -93,19 +90,19 @@ describe('Multi-Modal Output Integration', () => {
     const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
     const sink = new ConsoleSink('[buffer-test]');
     const outputs: string[] = [];
-    
+
     const originalLog = console.log;
     console.log = (...args: any[]) => {
       outputs.push(args.join(' '));
     };
 
     sink.inputPipe.write(Buffer.from('hello'));
-    sink.inputPipe.write(Buffer.from([0x48, 0x65, 0x6C, 0x6C, 0x6F]));
-    sink.inputPipe.write(Buffer.from([0xFF, 0x00, 0xAB, 0xCD]));
+    sink.inputPipe.write(Buffer.from([0x48, 0x65, 0x6c, 0x6c, 0x6f]));
+    sink.inputPipe.write(Buffer.from([0xff, 0x00, 0xab, 0xcd]));
     sink.inputPipe.write(Buffer.alloc(0));
     sink.inputPipe.write(Buffer.alloc(200).fill(0x41));
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     console.log = originalLog;
 
@@ -120,7 +117,7 @@ describe('Multi-Modal Output Integration', () => {
     const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
     const sink = new ConsoleSink({ format: 'jsonl' });
     const outputs: string[] = [];
-    
+
     const originalLog = console.log;
     console.log = (...args: any[]) => {
       outputs.push(args.join(' '));
@@ -130,12 +127,12 @@ describe('Multi-Modal Output Integration', () => {
     sink.inputPipe.write({ foo: 'bar' });
     sink.inputPipe.write(42);
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     console.log = originalLog;
 
     expect(outputs).toHaveLength(3);
-    
+
     const json1 = JSON.parse(outputs[0]);
     expect(json1).toHaveProperty('ts');
     expect(json1.data).toBe('test string');
@@ -154,27 +151,27 @@ describe('Multi-Modal Output Integration', () => {
     const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
     const sink = new ConsoleSink({ format: 'jsonl' });
     const outputs: string[] = [];
-    
+
     const originalLog = console.log;
     console.log = (...args: any[]) => {
       outputs.push(args.join(' '));
     };
 
     sink.inputPipe.write(Buffer.from('hello'));
-    sink.inputPipe.write(Buffer.from([0xFF, 0x00, 0xAB, 0xCD]));
+    sink.inputPipe.write(Buffer.from([0xff, 0x00, 0xab, 0xcd]));
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     console.log = originalLog;
 
     expect(outputs).toHaveLength(2);
-    
+
     const json1 = JSON.parse(outputs[0]);
     expect(json1).toHaveProperty('ts');
     expect(json1.data).toEqual({
       type: 'Buffer',
       encoding: 'base64',
-      data: Buffer.from('hello').toString('base64')
+      data: Buffer.from('hello').toString('base64'),
     });
 
     const json2 = JSON.parse(outputs[1]);
@@ -182,7 +179,7 @@ describe('Multi-Modal Output Integration', () => {
     expect(json2.data).toEqual({
       type: 'Buffer',
       encoding: 'base64',
-      data: Buffer.from([0xFF, 0x00, 0xAB, 0xCD]).toString('base64')
+      data: Buffer.from([0xff, 0x00, 0xab, 0xcd]).toString('base64'),
     });
   });
 
@@ -190,7 +187,7 @@ describe('Multi-Modal Output Integration', () => {
     const { ConsoleSink } = await import('../../src/modules/consoleSink.js');
     const sink = new ConsoleSink('[legacy]');
     const outputs: string[] = [];
-    
+
     const originalLog = console.log;
     console.log = (...args: any[]) => {
       outputs.push(args.join(' '));
@@ -198,7 +195,7 @@ describe('Multi-Modal Output Integration', () => {
 
     sink.inputPipe.write('test');
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     console.log = originalLog;
 

@@ -1,6 +1,7 @@
 dist/
 node_modules/
 reports/
+archives/
 *.tgz
 *.log
 examples/configs/bad-invalid-yaml.yml

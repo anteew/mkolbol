@@ -22,7 +22,7 @@ export function createEvent<T = unknown>(
     corr?: string;
     path?: string;
     payload?: T;
-  } = {}
+  } = {},
 ): TestEventEnvelope<T> {
   return {
     ts: Date.now(),

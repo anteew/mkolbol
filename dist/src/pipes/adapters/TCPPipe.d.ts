@@ -12,7 +12,7 @@ export declare class TCPPipeClient extends Duplex {
     constructor(options: TCPPipeOptions);
     connect(): Promise<void>;
     _write(chunk: any, _: BufferEncoding, cb: (error?: Error | null) => void): void;
-    _read(): void;
+    _read(_size?: number): void;
     private handleData;
     close(): void;
     _final(cb: (error?: Error | null) => void): void;

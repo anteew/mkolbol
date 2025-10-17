@@ -102,57 +102,61 @@ describe('Custom Server Acceptance Tests', () => {
    * - Adjust metadata expectations based on your manifest
    */
   describe('Hostess Registration', () => {
-    it('should register endpoint with Hostess after spawn', async () => {
-      /**
-       * REPLACE THIS with your server instantiation:
-       *
-       * Example:
-       *   wrapper = new YourServerWrapper(kernel, hostess);
-       *
-       * Or if using ExternalServerWrapper directly:
-       */
-      const manifest: ExternalServerManifest = {
-        fqdn: 'localhost',
-        servername: 'test-server',
-        classHex: '0xTEST',
-        owner: 'devex',
-        auth: 'no',
-        authMechanism: 'none',
-        terminals: [
-          { name: 'input', type: 'local', direction: 'input' },
-          { name: 'output', type: 'local', direction: 'output' }
-        ],
-        capabilities: {
-          type: 'transform',
-          accepts: ['text'],
-          produces: ['text']
-        },
-        command: '/bin/cat', // REPLACE with your command
-        args: [],             // REPLACE with your args
-        env: {},
-        cwd: process.cwd(),
-        ioMode: 'stdio',
-        restart: 'never'
-      };
+    it(
+      'should register endpoint with Hostess after spawn',
+      async () => {
+        /**
+         * REPLACE THIS with your server instantiation:
+         *
+         * Example:
+         *   wrapper = new YourServerWrapper(kernel, hostess);
+         *
+         * Or if using ExternalServerWrapper directly:
+         */
+        const manifest: ExternalServerManifest = {
+          fqdn: 'localhost',
+          servername: 'test-server',
+          classHex: '0xTEST',
+          owner: 'devex',
+          auth: 'no',
+          authMechanism: 'none',
+          terminals: [
+            { name: 'input', type: 'local', direction: 'input' },
+            { name: 'output', type: 'local', direction: 'output' },
+          ],
+          capabilities: {
+            type: 'transform',
+            accepts: ['text'],
+            produces: ['text'],
+          },
+          command: '/bin/cat', // REPLACE with your command
+          args: [], // REPLACE with your args
+          env: {},
+          cwd: process.cwd(),
+          ioMode: 'stdio',
+          restart: 'never',
+        };
 
-      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+        wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
 
-      // Spawn the server process
-      await wrapper.spawn();
+        // Spawn the server process
+        await wrapper.spawn();
 
-      // Query Hostess for registered endpoints
-      const endpoints = hostess.listEndpoints();
+        // Query Hostess for registered endpoints
+        const endpoints = hostess.listEndpoints();
 
-      // CUSTOMIZE: Update this search to match your server's coordinates
-      const serverEndpoint = Array.from(endpoints.entries()).find(
-        ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('/bin/cat')
-      );
+        // CUSTOMIZE: Update this search to match your server's coordinates
+        const serverEndpoint = Array.from(endpoints.entries()).find(
+          ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('/bin/cat'),
+        );
 
-      // Assertions
-      expect(serverEndpoint).toBeDefined();
-      expect(serverEndpoint![1].type).toBe('external');
-      expect(serverEndpoint![1].metadata?.ioMode).toBe('stdio');
-    }, testTimeout);
+        // Assertions
+        expect(serverEndpoint).toBeDefined();
+        expect(serverEndpoint![1].type).toBe('external');
+        expect(serverEndpoint![1].metadata?.ioMode).toBe('stdio');
+      },
+      testTimeout,
+    );
   });
 
   /**
@@ -166,102 +170,110 @@ describe('Custom Server Acceptance Tests', () => {
    * - Update assertion to match your server's expected output
    */
   describe('Stream I/O', () => {
-    it('should perform stdin → stdout roundtrip', async () => {
-      /**
-       * REPLACE with your server instantiation (same as Test 1)
-       */
-      const manifest: ExternalServerManifest = {
-        fqdn: 'localhost',
-        servername: 'test-io',
-        classHex: '0xTEST',
-        owner: 'devex',
-        auth: 'no',
-        authMechanism: 'none',
-        terminals: [
-          { name: 'input', type: 'local', direction: 'input' },
-          { name: 'output', type: 'local', direction: 'output' }
-        ],
-        capabilities: { type: 'transform' },
-        command: '/bin/cat', // REPLACE
-        args: [],
-        env: {},
-        cwd: process.cwd(),
-        ioMode: 'stdio',
-        restart: 'never'
-      };
+    it(
+      'should perform stdin → stdout roundtrip',
+      async () => {
+        /**
+         * REPLACE with your server instantiation (same as Test 1)
+         */
+        const manifest: ExternalServerManifest = {
+          fqdn: 'localhost',
+          servername: 'test-io',
+          classHex: '0xTEST',
+          owner: 'devex',
+          auth: 'no',
+          authMechanism: 'none',
+          terminals: [
+            { name: 'input', type: 'local', direction: 'input' },
+            { name: 'output', type: 'local', direction: 'output' },
+          ],
+          capabilities: { type: 'transform' },
+          command: '/bin/cat', // REPLACE
+          args: [],
+          env: {},
+          cwd: process.cwd(),
+          ioMode: 'stdio',
+          restart: 'never',
+        };
 
-      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-      await wrapper.spawn();
+        wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+        await wrapper.spawn();
 
-      // Set up output collection
-      const outputPromise = new Promise<string>((resolve) => {
-        const chunks: Buffer[] = [];
-        wrapper.outputPipe.on('data', (data) => {
-          chunks.push(Buffer.from(data));
+        // Set up output collection
+        const outputPromise = new Promise<string>((resolve) => {
+          const chunks: Buffer[] = [];
+          wrapper.outputPipe.on('data', (data) => {
+            chunks.push(Buffer.from(data));
+          });
+          wrapper.outputPipe.once('end', () => {
+            resolve(Buffer.concat(chunks).toString());
+          });
         });
-        wrapper.outputPipe.once('end', () => {
-          resolve(Buffer.concat(chunks).toString());
+
+        // CUSTOMIZE: Update test input for your server
+        const testInput = 'Hello from acceptance test\n';
+        wrapper.inputPipe.write(testInput);
+        wrapper.inputPipe.end();
+
+        // Wait for output
+        const output = await outputPromise;
+
+        // CUSTOMIZE: Update expected output based on your server's transform
+        // Example for echo server: expect(output).toBe('[ECHO] Hello from acceptance test\n');
+        // Example for uppercase server: expect(output).toBe('HELLO FROM ACCEPTANCE TEST\n');
+        expect(output).toBe(testInput); // cat just echoes
+      },
+      testTimeout,
+    );
+
+    it(
+      'should handle multiple sequential messages',
+      async () => {
+        const manifest: ExternalServerManifest = {
+          fqdn: 'localhost',
+          servername: 'test-sequential',
+          classHex: '0xTEST',
+          owner: 'devex',
+          auth: 'no',
+          authMechanism: 'none',
+          terminals: [
+            { name: 'input', type: 'local', direction: 'input' },
+            { name: 'output', type: 'local', direction: 'output' },
+          ],
+          capabilities: { type: 'transform' },
+          command: '/bin/cat', // REPLACE
+          args: [],
+          env: {},
+          cwd: process.cwd(),
+          ioMode: 'stdio',
+          restart: 'never',
+        };
+
+        wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+        await wrapper.spawn();
+
+        const output: Buffer[] = [];
+        wrapper.outputPipe.on('data', (data) => output.push(Buffer.from(data)));
+
+        // CUSTOMIZE: Update test messages
+        const messages = ['message1\n', 'message2\n', 'message3\n'];
+
+        for (const msg of messages) {
+          wrapper.inputPipe.write(msg);
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        const received = Buffer.concat(output).toString();
+
+        // Verify all messages were processed
+        messages.forEach((msg) => {
+          expect(received).toContain(msg.trim());
         });
-      });
-
-      // CUSTOMIZE: Update test input for your server
-      const testInput = 'Hello from acceptance test\n';
-      wrapper.inputPipe.write(testInput);
-      wrapper.inputPipe.end();
-
-      // Wait for output
-      const output = await outputPromise;
-
-      // CUSTOMIZE: Update expected output based on your server's transform
-      // Example for echo server: expect(output).toBe('[ECHO] Hello from acceptance test\n');
-      // Example for uppercase server: expect(output).toBe('HELLO FROM ACCEPTANCE TEST\n');
-      expect(output).toBe(testInput); // cat just echoes
-    }, testTimeout);
-
-    it('should handle multiple sequential messages', async () => {
-      const manifest: ExternalServerManifest = {
-        fqdn: 'localhost',
-        servername: 'test-sequential',
-        classHex: '0xTEST',
-        owner: 'devex',
-        auth: 'no',
-        authMechanism: 'none',
-        terminals: [
-          { name: 'input', type: 'local', direction: 'input' },
-          { name: 'output', type: 'local', direction: 'output' }
-        ],
-        capabilities: { type: 'transform' },
-        command: '/bin/cat', // REPLACE
-        args: [],
-        env: {},
-        cwd: process.cwd(),
-        ioMode: 'stdio',
-        restart: 'never'
-      };
-
-      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-      await wrapper.spawn();
-
-      const output: Buffer[] = [];
-      wrapper.outputPipe.on('data', (data) => output.push(Buffer.from(data)));
-
-      // CUSTOMIZE: Update test messages
-      const messages = ['message1\n', 'message2\n', 'message3\n'];
-
-      for (const msg of messages) {
-        wrapper.inputPipe.write(msg);
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      const received = Buffer.concat(output).toString();
-
-      // Verify all messages were processed
-      messages.forEach(msg => {
-        expect(received).toContain(msg.trim());
-      });
-    }, testTimeout);
+      },
+      testTimeout,
+    );
   });
 
   /**
@@ -274,71 +286,75 @@ describe('Custom Server Acceptance Tests', () => {
    * - Adjust chunk size or count if your server has different buffer limits
    */
   describe('Backpressure', () => {
-    it('should handle backpressure with drain events', async () => {
-      const manifest: ExternalServerManifest = {
-        fqdn: 'localhost',
-        servername: 'test-backpressure',
-        classHex: '0xTEST',
-        owner: 'devex',
-        auth: 'no',
-        authMechanism: 'none',
-        terminals: [
-          { name: 'input', type: 'local', direction: 'input' },
-          { name: 'output', type: 'local', direction: 'output' }
-        ],
-        capabilities: { type: 'transform' },
-        command: '/bin/cat', // REPLACE
-        args: [],
-        env: {},
-        cwd: process.cwd(),
-        ioMode: 'stdio',
-        restart: 'never'
-      };
+    it(
+      'should handle backpressure with drain events',
+      async () => {
+        const manifest: ExternalServerManifest = {
+          fqdn: 'localhost',
+          servername: 'test-backpressure',
+          classHex: '0xTEST',
+          owner: 'devex',
+          auth: 'no',
+          authMechanism: 'none',
+          terminals: [
+            { name: 'input', type: 'local', direction: 'input' },
+            { name: 'output', type: 'local', direction: 'output' },
+          ],
+          capabilities: { type: 'transform' },
+          command: '/bin/cat', // REPLACE
+          args: [],
+          env: {},
+          cwd: process.cwd(),
+          ioMode: 'stdio',
+          restart: 'never',
+        };
 
-      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
-      await wrapper.spawn();
+        wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+        await wrapper.spawn();
 
-      const chunkSize = 64 * 1024; // 64KB
-      const numChunks = 50;
-      const testData: Buffer[] = [];
+        const chunkSize = 64 * 1024; // 64KB
+        const numChunks = 50;
+        const testData: Buffer[] = [];
 
-      for (let i = 0; i < numChunks; i++) {
-        testData.push(Buffer.alloc(chunkSize, i % 256));
-      }
-
-      const receivedChunks: Buffer[] = [];
-      let drainEvents = 0;
-
-      wrapper.outputPipe.on('data', (chunk) => {
-        receivedChunks.push(Buffer.from(chunk));
-      });
-
-      // Write chunks and wait for drain when buffer is full
-      for (let i = 0; i < testData.length; i++) {
-        const canContinue = wrapper.inputPipe.write(testData[i]);
-        if (!canContinue) {
-          drainEvents++;
-          await new Promise<void>((resolve) => {
-            wrapper.inputPipe.once('drain', resolve);
-          });
+        for (let i = 0; i < numChunks; i++) {
+          testData.push(Buffer.alloc(chunkSize, i % 256));
         }
-      }
-      wrapper.inputPipe.end();
 
-      // Wait for all output
-      await new Promise<void>((resolve) => {
-        wrapper.outputPipe.once('end', resolve);
-      });
+        const receivedChunks: Buffer[] = [];
+        let drainEvents = 0;
 
-      // Verify data integrity
-      const receivedBuffer = Buffer.concat(receivedChunks);
-      const expectedBuffer = Buffer.concat(testData);
-      expect(receivedBuffer.length).toBe(expectedBuffer.length);
-      expect(receivedBuffer.equals(expectedBuffer)).toBe(true);
+        wrapper.outputPipe.on('data', (chunk) => {
+          receivedChunks.push(Buffer.from(chunk));
+        });
 
-      // Verify backpressure occurred
-      expect(drainEvents).toBeGreaterThan(0);
-    }, testTimeout);
+        // Write chunks and wait for drain when buffer is full
+        for (let i = 0; i < testData.length; i++) {
+          const canContinue = wrapper.inputPipe.write(testData[i]);
+          if (!canContinue) {
+            drainEvents++;
+            await new Promise<void>((resolve) => {
+              wrapper.inputPipe.once('drain', resolve);
+            });
+          }
+        }
+        wrapper.inputPipe.end();
+
+        // Wait for all output
+        await new Promise<void>((resolve) => {
+          wrapper.outputPipe.once('end', resolve);
+        });
+
+        // Verify data integrity
+        const receivedBuffer = Buffer.concat(receivedChunks);
+        const expectedBuffer = Buffer.concat(testData);
+        expect(receivedBuffer.length).toBe(expectedBuffer.length);
+        expect(receivedBuffer.equals(expectedBuffer)).toBe(true);
+
+        // Verify backpressure occurred
+        expect(drainEvents).toBeGreaterThan(0);
+      },
+      testTimeout,
+    );
   });
 
   /**
@@ -350,40 +366,42 @@ describe('Custom Server Acceptance Tests', () => {
    * - Add server-specific lifecycle checks if needed
    */
   describe('Lifecycle', () => {
-    it('should manage lifecycle (start/stop)', async () => {
-      const manifest: ExternalServerManifest = {
-        fqdn: 'localhost',
-        servername: 'test-lifecycle',
-        classHex: '0xTEST',
-        owner: 'devex',
-        auth: 'no',
-        authMechanism: 'none',
-        terminals: [
-          { name: 'input', type: 'local', direction: 'input' }
-        ],
-        capabilities: { type: 'output' },
-        command: '/bin/cat', // REPLACE
-        args: [],
-        env: {},
-        cwd: process.cwd(),
-        ioMode: 'stdio',
-        restart: 'never'
-      };
+    it(
+      'should manage lifecycle (start/stop)',
+      async () => {
+        const manifest: ExternalServerManifest = {
+          fqdn: 'localhost',
+          servername: 'test-lifecycle',
+          classHex: '0xTEST',
+          owner: 'devex',
+          auth: 'no',
+          authMechanism: 'none',
+          terminals: [{ name: 'input', type: 'local', direction: 'input' }],
+          capabilities: { type: 'output' },
+          command: '/bin/cat', // REPLACE
+          args: [],
+          env: {},
+          cwd: process.cwd(),
+          ioMode: 'stdio',
+          restart: 'never',
+        };
 
-      wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
+        wrapper = new ExternalServerWrapper(kernel, hostess, manifest);
 
-      // Before spawn: not running
-      expect(wrapper.isRunning()).toBe(false);
+        // Before spawn: not running
+        expect(wrapper.isRunning()).toBe(false);
 
-      // After spawn: running with valid PID
-      await wrapper.spawn();
-      expect(wrapper.isRunning()).toBe(true);
-      expect(wrapper.getProcessInfo().pid).toBeGreaterThan(0);
+        // After spawn: running with valid PID
+        await wrapper.spawn();
+        expect(wrapper.isRunning()).toBe(true);
+        expect(wrapper.getProcessInfo().pid).toBeGreaterThan(0);
 
-      // After shutdown: not running
-      await wrapper.shutdown();
-      expect(wrapper.isRunning()).toBe(false);
-    }, testTimeout);
+        // After shutdown: not running
+        await wrapper.shutdown();
+        expect(wrapper.isRunning()).toBe(false);
+      },
+      testTimeout,
+    );
   });
 
   /**
@@ -396,14 +414,14 @@ describe('Custom Server Acceptance Tests', () => {
    * - Update module name in config to match your wrapper class
    * - Add additional topology tests for your specific use cases
    */
-describe.skipIf(!process.env.MK_DEVEX_EXECUTOR)('Executor Integration', () => {
-  it('should work in Executor topology', async () => {
+  describe.skipIf(!process.env.MK_DEVEX_EXECUTOR)('Executor Integration', () => {
+    it('should work in Executor topology', async () => {
       const config = {
         nodes: [
           {
             id: 'timer1',
             module: 'TimerSource',
-            params: { periodMs: 100 }
+            params: { periodMs: 100 },
           },
           /**
            * CUSTOMIZE: Replace 'ExternalProcess' with your wrapper module name
@@ -416,18 +434,18 @@ describe.skipIf(!process.env.MK_DEVEX_EXECUTOR)('Executor Integration', () => {
             module: 'ExternalProcess', // REPLACE with your module
             params: {
               command: '/bin/cat', // REPLACE
-              args: []
-            }
+              args: [],
+            },
           },
           {
             id: 'console1',
-            module: 'ConsoleSink'
-          }
+            module: 'ConsoleSink',
+          },
         ],
         connections: [
           { from: 'timer1.output', to: 'test-server.input' },
-          { from: 'test-server.output', to: 'console1.input' }
-        ]
+          { from: 'test-server.output', to: 'console1.input' },
+        ],
       };
 
       const stateManager = new StateManager(kernel);

@@ -18,17 +18,20 @@ Process A (Server)          Process B (Client)
 ## Running
 
 **Terminal 1 (Server):**
+
 ```bash
 npm run build
 npx tsx examples/network/remote-viewer/server.ts
 ```
 
 **Terminal 2 (Client):**
+
 ```bash
 npx tsx examples/network/remote-viewer/client.ts
 ```
 
 **Expected Output (Client):**
+
 ```
 [Client] Connecting to server on port 30018...
 [Client] Connected! Receiving data:

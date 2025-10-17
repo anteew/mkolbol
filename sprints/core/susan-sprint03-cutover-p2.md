@@ -1,9 +1,7 @@
 ```json
 {
   "ampcode": "v1",
-  "waves": [
-    { "id": "C2-A", "parallel": false, "tasks": ["T3001", "T3002"] }
-  ],
+  "waves": [{ "id": "C2-A", "parallel": false, "tasks": ["T3001", "T3002"] }],
   "tasks": [
     {
       "id": "T3001",
@@ -28,4 +26,3 @@
 # Ampcode Template — Subagent Dispatch Plan (Core: Cutover P2)
 
 Goal: Robust drain+switch+teardown with zero data loss and frame-safe boundaries.
-

@@ -6,10 +6,10 @@ import type { ExternalServerManifest } from '../../src/types.js';
 
 /**
  * PTY Test Group: Wrapper Tests
- * 
+ *
  * These tests use PTY (pseudoterminal) and require single-fork execution.
  * Run via: npm run test:pty
- * 
+ *
  * Rationale: PTY tests spawn actual terminal processes and interact with them,
  * requiring isolated execution environment to prevent interference.
  */
@@ -39,12 +39,12 @@ describe('PTYServerWrapper', () => {
       authMechanism: 'none',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
         type: 'transform',
         accepts: ['text'],
-        produces: ['text']
+        produces: ['text'],
       },
       command: '/bin/bash',
       args: [],
@@ -53,7 +53,7 @@ describe('PTYServerWrapper', () => {
       ioMode: 'pty',
       terminalType: 'xterm-256color',
       initialCols: 80,
-      initialRows: 24
+      initialRows: 24,
     };
 
     wrapper = new PTYServerWrapper(kernel, hostess, manifest);
@@ -73,16 +73,16 @@ describe('PTYServerWrapper', () => {
       authMechanism: 'none',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
-        type: 'transform'
+        type: 'transform',
       },
       command: '/bin/bash',
       args: [],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'pty'
+      ioMode: 'pty',
     };
 
     wrapper = new PTYServerWrapper(kernel, hostess, manifest);
@@ -92,8 +92,8 @@ describe('PTYServerWrapper', () => {
     wrapper.outputPipe.on('data', (data) => output.push(Buffer.from(data)));
 
     wrapper.inputPipe.write('echo "test data"\n');
-    
-    await new Promise(resolve => setTimeout(resolve, 300));
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const result = Buffer.concat(output).toString();
     expect(result).toContain('test data');
@@ -109,10 +109,10 @@ describe('PTYServerWrapper', () => {
       authMechanism: 'none',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
-        type: 'transform'
+        type: 'transform',
       },
       command: '/bin/bash',
       args: [],
@@ -120,7 +120,7 @@ describe('PTYServerWrapper', () => {
       cwd: process.cwd(),
       ioMode: 'pty',
       initialCols: 80,
-      initialRows: 24
+      initialRows: 24,
     };
 
     wrapper = new PTYServerWrapper(kernel, hostess, manifest);
@@ -141,27 +141,27 @@ describe('PTYServerWrapper', () => {
       authMechanism: 'none',
       terminals: [],
       capabilities: {
-        type: 'source'
+        type: 'source',
       },
       command: '/bin/bash',
       args: [],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'pty'
+      ioMode: 'pty',
     };
 
     wrapper = new PTYServerWrapper(kernel, hostess, manifest);
     await wrapper.spawn();
 
     expect(wrapper.isRunning()).toBe(true);
-    
+
     wrapper.sendSignal('SIGTERM');
 
     // Allow time for the shell to exit after SIGTERM.
     // Poll up to ~2s to avoid flakes on slower CI hosts.
     for (let i = 0; i < 20; i++) {
       if (!wrapper.isRunning()) break;
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     expect(wrapper.isRunning()).toBe(false);
@@ -177,22 +177,22 @@ describe('PTYServerWrapper', () => {
       authMechanism: 'none',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
-        type: 'transform'
+        type: 'transform',
       },
       command: '/bin/bash',
       args: ['-c', 'exit 0'],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'pty'
+      ioMode: 'pty',
     };
 
     wrapper = new PTYServerWrapper(kernel, hostess, manifest);
     await wrapper.spawn();
 
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     expect(wrapper.isRunning()).toBe(false);
   });
@@ -205,25 +205,23 @@ describe('PTYServerWrapper', () => {
       owner: 'test',
       auth: 'no',
       authMechanism: 'none',
-      terminals: [
-        { name: 'input', type: 'local', direction: 'input' }
-      ],
+      terminals: [{ name: 'input', type: 'local', direction: 'input' }],
       capabilities: {
-        type: 'output'
+        type: 'output',
       },
       command: '/bin/bash',
       args: [],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'pty'
+      ioMode: 'pty',
     };
 
     wrapper = new PTYServerWrapper(kernel, hostess, manifest);
     await wrapper.spawn();
 
     const servers = hostess.list();
-    const found = servers.find(s => s.servername === 'bash-hostess');
-    
+    const found = servers.find((s) => s.servername === 'bash-hostess');
+
     expect(found).toBeDefined();
     expect(found?.servername).toBe('bash-hostess');
   });
@@ -238,10 +236,10 @@ describe('PTYServerWrapper', () => {
       authMechanism: 'none',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
-        type: 'transform'
+        type: 'transform',
       },
       shell: '/bin/bash',
       shellArgs: [],
@@ -249,7 +247,7 @@ describe('PTYServerWrapper', () => {
       args: [],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'pty'
+      ioMode: 'pty',
     };
 
     wrapper = new PTYServerWrapper(kernel, hostess, manifest);
@@ -259,8 +257,8 @@ describe('PTYServerWrapper', () => {
     wrapper.outputPipe.on('data', (data) => output.push(Buffer.from(data)));
 
     wrapper.inputPipe.write('pwd\n');
-    
-    await new Promise(resolve => setTimeout(resolve, 300));
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const result = Buffer.concat(output).toString();
     expect(result).toContain(process.cwd());
@@ -276,16 +274,16 @@ describe('PTYServerWrapper', () => {
       authMechanism: 'none',
       terminals: [
         { name: 'input', type: 'local', direction: 'input' },
-        { name: 'output', type: 'local', direction: 'output' }
+        { name: 'output', type: 'local', direction: 'output' },
       ],
       capabilities: {
-        type: 'transform'
+        type: 'transform',
       },
       command: '/bin/bash',
       args: [],
       env: {},
       cwd: process.cwd(),
-      ioMode: 'pty'
+      ioMode: 'pty',
     };
 
     wrapper = new PTYServerWrapper(kernel, hostess, manifest);
@@ -295,10 +293,10 @@ describe('PTYServerWrapper', () => {
     wrapper.outputPipe.on('data', (data) => output.push(Buffer.from(data)));
 
     wrapper.inputPipe.write('echo "line1"\n');
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
     wrapper.inputPipe.write('echo "line2"\n');
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     const result = Buffer.concat(output).toString();
     expect(result).toContain('line1');

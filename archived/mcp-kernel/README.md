@@ -11,6 +11,7 @@ This directory contains the original MCP (Model Context Protocol) based microker
 ## Why It Was Archived
 
 The project has evolved to adopt a **Stream Kernel** architecture (~100 lines) based on pure stream plumbing primitives. The new architecture provides:
+
 - Protocol-agnostic design (not tied to JSON-RPC/MCP)
 - Greater deployment flexibility (single process → distributed)
 - Simpler, more minimal kernel (~100 lines vs ~200 lines)
@@ -21,6 +22,7 @@ The project has evolved to adopt a **Stream Kernel** architecture (~100 lines) b
 This archived implementation includes:
 
 ### Source Code (`src/`)
+
 - **kernel/** - Router, Bus, EventLog (JSON-RPC/MCP focused)
 - **transports/** - HTTP and stdio adapters
 - **middleware/** - Compression, metrics pipeline
@@ -28,18 +30,22 @@ This archived implementation includes:
 - **plugins/** - Plugin manifest system
 
 ### Compiled Output (`dist/`)
+
 - TypeScript compilation artifacts (.js, .d.ts, .map files)
 
 ### Documentation
+
 - **KERNEL_RFC.md** - Original MCP kernel architecture RFC
 - **MILESTONE_M0.md** - Original milestone plan
 
 ### Tests (`tests/`)
+
 - **router.test.ts** - Router test suite
 
 ## New Architecture
 
 The current project direction is documented in the **Stream Kernel RFC**:
+
 - **Main RFC:** [/STREAM_KERNEL_RFC.md](/STREAM_KERNEL_RFC.md)
 - **Modular RFC:** [/docs/rfcs/stream-kernel/00-index.md](/docs/rfcs/stream-kernel/00-index.md)
 

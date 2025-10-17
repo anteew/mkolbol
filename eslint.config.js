@@ -8,8 +8,8 @@ export default [
       'archived/**',
       '**/*.d.ts',
       'examples/web-terminal/public/**',
-      'test-project/**'
-    ]
+      'test-project/**',
+    ],
   },
 
   // Base JS and TS recommendations
@@ -23,8 +23,8 @@ export default [
       sourceType: 'module',
       globals: {
         ...(await import('globals')).default.node,
-        ...(await import('globals')).default.es2021
-      }
+        ...(await import('globals')).default.es2021,
+      },
     },
     rules: {
       'no-console': 'off',
@@ -37,9 +37,9 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
-      ]
-    }
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+    },
   },
 
   // Tests, examples, scripts: be extra lenient
@@ -52,14 +52,14 @@ export default [
       '@typescript-eslint/no-unused-expressions': 'off',
       'no-misleading-character-class': 'off',
       'no-empty': 'off',
-      'no-unused-expressions': 'off'
-    }
+      'no-unused-expressions': 'off',
+    },
   },
   // File-specific tweaks
   {
     files: ['src/modules/ttyRenderer.ts'],
     rules: {
-      'no-control-regex': 'off'
-    }
-  }
+      'no-control-regex': 'off',
+    },
+  },
 ];

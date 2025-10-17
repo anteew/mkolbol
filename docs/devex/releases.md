@@ -1,6 +1,7 @@
 # mkolbol Releases
 
 This guide covers:
+
 1. **Release Candidate (RC)** - Current status, features, install paths, known limitations
 2. **Creating Releases** - For maintainers: how to publish new versions
 3. **Consuming Releases** - For users: how to install specific versions
@@ -16,6 +17,7 @@ This guide covers:
 This RC delivers the complete **Local Node v1.0** experience with:
 
 #### Core Features
+
 - ✅ **Stream Kernel** - ~100 line microkernel with pipes, connect, split, merge
 - ✅ **Local Node Mode** - In-process routing (MK_LOCAL_NODE=1 enforced)
 - ✅ **Router & Hostess** - Endpoint discovery and health monitoring
@@ -23,6 +25,7 @@ This RC delivers the complete **Local Node v1.0** experience with:
 - ✅ **mkctl CLI** - Run topologies (`mkctl run`) and inspect endpoints (`mkctl endpoints`)
 
 #### Modules (Production-Ready)
+
 - ✅ **ExternalProcess** - Spawn external processes (stdio/pty modes)
 - ✅ **FilesystemSink** - Write to files (JSONL, raw, append/truncate modes)
 - ✅ **ConsoleSink** - Console output with prefixes
@@ -31,6 +34,7 @@ This RC delivers the complete **Local Node v1.0** experience with:
 - ✅ **UppercaseTransform** - String transformation example
 
 #### Developer Experience (RC)
+
 - ✅ **mk CLI** - Project scaffolding and workflow orchestrator
   - `mk init` - Initialize projects with templates (hello-calculator)
   - `mk run` - Execute topologies with validation
@@ -50,6 +54,7 @@ This RC delivers the complete **Local Node v1.0** experience with:
 **See [Distribution Matrix](./distribution.md) for complete installation guide.**
 
 #### Method 1: Tarball (Recommended for RC)
+
 ```bash
 # Download from GitHub Releases (when published)
 curl -L https://github.com/anteew/mkolbol/releases/download/v1.0.0-rc.1/mkolbol-1.0.0-rc.1.tar.gz \
@@ -60,6 +65,7 @@ npm install ./mkolbol-1.0.0-rc.1.tar.gz
 ```
 
 #### Method 2: Git Tag (For Development)
+
 ```bash
 # Clone specific RC tag
 git clone --branch v1.0.0-rc.1 https://github.com/anteew/mkolbol.git mkolbol-rc
@@ -69,11 +75,13 @@ npm run build
 ```
 
 #### Method 3: npm Registry
+
 > **Not Yet Available**: mkolbol is not published to npm. Use tarball or git tag.
 
 ### Known Limitations (RC)
 
 #### mk CLI Implementation Status
+
 - ⚠️ **Partial Implementation**: Most mk commands return placeholder help text (implementation in progress)
 - ⚠️ **No Wizard Mode**: `mk init` requires inline args (`--lang ts --preset tty`), no interactive prompts yet
 - ⚠️ **No Hot Reload**: `mk dev` not yet implemented (manual restart required)
@@ -82,22 +90,26 @@ npm run build
 - ⚠️ **Did-You-Mean**: Typo suggestions not yet implemented (generic error messages)
 
 #### Local Node Mode Only
+
 - ⚠️ **Single Machine**: Distributed routing (multi-machine topologies) not yet available
 - ⚠️ **In-Process Only**: Worker threads and external process modes limited
 - ⚠️ **Network Features Gated**: MK_LOCAL_NODE=1 disables network transports
 
 #### Module Ecosystem
+
 - ⚠️ **Limited Modules**: 6 core modules available, community modules not yet published
 - ⚠️ **No Plugin System**: Custom modules require code changes (no dynamic loading)
 - ⚠️ **TTY Rendering**: XtermTTYRenderer module not yet fully integrated
 
 #### Testing & CI
+
 - ⚠️ **Non-Gating Smoke Tests**: Acceptance tests run but don't block PRs
 - ⚠️ **Flake Detection**: Laminar trends available but not enforced
 
 ### Roadmap to v1.0.0
 
 **Before Final Release:**
+
 - [ ] Implement mk dev (hot reload)
 - [ ] Implement mk logs (structured log streaming)
 - [ ] Implement mk trace (latency analysis)
@@ -107,6 +119,7 @@ npm run build
 - [ ] Add performance benchmarks
 
 **Future (v1.1+):**
+
 - [ ] Distributed routing (multi-machine topologies)
 - [ ] Worker thread support
 - [ ] Plugin system for dynamic module loading
@@ -116,6 +129,7 @@ npm run build
 ### Getting Started
 
 **Quickest Path (10 minutes):**
+
 1. Read [First Five Minutes Guide](./first-five-minutes.md)
 2. Run the hello-calculator example:
    ```bash
@@ -130,6 +144,7 @@ npm run build
 3. Explore [Recipes](./recipes.md) for more patterns
 
 **Deep Dive:**
+
 - [Early Adopter Guide](./early-adopter-guide.md) - Architecture and concepts
 - [mkctl Cookbook](./mkctl-cookbook.md) - Daily CLI reference
 - [Authoring a Module](./authoring-a-module.md) - Write custom modules
@@ -191,14 +206,17 @@ Create or update `CHANGELOG.md`:
 ## [0.2.0] - 2025-10-16
 
 ### Added
+
 - Distribution matrix documentation
 - Tarball-first installation path
 - GitHub Releases workflow
 
 ### Fixed
+
 - Bug fixes from 0.1.0
 
 ### Changed
+
 - Documentation restructuring
 ```
 

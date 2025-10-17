@@ -39,7 +39,7 @@ nodes:
   - id: console
     module: ConsoleSink
     params:
-      prefix: "[hello-calculator]"
+      prefix: '[hello-calculator]'
 
 connections:
   - from: calc.output

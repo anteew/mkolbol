@@ -7,11 +7,13 @@
 ## Why Acceptance Smoke Tests?
 
 The smoke test answers three critical questions:
+
 1. **Does the topology actually run?** (Not just unit tests passing)
 2. **Does data flow correctly?** (FilesystemSink receives and records data)
 3. **Is routing working?** (Router endpoints are properly discovered)
 
 These are end-to-end integration checks that **no unit test can fully replicate**. They catch issues like:
+
 - Module instantiation failures in real executor context
 - Pipe connection errors between modules
 - Heartbeat/health check timeouts
@@ -70,9 +72,9 @@ nodes:
       args:
         - -e
         - "require('http').createServer((req,res)=>{
-             console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-             res.end('ok')
-           }).listen(3000,()=>console.log('Server listening on http://localhost:3000'))"
+          console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+          res.end('ok')
+          }).listen(3000,()=>console.log('Server listening on http://localhost:3000'))"
       ioMode: stdio
       restart: never
 
@@ -87,6 +89,7 @@ connections:
 ```
 
 **Why this config?**
+
 - **Lightweight**: No external processes or complex setup
 - **Observable**: Generates JSONL output that can be inspected
 - **Isolated**: Doesn't conflict with main unit tests
@@ -101,8 +104,8 @@ acceptance-smoke:
   name: Acceptance Smoke Test (FilesystemSink)
   runs-on: ubuntu-latest
   needs: test
-  if: ${{ always() }}           # Run even if test job fails
-  continue-on-error: true       # Don't block PR on smoke test failure
+  if: ${{ always() }} # Run even if test job fails
+  continue-on-error: true # Don't block PR on smoke test failure
 
   steps:
     - name: Setup
@@ -110,7 +113,7 @@ acceptance-smoke:
 
     - name: Run acceptance smoke test
       env:
-        MK_LOCAL_NODE: '1'      # Enforce Local Node mode
+        MK_LOCAL_NODE: '1' # Enforce Local Node mode
       run: |
         timeout 10 node dist/scripts/mkctl.js run \
           --file examples/configs/http-logs-local-file.yml \
@@ -137,11 +140,13 @@ fi
 ```
 
 **What it validates:**
+
 - mkctl started successfully
 - Executor initialized nodes without errors
 - Topology reached "running" state (not crashed during startup)
 
 **Failure indicators:**
+
 - "Module not found" error
 - "Configuration validation failed"
 - "Health check failed"
@@ -161,12 +166,14 @@ fi
 ```
 
 **What it validates:**
+
 - FilesystemSink module instantiated correctly
 - Pipes connected between ExternalProcess → FilesystemSink
 - HTTP server emitted data (at least one line logged)
 - Data persisted to filesystem
 
 **Failure indicators:**
+
 - File doesn't exist (JSONL never created)
 - File empty (pipes not connected or no data emitted)
 - File permission error (directory not writable)
@@ -185,12 +192,14 @@ fi
 ```
 
 **What it validates:**
+
 - RoutingServer (or in-process Router) running
 - Both endpoints registered: `web.output` and `sink.input`
 - Snapshot persisted to JSON at shutdown
 - Router tracked module endpoints correctly
 
 **Failure indicators:**
+
 - File doesn't exist (Router didn't snapshot)
 - Endpoint count 0 (modules not registered)
 - Endpoint count 1 (one module failed to register)
@@ -225,9 +234,10 @@ The script reads `reports/acceptance-smoke.jsonl` and generates PR comment secti
 function readAcceptanceResults() {
   if (!fs.existsSync(ACCEPTANCE_PATH)) return '';
 
-  const lines = fs.readFileSync(ACCEPTANCE_PATH, 'utf-8')
+  const lines = fs
+    .readFileSync(ACCEPTANCE_PATH, 'utf-8')
     .split('\n')
-    .filter(l => l.trim());
+    .filter((l) => l.trim());
 
   const result = JSON.parse(lines[lines.length - 1]); // Last result
 
@@ -264,6 +274,7 @@ Or if failed:
 ## PR Comment Structure
 
 The aggregated PR comment combines:
+
 1. **Test Summary** (from Laminar unit tests)
 2. **Failure Trends** (from Laminar trends history)
 3. **Flake Budget** (tests failing ≥2 times in last 5 runs)
@@ -274,18 +285,23 @@ The aggregated PR comment combines:
 ## 📊 Laminar Test Report (Aggregated)
 
 ### Test Summary
+
 ...unit test results...
 
 ### Failure Trends
+
 ...failure trends...
 
 ### 🔴 Flake Budget
+
 ...flaky tests...
 
 ### 🧪 Acceptance Smoke Test
+
 ✅ Topology | ✅ FilesystemSink | ✅ Router Endpoints
 
 ### 📁 Artifacts
+
 - Full Summary: See job artifacts for LAMINAR_SUMMARY.txt
 - Repro Hints: See job artifacts for LAMINAR_REPRO.md
 - Acceptance Logs: See job artifacts for acceptance-smoke-logs
@@ -435,12 +451,14 @@ The acceptance smoke results feed into the flake budget (tests failing ≥2 time
 ### Artifact Persistence
 
 CI artifacts retained for 90 days (GitHub Actions default):
+
 - `/tmp/smoke-test.log` — Raw mkctl output
 - `reports/acceptance-smoke.jsonl` — Result record
 - `reports/http-logs.jsonl` — Topology output data
 - `reports/router-endpoints.json` — Endpoint snapshot
 
 **Access in GitHub UI:**
+
 ```
 Actions → Workflow run → Artifacts → acceptance-smoke-logs
 ```
@@ -453,7 +471,7 @@ Actions → Workflow run → Artifacts → acceptance-smoke-logs
 
 ```yaml
 acceptance-smoke:
-  continue-on-error: false  # Change to required status
+  continue-on-error: false # Change to required status
 
 # Would require:
 # - Reducing flakiness (network timeouts, timing issues)
@@ -498,8 +516,8 @@ mk-rc-smoke:
   name: MK RC Smoke Test (init/build/package)
   runs-on: ubuntu-latest
   needs: test
-  if: ${{ always() }}           # Run even if test job fails
-  continue-on-error: true       # Don't block PR on smoke test failure
+  if: ${{ always() }} # Run even if test job fails
+  continue-on-error: true # Don't block PR on smoke test failure
 ```
 
 ### Test Sequence
@@ -515,12 +533,14 @@ Each test is conditional on the previous step passing.
 ### Validation Checks
 
 **Check 1: mk init**
+
 ```bash
 node dist/scripts/mk.js init test-project > /tmp/mk-init.log 2>&1
 # Validates: Project scaffolding, package.json creation, default config generation
 ```
 
 **Check 2: mk build**
+
 ```bash
 cd test-project
 node ../dist/scripts/mk.js build > /tmp/mk-build.log 2>&1
@@ -528,6 +548,7 @@ node ../dist/scripts/mk.js build > /tmp/mk-build.log 2>&1
 ```
 
 **Check 3: mk package**
+
 ```bash
 node ../dist/scripts/mk.js package > /tmp/mk-package.log 2>&1
 # Validates: Tarball creation, dependency bundling, package metadata
@@ -550,6 +571,7 @@ Results are recorded to `reports/mk-rc-smoke.jsonl`:
 ### Artifacts
 
 CI artifacts include:
+
 - `/tmp/mk-init.log` — mk init command output
 - `/tmp/mk-build.log` — mk build command output
 - `/tmp/mk-package.log` — mk package command output
@@ -586,6 +608,7 @@ mk ci plan --env
 ### Output Formats
 
 **JSON (default):**
+
 ```json
 {
   "matrix": {
@@ -600,6 +623,7 @@ mk ci plan --env
 ```
 
 **ENV format (--env):**
+
 ```bash
 export MATRIX_NODE='["20","24"]'
 export MATRIX_LANE='["threads","forks"]'
@@ -665,8 +689,7 @@ Test Configuration:
   ├─ Modules: ExternalProcess → PipeMeterTransform → FilesystemSink
   └─ Router: Heartbeat/TTL tracking enabled (MK_LOCAL_NODE=1)
 
-Validation Checks:
-  ✅ Topology runs successfully under load
+Validation Checks: ✅ Topology runs successfully under load
   ✅ Data throughput sustained (≥10 messages)
   ✅ Router endpoints tracked with heartbeat metadata
   ✅ Stale endpoint detection metadata present
@@ -675,16 +698,19 @@ Validation Checks:
 ### What It Tests
 
 **1. Sustained Load Handling**
+
 - Topology processes ~10,000 messages over 10 seconds
 - Verifies no crashes, deadlocks, or dropped connections
 - Measures data throughput via FilesystemSink output
 
 **2. Router Heartbeat Mechanism**
+
 - Endpoints registered and tracked in router snapshot
 - Heartbeat/TTL metadata recorded for each endpoint
 - Validates infrastructure for stale endpoint eviction
 
 **3. TTL Expiry Readiness**
+
 - Confirms presence of `lastHeartbeat` and `ttlMs` fields
 - Verifies router can identify stale endpoints (future feature)
 - Tests endpoint snapshot persistence under load
@@ -701,17 +727,17 @@ nodes:
       command: node
       args:
         - -e
-        - "setInterval(() => { 
-             for(let i=0; i<100; i++) 
-               console.log('msg-' + Date.now() + '-' + i); 
-           }, 100);"
+        - "setInterval(() => {
+          for(let i=0; i<100; i++)
+          console.log('msg-' + Date.now() + '-' + i);
+          }, 100);"
       ioMode: stdio
-      
+
   - id: meter
     module: PipeMeterTransform
     params:
       emitInterval: 1000
-      
+
   - id: sink
     module: FilesystemSink
     params:
@@ -719,6 +745,7 @@ nodes:
 ```
 
 **Why this config?**
+
 - **High volume**: 100 messages every 100ms = 1000 msg/sec
 - **Observable**: JSONL output provides line count for throughput measurement
 - **Realistic**: Stresses pipe buffers, router tracking, and file I/O
@@ -727,6 +754,7 @@ nodes:
 ### Validation Logic
 
 **Check 1: Topology Started**
+
 ```typescript
 if (!logOutput.includes('Topology running') && !logOutput.includes('Starting')) {
   throw new Error('Topology did not start successfully');
@@ -734,17 +762,19 @@ if (!logOutput.includes('Topology running') && !logOutput.includes('Starting')) 
 ```
 
 **Check 2: Data Throughput**
+
 ```typescript
-const lineCount = outputContent.split('\n').filter(l => l.trim()).length;
+const lineCount = outputContent.split('\n').filter((l) => l.trim()).length;
 if (lineCount < 10) {
   throw new Error(`Insufficient data throughput (${lineCount} lines)`);
 }
 ```
 
 **Check 3: Router Heartbeat Metadata**
+
 ```typescript
-const hasHeartbeatData = endpoints.some((ep: any) => 
-  ep.lastHeartbeat !== undefined || ep.ttlMs !== undefined
+const hasHeartbeatData = endpoints.some(
+  (ep: any) => ep.lastHeartbeat !== undefined || ep.ttlMs !== undefined,
 );
 ```
 
@@ -756,8 +786,8 @@ The TTL soak test runs as part of the `acceptance-smoke` job:
 acceptance-smoke:
   name: Acceptance Smoke Test (FilesystemSink)
   runs-on: ubuntu-latest
-  continue-on-error: true  # Non-gating
-  
+  continue-on-error: true # Non-gating
+
   steps:
     - name: Run acceptance tests
       run: npm run test:acceptance
@@ -765,6 +795,7 @@ acceptance-smoke:
 ```
 
 Results are aggregated in the acceptance test report:
+
 - `reports/mk-acceptance-results.md` — Full test results with TTL soak
 - Test duration and throughput metrics logged
 - Router endpoint snapshot saved as artifact
@@ -772,6 +803,7 @@ Results are aggregated in the acceptance test report:
 ### Debugging TTL Soak Failures
 
 **If topology fails to start:**
+
 ```bash
 # Check build artifacts
 npm run build
@@ -783,6 +815,7 @@ timeout 12 node dist/scripts/mkctl.js run \
 ```
 
 **If throughput is low:**
+
 ```bash
 # Check JSONL output
 wc -l reports/ttl-soak.jsonl
@@ -793,6 +826,7 @@ head -n 20 reports/ttl-soak.jsonl
 ```
 
 **If router metadata missing:**
+
 ```bash
 # Check endpoint snapshot
 cat reports/router-endpoints.json | jq '.[] | {id, lastHeartbeat, ttlMs}'
@@ -832,6 +866,7 @@ The TTL soak test is **non-gating** because:
 4. **Best-effort validation** — Failure indicates potential issues but doesn't block PRs
 
 When stale endpoint eviction is fully implemented, this test can be extended to:
+
 - Stop sending heartbeats mid-run
 - Verify endpoints removed after TTL expires
 - Test routing failover when endpoints become stale
@@ -855,6 +890,7 @@ When stale endpoint eviction is fully implemented, this test can be extended to:
 **"My PR has a smoke test warning, should I be concerned?"**
 
 Check the PR comment:
+
 - ✅✅✅ All pass? No action needed
 - ✅❌✅ One failed? Review your changes—likely a real issue in routing or data flow
 - ❌❌❌ All failed? Check if dependent test job failed first
@@ -875,7 +911,7 @@ ls -la reports/
 ```yaml
 # In .github/workflows/tests.yml
 acceptance-smoke:
-  if: ${{ false }}  # Disable job
+  if: ${{ false }} # Disable job
 ```
 
 **"I want to change the test topology"**

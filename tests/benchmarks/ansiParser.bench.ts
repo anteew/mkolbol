@@ -42,7 +42,9 @@ describe('ANSIParser Performance', () => {
 
   bench('cursor movements', () => {
     const parser = new ANSIParser(24, 80);
-    const cursorText = Buffer.from('\x1B[H\x1B[2J\x1B[10;20HText\x1B[5A\x1B[3B\x1B[2C\x1B[1D'.repeat(20));
+    const cursorText = Buffer.from(
+      '\x1B[H\x1B[2J\x1B[10;20HText\x1B[5A\x1B[3B\x1B[2C\x1B[1D'.repeat(20),
+    );
     parser.parse(cursorText);
   });
 
@@ -60,7 +62,9 @@ describe('ANSIParser Performance', () => {
 
   bench('truecolor sequences', () => {
     const parser = new ANSIParser(24, 80);
-    const truecolorText = Buffer.from('\x1B[38;2;255;128;64mOrange\x1B[38;2;64;128;255mBlue\x1B[0m'.repeat(100));
+    const truecolorText = Buffer.from(
+      '\x1B[38;2;255;128;64mOrange\x1B[38;2;64;128;255mBlue\x1B[0m'.repeat(100),
+    );
     parser.parse(truecolorText);
   });
 
@@ -73,7 +77,7 @@ describe('ANSIParser Performance', () => {
   bench('mixed P3 features', () => {
     const parser = new ANSIParser(24, 80);
     const mixedText = Buffer.from(
-      '\x1B[38;2;200;100;50m日本\x1B[?7h\x1B[48;5;21mTest\x1B[0m'.repeat(50)
+      '\x1B[38;2;200;100;50m日本\x1B[?7h\x1B[48;5;21mTest\x1B[0m'.repeat(50),
     );
     parser.parse(mixedText);
   });
@@ -88,7 +92,7 @@ describe('ANSIParser Performance', () => {
   bench('resize scenario', () => {
     const parser1 = new ANSIParser(24, 80);
     parser1.parse(Buffer.from('Test content'));
-    
+
     const parser2 = new ANSIParser(30, 100);
     parser2.parse(Buffer.from('Test content'));
   });

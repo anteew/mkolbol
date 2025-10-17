@@ -2,8 +2,8 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "MCP-A", "parallel": true,  "tasks": ["T2701", "T2702"] },
-    { "id": "MCP-B", "parallel": true,  "depends_on": ["MCP-A"], "tasks": ["T2703", "T2704"] },
+    { "id": "MCP-A", "parallel": true, "tasks": ["T2701", "T2702"] },
+    { "id": "MCP-B", "parallel": true, "depends_on": ["MCP-A"], "tasks": ["T2703", "T2704"] },
     { "id": "MCP-C", "parallel": false, "depends_on": ["MCP-B"], "tasks": ["T2705"] }
   ],
   "tasks": [
@@ -58,6 +58,6 @@
 ---
 
 ## Notes
+
 - Fix minor defects surfaced during implementation (e.g., duplicate declarations in query).
 - Keep responses compact and deterministic.
-

@@ -3,8 +3,8 @@ nodes:
     module: TimerSource
     params:
       periodMs: 1000
-      message: "Message to tee transform"
-  
+      message: 'Message to tee transform'
+
   - id: tee1
     module: TeeTransform
     params:

@@ -4,6 +4,6 @@ nodes:
     module: ExternalProcess
     params:
       command: /bin/bash
-      ioMode: stdio  # Wrong! Interactive shells need pty
+      ioMode: stdio # Wrong! Interactive shells need pty
 
 connections: []

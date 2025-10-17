@@ -22,7 +22,7 @@ export function jsonToYaml(jsonObject: object): string {
   if (typeof jsonObject !== 'object' || jsonObject === null) {
     throw new Error('Input must be a non-null object');
   }
-  
+
   try {
     return YAML.stringify(jsonObject, {
       indent: 2,
@@ -40,11 +40,11 @@ export function jsonToYaml(jsonObject: object): string {
 
 export function detectFormat(content: string): 'json' | 'yaml' {
   const trimmed = content.trim();
-  
+
   if (!trimmed) {
     throw new Error('Cannot detect format of empty content');
   }
-  
+
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
     try {
       JSON.parse(content);
@@ -53,6 +53,6 @@ export function detectFormat(content: string): 'json' | 'yaml' {
       return 'yaml';
     }
   }
-  
+
   return 'yaml';
 }

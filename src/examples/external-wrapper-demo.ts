@@ -20,13 +20,13 @@ async function main() {
     terminals: [
       { name: 'input', type: 'local', direction: 'input' },
       { name: 'output', type: 'local', direction: 'output' },
-      { name: 'error', type: 'local', direction: 'output' }
+      { name: 'error', type: 'local', direction: 'output' },
     ],
     capabilities: {
       type: 'transform',
       accepts: ['text'],
       produces: ['text'],
-      features: ['passthrough']
+      features: ['passthrough'],
     },
     command: '/bin/cat',
     args: [],
@@ -35,7 +35,7 @@ async function main() {
     ioMode: 'stdio',
     restart: 'on-failure',
     restartDelay: 1000,
-    maxRestarts: 3
+    maxRestarts: 3,
   };
 
   console.log('Spawning cat wrapper...');
@@ -54,15 +54,18 @@ async function main() {
   catWrapper.inputPipe.write('This is line 2\n');
   catWrapper.inputPipe.write('This is line 3\n');
 
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   console.log('Querying Hostess for cat wrapper...');
-  const servers = hostess.list().filter(s => s.servername === 'cat-wrapper');
-  console.log('Found servers:', servers.map(s => s.servername));
+  const servers = hostess.list().filter((s) => s.servername === 'cat-wrapper');
+  console.log(
+    'Found servers:',
+    servers.map((s) => s.servername),
+  );
 
   console.log('Shutting down...');
   await catWrapper.shutdown();
-  
+
   console.log('Done!');
 }
 

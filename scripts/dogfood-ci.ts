@@ -13,7 +13,7 @@ function runCommand(cmd: string, options = {}): string {
     return execSync(cmd, {
       encoding: 'utf8',
       stdio: ['inherit', 'pipe', 'inherit'],
-      ...options
+      ...options,
     });
   } catch (error: any) {
     return error.stdout || '';
@@ -48,9 +48,9 @@ function main() {
   if (fs.existsSync(indexPath)) {
     try {
       const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
-      const hasFailures = Array.isArray(index?.artifacts) && 
-        index.artifacts.some((a: any) => a.status === 'fail');
-      
+      const hasFailures =
+        Array.isArray(index?.artifacts) && index.artifacts.some((a: any) => a.status === 'fail');
+
       if (hasFailures) {
         const digest = runCommand('npm run lam -- digest');
         fs.writeFileSync(path.join(reportsDir, 'LAMINAR_DIGEST.txt'), digest, 'utf8');
@@ -73,7 +73,7 @@ function main() {
     fs.writeFileSync(
       path.join(reportsDir, 'LAMINAR_THREADS_FEEDBACK.txt'),
       feedbackContent,
-      'utf8'
+      'utf8',
     );
   }
 

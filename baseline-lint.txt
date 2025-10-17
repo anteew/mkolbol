@@ -1,0 +1,84 @@
+npm warn Unknown user config "always-auth". This will stop working in the next major version of npm.
+
+> mkolbol@0.2.0-rfc lint
+> eslint .
+
+
+/srv/repos0/mkolbol-vex/mkolbol/scripts/lam.ts
+  26:5  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-var-requires')
+
+/srv/repos0/mkolbol-vex/mkolbol/src/config/loader.ts
+  3:31  warning  'NodeConfig' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  3:43  warning  'ConnectionConfig' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/init/scaffold.ts
+  2:13  warning  'path' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/bootstrap.ts
+  1:28  warning  'copyFile' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/build.ts
+  24:36  warning  'args' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/ciPlan.ts
+  1:10  warning  'createError' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/dev.ts
+   2:19  warning  'dirname' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  75:53  warning  'filename' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/doctor.ts
+   15:3   warning  'verbose' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  328:12  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u    @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/fetch.ts
+  2:17  warning  'chmod' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/logs.ts
+   30:10  warning  'parseDebugLog' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   59:12  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u     @typescript-eslint/no-unused-vars
+   82:12  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u     @typescript-eslint/no-unused-vars
+  116:30  warning  'options' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/options.ts
+  77:12  warning  'err' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/package.ts
+   9:11  warning  'CapsuleInfo' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  32:38  warning  'args' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/selfInstall.ts
+  1:60   warning  'readlinkSync' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  1:74   warning  'symlinkSync' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  1:112  warning  'readdirSync' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  2:28   warning  'join' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/mk/trace.ts
+  189:13  warning  'startTime' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/modules/filesystem-sink.ts
+  1:10  warning  'Writable' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/parsers/ANSIParser.ts
+  1:30  warning  'Cell' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/pipes/adapters/WebSocketPipe.ts
+    4:15  warning  'Frame' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   80:9   warning  'size' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  225:9   warning  'size' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/pipes/adapters/WorkerPipe.ts
+  58:9  warning  'size' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/transport/unix/UnixPipeAdapter.ts
+  46:9  warning  'size' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/transport/worker/WorkerPipeAdapter.ts
+  63:9  warning  'size' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/srv/repos0/mkolbol-vex/mkolbol/src/wrappers/PTYServerWrapper.ts
+  122:14  warning  'err' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 33 problems (0 errors, 33 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

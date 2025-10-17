@@ -22,7 +22,7 @@ class WorkerPipeDuplex extends Duplex {
         this.paused = true;
         return;
       }
-      
+
       if (data && data.type === 'resume') {
         this.paused = false;
         this.drainBuffer();
@@ -55,15 +55,11 @@ class WorkerPipeDuplex extends Duplex {
     });
   }
 
-  _read(size: number): void {
+  _read(_size: number): void {
     this.port.postMessage({ type: 'resume' });
   }
 
-  _write(
-    chunk: any,
-    encoding: BufferEncoding,
-    callback: (error?: Error | null) => void
-  ): void {
+  _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
     if (this.paused) {
       this.buffer.push(chunk);
       callback();
@@ -82,10 +78,7 @@ class WorkerPipeDuplex extends Duplex {
     callback();
   }
 
-  _destroy(
-    error: Error | null,
-    callback: (error?: Error | null) => void
-  ): void {
+  _destroy(error: Error | null, callback: (error?: Error | null) => void): void {
     this.port.close();
     callback(error);
   }

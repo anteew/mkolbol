@@ -3,23 +3,23 @@ nodes:
     module: TimerSource
     params:
       periodMs: 100
-      message: "Fast message"
-  
+      message: 'Fast message'
+
   - id: limiter1
     module: RateLimiterTransform
     params:
       capacity: 10
       refillRate: 2
       refillInterval: 500
-  
+
   - id: console1
     module: ConsoleSink
     params:
-      prefix: "[limited]"
+      prefix: '[limited]'
 
 connections:
   - from: timer1.output
     to: limiter1.input
-  
+
   - from: limiter1.output
     to: console1.input

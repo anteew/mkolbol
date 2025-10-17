@@ -4,19 +4,20 @@ import type { AnsiParserEvent } from '../../src/transforms/AnsiParser.js';
 
 const MODE_EVENT = 'mode';
 
-const isPrintEvent = (event: AnsiParserEvent): event is Extract<AnsiParserEvent, { type: 'print' }> =>
-  event.type === 'print';
+const isPrintEvent = (
+  event: AnsiParserEvent,
+): event is Extract<AnsiParserEvent, { type: 'print' }> => event.type === 'print';
 
 describe('AnsiParser DEC private modes', () => {
   it('toggles auto-wrap mode via DECSET/DECRST (mode 7)', () => {
     const parser = new AnsiParser();
 
     let events = parser.parse('\u001b[?7l');
-    expect(events.find(event => event.type === MODE_EVENT)).toBeDefined();
+    expect(events.find((event) => event.type === MODE_EVENT)).toBeDefined();
     expect(parser.getState().autoWrap).toBe(false);
 
     events = parser.parse('\u001b[?7h');
-    expect(events.find(event => event.type === MODE_EVENT)).toBeDefined();
+    expect(events.find((event) => event.type === MODE_EVENT)).toBeDefined();
     expect(parser.getState().autoWrap).toBe(true);
   });
 

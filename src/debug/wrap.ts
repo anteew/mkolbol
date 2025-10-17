@@ -12,14 +12,7 @@ const DEFAULT_OPTIONS: Required<WrapOptions> = {
   redactSecrets: true,
 };
 
-const SECRET_PATTERNS = [
-  /password/i,
-  /secret/i,
-  /token/i,
-  /key/i,
-  /auth/i,
-  /credential/i,
-];
+const SECRET_PATTERNS = [/password/i, /secret/i, /token/i, /key/i, /auth/i, /credential/i];
 
 function shouldRedactKey(key: string): boolean {
   return SECRET_PATTERNS.some((pattern) => pattern.test(key));
@@ -75,7 +68,7 @@ export function wrap<T extends (...args: any[]) => any>(
   fn: T,
   name: string,
   module: string,
-  options: WrapOptions = {}
+  options: WrapOptions = {},
 ): T {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
@@ -103,10 +96,10 @@ export function wrap<T extends (...args: any[]) => any>(
             const duration = performance.now() - start;
             console.debug(
               `[${module}] ${name} → error (${duration.toFixed(2)}ms):`,
-              error.message || error
+              error.message || error,
             );
             throw error;
-          }
+          },
         ) as ReturnType<T>;
       }
 

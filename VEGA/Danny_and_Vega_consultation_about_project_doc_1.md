@@ -36,15 +36,18 @@ Core idea: treat terminal I/O as streams of bytes flowing through standard Node.
 ## Core Architecture
 
 Kernel surface (conceptual):
+
 - Pipe management: `createPipe()` returns a Duplex; `connect(from,to)` pipes streams.
 - Stream operations: `split(source, [dests...])`, `merge([sources...], dest)`.
 - Service registry: `register(name, capabilities, pipe)`, `lookup(query)`.
 
 Pipes:
+
 - A pipe is a standard Node.js Duplex (Readable+Writable) with built-in backpressure and `pipe()` composition.
 - Optional debugging/metadata may be associated, but the fundamental contract is “just streams.”
 
 Modules:
+
 - Shape: `{ id, type: 'input'|'source'|'transform'|'output', init(), destroy(), inputPipe?, outputPipe? }`.
 - Types:
   - Input: generates data (output only).
@@ -53,26 +56,32 @@ Modules:
   - Output: consumes data (input only).
 
 Service Registry & Capabilities:
+
 - Registration includes capability descriptors: `accepts`, `produces`, `type`, optional `features`.
 - Discovery via queries: filter by `accepts`, `produces`, `type`, and `features` to obtain pipes.
 - Allows multiple providers for the same capability and dynamic selection.
 
 ## Canonical Data Flows (as described)
 
-1) Minimal VT100 replica
+1. Minimal VT100 replica
+
 - Keyboard → PTY → Screen (raw bytes end-to-end, no transforms).
 
-2) Multi-input fan-in
+2. Multi-input fan-in
+
 - Keyboard + Voice + MCP → Merge → PTY → Screen.
 
-3) Multi-output fan-out
+3. Multi-output fan-out
+
 - PTY → Parser → [Browser, MP4, TTS, Braille] (simultaneous renderings).
 
-4) Dual-path (raw + parsed)
+4. Dual-path (raw + parsed)
+
 - PTY → Screen (raw, fast path)
 - PTY → Parser → MP4 (structured, slower path)
 
-5) Remote viewer (read-only)
+5. Remote viewer (read-only)
+
 - Remote PTY → Network → [Screen, TTS].
 
 ## Illustrative Module Sketches (as conveyed)
@@ -155,4 +164,3 @@ Phase 8: advanced features: recording/replay, time-travel, config UI, marketplac
 - Modules are independently testable; complex behaviors emerge from simple compositions.
 - Excellent performance on fast paths; minimal overhead for unused capabilities.
 - Topologies are defined declaratively; supports use cases beyond initial terminal focus.
-

@@ -29,6 +29,7 @@ These tests and scenarios serve as **reference implementations** that you can co
 **Description**: Skeleton acceptance tests for custom external servers.
 
 **Coverage:**
+
 - Hostess endpoint registration
 - Stream I/O roundtrip (stdin → stdout)
 - Backpressure handling (drain events)
@@ -36,6 +37,7 @@ These tests and scenarios serve as **reference implementations** that you can co
 - Executor integration (full topology)
 
 **How to use:**
+
 1. Copy this file into your project's `tests/` directory
 2. Replace `YourServerWrapper` with your actual wrapper class
 3. Adjust imports to match your project structure
@@ -57,6 +59,7 @@ cp node_modules/mkolbol/tests/devex/server-acceptance.spec.ts tests/
 Replace mkolbol internal paths with your local paths:
 
 **Before (mkolbol internal):**
+
 ```typescript
 import { Kernel } from '../../src/kernel/Kernel.js';
 import { Hostess } from '../../src/hostess/Hostess.js';
@@ -64,6 +67,7 @@ import { YourServerWrapper } from '../../src/modules/YourServerWrapper.js';
 ```
 
 **After (external adopter):**
+
 ```typescript
 import { Kernel, Hostess, StateManager, Executor } from 'mkolbol';
 import { YourServerWrapper } from '../src/modules/YourServerWrapper.js';
@@ -74,6 +78,7 @@ import { YourServerWrapper } from '../src/modules/YourServerWrapper.js';
 Update test inputs and expected outputs to match your server's behavior:
 
 **Example: Echo server**
+
 ```typescript
 const testInput = 'hello world\n';
 const expectedOutput = '[ECHO] hello world\n';
@@ -84,6 +89,7 @@ expect(output).toBe(expectedOutput);
 ```
 
 **Example: Uppercase server**
+
 ```typescript
 const testInput = 'hello world\n';
 const expectedOutput = 'HELLO WORLD\n';
@@ -98,23 +104,26 @@ expect(output).toBe(expectedOutput);
 Update endpoint search logic to match your server's coordinates:
 
 **Before (generic):**
+
 ```typescript
 const serverEndpoint = Array.from(endpoints.entries()).find(
-  ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('your-command')
+  ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('your-command'),
 );
 ```
 
 **After (specific to your server):**
+
 ```typescript
 const serverEndpoint = Array.from(endpoints.entries()).find(
-  ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('python3')
+  ([_, ep]) => ep.type === 'external' && ep.coordinates.includes('python3'),
 );
 ```
 
 Or match by servername:
+
 ```typescript
 const serverEndpoint = Array.from(endpoints.entries()).find(
-  ([_, ep]) => ep.coordinates === 'your-server-name'
+  ([_, ep]) => ep.coordinates === 'your-server-name',
 );
 ```
 
@@ -123,6 +132,7 @@ const serverEndpoint = Array.from(endpoints.entries()).find(
 **If your server spawns external processes**, run tests in the **forks lane**:
 
 **package.json:**
+
 ```json
 {
   "scripts": {
@@ -135,6 +145,7 @@ const serverEndpoint = Array.from(endpoints.entries()).find(
 **If your server is in-process only**, you can use the **threads lane**:
 
 **package.json:**
+
 ```json
 {
   "scripts": {
@@ -153,15 +164,14 @@ const serverEndpoint = Array.from(endpoints.entries()).find(
 **Why it matters:** Hostess is the service discovery mechanism. If registration fails, your server won't be discoverable in topologies.
 
 **Code:**
+
 ```typescript
 it('should register endpoint with Hostess after spawn', async () => {
   wrapper = new YourServerWrapper(kernel, hostess);
   await wrapper.spawn();
 
   const endpoints = hostess.listEndpoints();
-  const serverEndpoint = Array.from(endpoints.entries()).find(
-    ([_, ep]) => ep.type === 'external'
-  );
+  const serverEndpoint = Array.from(endpoints.entries()).find(([_, ep]) => ep.type === 'external');
 
   expect(serverEndpoint).toBeDefined();
 });
@@ -174,6 +184,7 @@ it('should register endpoint with Hostess after spawn', async () => {
 **Why it matters:** This is the core data flow. If this fails, your server can't participate in pipelines.
 
 **Code:**
+
 ```typescript
 it('should perform stdin → stdout roundtrip', async () => {
   wrapper = new YourServerWrapper(kernel, hostess);
@@ -202,6 +213,7 @@ it('should perform stdin → stdout roundtrip', async () => {
 **Why it matters:** Without backpressure handling, large data volumes will cause memory bloat or data loss.
 
 **Code:**
+
 ```typescript
 it('should handle backpressure with drain events', async () => {
   wrapper = new YourServerWrapper(kernel, hostess);
@@ -229,6 +241,7 @@ it('should handle backpressure with drain events', async () => {
 **Why it matters:** Leaked processes cause CI failures and production instability.
 
 **Code:**
+
 ```typescript
 it('should manage lifecycle (start/stop)', async () => {
   wrapper = new YourServerWrapper(kernel, hostess);
@@ -251,18 +264,19 @@ it('should manage lifecycle (start/stop)', async () => {
 **Why it matters:** This is the real-world usage scenario. If this fails, your server won't work in production.
 
 **Code:**
+
 ```typescript
 it('should work in Executor topology', async () => {
   const config = {
     nodes: [
       { id: 'source1', module: 'TimerSource' },
       { id: 'your-server', module: 'YourServerWrapper' },
-      { id: 'sink1', module: 'ConsoleSink' }
+      { id: 'sink1', module: 'ConsoleSink' },
     ],
     connections: [
       { from: 'source1.output', to: 'your-server.input' },
-      { from: 'your-server.output', to: 'sink1.input' }
-    ]
+      { from: 'your-server.output', to: 'sink1.input' },
+    ],
   };
 
   const stateManager = new StateManager(kernel);
@@ -291,6 +305,7 @@ MK_DEVEX_EXECUTOR=1 npm run test:pty:lam
 ```
 
 **Why gate these tests?**
+
 - Executor tests spawn real processes and require fork isolation
 - They take longer to run than basic unit tests
 - Optional for adopters building simple servers without Executor
@@ -302,16 +317,19 @@ MK_DEVEX_EXECUTOR=1 npm run test:pty:lam
 ### Locally
 
 **Run all acceptance tests:**
+
 ```bash
 npm run test:acceptance
 ```
 
 **Run specific test:**
+
 ```bash
 npx vitest run tests/server-acceptance.spec.ts -t "should register endpoint"
 ```
 
 **Watch mode (for development):**
+
 ```bash
 npx vitest tests/server-acceptance.spec.ts
 ```
@@ -348,6 +366,7 @@ jobs:
 **Cause:** Missing `end()` call or leaked process.
 
 **Solution:**
+
 1. Ensure `wrapper.inputPipe.end()` is called
 2. Check `afterEach` cleanup:
    ```typescript
@@ -369,6 +388,7 @@ jobs:
 **Cause:** Incorrect wiring or external script not flushing output.
 
 **Solution:**
+
 1. Verify connections: `kernel.connect(source, wrapper.inputPipe)`
 2. Ensure external script flushes:
    ```python
@@ -383,9 +403,10 @@ jobs:
 **Cause:** CI is slower; fixed timeouts are too short.
 
 **Solution:** Use event-driven waiting instead of `setTimeout`:
+
 ```typescript
 // Bad
-await new Promise(resolve => setTimeout(resolve, 500));
+await new Promise((resolve) => setTimeout(resolve, 500));
 
 // Good
 await new Promise<void>((resolve) => {
@@ -396,10 +417,12 @@ await new Promise<void>((resolve) => {
 ## Performance Guidelines
 
 **Target execution time:**
+
 - Per test: < 5 seconds
 - Full suite: < 30 seconds
 
 **How to achieve:**
+
 1. Use minimal test data (don't send megabytes)
 2. Avoid unnecessary timeouts
 3. Clean up resources immediately after test
@@ -424,6 +447,7 @@ After running these acceptance tests successfully:
 ## Support
 
 For questions or issues:
+
 - [GitHub Issues](https://github.com/anteew/mkolbol/issues)
 - [Discussions](https://github.com/anteew/mkolbol/discussions)
 

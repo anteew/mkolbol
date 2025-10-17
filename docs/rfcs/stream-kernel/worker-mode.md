@@ -52,9 +52,9 @@ const { port1: outputPort1, port2: outputPort2 } = new MessageChannel();
 const worker = new Worker('./module.js', {
   workerData: {
     inputPort: inputPort2,
-    outputPort: outputPort2
+    outputPort: outputPort2,
   },
-  transferList: [inputPort2, outputPort2]
+  transferList: [inputPort2, outputPort2],
 });
 
 // Create pipes from main-thread ports
@@ -82,27 +82,27 @@ inputPipe.on('data', (data) => {
 
 ## Comparison: Worker vs Process Pipes
 
-| Feature | Worker Pipes (MessagePort) | Process Pipes (stdio) |
-|---------|---------------------------|------------------------|
-| **Transport** | Structured messages via `MessagePort` | Byte streams via stdin/stdout |
-| **Object Mode** | Native support (serialization via structured clone) | Requires manual serialization (JSON/msgpack) |
-| **Backpressure** | Protocol-level (`pause`/`resume` messages) | Native stream backpressure |
-| **Latency** | Lower (same process, shared memory for transferables) | Higher (IPC overhead, kernel involvement) |
-| **Isolation** | Shared memory space, lighter isolation | Full process isolation |
-| **Setup** | `MessageChannel` pair | `spawn()` with `stdio: ['pipe', 'pipe', 'pipe']` |
-| **Teardown** | `port.close()` | `process.kill()`, wait for exit |
+| Feature          | Worker Pipes (MessagePort)                            | Process Pipes (stdio)                            |
+| ---------------- | ----------------------------------------------------- | ------------------------------------------------ |
+| **Transport**    | Structured messages via `MessagePort`                 | Byte streams via stdin/stdout                    |
+| **Object Mode**  | Native support (serialization via structured clone)   | Requires manual serialization (JSON/msgpack)     |
+| **Backpressure** | Protocol-level (`pause`/`resume` messages)            | Native stream backpressure                       |
+| **Latency**      | Lower (same process, shared memory for transferables) | Higher (IPC overhead, kernel involvement)        |
+| **Isolation**    | Shared memory space, lighter isolation                | Full process isolation                           |
+| **Setup**        | `MessageChannel` pair                                 | `spawn()` with `stdio: ['pipe', 'pipe', 'pipe']` |
+| **Teardown**     | `port.close()`                                        | `process.kill()`, wait for exit                  |
 
 ### Process Pipe Example (External Module)
 
 ```typescript
 // Spawn external process with stdio pipes
 const process = spawn(command, args, {
-  stdio: ['pipe', 'pipe', 'pipe']
+  stdio: ['pipe', 'pipe', 'pipe'],
 });
 
 // Direct stream piping (Node.js native)
-inputPipe.pipe(process.stdin);     // Kernel → Process
-process.stdout.pipe(outputPipe);   // Process → Kernel
+inputPipe.pipe(process.stdin); // Kernel → Process
+process.stdout.pipe(outputPipe); // Process → Kernel
 
 // Native backpressure via Node.js streams
 // No explicit protocol needed
@@ -111,12 +111,14 @@ process.stdout.pipe(outputPipe);   // Process → Kernel
 ### Key Differences
 
 **Worker Pipes:**
+
 - Require explicit backpressure protocol (`pause`/`resume` messages)
 - Support structured clone for object mode (dates, typed arrays, etc.)
 - Lower overhead for high-frequency message passing
 - Automatic serialization of complex objects
 
 **Process Pipes:**
+
 - Native backpressure via kernel buffer management
 - Raw byte streams (Buffer by default)
 - Higher isolation and crash resilience
@@ -194,8 +196,8 @@ Process pipes use native Node.js stream backpressure:
 
 ```typescript
 // Node.js handles backpressure automatically
-inputPipe.pipe(process.stdin);        // Automatic pause/resume
-process.stdout.pipe(outputPipe);      // Automatic buffering
+inputPipe.pipe(process.stdin); // Automatic pause/resume
+process.stdout.pipe(outputPipe); // Automatic buffering
 
 // No explicit protocol needed
 // write() returns false when buffer is full
@@ -316,12 +318,14 @@ process.on('exit', (code, signal) => {
 ## Performance Characteristics
 
 ### Worker Pipes
+
 - **Throughput**: ~1M messages/sec (object mode)
 - **Latency**: <1ms (same process)
 - **Overhead**: Structured clone serialization
 - **Best for**: High-frequency, structured data
 
 ### Process Pipes
+
 - **Throughput**: ~100K messages/sec (depends on serialization)
 - **Latency**: 1-5ms (IPC overhead)
 - **Overhead**: Process spawn, context switches
@@ -330,12 +334,14 @@ process.on('exit', (code, signal) => {
 ## Use Cases
 
 ### When to Use Worker Pipes
+
 - Transform modules processing structured objects
 - High-frequency data pipelines
 - Shared memory via transferables (TypedArrays, ArrayBuffers)
 - Modules requiring thread-level isolation only
 
 ### When to Use Process Pipes
+
 - External executables (Python, Go, etc.)
 - Modules requiring full crash isolation
 - PTY-based modules (shells, editors)
@@ -344,6 +350,7 @@ process.on('exit', (code, signal) => {
 ## Implementation Status
 
 **Implemented:**
+
 - ✅ WorkerPipeAdapter (MessagePort Duplex)
 - ✅ Backpressure protocol (pause/resume)
 - ✅ Bidirectional data flow
@@ -352,6 +359,7 @@ process.on('exit', (code, signal) => {
 - ✅ Integration with Executor
 
 **Planned:**
+
 - ⏳ UnixPipeAdapter (Unix domain sockets)
 - ⏳ TCPPipeAdapter (TCP sockets)
 - ⏳ WebSocketPipeAdapter (browser support)

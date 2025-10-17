@@ -4,10 +4,10 @@ import { AnsiParser } from '../../src/transforms/AnsiParser.js';
 import type { AnsiParserEvent } from '../../src/transforms/AnsiParser.js';
 
 const countStyleEvents = (events: AnsiParserEvent[]) =>
-  events.filter(event => event.type === 'style').length;
+  events.filter((event) => event.type === 'style').length;
 
 const countPrintEvents = (events: AnsiParserEvent[]) =>
-  events.filter(event => event.type === 'print').length;
+  events.filter((event) => event.type === 'print').length;
 
 describe('AnsiParser performance guards', () => {
   it('processes extended palette sequences within budget', () => {
@@ -100,9 +100,9 @@ describe('AnsiParser performance guards', () => {
 
     it('handles multiple OSC sequences efficiently', () => {
       const parser = new AnsiParser();
-      const multiple = Array.from({ length: 100 }, (_, i) => 
-        `\x1b]0;Title${i}\x07Text${i}`
-      ).join('');
+      const multiple = Array.from({ length: 100 }, (_, i) => `\x1b]0;Title${i}\x07Text${i}`).join(
+        '',
+      );
 
       const start = performance.now();
       const events = parser.parse(multiple);

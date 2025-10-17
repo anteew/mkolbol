@@ -19,6 +19,7 @@ curl -s "http://localhost:4000/subtract?a=10&b=4"
 ## What It Does
 
 This topology demonstrates:
+
 - **CalculatorServer**: HTTP server with /add and /subtract endpoints
 - **XtermTTYRenderer**: Live terminal output rendering
 - **FilesystemSink**: Persistent logging to `logs/calculator.jsonl`
@@ -31,11 +32,13 @@ CalculatorServer → XtermTTYRenderer (live output)
 ## Development Workflow
 
 ### Run with hot reload
+
 ```bash
 mk dev --file mk.json
 ```
 
 ### View logs
+
 ```bash
 # Live tail
 mk logs --module calculator --follow
@@ -45,11 +48,13 @@ mk logs --level error --json
 ```
 
 ### Trace performance
+
 ```bash
 mk trace --file mk.json --duration 30 --top 5
 ```
 
 ### Validate health
+
 ```bash
 mk doctor --file mk.json
 ```
@@ -57,16 +62,19 @@ mk doctor --file mk.json
 ## Build & Package
 
 ### Build artifacts
+
 ```bash
 mk build --target production
 ```
 
 ### Create distributable package
+
 ```bash
 mk package --sign
 ```
 
 ### Generate CI config
+
 ```bash
 mk ci plan --output --with-laminar
 ```
@@ -74,11 +82,13 @@ mk ci plan --output --with-laminar
 ## Configuration
 
 ### Topology (mk.json)
+
 - **Port**: 4000 (change in `mk.json`)
 - **Precision**: 2 decimal places
 - **Log path**: `logs/calculator.jsonl`
 
 ### Profiles (.mk/options.json)
+
 - **dev**: Hot reload enabled, debug logging
 - **ci**: No reload, info logging, test matrix
 - **release**: Minified, distributed routing

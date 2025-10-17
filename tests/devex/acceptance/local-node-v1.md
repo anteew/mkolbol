@@ -24,6 +24,7 @@ This scenario validates that a complete mkolbol topology can:
 ### Why This Matters
 
 This scenario is the **entry point for early adopters**. If this works, adopters can:
+
 - Build custom server wrappers (reference: `ExternalServerWrapper`)
 - Extend topologies with their own modules
 - Deploy on single machines before scaling to distributed setups
@@ -50,7 +51,7 @@ nodes:
   - id: sink
     module: ConsoleSink
     params:
-      prefix: "[http]"
+      prefix: '[http]'
 
 connections:
   - from: web.output
@@ -89,6 +90,7 @@ node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --dur
 ```
 
 **Expected Output (Terminal 1):**
+
 ```
 [mkctl] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.
 Loading config from: examples/configs/http-logs-local.yml
@@ -99,6 +101,7 @@ Topology running for 10 seconds...
 ```
 
 **What's Happening:**
+
 1. mkctl validates config and loads into Executor
 2. Executor instantiates `web` (ExternalProcess) node
 3. ExternalProcess spawns Node.js HTTP server with inline script
@@ -114,16 +117,19 @@ curl -s http://localhost:3000/hello
 ```
 
 **Expected Output (Terminal 2):**
+
 ```
 ok
 ```
 
 **Expected Output (Terminal 1, sink receives log):**
+
 ```
 [http] [2025-10-17T04:15:23.456Z] GET /hello
 ```
 
 **What's Happening:**
+
 1. curl sends HTTP GET request to server on localhost:3000
 2. Server receives request and logs timestamp + method + path
 3. Log line flows through stdout → ConsoleSink.input
@@ -139,6 +145,7 @@ node dist/scripts/mkctl.js endpoints --watch --interval 1
 ```
 
 **Expected Output (Terminal 3):**
+
 ```
 [2025-10-17T04:15:20.123Z] Watching endpoints (refresh every 1s)...
 Press Ctrl+C to stop.
@@ -161,6 +168,7 @@ Updated:     2025-10-17T04:15:20.234Z
 ```
 
 **What's Happening:**
+
 1. RoutingServer maintains live registry of all active endpoints
 2. Each endpoint has unique ID, type, coordinates, and metadata
 3. `--watch --interval 1` refreshes endpoint view every second
@@ -171,6 +179,7 @@ Updated:     2025-10-17T04:15:20.234Z
 #### Step 4: Graceful Shutdown
 
 **Option A: Wait for timer (automatic)**
+
 ```
 # After 10 seconds, topology automatically shuts down
 Topology running for 10 seconds...
@@ -182,6 +191,7 @@ Done.
 ```
 
 **Option B: Interrupt early (manual, Ctrl+C)**
+
 ```
 # Press Ctrl+C in Terminal 1
 Topology running for 10 seconds...
@@ -194,6 +204,7 @@ Interrupted.
 ```
 
 **What's Happening:**
+
 1. Executor triggers graceful shutdown sequence
 2. Each module's shutdown hook is called (e.g., ExternalProcess sends SIGTERM to server)
 3. ConsoleSink flushes any buffered output
@@ -213,6 +224,7 @@ cat reports/router-endpoints.json | jq .
 ```
 
 **Expected Output:**
+
 ```json
 [
   {
@@ -240,6 +252,7 @@ cat reports/router-endpoints.json | jq .
 ```
 
 **What's Happening:**
+
 1. mkctl persists RoutingServer endpoints to `reports/router-endpoints.json` at shutdown
 2. This snapshot allows post-run inspection (e.g., CI/CD validation)
 3. Each endpoint captures identity (id, coordinates), classification (type), and config (metadata)
@@ -311,6 +324,7 @@ cat reports/router-endpoints.json | jq '.[] | select(.type == "external")'
 **Cause:** File path is incorrect.
 
 **Fix:**
+
 ```bash
 # Verify file exists
 ls -la examples/configs/http-logs-local.yml
@@ -324,6 +338,7 @@ node dist/scripts/mkctl.js run --file $(pwd)/examples/configs/http-logs-local.ym
 **Cause:** YAML syntax error or missing required fields.
 
 **Fix:**
+
 ```bash
 # Validate YAML syntax
 python3 -m yaml examples/configs/http-logs-local.yml
@@ -337,6 +352,7 @@ grep -E "^\s*(nodes|connections):" examples/configs/http-logs-local.yml
 **Cause:** Server may not be flushing stdout, or ConsoleSink is not wired correctly.
 
 **Fix:**
+
 1. Verify connection exists: `grep -A2 "connections:" examples/configs/http-logs-local.yml`
 2. Check ConsoleSink is receiving data: add temporary logging in ConsoleSink module
 3. Ensure ExternalProcess ioMode is `stdio` (not `pty`)
@@ -346,6 +362,7 @@ grep -E "^\s*(nodes|connections):" examples/configs/http-logs-local.yml
 **Cause:** Server may not be listening on 3000, or topology crashed.
 
 **Fix:**
+
 ```bash
 # Check if port 3000 is listening
 lsof -i :3000
@@ -360,6 +377,7 @@ curl -v http://localhost:3000/test
 **Cause:** Router snapshot not yet written, or topology didn't run long enough.
 
 **Fix:**
+
 ```bash
 # Run topology with longer duration to allow snapshot to be written
 node dist/scripts/mkctl.js run --file examples/configs/http-logs-local.yml --duration 15
@@ -410,7 +428,7 @@ nodes:
 connections:
   - from: web.output
     to: meter.input
-  
+
   - from: meter.output
     to: file.input
 ```
@@ -433,6 +451,7 @@ node dist/scripts/mkctl.js run --file examples/configs/http-logs-local-file.yml 
 ```
 
 **Expected Output:**
+
 ```
 [mkctl] Running in Local Node mode (MK_LOCAL_NODE=1): network features disabled.
 Loading config from: examples/configs/http-logs-local-file.yml
@@ -443,6 +462,7 @@ Server listening on http://localhost:3000
 ```
 
 **What's Happening:**
+
 1. mkctl validates and loads the config
 2. Executor instantiates `web` (ExternalProcess), `meter` (PipeMeterTransform), and `file` (FilesystemSink)
 3. FilesystemSink creates `reports/` directory and opens `http-logs.jsonl` in append mode
@@ -463,10 +483,12 @@ done
 ```
 
 **Expected Behavior (Terminal 1):**
+
 - No console output from logs (they go to file, not console)
 - HTTP server still runs
 
 **What's Happening:**
+
 1. Each curl request reaches the HTTP server
 2. Server logs `[timestamp] GET /request-N` to stdout
 3. These logs flow through `web.output` → `meter.input` → `meter.output` → `file.input`
@@ -484,6 +506,7 @@ tail -f reports/http-logs.jsonl
 ```
 
 **Expected Output (updates as requests arrive):**
+
 ```jsonl
 {"ts":"2025-10-17T04:15:23.456Z","data":"Server listening on http://localhost:3000"}
 {"ts":"2025-10-17T04:15:23.789Z","data":"[2025-10-17T04:15:23.789Z] GET /request-1"}
@@ -494,6 +517,7 @@ tail -f reports/http-logs.jsonl
 ```
 
 **What's Happening:**
+
 1. `tail -f` watches file for new content
 2. Each request appends a line to the file
 3. FilesystemSink handles backpressure (writes don't block the HTTP server)
@@ -512,6 +536,7 @@ cat reports/http-logs.jsonl
 ```
 
 **Expected Output:**
+
 ```jsonl
 {"ts":"2025-10-17T04:15:23.456Z","data":"Server listening on http://localhost:3000"}
 {"ts":"2025-10-17T04:15:23.789Z","data":"[2025-10-17T04:15:23.789Z] GET /request-1"}
@@ -541,16 +566,17 @@ cat reports/http-logs.jsonl
 
 **Stress Test Results** (October 2025):
 
-| Test Scenario | Throughput | Duration | Notes |
-|---------------|-----------|----------|-------|
-| **High-throughput** | ~300K msg/sec | 33-34ms | 10,000 sequential writes |
-| **Concurrent writes** | 10K total messages | 26-100ms | 5 sinks × 2,000 messages each |
-| **Large files** | ~270-310 MB/sec | 33-52ms | 10MB file (160 × 64KB chunks) |
-| **fsync=always** | 1,000 messages | 33-88ms | With backpressure handling |
-| **Mixed sizes** | 5,000 writes | 28-37ms | Alternating 16B and 1KB chunks |
-| **Rapid cycles** | 50 start/stop | 46-57ms | Full lifecycle per cycle |
+| Test Scenario         | Throughput         | Duration | Notes                          |
+| --------------------- | ------------------ | -------- | ------------------------------ |
+| **High-throughput**   | ~300K msg/sec      | 33-34ms  | 10,000 sequential writes       |
+| **Concurrent writes** | 10K total messages | 26-100ms | 5 sinks × 2,000 messages each  |
+| **Large files**       | ~270-310 MB/sec    | 33-52ms  | 10MB file (160 × 64KB chunks)  |
+| **fsync=always**      | 1,000 messages     | 33-88ms  | With backpressure handling     |
+| **Mixed sizes**       | 5,000 writes       | 28-37ms  | Alternating 16B and 1KB chunks |
+| **Rapid cycles**      | 50 start/stop      | 46-57ms  | Full lifecycle per cycle       |
 
 **Property-Based Test Coverage:**
+
 - ✅ Write order preservation (50 runs, 1-100 messages)
 - ✅ Byte counting accuracy (50 runs, random buffers)
 - ✅ Path structure handling (20 runs, nested directories)
@@ -558,6 +584,7 @@ cat reports/http-logs.jsonl
 - ✅ Statistics invariants (50 runs, varied workloads)
 
 **Test Methodology:**
+
 - Framework: Vitest + fast-check (property-based testing)
 - Platform: Ubuntu 24.04.3 LTS, Node.js 20+
 - Test file: `tests/renderers/filesystemSink.spec.ts`
@@ -565,6 +592,7 @@ cat reports/http-logs.jsonl
 - Status: ✅ All tests passing
 
 **Key Findings:**
+
 1. **Throughput:** FilesystemSink handles >300K messages/sec for typical log messages
 2. **Durability:** fsync=always mode maintains data integrity under stress
 3. **Concurrency:** Multiple sinks can write simultaneously without conflicts
@@ -573,6 +601,7 @@ cat reports/http-logs.jsonl
 6. **JSONL:** Format validation passes for all arbitrary input strings
 
 **Production Readiness:**
+
 - Suitable for high-throughput logging scenarios (100K+ msg/sec)
 - Concurrent write support for multi-instance topologies
 - Large file support for batch processing and archival
@@ -580,20 +609,21 @@ cat reports/http-logs.jsonl
 
 ### Comparison: ConsoleSink vs FilesystemSink
 
-| Aspect | ConsoleSink | FilesystemSink |
-|--------|-------------|----------------|
-| **Output** | Live console/stdout | File on disk |
-| **Persistence** | Ephemeral (lost on exit) | Persistent (survives process) |
-| **Latency** | Immediate | Buffered (fsync policy dependent) |
-| **Use Case** | Development, debugging, CI logs | Production logging, audit trails |
-| **Query** | Manual inspection | Log aggregation tools, `grep`, `tail` |
-| **Integration** | Shell pipelines, `tee` | ELK, Splunk, CloudWatch, Datadog |
+| Aspect          | ConsoleSink                     | FilesystemSink                        |
+| --------------- | ------------------------------- | ------------------------------------- |
+| **Output**      | Live console/stdout             | File on disk                          |
+| **Persistence** | Ephemeral (lost on exit)        | Persistent (survives process)         |
+| **Latency**     | Immediate                       | Buffered (fsync policy dependent)     |
+| **Use Case**    | Development, debugging, CI logs | Production logging, audit trails      |
+| **Query**       | Manual inspection               | Log aggregation tools, `grep`, `tail` |
+| **Integration** | Shell pipelines, `tee`          | ELK, Splunk, CloudWatch, Datadog      |
 
 ### Analyzing JSONL Logs with jq
 
 Once logs are captured, you can analyze them programmatically:
 
 **Extract just the HTTP requests:**
+
 ```bash
 # Show only the GET requests
 cat reports/http-logs.jsonl | jq -r 'select(.data | contains("GET")) | .data'
@@ -604,6 +634,7 @@ cat reports/http-logs.jsonl | jq -r 'select(.data | contains("GET")) | .data'
 ```
 
 **Count requests per second:**
+
 ```bash
 # Extract timestamps and count by minute
 cat reports/http-logs.jsonl | jq -r '.ts[0:16]' | sort | uniq -c
@@ -614,12 +645,14 @@ cat reports/http-logs.jsonl | jq -r '.ts[0:16]' | sort | uniq -c
 ```
 
 **Convert JSONL to CSV for analysis:**
+
 ```bash
 # Export as CSV for spreadsheet import
 cat reports/http-logs.jsonl | jq -r '[.ts, .data] | @csv' > logs-export.csv
 ```
 
 **Find slow requests:**
+
 ```bash
 # Filter by timestamp range (production debugging)
 cat reports/http-logs.jsonl | jq 'select(.ts >= "2025-10-17T04:15:24" and .ts < "2025-10-17T04:15:25")'
@@ -685,12 +718,14 @@ connections:
 ```
 
 **Run it:**
+
 ```bash
 export MK_LOCAL_NODE=1
 node dist/scripts/mkctl.js run --file examples/configs/http-logs-production.yml --duration 60
 ```
 
 **Monitor metrics while running (in another terminal):**
+
 ```bash
 # Watch the log file grow
 tail -f logs/access.jsonl | jq .
@@ -700,6 +735,7 @@ tail -f logs/access.jsonl | wc -l
 ```
 
 **Post-run analysis:**
+
 ```bash
 # Total requests
 wc -l < logs/access.jsonl
@@ -715,6 +751,7 @@ cat logs/access.jsonl | jq -r '.ts[0:13]' | sort | uniq -c > logs/hourly-summary
 ```
 
 **CI/CD Integration:**
+
 ```bash
 #!/bin/bash
 # verify-logging.sh
@@ -756,16 +793,18 @@ The acceptance scenario uses **ConsoleSink** for output:
 - id: sink
   module: ConsoleSink
   params:
-    prefix: "[http]"
+    prefix: '[http]'
 ```
 
 **Pros:**
+
 - Simple and immediate
 - No file I/O overhead
 - Works in CI/CD pipelines
 - Easy to combine with shell redirection
 
 **Cons:**
+
 - Logs ephemeral (lost when process exits)
 - Difficult to query historical logs
 
@@ -789,13 +828,14 @@ When Susan's sprint delivers **FilesystemSink**, you'll be able to write logs di
 
 ```yaml
 - id: sink
-  module: FilesystemSink          # ← Swap ConsoleSink for FilesystemSink
+  module: FilesystemSink # ← Swap ConsoleSink for FilesystemSink
   params:
     path: ./logs/http-response.log
     mode: append
 ```
 
 **Benefits:**
+
 - Native mkolbol module (no shell trickery)
 - Structured logging (JSONL format option)
 - Integration with monitoring systems
@@ -852,7 +892,6 @@ Questions about this scenario?
 ---
 
 **Ready to validate?** Follow the steps above, check off the verification checklist, and you're ready to build custom topologies!
-
 
 ---
 
@@ -983,4 +1022,3 @@ See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acce
 **Summary:** 5/5 tests passed
 
 See detailed report: [reports/mk-acceptance-results.md](../../../reports/mk-acceptance-results.md)
-

@@ -5,9 +5,11 @@ Status: Planned
 Scope: CI config + reporter exit semantics + test gating (no kernel changes)
 
 Goals
+
 - Eliminate spurious exits and remove best‑effort guards. Make both lanes strict and keep process‑mode experimental only until hardening completes.
 
 Tasks
+
 - T6501 — Vitest/Laminar exit semantics
   - Reproduce the exit‑code quirk; fix by wrapping Laminar reporter so `process.exitCode` matches pass/fail when used as sole reporter. Add unit for wrapper.
 
@@ -21,11 +23,11 @@ Tasks
   - Keep `tests/integration/processUnix.spec.ts` as a separate job; add health retries and longer timeouts. When green across 5 CI runs, flip it to required.
 
 - T6505 — Artifacts & raw logs
-  - Keep Laminar artifacts and *_raw.log capture. Add a small `reports/README.txt` describing contents for consumers.
+  - Keep Laminar artifacts and \*\_raw.log capture. Add a small `reports/README.txt` describing contents for consumers.
 
 - T6506 — Docs
   - Add `docs/testing/ci.md` summarizing lanes, gates, and how to run locally.
 
 Success Criteria
-- Both lanes pass without `continue-on-error` on PRs. Process‑mode experimental step passes consistently and is ready to be made required.
 
+- Both lanes pass without `continue-on-error` on PRs. Process‑mode experimental step passes consistently and is ready to be made required.

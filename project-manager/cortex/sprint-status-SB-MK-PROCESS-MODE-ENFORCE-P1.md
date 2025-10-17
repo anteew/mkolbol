@@ -6,10 +6,10 @@
 
 **Goal:** Stabilize `process-mode` tests and make them a required, blocking step in the CI pipeline.
 
-| Task ID | Description                               | Status    | Notes |
-|---------|-------------------------------------------|-----------|-------|
-| T7101   | Stabilize process-mode spec               | Complete  |       |
-| T7102   | Heartbeat/cutover tuning                  | Complete  |       |
-| T7103   | Unix adapters backpressure/errors         | Complete  |       |
-| T7104   | CI forks lane strict                      | Complete  |       |
-| T7105   | Docs & artifacts                          | Complete  |       |
+| Task ID | Description                       | Status   | Notes |
+| ------- | --------------------------------- | -------- | ----- |
+| T7101   | Stabilize process-mode spec       | Complete |       |
+| T7102   | Heartbeat/cutover tuning          | Complete |       |
+| T7103   | Unix adapters backpressure/errors | Complete |       |
+| T7104   | CI forks lane strict              | Complete |       |
+| T7105   | Docs & artifacts                  | Complete |       |

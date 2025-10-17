@@ -6,14 +6,14 @@ This guide helps diagnose and fix common issues with mkolbol development, mkctl 
 
 ## Quick Fixes for Common Issues
 
-| Issue | Quick Fix |
-|-------|-----------|
+| Issue                     | Quick Fix                                                        |
+| ------------------------- | ---------------------------------------------------------------- |
 | **mk: command not found** | Add to PATH: `export PATH="/path/to/mkolbol/dist/scripts:$PATH"` |
-| **Permission denied** | Make executable: `chmod +x /path/to/mkolbol/dist/scripts/*.js` |
-| **Config file not found** | Use absolute path: `mk run --file $(pwd)/mk.json` |
-| **Port already in use** | Kill process: `lsof -i :4000 && kill -9 $(lsof -t -i :4000)` |
-| **Module not registered** | Check spelling: `mk doctor --file mk.json --verbose` |
-| **Node version < 20** | Upgrade: `nvm install 20 && nvm use 20` |
+| **Permission denied**     | Make executable: `chmod +x /path/to/mkolbol/dist/scripts/*.js`   |
+| **Config file not found** | Use absolute path: `mk run --file $(pwd)/mk.json`                |
+| **Port already in use**   | Kill process: `lsof -i :4000 && kill -9 $(lsof -t -i :4000)`     |
+| **Module not registered** | Check spelling: `mk doctor --file mk.json --verbose`             |
+| **Node version < 20**     | Upgrade: `nvm install 20 && nvm use 20`                          |
 
 ---
 
@@ -22,12 +22,14 @@ This guide helps diagnose and fix common issues with mkolbol development, mkctl 
 ### Issue: mk, mkctl, or lam not found
 
 **Symptom:**
+
 ```bash
 $ mk --help
 bash: mk: command not found
 ```
 
 **Root cause:**
+
 - mk binaries not in PATH
 - mkolbol not built
 - Wrong directory
@@ -35,6 +37,7 @@ bash: mk: command not found
 **Fix (Linux/macOS):**
 
 **Option 1: Add to PATH (Recommended)**
+
 ```bash
 # 1. Find absolute path to mkolbol
 cd /path/to/mkolbol
@@ -59,6 +62,7 @@ mk --help       # → Shows mk help
 ```
 
 **Option 2: Symlink to /usr/local/bin**
+
 ```bash
 # Create symlinks (requires sudo)
 cd /path/to/mkolbol
@@ -75,6 +79,7 @@ mk --help       # → Shows mk help
 ```
 
 **Option 3: Wrapper Script**
+
 ```bash
 # Create ~/bin/mk wrapper
 mkdir -p ~/bin
@@ -97,6 +102,7 @@ mk --help       # → Shows mk help
 **Fix (Windows):**
 
 **Option 1: Add to PATH via System Properties**
+
 ```powershell
 # 1. Find mkolbol path
 cd C:\path\to\mkolbol
@@ -120,6 +126,7 @@ mk --help       # → Shows mk help
 ```
 
 **Option 2: Create .cmd Shims**
+
 ```powershell
 # Create mk.cmd in PATH directory
 @"
@@ -150,16 +157,19 @@ mk --help        # → Shows mk help
 ### Issue: Shims Broken After Moving mkolbol
 
 **Symptom:**
+
 ```bash
 $ mk --help
 /usr/local/bin/mk: No such file or directory
 ```
 
 **Root cause:**
+
 - mkolbol directory moved
 - Absolute symlinks point to old location
 
 **Fix:**
+
 ```bash
 # Remove old symlinks
 sudo rm /usr/local/bin/{mk,mkctl,lam}
@@ -183,16 +193,19 @@ mk --help       # → Shows mk help
 ### Issue: Multiple mk Versions in PATH
 
 **Symptom:**
+
 ```bash
 $ mk --help
 # Wrong version executing
 ```
 
 **Root cause:**
+
 - Multiple mk installations
 - PATH order prioritizes wrong version
 
 **Fix (Linux/macOS):**
+
 ```bash
 # Find all mk installations
 which -a mk
@@ -214,6 +227,7 @@ mk --version    # → Should show correct version
 ```
 
 **Fix (Windows):**
+
 ```powershell
 # Find all mk installations
 where.exe mk
@@ -235,16 +249,19 @@ mk --version
 ### Issue: Permission Denied on mk Scripts
 
 **Symptom:**
+
 ```bash
 $ mk --help
 bash: /path/to/mkolbol/dist/scripts/mk.js: Permission denied
 ```
 
 **Root cause:**
+
 - Scripts not executable
 - File permissions too restrictive
 
 **Fix (Linux/macOS):**
+
 ```bash
 # Make scripts executable
 chmod +x /path/to/mkolbol/dist/scripts/*.js
@@ -260,6 +277,7 @@ ls -la /path/to/mkolbol/dist/scripts/
 
 **Fix (Windows):**
 Windows doesn't require executable bit. Ensure you're running with `node`:
+
 ```powershell
 # Test direct execution
 node C:\path\to\mkolbol\dist\scripts\mk.js --help
@@ -273,18 +291,21 @@ node C:\path\to\mkolbol\dist\scripts\mk.js --help
 ### Issue: Node.js Not Found
 
 **Symptom:**
+
 ```bash
 $ mk --help
 /usr/bin/env: 'node': No such file or directory
 ```
 
 **Root cause:**
+
 - Node.js not installed
 - Node.js not in PATH
 
 **Fix:**
 
 **Linux (Ubuntu/Debian):**
+
 ```bash
 # Install Node 20+ via NodeSource
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -296,6 +317,7 @@ npm --version   # → 10.x.x
 ```
 
 **macOS:**
+
 ```bash
 # Install Node 20+ via Homebrew
 brew install node@20
@@ -309,6 +331,7 @@ node --version  # → v20.x.x
 ```
 
 **Windows:**
+
 ```powershell
 # Download installer from https://nodejs.org/
 # Run installer (includes Node.js and npm)
@@ -320,6 +343,7 @@ npm --version
 ```
 
 **Using nvm (Cross-platform):**
+
 ```bash
 # Install nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
@@ -363,11 +387,13 @@ mk doctor [--verbose] [--section all|toolchain|environment] [--json]
 **Symptom**: `Configuration validation failed: Error reading file...`
 
 **Root causes**:
+
 - File path is incorrect or relative
 - File doesn't exist at the specified location
 - Directory path invalid
 
 **Fix**:
+
 ```bash
 # Use absolute path
 mkctl run --file $(pwd)/examples/configs/http-logs-local.yml --duration 10
@@ -386,12 +412,14 @@ pwd
 **Exit code**: `65`
 
 **Symptoms**:
+
 - `"nodes" must be an array`
 - `Duplicate node id 'xyz'`
 - `Connection from 'X' to non-existent node 'Y'`
 - `Unknown module 'XYZ'`
 
 **Root causes**:
+
 - YAML syntax error (indentation, colons, quotes)
 - Missing required fields
 - Invalid module names
@@ -399,6 +427,7 @@ pwd
 - Broken connections
 
 **Fix**:
+
 ```bash
 # 1. Validate YAML syntax
 python3 -m yaml examples/configs/http-logs-local.yml
@@ -423,6 +452,7 @@ mkctl run --file my-topology.yml --dry-run
 **Symptom**: `Health check failed for node 'X' after 3 attempts`
 
 **Root causes**:
+
 - External process doesn't start
 - Process doesn't listen on configured port
 - Health check URL/command wrong
@@ -430,6 +460,7 @@ mkctl run --file my-topology.yml --dry-run
 - Port already in use
 
 **Fix**:
+
 ```bash
 # 1. Test process manually
 node server.js &  # Start process
@@ -461,16 +492,19 @@ setTimeout(() => console.log('[startup] Ready'), 1000);
 **Exit code**: `70`
 
 **Symptom**:
+
 ```
 Error: listen EADDRINUSE: address already in use :::3000
 ```
 
 **Root causes**:
+
 - Previous topology still running
 - Different service using port
 - Port not released from previous crash
 
 **Fix**:
+
 ```bash
 # Find what's using the port
 lsof -i :3000
@@ -492,12 +526,14 @@ params:
 **Symptom**: `Unknown module 'MyCustomModule'`
 
 **Root causes**:
+
 - Module not registered in registry
 - Typo in module name
 - Module not imported/exported
 - Case mismatch (MyModule vs myModule)
 
 **Fix**:
+
 ```bash
 # 1. Verify built-in modules available
 mkctl run --file examples/configs/basic.yml --dry-run
@@ -530,6 +566,7 @@ mkctl run --file config.yml --dry-run
 ```
 
 **What it checks**:
+
 - ✓ Config file exists and is readable
 - ✓ YAML/JSON syntax is valid
 - ✓ All required fields present
@@ -539,12 +576,14 @@ mkctl run --file config.yml --dry-run
 - ✗ Does NOT check external processes or connectivity
 
 **Use cases**:
+
 - Pre-deployment validation
 - CI/CD pipeline checks
 - Config development iteration
 - Syntax verification before running
 
 **Exit codes**:
+
 - `0` — Config is valid
 - `65` — Config validation failed
 - `66` — Config file not found
@@ -597,11 +636,13 @@ done
 ### Error: "Permission denied"
 
 **Symptoms**:
+
 - Can't read config file
 - Can't write to logs/ directory
 - Can't execute external process
 
 **Fix**:
+
 ```bash
 # Check file ownership and permissions
 ls -la config/topology.yml
@@ -627,10 +668,12 @@ chown $USER:$USER config/ logs/
 ### Issue: Network features not disabled
 
 **Symptoms**:
+
 - Want to ensure only local mode is used
 - mkctl doesn't print "Running in Local Node mode"
 
 **Fix**:
+
 ```bash
 # Set environment variable before running
 export MK_LOCAL_NODE=1
@@ -647,10 +690,12 @@ mkctl run --file config.yml
 ### Issue: "Network features not available in local mode"
 
 **Symptoms**:
+
 - Config references `type=network` or `address` fields
 - Error: "Network addressing not allowed in Local Node mode"
 
 **Fix**:
+
 ```bash
 # Remove network config from topology
 # Replace:
@@ -675,9 +720,11 @@ nodes:
 ### Environment Checks
 
 #### 1. Node.js Version
+
 **Requirement**: Node.js 20 or later
 
 **Remediation**: If check fails:
+
 ```bash
 # Using nvm
 nvm install 20
@@ -687,9 +734,11 @@ nvm use 20
 ```
 
 #### 2. Package Manager
+
 **Requirement**: npm or pnpm installed
 
 **Remediation**: If check fails:
+
 ```bash
 # pnpm (recommended)
 npm install -g pnpm
@@ -698,25 +747,31 @@ npm install -g pnpm
 ```
 
 #### 3. Git Repository
+
 **Requirement**: Working in a Git repository (warning only)
 
 **Remediation**: If not detected:
+
 ```bash
 git init
 ```
 
 #### 4. Build Status
+
 **Requirement**: `dist/` directory with compiled files
 
 **Remediation**: If check fails:
+
 ```bash
 npm run build
 ```
 
 #### 5. Dependencies Installed
+
 **Requirement**: `node_modules/` directory exists
 
 **Remediation**: If check fails:
+
 ```bash
 npm install
 # or
@@ -724,9 +779,11 @@ pnpm install
 ```
 
 #### 6. TypeScript Compilation
+
 **Requirement**: No TypeScript type errors
 
 **Remediation**: If check fails:
+
 ```bash
 # See detailed errors
 npx tsc --noEmit
@@ -739,9 +796,11 @@ npm run build
 ### Toolchain Checks
 
 #### 7. Toolchain PATH Detection
+
 **Requirement**: `mk`, `mkctl`, and `lam` binaries available in PATH
 
 **Remediation**: If check fails:
+
 ```bash
 # Global install
 npm install -g .
@@ -752,40 +811,49 @@ export PATH="$PATH:~/.local/bin"
 ```
 
 #### 8. Shim Integrity
+
 **Requirement**: All binary shims exist and are executable in `dist/scripts/`
 
 **What it checks**:
+
 - `dist/scripts/mk.js` exists and is executable
 - `dist/scripts/mkctl.js` exists and is executable
 - `dist/scripts/lam.js` exists and is executable
 
 **Remediation**: If check fails:
+
 ```bash
 npm run build
 ```
 
 #### 9. mk Version Consistency
+
 **Requirement**: Binary version matches `package.json` version
 
 **What it checks**:
+
 - Reads version from `package.json`
 - Runs `mk --version` and compares output
 - Detects version mismatches from stale builds
 
 **Remediation**: If check fails:
+
 ```bash
 npm run build
 ```
 
 #### 10. Binary Accessibility
+
 **Requirement**: All binaries can be executed via `node dist/scripts/*.js`
 
 **What it checks**:
+
 - Tests actual execution of each binary
 - Verifies `--version` flag works
 - Detects runtime errors
 
 **Remediation**: If check fails:
+
 ```bash
 npm run build
 npm install
@@ -888,20 +956,25 @@ Use `mk doctor` in CI pipelines to validate environment:
 ## Troubleshooting
 
 ### "dist/ directory not found"
+
 Run `npm run build` to compile TypeScript sources.
 
 ### "node_modules/ not found"
+
 Run `npm install` to install dependencies.
 
 ### "Node.js version v18.x (< 20)"
+
 Upgrade to Node.js 20+ using nvm or download from nodejs.org.
 
 ### TypeScript compilation warnings
+
 Run `npx tsc --noEmit` to see detailed type errors, then fix them in your code.
 
 ## Future Enhancements
 
 Planned checks for future versions:
+
 - Port availability for services
 - Memory/CPU resources
 - External tool dependencies (git, docker)

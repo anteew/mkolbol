@@ -30,6 +30,7 @@ The **Interactive Topology** pattern in mkolbol enables bidirectional communicat
 ```
 
 The topology creates a real-time interactive loop:
+
 1. **Keyboard** captures raw keystrokes from `process.stdin`
 2. **PTY** executes commands in a pseudo-terminal environment
 3. **TTY** renders ANSI-formatted output to `process.stdout`
@@ -37,6 +38,7 @@ The topology creates a real-time interactive loop:
 ## When to Use Interactive Topology
 
 ### Use Interactive Topology when:
+
 - Building terminal emulators or terminal UI applications
 - Creating AI-assisted shells with observability
 - Implementing collaborative terminal sessions
@@ -45,6 +47,7 @@ The topology creates a real-time interactive loop:
 - Building custom REPL environments
 
 ### Alternatives:
+
 - **StdIO Path**: For non-interactive filters and data pipelines (see [stdio-path.md](./stdio-path.md))
 - **HTTP/WebSocket**: For network-based terminal access
 - **Worker Threads**: For CPU-intensive background tasks without I/O
@@ -73,6 +76,7 @@ keyboard.start();
 ```
 
 **Features:**
+
 - Raw mode input (captures individual keypresses)
 - Special key detection (arrows, function keys, modifiers)
 - Ctrl+C handling for graceful shutdown
@@ -96,13 +100,13 @@ const manifest: ExternalServerManifest = {
   terminals: [
     { name: 'input', type: 'local', direction: 'input' },
     { name: 'output', type: 'local', direction: 'output' },
-    { name: 'error', type: 'local', direction: 'output' }
+    { name: 'error', type: 'local', direction: 'output' },
   ],
   capabilities: {
     type: 'transform',
     accepts: ['text'],
     produces: ['text'],
-    features: ['interactive', 'pty']
+    features: ['interactive', 'pty'],
   },
   command: '/bin/bash',
   args: [],
@@ -112,7 +116,7 @@ const manifest: ExternalServerManifest = {
   terminalType: 'xterm-256color',
   initialCols: 80,
   initialRows: 24,
-  restart: 'never'
+  restart: 'never',
 };
 
 const ptyWrapper = new PTYServerWrapper(kernel, hostess, manifest);
@@ -120,6 +124,7 @@ await ptyWrapper.spawn();
 ```
 
 **Features:**
+
 - PTY emulation with full terminal capabilities
 - Window resize support (`resize(cols, rows)`)
 - ANSI escape sequence handling
@@ -231,11 +236,7 @@ Build a custom terminal emulator with additional features:
 
 ```typescript
 // Keyboard → PTY → [Screen Renderer, Logger, AI Observer]
-kernel.split(ptyWrapper.outputPipe, [
-  renderer.inputPipe,
-  logger.inputPipe,
-  aiObserver.inputPipe
-]);
+kernel.split(ptyWrapper.outputPipe, [renderer.inputPipe, logger.inputPipe, aiObserver.inputPipe]);
 ```
 
 ### 2. AI-Assisted Shell
@@ -286,7 +287,7 @@ keyboard.on('keypress', (event) => {
 
 kernel.split(broadcast, [
   ptyWrapper.inputPipe,
-  websocket.inputPipe  // Send to remote users
+  websocket.inputPipe, // Send to remote users
 ]);
 ```
 
@@ -299,6 +300,7 @@ kernel.split(broadcast, [
 **Cause:** The script is running in a non-interactive environment (e.g., piped input, CI/CD, background job).
 
 **Solution:**
+
 ```typescript
 if (!process.stdin.isTTY) {
   console.error('Error: This demo requires an interactive terminal (TTY).');
@@ -316,6 +318,7 @@ if (!process.stdin.isTTY) {
 **Cause:** stdin not in raw mode, or competing input listeners.
 
 **Solution:**
+
 - Ensure `keyboard.start()` is called
 - Check that no other code is reading from `process.stdin`
 - Verify `process.stdin.setRawMode(true)` is not throwing errors
@@ -327,6 +330,7 @@ if (!process.stdin.isTTY) {
 **Cause:** Output pipe not connected, or buffering issues.
 
 **Solution:**
+
 ```typescript
 // Ensure output pipe is connected
 ptyWrapper.outputPipe.on('data', (data) => {
@@ -346,10 +350,11 @@ ptyWrapper.errorPipe.on('data', (data) => {
 **Cause:** Improper cleanup on shutdown.
 
 **Solution:**
+
 ```typescript
 async function cleanup() {
-  keyboard.stop();  // Restores cooked mode
-  await ptyWrapper.shutdown();  // Kills PTY process
+  keyboard.stop(); // Restores cooked mode
+  await ptyWrapper.shutdown(); // Kills PTY process
   process.exit(0);
 }
 
@@ -359,6 +364,7 @@ keyboard.on('ctrl-c', cleanup);
 ```
 
 If terminal is already corrupted:
+
 ```bash
 reset
 ```
@@ -370,6 +376,7 @@ reset
 **Cause:** Missing `node-pty` native module, or insufficient permissions.
 
 **Solution:**
+
 - Install build tools (see [quickstart.md](./quickstart.md#error-node-pty-module-not-found))
 - Rebuild native modules: `npm rebuild`
 - Check PTY permissions (Linux: add user to `tty` group)
@@ -379,6 +386,7 @@ reset
 ### Latency
 
 The interactive topology introduces minimal latency:
+
 - **Keyboard → PTY**: ~100-200μs (event capture + write)
 - **PTY → TTY**: ~100-500μs (depends on ANSI complexity)
 - **Round-trip**: ~200-700μs (typical for simple commands)
@@ -386,6 +394,7 @@ The interactive topology introduces minimal latency:
 ### Throughput
 
 For high-frequency input (e.g., paste operations):
+
 - Enable buffering: `keyboard.setBufferSize(1024)`
 - Use debouncing: `keyboard.setDebounce(10)` (ms)
 - Monitor backpressure: `ptyWrapper.inputPipe.writableHighWaterMark`
@@ -393,6 +402,7 @@ For high-frequency input (e.g., paste operations):
 ### Memory
 
 Interactive topology has low memory overhead:
+
 - KeyboardInput: ~10KB
 - PTYServerWrapper: ~50-100KB (depends on terminal state)
 - Pipes: ~16KB per pipe (default high water mark)

@@ -12,7 +12,7 @@ nodes:
   - id: sink
     module: ConsoleSink
     params:
-      prefix: "[http]"
+      prefix: '[http]'
 
 connections:
   - from: web.output
