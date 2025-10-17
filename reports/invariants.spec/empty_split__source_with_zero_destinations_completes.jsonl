@@ -1,3 +1,3 @@
-{"ts":1760736979293,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760736979294,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"execution","evt":"test.run"}
-{"ts":1760736979295,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"teardown","evt":"case.end","payload":{"duration":73,"status":"passed"}}
+{"ts":1760743319575,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760743319576,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"execution","evt":"test.run"}
+{"ts":1760743319577,"lvl":"info","case":"empty split: source with zero destinations completes","phase":"teardown","evt":"case.end","payload":{"duration":81,"status":"passed"}}
