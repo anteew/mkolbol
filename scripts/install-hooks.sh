@@ -2,8 +2,8 @@
 set -euo pipefail
 
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
-  echo "Not a git repository. Abort." >&2
-  exit 1
+  echo "[hooks:install] Not a git repository — skipping hook install."
+  exit 0
 fi
 
 HOOKS_DIR="$(git rev-parse --git-dir)/hooks"

@@ -112,7 +112,7 @@ async function main() {
 
   if (subset === 'all' || subset === 'forks' || subset === 'process') {
     log('Forks/process lane (test:pty)');
-    await sh('bash', ['-lc', 'MK_PROCESS_EXPERIMENTAL=1 npm run test:pty'], { cwd: workDir, env: envBase });
+    await sh('npm', ['run', 'test:pty'], { cwd: workDir, env: { ...envBase, MK_PROCESS_EXPERIMENTAL: '1' } });
   } else {
     log('Forks/process lane skipped (CI_SUBSET != forks/process/all)');
   }

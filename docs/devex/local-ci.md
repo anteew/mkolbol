@@ -1,6 +1,6 @@
-Local CI Runner (Fast Feedback)
+# Local CI Runner (Fast Feedback)
 
-Why
+## Why
 - Catch CI failures locally on a fast box before pushing.
 - Optional RAM-backed workspace for speed (tmpfs via /dev/shm).
 
@@ -29,4 +29,3 @@ Pre-commit hook (optional)
 Docker stub
 - `docker/Dockerfile.ci` documents the target runner image.
 - A future `npm run ci:local:docker` will bind-mount the repo and run the same steps inside the container.
-

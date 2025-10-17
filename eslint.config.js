@@ -54,8 +54,7 @@ export default [
       'no-empty': 'off',
       'no-unused-expressions': 'off'
     }
-  }
-  ,
+  },
   // File-specific tweaks
   {
     files: ['src/modules/ttyRenderer.ts'],
