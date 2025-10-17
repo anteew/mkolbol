@@ -195,8 +195,11 @@ type EndpointSnapshot = {
   updatedAt?: number;
 };
 
+var RUNTIME_DIR: string | undefined;
+
 async function loadEndpointSnapshot(): Promise<{ endpoints: EndpointSnapshot[]; source: 'router' | 'hostess' }> {
-  const routerSnapshotPath = path.resolve(process.cwd(), 'reports', 'router-endpoints.json');
+  const base = RUNTIME_DIR ? path.resolve(RUNTIME_DIR) : process.cwd();
+  const routerSnapshotPath = path.resolve(base, 'reports', 'router-endpoints.json');
   try {
     const raw = await fs.readFile(routerSnapshotPath, 'utf-8');
     const parsed = JSON.parse(raw);
@@ -208,7 +211,7 @@ async function loadEndpointSnapshot(): Promise<{ endpoints: EndpointSnapshot[]; 
     // fall through to hostess snapshot
   }
 
-  const hostessSnapshotPath = path.resolve(process.cwd(), 'reports', 'endpoints.json');
+  const hostessSnapshotPath = path.resolve(base, 'reports', 'endpoints.json');
   try {
     const raw = await fs.readFile(hostessSnapshotPath, 'utf-8');
     const parsed = JSON.parse(raw);
@@ -253,12 +256,14 @@ interface EndpointsArguments {
   interval: number;
   filters: Array<{ key: string; value: string }>;
   json: boolean;
+  runtimeDir?: string;
 }
 
 function parseEndpointsArgs(args: string[]): EndpointsArguments {
   let watch = false;
   let interval = 1;
   let json = false;
+  let runtimeDir: string | undefined;
   const filters: Array<{ key: string; value: string }> = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -289,10 +294,17 @@ function parseEndpointsArgs(args: string[]): EndpointsArguments {
       i++;
     } else if (token === '--json') {
       json = true;
+    } else if (token === '--runtime-dir' || token === '-R') {
+      const next = args[i + 1];
+      if (!next || next.startsWith('--')) {
+        throw new MkctlError('--runtime-dir requires a path', EXIT_CODES.USAGE);
+      }
+      runtimeDir = next;
+      i++;
     }
   }
 
-  return { watch, interval, filters, json };
+  return { watch, interval, filters, json, runtimeDir };
 }
 
 function applyFilters(endpoints: EndpointSnapshot[], filters: Array<{ key: string; value: string }>): EndpointSnapshot[] {
@@ -340,7 +352,10 @@ function displayEndpoints(endpoints: EndpointSnapshot[], source: 'router' | 'hos
 }
 
 async function handleEndpointsCommand(args: string[]): Promise<void> {
-  const { watch, interval, filters, json } = parseEndpointsArgs(args);
+  const { watch, interval, filters, json, runtimeDir } = parseEndpointsArgs(args);
+  if (runtimeDir) {
+    RUNTIME_DIR = runtimeDir;
+  }
 
   if (!watch) {
     const { endpoints, source } = await loadEndpointSnapshot();
