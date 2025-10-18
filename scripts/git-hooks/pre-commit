@@ -15,13 +15,19 @@ if [ "${SKIP_ESLINT_DRYRUN:-}" != "1" ]; then
 fi
 
 # 0.5) Briefing token-size budget (always runs; cheap)
+# 0.5) Briefing token-size budget (runs by default; set SKIP_BRIEFING_CHECK=1 to skip; cheap)
 if [ "${SKIP_BRIEFING_CHECK:-}" != "1" ]; then
   echo "[pre-commit] briefing token budget check"
-  npx tsx scripts/check-briefing-size.ts || {
+  npx tsx scripts/check-briefing-size.ts
+  rc=$?
+  if [ $rc -eq 2 ]; then
     echo "[pre-commit] briefing too large; prune or set BRIEFING_WARN_TOKENS/BRIEFING_FAIL_TOKENS to adjust budgets."
     echo "[pre-commit] To override once: SKIP_BRIEFING_CHECK=1 git commit -m '...'"
     exit 1
-  }
+  elif [ $rc -ne 0 ]; then
+    echo "[pre-commit] briefing check failed to run (exit $rc)."
+    exit $rc
+  fi
 fi
 
 echo "[pre-commit] format (staged)"

@@ -1061,6 +1061,6 @@ MIT - See [LICENSE](./LICENSE)
 - Each sprint file (`ampcode.json` / `devex.json`) includes `instructions.briefing` — a short, high-signal note for agents.
 - Pre-commit checks:
   - ESLint fix dry-run on staged JS/TS files (fail-fast). Override once: `SKIP_ESLINT_DRYRUN=1`.
-  - Briefing token budget check (warn/fail thresholds; adjustable via `BRIEFING_WARN_TOKENS` / `BRIEFING_FAIL_TOKENS`).
+- Briefing token budget check (warn/fail thresholds; adjustable via `BRIEFING_WARN_TOKENS` / `BRIEFING_FAIL_TOKENS`). Override once: `SKIP_BRIEFING_CHECK=1`.
   - Prettier auto-format for staged files.
 - See `agent_template/examples/precommit-eslint-dryrun.md` for hook details.
