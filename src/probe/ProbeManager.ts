@@ -44,20 +44,20 @@ export class ProbeManager extends EventEmitter {
    */
   async probeBeacon(beacon: PeerInfo): Promise<void> {
     const { hostId, addr } = beacon;
-
+    
     if (this.probes.has(hostId)) return;
 
     try {
       const [host, port] = addr.split(':');
       const portNum = Number(port);
-
+      
       if (!port || !/^\d+$/.test(port) || isNaN(portNum) || portNum < 1 || portNum > 65535) {
         throw new Error(`Invalid port format in beacon address: ${addr}`);
       }
-
+      
       const client = new TCPPipeClient({ host, port: portNum });
       await client.connect();
-
+      
       this.probes.set(hostId, { client, beacon });
       this.emit('probeConnected', { hostId, addr });
     } catch (err) {
@@ -66,6 +66,6 @@ export class ProbeManager extends EventEmitter {
   }
 
   getProbes(): PeerInfo[] {
-    return Array.from(this.probes.values()).map((p) => p.beacon);
+    return Array.from(this.probes.values()).map(p => p.beacon);
   }
 }
