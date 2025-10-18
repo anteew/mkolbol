@@ -61,6 +61,13 @@
         "example": "agent_template/examples/precommit-eslint-dryrun.md"
       }
     },
+    "parallelization": {
+      "policy": "prefer_parallel",
+      "rationale": "mkctl endpoints/watch (D2601) and docs/compose (D2602) can advance concurrently; mkctl probe (D2603) can be implemented in parallel once the command skeleton is in place.",
+      "candidates": ["D2601", "D2602", "D2603"],
+      "constraints": ["Avoid overlapping edits in mkctl.ts; sequence small PRs if needed"],
+      "max_concurrency": 3
+    },
     "deliverables_global": ["patches/*.patch", "tests updated and passing", "docs updated"]
   }
 }

@@ -252,6 +252,17 @@
                 }
               }
             },
+            "parallelization": {
+              "type": "object",
+              "properties": {
+                "policy": { "type": "string" },
+                "rationale": { "type": "string" },
+                "candidates": { "type": "array", "items": { "type": "string" } },
+                "constraints": { "type": "array", "items": { "type": "string" } },
+                "max_concurrency": { "type": "integer", "minimum": 1 }
+              },
+              "required": ["policy", "rationale"]
+            },
             "briefing": { "type": "string", "minLength": 1 },
             "hooks": {
               "type": "object",
