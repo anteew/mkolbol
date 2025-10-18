@@ -28,20 +28,30 @@
       {
         "id": "<WAVE_ID>",
         "parallel": true,
-        "depends_on": ["<WAVE_ID>"],
-        "tasks": ["<TASK_ID>"]
+        "depends_on": [
+          "<WAVE_ID>"
+        ],
+        "tasks": [
+          "<TASK_ID>"
+        ]
       }
     ],
     "branch": "<BRANCH_NAME>",
     "tasks": [
       {
         "id": "<TASK_ID>",
-        "agent": "susan|devex",
+        "agent": "devex",
         "title": "<Short Title>",
         "why": "<Rationale>",
-        "allowedFiles": ["<paths...>"],
-        "verify": ["<commands...>"],
-        "deliverables": ["patches/DIFF_<ID>_<slug>.patch"]
+        "allowedFiles": [
+          "<paths...>"
+        ],
+        "verify": [
+          "<commands...>"
+        ],
+        "deliverables": [
+          "patches/DIFF_<ID>_<slug>.patch"
+        ]
       }
     ],
     "branch_instructions": [
@@ -53,7 +63,7 @@
       "core": {
         "log_file": "ampcode.log",
         "guidance": [
-          "After each task append 1\u20133 lines: [Nxxxx] what changed.",
+          "After each task append 1–3 lines: [Nxxxx] what changed.",
           "Include file pointers (path:line) when useful.",
           "Do not write to devex.log for core sprints."
         ]
@@ -61,11 +71,33 @@
       "devex": {
         "log_file": "devex.log",
         "guidance": [
-          "After each task append 1\u20133 lines: [Dxxxx] what changed.",
+          "After each task append 1–3 lines: [Dxxxx] what changed.",
           "Include file pointers (path:line) when useful.",
           "Do not write to ampcode.log for DevEx sprints."
         ]
       }
+    },
+    "instructions": {
+      "overview": "<One-liner of the sprint intent>",
+      "expectations": [
+        "Use JSONL logs and follow schema",
+        "Modify only allowedFiles",
+        "Run verify commands; deliver patches"
+      ],
+      "logging": {
+        "log_file": "<ampcode.log|devex.log>",
+        "schema": "agent_template/log_templates/<core|devex>_sprint_log.schema.json",
+        "example": "agent_template/log_templates/<core|devex>_sprint_log.example.jsonl"
+      },
+      "deliverables_global": [
+        "patches/*.patch",
+        "tests updated and passing",
+        "docs updated"
+      ],
+      "knowledge": [
+        "<Architect notes / context>",
+        "<Links or hints>"
+      ]
     }
   },
   "worker_workflow": [
@@ -81,7 +113,10 @@
     "perf": "Avoid regressions on hot paths; note any deltas."
   },
   "reports": {
-    "artifacts": ["reports/summary.jsonl", "reports/<suite>/<case>.jsonl"],
+    "artifacts": [
+      "reports/summary.jsonl",
+      "reports/<suite>/<case>.jsonl"
+    ],
     "digests": "docs/digests/*.md (optional)"
   },
   "instantiation": {
@@ -96,7 +131,10 @@
     },
     "archive_policy": {
       "dir": "archives/",
-      "examples": ["archives/ampcode-<UTC>.json", "archives/devex-<UTC>.json"],
+      "examples": [
+        "archives/ampcode-<UTC>.json",
+        "archives/devex-<UTC>.json"
+      ],
       "note": "Always archive previous sprint before creating a new one."
     }
   },
@@ -109,7 +147,12 @@
     "Node 24.x only for local runs; avoid platform-specific assumptions."
   ],
   "validation": {
-    "required_fields": ["ampcode", "waves", "tasks", "branch"],
+    "required_fields": [
+      "ampcode",
+      "waves",
+      "tasks",
+      "branch"
+    ],
     "waves_rules": {
       "id": "string",
       "parallel": "boolean",
@@ -132,7 +175,9 @@
       {
         "id": "W1",
         "parallel": false,
-        "tasks": ["X1001"]
+        "tasks": [
+          "X1001"
+        ]
       }
     ],
     "tasks": [
@@ -141,9 +186,17 @@
         "agent": "devex",
         "title": "CLI help polish",
         "why": "Tighten UX and keep docs in sync.",
-        "allowedFiles": ["scripts/mkctl.ts", "docs/devex/mkctl-cookbook.md"],
-        "verify": ["npm run build", "npm run test:ci"],
-        "deliverables": ["patches/DIFF_X1001_cli-help.patch"]
+        "allowedFiles": [
+          "scripts/mkctl.ts",
+          "docs/devex/mkctl-cookbook.md"
+        ],
+        "verify": [
+          "npm run build",
+          "npm run test:ci"
+        ],
+        "deliverables": [
+          "patches/DIFF_X1001_cli-help.patch"
+        ]
       }
     ],
     "branch_instructions": [

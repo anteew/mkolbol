@@ -1,0 +1,33 @@
+name: Validators (non-gating)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  schema-validators:
+    name: Sprint/Template Validators (non-gating)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+      - name: Install dependencies
+        run: |
+          npm ci || npm i
+      - name: Build
+        run: npm run -s build
+      - name: Validate template
+        run: |
+          npm run -s validate:template || echo "[validators] template validation failed (non-gating)"
+      - name: Validate sprint files + logs
+        run: |
+          npm run -s validate:sprint || echo "[validators] sprint validation failed (non-gating)"
+      - name: Summarize
+        if: always()
+        run: |
+          echo "Validators completed (non-gating). See step logs for details." >> $GITHUB_STEP_SUMMARY

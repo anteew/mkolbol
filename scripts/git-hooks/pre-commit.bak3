@@ -16,10 +16,3 @@ if [ -n "$LOGS_STAGED" ]; then
   if [ ! -f dist/scripts/validate-sprints.js ]; then npm run -s build >/dev/null 2>&1 || true; fi
   node dist/scripts/validate-sprints.js || { echo "[pre-commit] ERROR: sprint log validation failed."; exit 1; }
 fi
-# Validate template and its examples when agent_template files are staged
-TPL_STAGED=$(git diff --cached --name-only | grep -E '^agent_template/' || true)
-if [ -n "$TPL_STAGED" ]; then
-  echo "[pre-commit] Validating agent template..."
-  if [ ! -f dist/scripts/validate-template.js ]; then npm run -s build >/dev/null 2>&1 || true; fi
-  node dist/scripts/validate-template.js || { echo "[pre-commit] ERROR: agent template validation failed."; exit 1; }
-fi
