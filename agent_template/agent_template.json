@@ -78,6 +78,7 @@
         "Modify only allowedFiles",
         "Run verify commands; deliver patches"
       ],
+      "briefing": "Fail-fast ESLint fix dry-run runs first on staged JS/TS files. If fixable changes or errors are detected, commit is blocked. Fix via: npx eslint <staged-files> --fix, then re-stage and commit. One-time override: SKIP_ESLINT_DRYRUN=1 git commit -m '...'. Prettier auto-formats staged files; lint is warn-only; local fast CI runs on pre-push.",
       "logging": {
         "log_file": "<ampcode.log|devex.log>",
         "schema": "agent_template/log_templates/<core|devex>_sprint_log.schema.json",

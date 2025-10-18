@@ -89,8 +89,9 @@
     },
     "instructions": {
       "type": "object",
-      "required": ["expectations", "logging"],
+      "required": ["expectations", "logging", "briefing"],
       "properties": {
+        "briefing": { "type": "string", "minLength": 1 },
         "overview": {
           "type": "string"
         },

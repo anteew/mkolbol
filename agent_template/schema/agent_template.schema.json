@@ -252,6 +252,7 @@
                 }
               }
             },
+            "briefing": { "type": "string" },
             "hooks": {
               "type": "object",
               "properties": {

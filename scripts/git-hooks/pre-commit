@@ -14,6 +14,16 @@ if [ "${SKIP_ESLINT_DRYRUN:-}" != "1" ]; then
   fi
 fi
 
+# 0.5) Briefing token-size budget (always runs; cheap)
+if [ "${SKIP_BRIEFING_CHECK:-}" != "1" ]; then
+  echo "[pre-commit] briefing token budget check"
+  npx tsx scripts/check-briefing-size.ts || {
+    echo "[pre-commit] briefing too large; prune or set BRIEFING_WARN_TOKENS/BRIEFING_FAIL_TOKENS to adjust budgets."
+    echo "[pre-commit] To override once: SKIP_BRIEFING_CHECK=1 git commit -m '...'"
+    exit 1
+  }
+fi
+
 echo "[pre-commit] format (staged)"
 FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\\.(ts|tsx|js|jsx|json|md|yml|yaml)$' || true)
 if [ -n "$FILES" ]; then

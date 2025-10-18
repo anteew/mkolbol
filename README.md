@@ -1053,3 +1053,12 @@ The following secrets must be configured in the repository settings for automate
 ## License
 
 MIT - See [LICENSE](./LICENSE)
+
+## Agent Briefing and Pre-Commit Guardrails
+
+- Each sprint file (`ampcode.json` / `devex.json`) includes `instructions.briefing` — a short, high-signal note for agents.
+- Pre-commit checks:
+  - ESLint fix dry-run on staged JS/TS files (fail-fast). Override once: `SKIP_ESLINT_DRYRUN=1`.
+  - Briefing token budget check (warn/fail thresholds; adjustable via `BRIEFING_WARN_TOKENS` / `BRIEFING_FAIL_TOKENS`).
+  - Prettier auto-format for staged files.
+- See `agent_template/examples/precommit-eslint-dryrun.md` for hook details.
