@@ -151,5 +151,6 @@
       "Write logs to devex.log.",
       "Submit patches under patches/."
     ]
-  }
+  },
+  "$schema": "./schema/agent_template.schema.json"
 }
