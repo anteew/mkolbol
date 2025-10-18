@@ -1,3 +1,3 @@
-{"ts":1760731409824,"lvl":"info","case":"should handle environment variables","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760731409825,"lvl":"info","case":"should handle environment variables","phase":"execution","evt":"test.run"}
-{"ts":1760731409826,"lvl":"info","case":"should handle environment variables","phase":"teardown","evt":"case.end","payload":{"duration":325,"status":"passed"}}
+{"ts":1760746393881,"lvl":"info","case":"should handle environment variables","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760746393882,"lvl":"info","case":"should handle environment variables","phase":"execution","evt":"test.run"}
+{"ts":1760746393883,"lvl":"info","case":"should handle environment variables","phase":"teardown","evt":"case.end","payload":{"duration":269,"status":"passed"}}
