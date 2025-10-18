@@ -1,0 +1,27 @@
+{
+  "ampcode": "v1",
+  "waves": [
+    { "id": "P27-TLS", "parallel": false, "tasks": ["D2701","D2702","D2703"] }
+  ],
+  "branch": "mkolbol-net-p27-tls",
+  "tasks": [
+    {"id":"D2701","agent":"devex","title":"TLS/mTLS support: tcp+wss flags; docs + examples",
+      "why":"Secure transport for operators; start with flags and recipes.",
+      "allowedFiles":["scripts/mkctl.ts","src/pipes/adapters/TCPPipe.ts","src/pipes/adapters/WebSocketPipe.ts","docs/devex/network-quickstart.md","docs/devex/remote-host-setup.md"],
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_D2701_tls-flags-docs.patch"]},
+    {"id":"D2702","agent":"devex","title":"mTLS demo with self-signed CAs + acceptance smoke (non-gating)",
+      "allowedFiles":["examples/network/tls-demo/**",".github/workflows/tests.yml"],
+      "verify":["npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_D2702_mtls-acceptance.patch"]},
+    {"id":"D2703","agent":"devex","title":"Security guide: auth patterns, SSH tunnel, wss, TLS pitfalls",
+      "allowedFiles":["docs/devex/security-guide.md","README.md"],
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_D2703_security-guide.patch"]}
+  ],
+  "branch_instructions": [
+    "IMPORTANT: Work only on mkolbol-net-p27-tls.",
+    "Logs: write JSON Lines to devex.log (devex schema).",
+    "No breaking behavior; document flags and defaults clearly."
+  ]
+}
