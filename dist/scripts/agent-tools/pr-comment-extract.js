@@ -43,7 +43,7 @@ function main() {
     const candidates = comments.filter((c) => c.body && c.body.includes('validator-summary-marker'));
     if (candidates.length === 0)
         throw new Error('No validator summary comment found');
-    const chosen = (which === 'first') ? candidates[0] : candidates[candidates.length - 1];
+    const chosen = which === 'first' ? candidates[0] : candidates[candidates.length - 1];
     const body = extract(chosen.body, !!trim);
     if (out) {
         const p = resolve(process.cwd(), out);

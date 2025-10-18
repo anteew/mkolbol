@@ -80,6 +80,8 @@ function buildSprintJSONBlock(): string {
 
 function buildMarkdown(template: RunResult, sprint: RunResult): string {
   const lines: string[] = [];
+  lines.push('[Agent Hub → AGENTS.md](AGENTS.md)');
+  lines.push('');
   lines.push('## 🧪 Validator Summary');
   lines.push('');
   lines.push(mdSection('Template (agent_template.json)', `Status: **${badge(template.ok)}**`));
