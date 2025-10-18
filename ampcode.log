@@ -43,3 +43,5 @@ Storage: .mk/peers.json
 test:ci passing, ready for PR #91
 
 **Status**: Sprint complete, ready for Vega review
+
+# Note: P22 logging guidance present in ampcode.md; prefer per-sprint logs.

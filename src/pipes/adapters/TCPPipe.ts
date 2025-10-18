@@ -6,12 +6,19 @@ export interface TCPPipeOptions {
   host?: string;
   port: number;
   timeout?: number;
+  reconnect?: boolean;
+  maxReconnectAttempts?: number;
+  reconnectBackoffMs?: number;
+  pingIntervalMs?: number;
 }
 
 export class TCPPipeClient extends Duplex {
   private socket?: Socket;
   private buffer = Buffer.alloc(0);
   private sequenceId = 0;
+  private reconnectAttempt = 0;
+  private pingTimer?: NodeJS.Timeout;
+  private shouldReconnect = false;
 
   constructor(private options: TCPPipeOptions) {
     super({ objectMode: false });

@@ -3,12 +3,19 @@ export interface TCPPipeOptions {
     host?: string;
     port: number;
     timeout?: number;
+    reconnect?: boolean;
+    maxReconnectAttempts?: number;
+    reconnectBackoffMs?: number;
+    pingIntervalMs?: number;
 }
 export declare class TCPPipeClient extends Duplex {
     private options;
     private socket?;
     private buffer;
     private sequenceId;
+    private reconnectAttempt;
+    private pingTimer?;
+    private shouldReconnect;
     constructor(options: TCPPipeOptions);
     connect(): Promise<void>;
     _write(chunk: any, _: BufferEncoding, cb: (error?: Error | null) => void): void;
