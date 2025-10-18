@@ -7,3 +7,5 @@ archives/
 examples/configs/bad-invalid-yaml.yml
 tests/fixtures/go-test.json
 patches/
+
+MKOLBOL_REQUESTS_FOR_XENOMORPH_ARCHITECT/
