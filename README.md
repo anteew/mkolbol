@@ -1,5 +1,10 @@
 # mkolbol
 
+[Agent Hub → AGENTS.md](AGENTS.md)
+
+- Tiny OS‑Cloud philosophy: docs/rfcs/stream-kernel/13-os-cloud.md
+- Threads vs forks & CWD: docs/devex/threads-vs-forks-and-cwd.md
+
 **Stream-based microkernel for AI agent systems**
 
 ## QUICKSTART — Build With mk (30–60s)
@@ -1053,3 +1058,12 @@ The following secrets must be configured in the repository settings for automate
 ## License
 
 MIT - See [LICENSE](./LICENSE)
+
+## Agent Briefing and Pre-Commit Guardrails
+
+- Each sprint file (`ampcode.json` / `devex.json`) includes `instructions.briefing` — a short, high-signal note for agents.
+- Pre-commit checks:
+  - ESLint fix dry-run on staged JS/TS files (fail-fast). Override once: `SKIP_ESLINT_DRYRUN=1`.
+- Briefing token budget check (warn/fail thresholds; adjustable via `BRIEFING_WARN_TOKENS` / `BRIEFING_FAIL_TOKENS`). Override once: `SKIP_BRIEFING_CHECK=1`.
+  - Prettier auto-format for staged files.
+- See `agent_template/examples/precommit-eslint-dryrun.md` for hook details.

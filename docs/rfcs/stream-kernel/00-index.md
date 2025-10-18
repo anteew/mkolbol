@@ -31,6 +31,10 @@ This RFC proposes a minimal stream-based microkernel architecture (~100 lines) f
 - **[11 - External Server Wrapper](11-external-wrapper.md)** - Wrapping external executables (npm packages, C programs, binaries) as first-class mkolbol servers
 - **[12 - PTY Wrapper Patterns](12-pty-wrapper-patterns.md)** - Wrapping interactive TUI applications with multi-modal rendering and multi-source input
 
+### Philosophy in Practice
+
+- **[13 - Tiny Operating System Cloud](13-os-cloud.md)** - Noob-friendly explainer for mkolbol’s OS‑cloud model
+
 ### Implementation Planning
 
 - **[External Wrapper Sprints](external-wrapper-sprints.md)** - 8-sprint implementation plan for external wrapper system (40-60 days)

@@ -249,6 +249,17 @@ private getModulePath(moduleName: string): string {
 
 ---
 
+## CWD & Cross‑Boundary Checklist
+
+- Prefer absolute paths. Resolve against a known baseDir instead of calling `process.chdir()`.
+- If you need a specific working directory:
+  - Spawn the server out‑of‑process: `spawn('node', ['server.js'], { cwd: baseDir, stdio: 'inherit' })`.
+  - Or run tests in Vitest forks: `--pool=forks --poolOptions.forks.singleFork=true`.
+- Design for boundary changes:
+  - Keep I/O on streams. Do not assume TCP/IP only — the same module should work over Unix sockets, serial, WebSocket, etc.
+  - Avoid hidden process‑global state; prefer explicit options (e.g., `baseDir`, `transport`).
+  - Validate inputs at module boundaries; treat transports as untrusted.
+
 ## Example: Simple Transform
 
 Let's build a `ReverseTransform` that reverses text:

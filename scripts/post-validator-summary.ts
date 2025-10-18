@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 type RunResult = { ok: boolean; code: number; stdout: string; stderr: string };
@@ -21,8 +21,67 @@ function badge(ok: boolean): string {
   return ok ? '✅ PASS' : '❌ FAIL (non-gating)';
 }
 
+function approxTokens(text: string): number {
+  return Math.ceil((text || '').length / 4);
+}
+
+function loadJSON(pathRel: string): any | null {
+  const p = resolve(process.cwd(), pathRel);
+  if (!existsSync(p)) return null;
+  try {
+    return JSON.parse(readFileSync(p, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function buildBriefingBlock(): string {
+  const warn = Number(process.env.BRIEFING_WARN_TOKENS || 600);
+  const fail = Number(process.env.BRIEFING_FAIL_TOKENS || 1200);
+  const files = ['ampcode.json', 'devex.json'];
+  const rows: string[] = [];
+  for (const f of files) {
+    const data = loadJSON(f);
+    if (!data) continue;
+    const briefing = data?.instructions?.briefing as string | undefined;
+    const tokens = approxTokens(briefing || '');
+    const status = tokens >= fail ? 'FAIL' : tokens >= warn ? 'WARN' : 'OK';
+    rows.push(`- ${f}: ${tokens} tokens → ${status}`);
+  }
+  if (rows.length === 0) return '_No sprint files found to compute briefing size._';
+  return [`Warn≥${warn}, Fail≥${fail}`, ...rows].join('\n');
+}
+
+function buildSprintJSONBlock(): string {
+  const out: string[] = [];
+  const files = ['ampcode.json', 'devex.json'];
+  out.push('<!-- sprint-json-begin -->');
+  for (const f of files) {
+    const data = loadJSON(f);
+    if (!data) continue;
+    const pretty = JSON.stringify(data, null, 2);
+    out.push(
+      [
+        '',
+        '<details>',
+        `<summary>${f}</summary>`,
+        '',
+        '```json',
+        pretty,
+        '```',
+        '</details>',
+        '',
+      ].join('\n'),
+    );
+  }
+  out.push('<!-- sprint-json-end -->');
+  return out.join('\n');
+}
+
 function buildMarkdown(template: RunResult, sprint: RunResult): string {
   const lines: string[] = [];
+  lines.push('[Agent Hub → AGENTS.md](AGENTS.md)');
+  lines.push('');
   lines.push('## 🧪 Validator Summary');
   lines.push('');
   lines.push(mdSection('Template (agent_template.json)', `Status: **${badge(template.ok)}**`));
@@ -44,6 +103,11 @@ function buildMarkdown(template: RunResult, sprint: RunResult): string {
   }
   lines.push('');
   lines.push('_Note: This job is informational and non-gating._');
+  lines.push('');
+  lines.push(mdSection('Briefing Token Budgets', buildBriefingBlock()));
+  lines.push('');
+  lines.push('## Sprint Specs (for review)');
+  lines.push(buildSprintJSONBlock());
   return lines.join('\n');
 }
 

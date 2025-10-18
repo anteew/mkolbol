@@ -50,7 +50,7 @@ jobs:
           mkdir -p reports
           npx vitest run \
             --pool=threads \
-            --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts' \
+            --exclude='**/{ptyServerWrapper,multiModalOutput,endpointsList,processMode}.spec.ts,tests/digest/diff.spec.ts' \
             --reporter=default \
             --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
             > reports/threads_raw.log 2>&1
@@ -70,6 +70,19 @@ jobs:
             --reporter=default \
             --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
             > reports/forks_raw.log 2>&1
+
+      - name: Digest diff (forks workaround for chdir)
+        env:
+          LAMINAR_SUITE: forks
+        run: |
+          mkdir -p reports
+          npx vitest run \
+            --pool=forks \
+            --poolOptions.forks.singleFork=true \
+            tests/digest/diff.spec.ts \
+            --reporter=default \
+            --reporter=./node_modules/@agent_vega/laminar/dist/src/test/reporter/jsonlReporter.js \
+            > reports/diff_forks_raw.log 2>&1
 
       # Enforced process-mode adapters run (required)
       - name: Process-mode (Unix adapters)

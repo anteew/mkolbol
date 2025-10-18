@@ -53,6 +53,7 @@
       "Do not introduce breaking changes; document flags and defaults clearly.",
       "Run verify commands and include deliverable patches."
     ],
+    "briefing": "Fail-fast ESLint fix dry-run runs first on staged JS/TS files; commit blocks if fixable or error findings are present. Fix with: npx eslint <staged-files> --fix, then re-stage and commit. One-time override: SKIP_ESLINT_DRYRUN=1. Prettier auto-formats staged files; lint is warn-only; local fast CI runs on pre-push.",
     "logging": {
       "log_file": "devex.log",
       "schema": "agent_template/log_templates/devex_sprint_log.schema.json",
