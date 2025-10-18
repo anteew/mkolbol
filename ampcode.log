@@ -47,3 +47,4 @@ test:ci passing, ready for PR #91
 # Note: P22 logging guidance present in ampcode.md; prefer per-sprint logs.
 {"ts":"2025-10-17T23:35:00Z","role":"core","agent":"susan","branch":"mkolbol-net-p25-multiplex","sprintId":"P25-MULTIPLEX","taskId":"N2502","event":"result","level":"info","message":"Backpressure handled by per-stream credits; fairness test cases passing","ok":true}
 {"ts":"2025-10-17T23:35:30Z","role":"core","agent":"susan","branch":"mkolbol-net-p25-multiplex","sprintId":"P25-MULTIPLEX","taskId":"N2503","event":"result","level":"info","message":"Mux acceptance: N logical pipes over one link; soak under load passed","ok":true}
+{"ts":"2025-10-17T23:40:00Z","sprint":"P26-OS-CLOUD-D1","task":"N2601","status":"complete","msg":"ProbeManager: beacon to connect to Hostess"}
