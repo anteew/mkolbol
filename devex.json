@@ -1,59 +1,55 @@
 {
   "ampcode": "v1",
   "waves": [
-    {
-      "id": "P27-TLS",
-      "parallel": false,
-      "tasks": ["D2701", "D2702", "D2703"]
-    }
+    { "id": "P26-OS-CLOUD-D1-DX", "parallel": false, "tasks": ["D2601", "D2602", "D2603"] }
   ],
-  "branch": "mkolbol-net-p27-tls",
+  "branch": "mkolbol-oscloud-d1-mkctl-and-docs",
   "tasks": [
     {
-      "id": "D2701",
+      "id": "D2601",
       "agent": "devex",
-      "title": "TLS/mTLS support: tcp+wss flags; docs + examples",
-      "why": "Secure transport for operators; start with flags and recipes.",
+      "title": "mkctl endpoints list/watch: show TTL, live/probed routes",
+      "why": "Give operators/agents a clear view of the OS‑Cloud: endpoints, TTL remaining, and probe status.",
+      "allowedFiles": ["scripts/mkctl.ts", "docs/devex/mkctl-cookbook.md"],
+      "verify": ["npm run build", "npm run validate:sprint"],
+      "deliverables": ["patches/DIFF_D2601_mkctl-endpoints-watch.patch"]
+    },
+    {
+      "id": "D2602",
+      "agent": "devex",
+      "title": "Docs: OS‑Cloud in Docker (Node + Go beachheads) with compose",
+      "why": "Make the OS‑Cloud story obvious and runnable in minutes for new users and agents.",
       "allowedFiles": [
-        "scripts/mkctl.ts",
-        "src/pipes/adapters/TCPPipe.ts",
-        "src/pipes/adapters/WebSocketPipe.ts",
         "docs/devex/network-quickstart.md",
-        "docs/devex/remote-host-setup.md"
+        "examples/docker/beachhead/docker-compose.yml",
+        "examples/docker/beachhead/README.md"
       ],
-      "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_D2701_tls-flags-docs.patch"]
+      "verify": ["npm run build", "npm run validate:sprint"],
+      "deliverables": ["patches/DIFF_D2602_docs-oscloud-docker.patch"]
     },
     {
-      "id": "D2702",
+      "id": "D2603",
       "agent": "devex",
-      "title": "mTLS demo with self-signed CAs + acceptance smoke (non-gating)",
-      "allowedFiles": ["examples/network/tls-demo/**", ".github/workflows/tests.yml"],
-      "verify": ["npm run ci:local:fast"],
-      "deliverables": ["patches/DIFF_D2702_mtls-acceptance.patch"]
-    },
-    {
-      "id": "D2703",
-      "agent": "devex",
-      "title": "Security guide: auth patterns, SSH tunnel, wss, TLS pitfalls",
-      "allowedFiles": ["docs/devex/security-guide.md", "README.md"],
-      "verify": ["npm run build"],
-      "deliverables": ["patches/DIFF_D2703_security-guide.patch"]
+      "title": "mkctl probe <coord> (manual test) + doc snippets",
+      "why": "Enable quick manual verification of new endpoints and help author scripts.",
+      "allowedFiles": ["scripts/mkctl.ts", "docs/devex/network-quickstart.md"],
+      "verify": ["npm run build", "npm run validate:sprint"],
+      "deliverables": ["patches/DIFF_D2603_mkctl-probe.patch"]
     }
   ],
   "branch_instructions": [
-    "IMPORTANT: Work only on mkolbol-net-p27-tls.",
+    "IMPORTANT: Work only on mkolbol-oscloud-d1-mkctl-and-docs.",
     "Logs: write JSON Lines to devex.log (devex schema).",
-    "No breaking behavior; document flags and defaults clearly."
+    "Modify only allowedFiles; keep changes minimal."
   ],
   "instructions": {
-    "overview": "Add TLS/wss flags and docs; demonstrate mTLS and document security patterns.",
+    "overview": "mkctl endpoints list/watch + probe; OS‑Cloud in Docker docs and compose for quick demo.",
     "expectations": [
       "Write JSONL log entries using the devex log schema.",
-      "Do not introduce breaking changes; document flags and defaults clearly.",
+      "Keep changes minimal and under allowedFiles.",
       "Run verify commands and include deliverable patches."
     ],
-    "briefing": "Fail-fast ESLint fix dry-run runs first on staged JS/TS files; commit blocks if fixable or error findings are present. Fix with: npx eslint <staged-files> --fix, then re-stage and commit. One-time override: SKIP_ESLINT_DRYRUN=1. Prettier auto-formats staged files; lint is warn-only; local fast CI runs on pre-push.",
+    "briefing": "Add mkctl endpoints list/watch (TTL, live/probed), mkctl probe <coord>, and docs with docker-compose demo (Node + Go beachheads).",
     "logging": {
       "log_file": "devex.log",
       "schema": "agent_template/log_templates/devex_sprint_log.schema.json",
