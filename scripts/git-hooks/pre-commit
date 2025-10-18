@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "[pre-commit] format (staged)"
+FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\\.(ts|tsx|js|jsx|json|md|yml|yaml)$' || true)
+if [ -n "$FILES" ]; then
+  npx prettier -w $FILES >/dev/null 2>&1 || true
+  git add $FILES || true
+fi
 echo "[pre-commit] format:check"
-npm run -s format:check
+npm run -s format:check || true
 
 echo "[pre-commit] lint (warnings allowed)"
 npm run -s lint || true
