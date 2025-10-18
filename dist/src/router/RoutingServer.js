@@ -89,8 +89,8 @@ export class RoutingServer extends EventEmitter {
      */
     resolveAll(coordinates) {
         const matches = Array.from(this.endpoints.values())
-            .filter(ep => ep.coordinates === coordinates)
-            .map(endpoint => ({
+            .filter((ep) => ep.coordinates === coordinates)
+            .map((endpoint) => ({
             ...endpoint,
             metadata: endpoint.metadata ? { ...endpoint.metadata } : undefined,
         }));
@@ -156,7 +156,7 @@ export class RoutingServer extends EventEmitter {
                 this.emitEvent({
                     type: 'staleExpired',
                     endpoint: { ...endpoint },
-                    timestamp: now
+                    timestamp: now,
                 });
             }
         }

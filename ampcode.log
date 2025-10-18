@@ -45,3 +45,5 @@ test:ci passing, ready for PR #91
 **Status**: Sprint complete, ready for Vega review
 
 # Note: P22 logging guidance present in ampcode.md; prefer per-sprint logs.
+{"ts":"2025-10-17T23:35:00Z","sprint":"P25","task":"N2502","status":"complete","msg":"Backpressure handled by Node.js streams"}
+{"ts":"2025-10-17T23:35:30Z","sprint":"P25","task":"N2503","status":"complete","msg":"Mux tests passing, ready for review"}
