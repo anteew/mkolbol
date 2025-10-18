@@ -1,3 +1,3 @@
-{"ts":1760805257703,"lvl":"info","case":"returns false when module is not enabled","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760805257704,"lvl":"info","case":"returns false when module is not enabled","phase":"execution","evt":"test.run"}
-{"ts":1760805257705,"lvl":"info","case":"returns false when module is not enabled","phase":"teardown","evt":"case.end","payload":{"duration":4,"status":"passed"}}
+{"ts":1760810680036,"lvl":"info","case":"returns false when module is not enabled","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760810680037,"lvl":"info","case":"returns false when module is not enabled","phase":"execution","evt":"test.run"}
+{"ts":1760810680038,"lvl":"info","case":"returns false when module is not enabled","phase":"teardown","evt":"case.end","payload":{"duration":6,"status":"passed"}}

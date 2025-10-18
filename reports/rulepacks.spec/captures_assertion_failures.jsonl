@@ -1,3 +1,3 @@
-{"ts":1760805256858,"lvl":"info","case":"captures assertion failures","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760805256859,"lvl":"info","case":"captures assertion failures","phase":"execution","evt":"test.run"}
-{"ts":1760805256860,"lvl":"info","case":"captures assertion failures","phase":"teardown","evt":"case.end","payload":{"duration":72,"status":"passed"}}
+{"ts":1760810679358,"lvl":"info","case":"captures assertion failures","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760810679359,"lvl":"info","case":"captures assertion failures","phase":"execution","evt":"test.run"}
+{"ts":1760810679360,"lvl":"info","case":"captures assertion failures","phase":"teardown","evt":"case.end","payload":{"duration":6,"status":"passed"}}
