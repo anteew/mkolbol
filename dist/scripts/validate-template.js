@@ -86,5 +86,8 @@ async function main() {
     if (!ok)
         process.exit(1);
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+});
 //# sourceMappingURL=validate-template.js.map

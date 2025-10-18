@@ -24,7 +24,7 @@ export class BeaconCodec {
             supportedVersions: beacon.supportedVersions,
             namespaces: beacon.namespaces,
             caps: beacon.caps,
-            ttl: beacon.ttl
+            ttl: beacon.ttl,
         };
     }
 }

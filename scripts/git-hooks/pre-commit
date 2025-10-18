@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 0) ESLint fix dry-run on staged files (fail-fast)
+if [ "${SKIP_ESLINT_DRYRUN:-}" != "1" ]; then
+  FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\\.(ts|tsx|js|jsx|mjs|cjs)$' || true)
+  if [ -n "$FILES" ]; then
+    echo "[pre-commit] eslint --fix (dry-run) on staged files"
+    npx tsx scripts/eslint-dry-run.ts $FILES || {
+      echo "[pre-commit] ESLint dry-run failed. See output above."
+      echo "[pre-commit] To override once: SKIP_ESLINT_DRYRUN=1 git commit -m '...'"
+      exit 1
+    }
+  fi
+fi
+
 echo "[pre-commit] format (staged)"
 FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\\.(ts|tsx|js|jsx|json|md|yml|yaml)$' || true)
 if [ -n "$FILES" ]; then
