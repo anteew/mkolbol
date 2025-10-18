@@ -19,3 +19,15 @@ Events: staleExpired on sweep
 test:ci passing
 
 **Status**: Ready for PR #89
+
+## Sprint P22-RESILIENCE — 2025-10-17 23:25Z
+
+**Branch**: mkolbol-net-p22-resilience
+
+### N2201-N2203 — Network Resilience ✅
+- Reconnect/backoff options added to TCPPipe/WSPipe
+- Resilience tests created
+- test:ci passing
+
+**Ready for review**
+
