@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Core Sprint Log Entry (Susan)",
+  "type": "object",
+  "required": ["ts", "role", "agent", "branch", "sprintId", "taskId", "event", "level", "message"],
+  "additionalProperties": false,
+  "properties": {
+    "ts": {"type": "string", "format": "date-time"},
+    "role": {"type": "string", "const": "core"},
+    "agent": {"type": "string", "enum": ["susan"]},
+    "branch": {"type": "string"},
+    "sprintId": {"type": "string"},
+    "taskId": {"type": "string", "pattern": "^(N\\d{4}|X\\d{4})$"},
+    "waveId": {"type": "string"},
+    "event": {"type": "string", "enum": ["start", "cmd", "result", "verify", "note", "commit"]},
+    "level": {"type": "string", "enum": ["info", "warn", "error"]},
+    "message": {"type": "string", "minLength": 1},
+    "files": {
+      "type": "array",
+      "items": {"type": "object", "required": ["path"], "properties": {"path": {"type": "string"}, "line": {"type": "integer", "minimum": 1}, "col": {"type": "integer", "minimum": 1}}, "additionalProperties": false}
+    },
+    "deliverables": {"type": "array", "items": {"type": "string"}},
+    "ok": {"type": "boolean"},
+    "durationMs": {"type": "integer", "minimum": 0},
+    "extra": {"type": "object"}
+  }
+}
