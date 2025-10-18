@@ -12,7 +12,10 @@
     "sprintId": { "type": "string" },
     "taskId": { "type": "string", "pattern": "^(D\\d{4}|X\\d{4})$" },
     "waveId": { "type": "string" },
-    "event": { "type": "string", "enum": ["start", "cmd", "result", "verify", "note", "commit"] },
+    "event": {
+      "type": "string",
+      "enum": ["start", "cmd", "result", "verify", "note", "commit", "lint"]
+    },
     "level": { "type": "string", "enum": ["info", "warn", "error"] },
     "message": { "type": "string", "minLength": 1 },
     "files": {

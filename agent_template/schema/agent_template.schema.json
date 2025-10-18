@@ -127,6 +127,14 @@
         }
       }
     },
+    "workflow_hooks": {
+      "type": "object",
+      "properties": {
+        "eslint_dryrun": { "type": "boolean", "default": false },
+        "prettier_staged": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": true
+    },
     "sprint_block_schema": {
       "type": "object",
       "required": ["ampcode", "waves", "tasks"],
@@ -234,7 +242,7 @@
               "properties": {
                 "log_file": {
                   "type": "string",
-                  "pattern": "^(ampcode\\.log|devex\\.log)$"
+                  "pattern": "^(ampcode\\.log|devex\\.log|<ampcode\\.log\\|devex\\.log>)$"
                 },
                 "schema": {
                   "type": "string"
@@ -243,6 +251,20 @@
                   "type": "string"
                 }
               }
+            },
+            "hooks": {
+              "type": "object",
+              "properties": {
+                "eslint_dryrun": {
+                  "type": "object",
+                  "properties": {
+                    "summary": { "type": "string" },
+                    "example": { "type": "string" }
+                  },
+                  "required": ["summary", "example"]
+                }
+              },
+              "additionalProperties": true
             },
             "deliverables_global": {
               "type": "array",
@@ -292,5 +314,33 @@
     "example": {
       "type": "object"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "workflow_hooks": {
+            "properties": { "eslint_dryrun": { "const": true } },
+            "required": ["eslint_dryrun"]
+          }
+        },
+        "required": ["workflow_hooks"]
+      },
+      "then": {
+        "properties": {
+          "sprint_block_schema": {
+            "properties": {
+              "instructions": {
+                "properties": {
+                  "hooks": { "required": ["eslint_dryrun"] }
+                },
+                "required": ["hooks"]
+              }
+            },
+            "required": ["instructions"]
+          }
+        }
+      }
+    }
+  ]
 }

@@ -22,6 +22,10 @@
       ]
     }
   },
+  "workflow_hooks": {
+    "eslint_dryrun": true,
+    "prettier_staged": true
+  },
   "sprint_block_schema": {
     "ampcode": "v1",
     "waves": [
@@ -78,6 +82,12 @@
         "log_file": "<ampcode.log|devex.log>",
         "schema": "agent_template/log_templates/<core|devex>_sprint_log.schema.json",
         "example": "agent_template/log_templates/<core|devex>_sprint_log.example.jsonl"
+      },
+      "hooks": {
+        "eslint_dryrun": {
+          "summary": "Fail‑fast ESLint fix dry‑run runs first; override with SKIP_ESLINT_DRYRUN=1 to bypass once.",
+          "example": "agent_template/examples/precommit-eslint-dryrun.md"
+        }
       },
       "deliverables_global": ["patches/*.patch", "tests updated and passing", "docs updated"],
       "knowledge": ["<Architect notes / context>", "<Links or hints>"]

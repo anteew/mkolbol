@@ -94,6 +94,20 @@
         "overview": {
           "type": "string"
         },
+        "hooks": {
+          "type": "object",
+          "properties": {
+            "eslint_dryrun": {
+              "type": "object",
+              "properties": {
+                "summary": { "type": "string" },
+                "example": { "type": "string" }
+              },
+              "required": ["summary", "example"]
+            }
+          },
+          "additionalProperties": true
+        },
         "expectations": {
           "type": "array",
           "minItems": 1,
