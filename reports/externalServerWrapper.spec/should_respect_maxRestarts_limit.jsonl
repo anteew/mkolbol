@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-{"ts":1760727578665,"lvl":"info","case":"should respect maxRestarts limit","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760727578666,"lvl":"info","case":"should respect maxRestarts limit","phase":"execution","evt":"test.run"}
-{"ts":1760727578667,"lvl":"info","case":"should respect maxRestarts limit","phase":"teardown","evt":"case.end","payload":{"duration":576,"status":"passed"}}
-=======
-{"ts":1760727905954,"lvl":"info","case":"should respect maxRestarts limit","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760727905955,"lvl":"info","case":"should respect maxRestarts limit","phase":"execution","evt":"test.run"}
-{"ts":1760727905956,"lvl":"info","case":"should respect maxRestarts limit","phase":"teardown","evt":"case.end","payload":{"duration":613,"status":"passed"}}
->>>>>>> origin/main
+{"ts":1760743319582,"lvl":"info","case":"should respect maxRestarts limit","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760743319583,"lvl":"info","case":"should respect maxRestarts limit","phase":"execution","evt":"test.run"}
+{"ts":1760743319584,"lvl":"info","case":"should respect maxRestarts limit","phase":"teardown","evt":"case.end","payload":{"duration":682,"status":"passed"}}

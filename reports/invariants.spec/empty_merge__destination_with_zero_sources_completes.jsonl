@@ -1,3 +1,3 @@
-{"ts":1760746458573,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
-{"ts":1760746458574,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"execution","evt":"test.run"}
-{"ts":1760746458575,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"teardown","evt":"case.end","payload":{"duration":3,"status":"passed"}}
+{"ts":1760743544658,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"setup","evt":"case.begin","env":{"nodeVersion":"v24.9.0","platform":"linux","arch":"x64","os":"Linux 6.8.0-85-generic","seed":42,"envVars":{"NODE_ENV":"test","LAMINAR_SUITE":"threads"}},"seed":42}
+{"ts":1760743544659,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"execution","evt":"test.run"}
+{"ts":1760743544660,"lvl":"info","case":"empty merge: destination with zero sources completes","phase":"teardown","evt":"case.end","payload":{"duration":34,"status":"passed"}}

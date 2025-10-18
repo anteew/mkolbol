@@ -21,6 +21,19 @@ export declare class RoutingServer extends EventEmitter {
     announce(announcement: RoutingAnnouncement): void;
     withdraw(id: string): void;
     list(): RoutingEndpoint[];
+    /**
+     * Resolve the best endpoint for given coordinates using path preference.
+     * Preference order: local > LAN > WAN (determined by federationSource metadata)
+     * Returns the highest-priority endpoint, or undefined if none exist.
+     */
+    resolve(coordinates: string): RoutingEndpoint | undefined;
+    /**
+     * Resolve all endpoints for given coordinates, ranked by path preference.
+     * Preference order: local > LAN > WAN
+     * Local: no federationSource metadata
+     * Remote: has federationSource metadata (LAN vs WAN could be distinguished later)
+     */
+    resolveAll(coordinates: string): RoutingEndpoint[];
     startSweeper(): void;
     stopSweeper(): void;
     sweep(): void;
