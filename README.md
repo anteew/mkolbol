@@ -2,6 +2,9 @@
 
 [Agent Hub → AGENTS.md](AGENTS.md)
 
+- Tiny OS‑Cloud philosophy: docs/rfcs/stream-kernel/13-os-cloud.md
+- Threads vs forks & CWD: docs/devex/threads-vs-forks-and-cwd.md
+
 **Stream-based microkernel for AI agent systems**
 
 ## QUICKSTART — Build With mk (30–60s)

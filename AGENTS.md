@@ -12,6 +12,8 @@ Quick Links
 - Rehydrate checklists: `VEGA/rehydrate-checklist-*.md`
 - PR summary bot: `scripts/post-validator-summary.ts`
 - PR reader tool: `scripts/agent-tools/pr-comment-extract.ts`
+  - OS‑Cloud philosophy: `docs/rfcs/stream-kernel/13-os-cloud.md`
+  - Threads vs forks & CWD: `docs/devex/threads-vs-forks-and-cwd.md`
   - Hydrate file locally from PR: `npm run agents:hydrate -- --pr <NUM>`
 
 Local Bootstrap
