@@ -56,7 +56,17 @@ function buildSprintJSONBlock() {
         if (!data)
             continue;
         const pretty = JSON.stringify(data, null, 2);
-        out.push(['', '<details>', `<summary>${f}</summary>`, '', '```json', pretty, '```', '</details>', ''].join('\n'));
+        out.push([
+            '',
+            '<details>',
+            `<summary>${f}</summary>`,
+            '',
+            '```json',
+            pretty,
+            '```',
+            '</details>',
+            '',
+        ].join('\n'));
     }
     out.push('<!-- sprint-json-end -->');
     return out.join('\n');

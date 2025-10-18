@@ -92,7 +92,8 @@
     "ci:local:docker": "echo \"Stub: see docker/Dockerfile.ci (not built).\" && exit 0",
     "validate:sprint": "node dist/scripts/validate-sprints.js",
     "validate:sprint:all": "npm run build && node dist/scripts/validate-sprints.js",
-    "validate:template": "node dist/scripts/validate-template.js"
+    "validate:template": "node dist/scripts/validate-template.js",
+    "agents:pr:read": "tsx scripts/agent-tools/pr-comment-extract.ts"
   },
   "dependencies": {
     "node-pty": "^1.0.0",
