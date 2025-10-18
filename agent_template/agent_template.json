@@ -1,11 +1,17 @@
 {
-  "template": "agent-template",
-  "version": 1,
+  "template": "sprint-template",
+  "version": 2,
   "conventions": {
     "one_active_sprint_per_file": true,
     "files": {
-      "core": { "sprint_file": "ampcode.md", "log_file": "ampcode.log" },
-      "devex": { "sprint_file": "devex.md", "log_file": "devex.log" }
+      "core": {
+        "sprint_file": "ampcode.json",
+        "log_file": "ampcode.log"
+      },
+      "devex": {
+        "sprint_file": "devex.json",
+        "log_file": "devex.log"
+      }
     },
     "archives": {
       "dir": "archives/",
@@ -19,7 +25,12 @@
   "sprint_block_schema": {
     "ampcode": "v1",
     "waves": [
-      { "id": "<WAVE_ID>", "parallel": true, "depends_on": ["<WAVE_ID>"], "tasks": ["<TASK_ID>"] }
+      {
+        "id": "<WAVE_ID>",
+        "parallel": true,
+        "depends_on": ["<WAVE_ID>"],
+        "tasks": ["<TASK_ID>"]
+      }
     ],
     "branch": "<BRANCH_NAME>",
     "tasks": [
@@ -42,7 +53,7 @@
       "core": {
         "log_file": "ampcode.log",
         "guidance": [
-          "After each task append 1–3 lines: [Nxxxx] what changed.",
+          "After each task append 1\u20133 lines: [Nxxxx] what changed.",
           "Include file pointers (path:line) when useful.",
           "Do not write to devex.log for core sprints."
         ]
@@ -50,7 +61,7 @@
       "devex": {
         "log_file": "devex.log",
         "guidance": [
-          "After each task append 1–3 lines: [Dxxxx] what changed.",
+          "After each task append 1\u20133 lines: [Dxxxx] what changed.",
           "Include file pointers (path:line) when useful.",
           "Do not write to ampcode.log for DevEx sprints."
         ]
@@ -72,5 +83,73 @@
   "reports": {
     "artifacts": ["reports/summary.jsonl", "reports/<suite>/<case>.jsonl"],
     "digests": "docs/digests/*.md (optional)"
+  },
+  "instantiation": {
+    "create_new_sprint_file": true,
+    "core": {
+      "target_filename": "ampcode.json",
+      "description": "Single active core sprint file. Archive prior file into archives/."
+    },
+    "devex": {
+      "target_filename": "devex.json",
+      "description": "Single active DevEx sprint file. Archive prior file into archives/."
+    },
+    "archive_policy": {
+      "dir": "archives/",
+      "examples": ["archives/ampcode-<UTC>.json", "archives/devex-<UTC>.json"],
+      "note": "Always archive previous sprint before creating a new one."
+    }
+  },
+  "agent_guardrails": [
+    "Modify only files listed in tasks[*].allowedFiles.",
+    "Do not edit CI/workflows/package settings unless explicitly allowed.",
+    "Do not rename or move files outside allowedFiles.",
+    "Do not push directly to main; the architect handles merges.",
+    "Produce unified patches under patches/ and keep diffs minimal.",
+    "Node 24.x only for local runs; avoid platform-specific assumptions."
+  ],
+  "validation": {
+    "required_fields": ["ampcode", "waves", "tasks", "branch"],
+    "waves_rules": {
+      "id": "string",
+      "parallel": "boolean",
+      "tasks": "string[]"
+    },
+    "task_rules": {
+      "id": "string",
+      "agent": "enum(susan|devex)",
+      "title": "string",
+      "allowedFiles": "string[]",
+      "verify": "string[]",
+      "deliverables": "string[]"
+    }
+  },
+  "example": {
+    "EXAMPLE_ONLY": true,
+    "ampcode": "v1",
+    "branch": "example-feature-branch",
+    "waves": [
+      {
+        "id": "W1",
+        "parallel": false,
+        "tasks": ["X1001"]
+      }
+    ],
+    "tasks": [
+      {
+        "id": "X1001",
+        "agent": "devex",
+        "title": "CLI help polish",
+        "why": "Tighten UX and keep docs in sync.",
+        "allowedFiles": ["scripts/mkctl.ts", "docs/devex/mkctl-cookbook.md"],
+        "verify": ["npm run build", "npm run test:ci"],
+        "deliverables": ["patches/DIFF_X1001_cli-help.patch"]
+      }
+    ],
+    "branch_instructions": [
+      "IMPORTANT: Work only on example-feature-branch.",
+      "Write logs to devex.log.",
+      "Submit patches under patches/."
+    ]
   }
 }
