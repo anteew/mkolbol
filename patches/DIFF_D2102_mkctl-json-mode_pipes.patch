@@ -1,0 +1,29 @@
+diff --git src/pipes/adapters/TCPPipe.ts src/pipes/adapters/TCPPipe.ts
+index 95d1f4a..496e4b8 100644
+--- src/pipes/adapters/TCPPipe.ts
++++ src/pipes/adapters/TCPPipe.ts
+@@ -45,6 +45,10 @@ export class TCPPipeClient extends Duplex {
+       const result = FrameCodec.decode(this.buffer);
+       if (!result) break;
+       this.buffer = this.buffer.slice(result.bytesConsumed);
++
++      // Emit 'frame' event with full frame metadata before processing
++      this.emit('frame', result.frame);
++
+       if (result.frame.metadata.type === 'data') this.push(result.frame.payload);
+     }
+   }
+diff --git src/pipes/adapters/WebSocketPipe.ts src/pipes/adapters/WebSocketPipe.ts
+index c6bc8d6..74a81cc 100644
+--- src/pipes/adapters/WebSocketPipe.ts
++++ src/pipes/adapters/WebSocketPipe.ts
+@@ -93,6 +93,9 @@ export class WebSocketPipeClient extends Duplex {
+       const { frame, bytesConsumed } = result;
+       this.buffer = this.buffer.slice(bytesConsumed);
+ 
++      // Emit 'frame' event with full frame metadata before processing
++      this.emit('frame', frame);
++
+       if (frame.metadata.type === 'data') {
+         this.push(frame.payload);
+       } else if (frame.metadata.type === 'ping') {

@@ -524,3 +524,180 @@ node ../dist/scripts/mk.js ci plan --output
 - ✅ Complete end-to-end workflow for deployment
 
 **Ready to iterate faster?** Head to the [mk dev, logs, trace Guide](./mk-dev-logs-trace.md) for hot reload and debugging tools.
+
+---
+
+## 10. Bonus: Remote Viewing with mkctl connect (3 min)
+
+**NEW in P21:** Connect to remote pipes, record sessions, and replay them offline.
+
+### Quick Demo: Record and Replay
+
+Let's demonstrate the complete record/replay flow with a real topology:
+
+```bash
+# Terminal 1: Start a topology with network export
+cd ..  # back to mkolbol repo root
+export MK_LOCAL_NODE=1
+
+# Run HTTP server topology for 30 seconds
+node dist/scripts/mkctl.js run \
+  --file examples/configs/http-logs-local.yml \
+  --duration 30
+```
+
+**Terminal 2: Connect and record the session**
+
+```bash
+# Connect to the TCP pipe and save frames
+node dist/scripts/mkctl.js connect \
+  --url tcp://localhost:30010 \
+  --record demo-session.mkframes
+
+# You'll see live output while it records
+```
+
+**Terminal 3: Send some HTTP requests**
+
+```bash
+curl -s http://localhost:3000/hello
+curl -s http://localhost:3000/test
+curl -s http://localhost:3000/api/users
+```
+
+**Back to Terminal 2:**
+
+```
+# Press Ctrl+C to stop recording
+^C
+[mkctl] Disconnecting...
+[mkctl] Recording saved to demo-session.mkframes
+```
+
+**Now replay the session offline:**
+
+```bash
+# Replay in human-readable format
+node dist/scripts/mkctl.js connect --replay demo-session.mkframes
+
+# Replay in JSON format for processing
+node dist/scripts/mkctl.js connect --replay demo-session.mkframes --json
+
+# Extract just the payloads
+node dist/scripts/mkctl.js connect \
+  --replay demo-session.mkframes \
+  --json | jq -r '.payload // empty'
+
+# Count frames
+wc -l demo-session.mkframes
+```
+
+### Copy-Paste Walkthrough
+
+**Full end-to-end demo (paste all at once):**
+
+```bash
+# From mkolbol repo root
+export MK_LOCAL_NODE=1
+
+# Start topology in background for 30s
+node dist/scripts/mkctl.js run \
+  --file examples/configs/http-logs-local.yml \
+  --duration 30 &
+
+MKCTL_PID=$!
+
+# Wait for server startup
+sleep 2
+
+# Start recording in background
+node dist/scripts/mkctl.js connect \
+  --url tcp://localhost:30010 \
+  --record demo-session.mkframes > /dev/null &
+
+CONNECT_PID=$!
+
+# Wait for connection
+sleep 1
+
+# Send requests
+echo "Sending requests..."
+curl -s http://localhost:3000/hello > /dev/null
+sleep 0.5
+curl -s http://localhost:3000/test > /dev/null
+sleep 0.5
+curl -s http://localhost:3000/api/users > /dev/null
+
+# Wait a bit
+sleep 2
+
+# Stop recording
+kill -SIGINT $CONNECT_PID 2>/dev/null || true
+wait $CONNECT_PID 2>/dev/null || true
+
+# Wait for topology to finish (or kill it)
+sleep 2
+kill -SIGINT $MKCTL_PID 2>/dev/null || true
+wait $MKCTL_PID 2>/dev/null || true
+
+echo ""
+echo "✅ Recording complete!"
+echo ""
+
+# Verify recording
+echo "📊 Recording stats:"
+wc -l demo-session.mkframes
+
+echo ""
+echo "🎬 Replaying session..."
+node dist/scripts/mkctl.js connect --replay demo-session.mkframes
+
+echo ""
+echo "✅ Demo complete!"
+```
+
+### What You Just Learned
+
+- ✅ **Connect** to live TCP pipes with `mkctl connect --url`
+- ✅ **Record** sessions with `--record <file>`
+- ✅ **Replay** sessions offline with `--replay <file>`
+- ✅ **Process** frames with `--json` and `jq`
+
+### Real-World Use Cases
+
+**Debug production issues:**
+
+```bash
+# Record problematic session
+mkctl connect --url tcp://prod-server:30010 --record issue-123.mkframes
+
+# Replay locally for debugging
+mkctl connect --replay issue-123.mkframes --json | analyze-tool
+```
+
+**Test frame handling:**
+
+```bash
+# Capture real traffic
+mkctl connect --url tcp://localhost:30010 --record traffic-pattern.mkframes
+
+# Replay in tests
+mkctl connect --replay traffic-pattern.mkframes --json | your-test-harness
+```
+
+**Create audit trails:**
+
+```bash
+# Record all frames with timestamp
+mkctl connect --url tcp://localhost:30010 --record audit-$(date +%Y%m%d-%H%M%S).mkframes
+```
+
+### Next Steps
+
+**For more on remote viewing:**
+
+- **[mkctl Cookbook](./mkctl-cookbook.md#remote-viewing)** - Complete connect reference
+- **[Network Quickstart](./network-quickstart.md)** - TCP and WebSocket pipe setup
+- **[Remote Host Setup](./remote-host-setup.md)** - SSH tunneling patterns
+
+**Ready to iterate faster?** Head to the [mk dev, logs, trace Guide](./mk-dev-logs-trace.md) for hot reload and debugging tools.

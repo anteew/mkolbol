@@ -1,31 +1,54 @@
 ```json
 {
   "ampcode": "v1",
-  "waves": [
-    { "id": "P20A-ROUTER-P3", "parallel": false, "tasks": ["N2001","N2002","N2003"] }
-  ],
+  "waves": [{ "id": "P20A-ROUTER-P3", "parallel": false, "tasks": ["N2001", "N2002", "N2003"] }],
   "branch": "mkolbol-core-router-p3-subscribe",
   "tasks": [
-    {"id":"N2001","agent":"susan","title":"RoutingServer: subscribe() API + event stream (added/updated/removed/staleExpired)",
-      "why":"Enable live route/liveness updates to consumers without polling.",
-      "allowedFiles":["src/router/RoutingServer.ts","src/executor/Executor.ts","src/types/router.ts","tests/integration/router.subscribe.spec.ts"],
-      "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_N2001_router-subscribe.patch"]},
+    {
+      "id": "N2001",
+      "agent": "susan",
+      "title": "RoutingServer: subscribe() API + event stream (added/updated/removed/staleExpired)",
+      "why": "Enable live route/liveness updates to consumers without polling.",
+      "allowedFiles": [
+        "src/router/RoutingServer.ts",
+        "src/executor/Executor.ts",
+        "src/types/router.ts",
+        "tests/integration/router.subscribe.spec.ts"
+      ],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_N2001_router-subscribe.patch"]
+    },
 
-    {"id":"N2002","agent":"susan","title":"Heartbeat/TTL integration: emit stale→expired transitions; snapshot includes expiresAt",
-      "why":"Expose liveness semantics over subscriptions; align with TTL rules.",
-      "allowedFiles":["src/router/RoutingServer.ts","tests/integration/router.ttl.spec.ts","tests/integration/router.subscribe.spec.ts"],
-      "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_N2002_router-ttl-subscribe.patch"]},
+    {
+      "id": "N2002",
+      "agent": "susan",
+      "title": "Heartbeat/TTL integration: emit stale→expired transitions; snapshot includes expiresAt",
+      "why": "Expose liveness semantics over subscriptions; align with TTL rules.",
+      "allowedFiles": [
+        "src/router/RoutingServer.ts",
+        "tests/integration/router.ttl.spec.ts",
+        "tests/integration/router.subscribe.spec.ts"
+      ],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_N2002_router-ttl-subscribe.patch"]
+    },
 
-    {"id":"N2003","agent":"susan","title":"Acceptance: demo subscriber + soak under churn; Laminar artifacts",
-      "why":"Prove stability and clear events under load and restarts.",
-      "allowedFiles":["examples/network/subscriber-demo/**","docs/devex/network-quickstart.md","reports/**"],
-      "verify":["npm run ci:local:fast"],
-      "deliverables":["patches/DIFF_N2003_subscriber-acceptance.patch"]}
+    {
+      "id": "N2003",
+      "agent": "susan",
+      "title": "Acceptance: demo subscriber + soak under churn; Laminar artifacts",
+      "why": "Prove stability and clear events under load and restarts.",
+      "allowedFiles": [
+        "examples/network/subscriber-demo/**",
+        "docs/devex/network-quickstart.md",
+        "reports/**"
+      ],
+      "verify": ["npm run ci:local:fast"],
+      "deliverables": ["patches/DIFF_N2003_subscriber-acceptance.patch"]
+    }
   ]
 }
-````
+```
 
 Branch Instructions
 

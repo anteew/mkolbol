@@ -1,0 +1,89 @@
+# D2102: Output modes - human default + --json raw frames
+#
+# Summary:
+# - Enhanced TCPPipeClient and WebSocketPipeClient to emit 'frame' events
+# - Updated mkctl connect to use frame events for JSON mode
+# - JSON mode now outputs proper frame metadata (type, timestamp, payload)
+# - Updated documentation to reflect enhanced JSON format
+#
+# Changes:
+# 1. src/pipes/adapters/TCPPipe.ts - Added 'frame' event emission
+# 2. src/pipes/adapters/WebSocketPipe.ts - Added 'frame' event emission  
+# 3. scripts/mkctl.ts - Use 'frame' events for JSON output mode
+# 4. docs/devex/mkctl-cookbook.md - Document JSON output format
+#
+diff --git src/pipes/adapters/TCPPipe.ts src/pipes/adapters/TCPPipe.ts
+index 95d1f4a..496e4b8 100644
+--- src/pipes/adapters/TCPPipe.ts
++++ src/pipes/adapters/TCPPipe.ts
+@@ -45,6 +45,10 @@ export class TCPPipeClient extends Duplex {
+       const result = FrameCodec.decode(this.buffer);
+       if (!result) break;
+       this.buffer = this.buffer.slice(result.bytesConsumed);
++
++      // Emit 'frame' event with full frame metadata before processing
++      this.emit('frame', result.frame);
++
+       if (result.frame.metadata.type === 'data') this.push(result.frame.payload);
+     }
+   }
+diff --git src/pipes/adapters/WebSocketPipe.ts src/pipes/adapters/WebSocketPipe.ts
+index c6bc8d6..74a81cc 100644
+--- src/pipes/adapters/WebSocketPipe.ts
++++ src/pipes/adapters/WebSocketPipe.ts
+@@ -93,6 +93,9 @@ export class WebSocketPipeClient extends Duplex {
+       const { frame, bytesConsumed } = result;
+       this.buffer = this.buffer.slice(bytesConsumed);
+ 
++      // Emit 'frame' event with full frame metadata before processing
++      this.emit('frame', frame);
++
+       if (frame.metadata.type === 'data') {
+         this.push(frame.payload);
+       } else if (frame.metadata.type === 'ping') {
+
++      client.on('frame', (frame: Frame) => {
+         try {
+-          const data = {
+-            timestamp: Date.now(),
+-            data: chunk.toString('base64'),
+-            size: chunk.length,
++          const output: any = {
++            type: frame.metadata.type,
++            timestamp: frame.metadata.timestamp,
+           };
+-          console.log(JSON.stringify(data));
++
++          // Include payload for data frames (as UTF-8 string if possible)
++          if (frame.metadata.type === 'data' && frame.payload) {
++            try {
++              output.payload = frame.payload.toString('utf8');
++            } catch {
++              output.payload = frame.payload.toString('base64');
++              output.encoding = 'base64';
++            }
++          }
++
++          // Include sequenceId if present
++          if (frame.metadata.sequenceId !== undefined) {
++            output.sequenceId = frame.metadata.sequenceId;
++          }
++
++          console.log(JSON.stringify(output));
+         } catch (err) {
+-          console.error(`[mkctl] Error formatting data: ${err}`);
++          console.error(`[mkctl] Error formatting frame: ${err}`);
+         }
+-      } else {
++      });
++    } else {
++      // Human-readable mode: output raw payload data
++      client.on('data', (chunk: Buffer) => {
+         process.stdout.write(chunk);
+-      }
+-    });
++      });
++    }
+ 
+     client.on('end', () => {
+       if (!isShuttingDown) {

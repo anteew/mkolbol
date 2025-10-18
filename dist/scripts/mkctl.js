@@ -8,6 +8,9 @@ import { StateManager } from '../src/state/StateManager.js';
 import { Executor } from '../src/executor/Executor.js';
 import { loadConfig } from '../src/config/loader.js';
 import { RoutingServer } from '../src/router/RoutingServer.js';
+import { TCPPipeClient } from '../src/pipes/adapters/TCPPipe.js';
+import { WebSocketPipeClient } from '../src/pipes/adapters/WebSocketPipe.js';
+import { parseURL, validateConnectOptions, getConnectHelp, URLParseError, } from '../src/cli/connect.js';
 const EXIT_CODES = {
     SUCCESS: 0,
     USAGE: 64,
@@ -49,6 +52,7 @@ USAGE
 COMMANDS
   endpoints    List all registered endpoints with type and coordinates
   run          Execute topology from config file
+  connect      Connect to a remote TCP or WebSocket pipe and stream output
 
 EXAMPLES
   mkctl endpoints
@@ -57,6 +61,8 @@ EXAMPLES
   mkctl endpoints --watch --filter type=worker --interval 2
   mkctl run --file examples/configs/basic.yml
   mkctl run --file config.yml --duration 10
+  mkctl connect --url tcp://localhost:30010
+  mkctl connect --url ws://localhost:30012/pipe --json
 
 LEARN MORE
   Documentation: https://github.com/anteew/mkolbol
@@ -72,6 +78,17 @@ async function main() {
         case 'run': {
             try {
                 const exitCode = await handleRunCommand(process.argv.slice(3));
+                process.exit(exitCode);
+            }
+            catch (err) {
+                const code = handleException(err);
+                process.exit(code);
+            }
+            return;
+        }
+        case 'connect': {
+            try {
+                const exitCode = await handleConnectCommand(process.argv.slice(3));
                 process.exit(exitCode);
             }
             catch (err) {
@@ -441,6 +458,234 @@ async function handleEndpointsCommand(args) {
         }
         await new Promise((resolve) => setTimeout(resolve, interval * 1000));
     }
+}
+async function handleReplayMode(replayPath, json) {
+    console.error(`[mkctl] Replaying from ${replayPath}...`);
+    try {
+        const content = await fs.readFile(replayPath, 'utf-8');
+        const lines = content.trim().split('\n');
+        console.error(`[mkctl] Replaying ${lines.length} frames`);
+        for (const line of lines) {
+            if (!line.trim())
+                continue;
+            try {
+                const frame = JSON.parse(line);
+                if (json) {
+                    // JSON mode: output the stored frame as-is
+                    console.log(JSON.stringify(frame));
+                }
+                else {
+                    // Human-readable mode: output only the payload
+                    if (frame.type === 'data' && frame.payload) {
+                        process.stdout.write(frame.payload);
+                    }
+                }
+            }
+            catch (err) {
+                console.error(`[mkctl] Warning: Failed to parse frame: ${err}`);
+            }
+        }
+        console.error('[mkctl] Replay complete');
+        return EXIT_CODES.SUCCESS;
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            throw new MkctlError(`Failed to replay from ${replayPath}: ${err.message}`, EXIT_CODES.RUNTIME, { cause: err });
+        }
+        throw err;
+    }
+}
+function parseConnectArgs(args) {
+    let url;
+    let json = false;
+    let record;
+    let replay;
+    for (let i = 0; i < args.length; i++) {
+        const token = args[i];
+        if (token === '--url') {
+            const next = args[i + 1];
+            if (!next || next.startsWith('--')) {
+                throw new MkctlError('--url requires a value', EXIT_CODES.USAGE);
+            }
+            url = next;
+            i++;
+        }
+        else if (token === '--json') {
+            json = true;
+        }
+        else if (token === '--record') {
+            const next = args[i + 1];
+            if (!next || next.startsWith('--')) {
+                throw new MkctlError('--record requires a file path', EXIT_CODES.USAGE);
+            }
+            record = next;
+            i++;
+        }
+        else if (token === '--replay') {
+            const next = args[i + 1];
+            if (!next || next.startsWith('--')) {
+                throw new MkctlError('--replay requires a file path', EXIT_CODES.USAGE);
+            }
+            replay = next;
+            i++;
+        }
+        else if (token === '--help' || token === '-h') {
+            console.log(getConnectHelp());
+            process.exit(EXIT_CODES.SUCCESS);
+        }
+    }
+    // URL is required unless in replay mode
+    if (!url && !replay) {
+        console.log(getConnectHelp());
+        throw new MkctlError('Missing required option: --url (or --replay)', EXIT_CODES.USAGE);
+    }
+    return { url: url || '', json, record, replay };
+}
+async function handleConnectCommand(args) {
+    let options;
+    try {
+        options = parseConnectArgs(args);
+    }
+    catch (err) {
+        if (err instanceof MkctlError) {
+            throw err;
+        }
+        throw new MkctlError(err instanceof Error ? err.message : String(err), EXIT_CODES.USAGE);
+    }
+    const { url, json, record, replay } = options;
+    // Handle replay mode
+    if (replay) {
+        return handleReplayMode(replay, json ?? false);
+    }
+    let parsed;
+    try {
+        validateConnectOptions(options);
+        parsed = parseURL(url);
+    }
+    catch (err) {
+        if (err instanceof URLParseError) {
+            throw new MkctlError(err.message, EXIT_CODES.USAGE);
+        }
+        throw new MkctlError(err instanceof Error ? err.message : String(err), EXIT_CODES.USAGE);
+    }
+    console.error(`[mkctl] Connecting to ${url}...`);
+    let client;
+    let exitCode = EXIT_CODES.SUCCESS;
+    let isShuttingDown = false;
+    try {
+        if (parsed.protocol === 'tcp') {
+            client = new TCPPipeClient({
+                host: parsed.host,
+                port: parsed.port,
+                timeout: 5000,
+            });
+        }
+        else {
+            client = new WebSocketPipeClient({
+                host: parsed.host,
+                port: parsed.port,
+                path: parsed.path,
+                timeout: 5000,
+            });
+        }
+        await client.connect();
+        console.error(`[mkctl] Connected to ${url}`);
+        // Set up recording file handle if needed
+        let recordFileHandle;
+        if (record) {
+            try {
+                recordFileHandle = await fs.open(record, 'w');
+                console.error(`[mkctl] Recording to ${record}`);
+            }
+            catch (err) {
+                throw new MkctlError(`Failed to open record file ${record}: ${err instanceof Error ? err.message : String(err)}`, EXIT_CODES.RUNTIME);
+            }
+        }
+        const handleShutdown = async () => {
+            if (isShuttingDown)
+                return;
+            isShuttingDown = true;
+            console.error('\n[mkctl] Disconnecting...');
+            if (recordFileHandle) {
+                try {
+                    await recordFileHandle.close();
+                    console.error(`[mkctl] Recording saved to ${record}`);
+                }
+                catch (err) {
+                    console.error(`[mkctl] Warning: Failed to close record file: ${err}`);
+                }
+            }
+            client.close();
+        };
+        process.once('SIGINT', handleShutdown);
+        process.once('SIGTERM', handleShutdown);
+        // Always listen to frame events for recording
+        client.on('frame', async (frame) => {
+            try {
+                const output = {
+                    type: frame.metadata.type,
+                    timestamp: frame.metadata.timestamp,
+                };
+                // Include payload for data frames (as UTF-8 string if possible)
+                if (frame.metadata.type === 'data' && frame.payload) {
+                    try {
+                        output.payload = frame.payload.toString('utf8');
+                    }
+                    catch {
+                        output.payload = frame.payload.toString('base64');
+                        output.encoding = 'base64';
+                    }
+                }
+                // Include sequenceId if present
+                if (frame.metadata.sequenceId !== undefined) {
+                    output.sequenceId = frame.metadata.sequenceId;
+                }
+                // Record frame to file if recording
+                if (recordFileHandle) {
+                    try {
+                        await recordFileHandle.write(JSON.stringify(output) + '\n');
+                    }
+                    catch (err) {
+                        console.error(`[mkctl] Warning: Failed to write frame to record file: ${err}`);
+                    }
+                }
+                // Output frame based on mode
+                if (json) {
+                    console.log(JSON.stringify(output));
+                }
+                else if (frame.metadata.type === 'data' && frame.payload) {
+                    process.stdout.write(frame.payload);
+                }
+            }
+            catch (err) {
+                console.error(`[mkctl] Error processing frame: ${err}`);
+            }
+        });
+        client.on('end', async () => {
+            if (!isShuttingDown) {
+                console.error('[mkctl] Connection closed by remote');
+                await handleShutdown();
+            }
+            process.exit(exitCode);
+        });
+        client.on('error', async (err) => {
+            console.error(`[mkctl] Connection error: ${err.message}`);
+            exitCode = EXIT_CODES.RUNTIME;
+            if (!isShuttingDown) {
+                await handleShutdown();
+            }
+        });
+        await new Promise(() => { });
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            throw new MkctlError(`Failed to connect to ${url}: ${err.message}`, EXIT_CODES.RUNTIME, {
+                cause: err,
+            });
+        }
+        throw err;
+    }
+    return exitCode;
 }
 async function writeRouterSnapshot(router) {
     const snapshotDir = path.resolve(process.cwd(), 'reports');

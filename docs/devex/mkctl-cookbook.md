@@ -1719,6 +1719,60 @@ cat reports/router-endpoints.json | jq 'length'
 
 View output from remote TCP or WebSocket pipes in real-time.
 
+### URL Format Contract (Frozen)
+
+The `mkctl connect` command uses a stable URL format for TCP and WebSocket connections:
+
+**TCP Format:**
+
+```
+tcp://HOST:PORT
+```
+
+**WebSocket Format:**
+
+```
+ws://HOST:PORT[/PATH]
+```
+
+**HOST:**
+
+- `localhost` - Local loopback
+- Hostname - Valid DNS hostname (RFC 1123)
+- IPv4 address - Four octets (0-255)
+
+**PORT:**
+
+- Integer between 1 and 65535
+- Required for both TCP and WebSocket
+
+**PATH:**
+
+- Optional for WebSocket
+- Must start with `/` if provided
+- Not allowed for TCP
+
+**Examples:**
+
+```bash
+# Valid TCP URLs
+tcp://localhost:30010
+tcp://192.168.1.100:30018
+tcp://example.com:8080
+
+# Valid WebSocket URLs
+ws://localhost:30015
+ws://localhost:30015/pipe
+ws://10.0.0.50:8080/ws
+```
+
+**Unsupported:**
+
+- HTTP/HTTPS protocols (use `ws://` instead)
+- IPv6 addresses (not supported in v1)
+- Port numbers outside 1-65535 range
+- TCP URLs with path components
+
 ### Connect to TCP Pipe
 
 Connect to a remote TCP pipe server and view the output:
@@ -1780,17 +1834,29 @@ mkctl connect --url ws://localhost:30012/pipe --json
 
 **JSON output format:**
 
+Each line is a JSON object representing a single frame from the frame protocol:
+
 ```json
 {"type":"data","payload":"Hello from timer","timestamp":1697520905123}
 {"type":"data","payload":"tick","timestamp":1697520906123}
 {"type":"ping","timestamp":1697520910000}
+{"type":"pong","timestamp":1697520910100}
 ```
 
 **Fields:**
 
-- `type` - Frame type (`data`, `ping`, `pong`, `close`)
-- `payload` - The actual data (for data frames)
-- `timestamp` - Unix timestamp in milliseconds
+- `type` - Frame type: `data`, `ping`, `pong`, or `close`
+- `timestamp` - Unix timestamp in milliseconds (when frame was created)
+- `payload` - The actual data (UTF-8 string for data frames, omitted for control frames)
+- `sequenceId` - Optional sequence number for data frames
+- `encoding` - Set to `base64` if payload is binary (non-UTF-8)
+
+**Frame Types:**
+
+- **data** - Contains actual stream data in the `payload` field
+- **ping** - Keep-alive heartbeat from server (no payload)
+- **pong** - Heartbeat response from client (no payload)
+- **close** - Graceful shutdown signal (no payload)
 
 **Use cases for JSON mode:**
 
@@ -1888,5 +1954,95 @@ telnet remote-host 30010
 
 - **[Network Quickstart](./network-quickstart.md)** - TCP and WebSocket pipe setup
 - **[Remote Host Setup](./remote-host-setup.md)** - Complete remote deployment guide
+
+### Record and Replay Sessions
+
+Record pipe sessions to files for later playback, debugging, or testing:
+
+```bash
+# Record a session to file
+mkctl connect --url tcp://localhost:30010 --record session.mkframes
+
+# Replay a recorded session
+mkctl connect --replay session.mkframes
+
+# Replay in JSON mode
+mkctl connect --replay session.mkframes --json
+```
+
+**Recording format:**
+
+Sessions are saved in JSONL format (one frame per line). Each line contains:
+
+```json
+{"type":"data","timestamp":1697520905123,"payload":"Hello from timer"}
+{"type":"ping","timestamp":1697520910000}
+{"type":"data","timestamp":1697520911123,"payload":"tick","sequenceId":42}
+```
+
+**Use cases:**
+
+- **Debug production issues** - Record problematic sessions and replay locally
+- **Test frame handling** - Capture real traffic patterns for testing
+- **Audit trails** - Keep permanent records of pipe communications
+- **Demo scenarios** - Record interesting sessions for presentations
+- **Offline analysis** - Process frame sequences without live connection
+
+**Examples:**
+
+```bash
+# Record while viewing (human-readable mode)
+mkctl connect --url tcp://localhost:30010 --record debug-session.mkframes
+
+# Record in JSON mode (see both live output and file)
+mkctl connect --url tcp://localhost:30010 --json --record raw-frames.mkframes
+
+# Replay and filter with jq
+mkctl connect --replay session.mkframes --json | jq 'select(.type=="data")'
+
+# Compare two sessions
+diff <(mkctl connect --replay session1.mkframes) \
+     <(mkctl connect --replay session2.mkframes)
+
+# Extract payloads only
+mkctl connect --replay session.mkframes --json | jq -r '.payload // empty'
+```
+
+**Recording lifecycle:**
+
+```
+1. File created when first frame arrives
+2. Each frame appended immediately (no buffering)
+3. File closed on disconnect (Ctrl+C or connection end)
+4. Progress messages on stderr, data on stdout
+```
+
+**File location:**
+
+- Paths can be relative or absolute
+- Relative paths are relative to current working directory
+- Parent directories must exist (won't create them)
+
+**Limitations:**
+
+- Cannot use `--record` and `--replay` together
+- Replay mode ignores `--url` (operates on file only)
+- Binary payloads are base64-encoded in recording
+
+**Troubleshooting:**
+
+```bash
+# Check recording file format
+head -5 session.mkframes | jq '.'
+
+# Count frames in recording
+wc -l session.mkframes
+
+# Validate all frames parse correctly
+cat session.mkframes | jq -c '.' > /dev/null && echo "Valid JSONL"
+
+# Extract timestamps to verify ordering
+cat session.mkframes | jq -r '.timestamp' | sort -n
+```
 
 ---
