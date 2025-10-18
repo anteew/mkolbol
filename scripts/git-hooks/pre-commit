@@ -9,3 +9,10 @@ npm run -s lint || true
 
 echo "[pre-commit] done"
 
+# Enforce JSONL log schema when log files are staged
+LOGS_STAGED=$(git diff --cached --name-only | grep -E '^(ampcode\.log|devex\.log)$' || true)
+if [ -n "$LOGS_STAGED" ]; then
+  echo "[pre-commit] Validating sprint logs..."
+  if [ ! -f dist/scripts/validate-sprints.js ]; then npm run -s build >/dev/null 2>&1 || true; fi
+  node dist/scripts/validate-sprints.js || { echo "[pre-commit] ERROR: sprint log validation failed."; exit 1; }
+fi

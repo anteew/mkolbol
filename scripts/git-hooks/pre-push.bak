@@ -12,10 +12,3 @@ npm run -s lint
 echo "[pre-push] Running fast local CI (RAM when available)"
 CI_FAST=1 npm run -s ci:local
 echo "[pre-push] Local CI passed"
-
-# Sprint file/log schema validation (warn-only)
-if npm run -s validate:sprint; then
-  echo "[validate] sprint files/logs OK"
-else
-  echo "[validate] WARN: sprint file/log validation failed (non-blocking)"
-fi
