@@ -36,3 +36,9 @@ Docker stub
 
 - `docker/Dockerfile.ci` documents the target runner image.
 - A future `npm run ci:local:docker` will bind-mount the repo and run the same steps inside the container.
+
+---
+### Sprint JSON + Logs Validation
+- Template: `agent_template/agent_template.json` → create `ampcode.json` (core) or `devex.json` (DevEx).
+- Logs: JSONL entries in `ampcode.log`/`devex.log`; schemas in `agent_template/log_templates/`.
+- Validate: `npm run validate:sprint` (warn-only in pre-push).
