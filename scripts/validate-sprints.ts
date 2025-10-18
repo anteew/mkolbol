@@ -22,7 +22,7 @@ async function validateJSONL(filePath: string, schemaPath: string, ajv: Ajv) {
   for await (const line of rl) {
     const t = line.trim();
     if (!t) continue; // skip blank
-    if (!(t.startsWith('{'))) continue; // allow headings/comments from legacy logs
+    if (!t.startsWith('{')) continue; // allow headings/comments from legacy logs
     lineNo++;
     try {
       const obj = JSON.parse(t);
@@ -53,7 +53,7 @@ async function main() {
   // Validate sprint files if present
   const targets = [
     { name: 'ampcode.json', path: resolve(root, 'ampcode.json') },
-    { name: 'devex.json', path: resolve(root, 'devex.json') }
+    { name: 'devex.json', path: resolve(root, 'devex.json') },
   ];
 
   let overallOk = true;

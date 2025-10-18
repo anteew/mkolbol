@@ -1,27 +1,73 @@
 {
   "ampcode": "v1",
   "waves": [
-    { "id": "P25-MULTIPLEX", "parallel": false, "tasks": ["N2501","N2502","N2503"] }
+    {
+      "id": "P25-MULTIPLEX",
+      "parallel": false,
+      "tasks": ["N2501", "N2502", "N2503"]
+    }
   ],
   "branch": "mkolbol-net-p25-multiplex",
   "tasks": [
-    {"id":"N2501","agent":"susan","title":"FrameMux v1: multiple logical streams over one link",
-      "why":"Reduce socket overhead and support N pipes per connection.",
-      "allowedFiles":["src/net/frame.ts","src/net/mux.ts","src/pipes/adapters/TCPPipe.ts","src/pipes/adapters/WebSocketPipe.ts","tests/integration/mux.basic.spec.ts"],
-      "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_N2501_frame-mux.patch"]},
-    {"id":"N2502","agent":"susan","title":"Per-stream backpressure + fairness; head-of-line mitigation",
-      "allowedFiles":["src/net/mux.ts","tests/integration/mux.backpressure.spec.ts"],
-      "verify":["npm run build","npm run test:ci"],
-      "deliverables":["patches/DIFF_N2502_mux-backpressure.patch"]},
-    {"id":"N2503","agent":"susan","title":"Acceptance: N logical pipes over 1 link; soak under load",
-      "allowedFiles":["examples/network/mux-demo/**","docs/devex/network-quickstart.md",".github/workflows/tests.yml"],
-      "verify":["npm run ci:local:fast"],
-      "deliverables":["patches/DIFF_N2503_mux-acceptance.patch"]}
+    {
+      "id": "N2501",
+      "agent": "susan",
+      "title": "FrameMux v1: multiple logical streams over one link",
+      "why": "Reduce socket overhead and support N pipes per connection.",
+      "allowedFiles": [
+        "src/net/frame.ts",
+        "src/net/mux.ts",
+        "src/pipes/adapters/TCPPipe.ts",
+        "src/pipes/adapters/WebSocketPipe.ts",
+        "tests/integration/mux.basic.spec.ts"
+      ],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_N2501_frame-mux.patch"]
+    },
+    {
+      "id": "N2502",
+      "agent": "susan",
+      "title": "Per-stream backpressure + fairness; head-of-line mitigation",
+      "allowedFiles": ["src/net/mux.ts", "tests/integration/mux.backpressure.spec.ts"],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_N2502_mux-backpressure.patch"]
+    },
+    {
+      "id": "N2503",
+      "agent": "susan",
+      "title": "Acceptance: N logical pipes over 1 link; soak under load",
+      "allowedFiles": [
+        "examples/network/mux-demo/**",
+        "docs/devex/network-quickstart.md",
+        ".github/workflows/tests.yml"
+      ],
+      "verify": ["npm run ci:local:fast"],
+      "deliverables": ["patches/DIFF_N2503_mux-acceptance.patch"]
+    }
   ],
   "branch_instructions": [
     "IMPORTANT: Work only on mkolbol-net-p25-multiplex.",
     "Logs: write JSON Lines to ampcode.log (core schema).",
     "Keep changes within allowedFiles; prefer feature flags for risky paths."
-  ]
+  ],
+  "instructions": {
+    "overview": "Multiplex multiple logical streams over a single transport link with fair backpressure.",
+    "expectations": [
+      "Write JSONL log entries using the core log schema.",
+      "Modify only allowedFiles; prefer feature flags for risky paths.",
+      "Run verify commands and include deliverable patches."
+    ],
+    "logging": {
+      "log_file": "ampcode.log",
+      "schema": "agent_template/log_templates/core_sprint_log.schema.json",
+      "example": "agent_template/log_templates/core_sprint_log.example.jsonl"
+    },
+    "hooks": {
+      "eslint_dryrun": {
+        "summary": "Fail‑fast ESLint fix dry‑run runs first; override with SKIP_ESLINT_DRYRUN=1 to bypass once.",
+        "example": "agent_template/examples/precommit-eslint-dryrun.md"
+      }
+    },
+    "deliverables_global": ["patches/*.patch", "tests updated and passing", "docs updated"]
+  }
 }

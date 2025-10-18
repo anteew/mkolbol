@@ -8,7 +8,7 @@ describe('MdnsPeerSource', () => {
       addr: 'localhost:3000',
       proto: 'tcp' as const,
       supportedVersions: [1, 2],
-      ttl: 30000
+      ttl: 30000,
     };
 
     const encoded = BeaconCodec.encode(beacon);

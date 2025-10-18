@@ -5,18 +5,36 @@
   "required": ["ampcode", "waves", "tasks", "branch"],
   "additionalProperties": true,
   "properties": {
-    "ampcode": {"type": "string"},
-    "branch": {"type": "string"},
+    "ampcode": {
+      "type": "string"
+    },
+    "branch": {
+      "type": "string"
+    },
     "waves": {
       "type": "array",
       "items": {
         "type": "object",
         "required": ["id", "parallel", "tasks"],
         "properties": {
-          "id": {"type": "string"},
-          "parallel": {"type": "boolean"},
-          "depends_on": {"type": "array", "items": {"type": "string"}},
-          "tasks": {"type": "array", "items": {"type": "string"}}
+          "id": {
+            "type": "string"
+          },
+          "parallel": {
+            "type": "boolean"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -26,18 +44,112 @@
         "type": "object",
         "required": ["id", "agent", "title", "allowedFiles", "verify", "deliverables"],
         "properties": {
-          "id": {"type": "string"},
-          "agent": {"type": "string"},
-          "title": {"type": "string"},
-          "why": {"type": "string"},
-          "allowedFiles": {"type": "array", "items": {"type": "string"}},
-          "verify": {"type": "array", "items": {"type": "string"}},
-          "deliverables": {"type": "array", "items": {"type": "string"}}
+          "id": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "allowedFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verify": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "deliverables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
         "additionalProperties": true
       }
     },
-    "branch_instructions": {"type": "array", "items": {"type": "string"}},
-    "sprint_logging": {"type": "object"}
+    "branch_instructions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sprint_logging": {
+      "type": "object"
+    },
+    "instructions": {
+      "type": "object",
+      "required": ["expectations", "logging"],
+      "properties": {
+        "overview": {
+          "type": "string"
+        },
+        "hooks": {
+          "type": "object",
+          "properties": {
+            "eslint_dryrun": {
+              "type": "object",
+              "properties": {
+                "summary": { "type": "string" },
+                "example": { "type": "string" }
+              },
+              "required": ["summary", "example"]
+            }
+          },
+          "additionalProperties": true
+        },
+        "expectations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "logging": {
+          "type": "object",
+          "required": ["log_file", "schema", "example"],
+          "properties": {
+            "log_file": {
+              "type": "string",
+              "pattern": "^(ampcode\\.log|devex\\.log)$"
+            },
+            "schema": {
+              "type": "string"
+            },
+            "example": {
+              "type": "string"
+            }
+          }
+        },
+        "deliverables_global": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "knowledge": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workflow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
   }
 }

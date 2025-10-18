@@ -2,25 +2,73 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Sprint Template Schema",
   "type": "object",
-  "required": ["template", "version", "conventions", "instantiation", "sprint_block_schema", "worker_workflow", "quality_bar", "reports"],
+  "required": [
+    "template",
+    "version",
+    "conventions",
+    "instantiation",
+    "sprint_block_schema",
+    "worker_workflow",
+    "quality_bar",
+    "reports"
+  ],
   "additionalProperties": true,
   "properties": {
-    "template": {"type": "string", "enum": ["sprint-template"]},
-    "version": {"type": "integer", "minimum": 1},
+    "template": {
+      "type": "string",
+      "enum": ["sprint-template"]
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
     "instantiation": {
       "type": "object",
       "required": ["create_new_sprint_file", "core", "devex", "archive_policy"],
       "properties": {
-        "create_new_sprint_file": {"type": "boolean"},
-        "core": {"type": "object", "required": ["target_filename"], "properties": {"target_filename": {"type": "string"}, "description": {"type": "string"}}},
-        "devex": {"type": "object", "required": ["target_filename"], "properties": {"target_filename": {"type": "string"}, "description": {"type": "string"}}},
+        "create_new_sprint_file": {
+          "type": "boolean"
+        },
+        "core": {
+          "type": "object",
+          "required": ["target_filename"],
+          "properties": {
+            "target_filename": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        },
+        "devex": {
+          "type": "object",
+          "required": ["target_filename"],
+          "properties": {
+            "target_filename": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        },
         "archive_policy": {
           "type": "object",
           "required": ["dir", "examples"],
           "properties": {
-            "dir": {"type": "string"},
-            "examples": {"type": "array", "items": {"type": "string"}},
-            "note": {"type": "string"}
+            "dir": {
+              "type": "string"
+            },
+            "examples": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "note": {
+              "type": "string"
+            }
           }
         }
       }
@@ -29,41 +77,98 @@
       "type": "object",
       "required": ["one_active_sprint_per_file", "files", "archives"],
       "properties": {
-        "one_active_sprint_per_file": {"type": "boolean"},
+        "one_active_sprint_per_file": {
+          "type": "boolean"
+        },
         "files": {
           "type": "object",
           "required": ["core", "devex"],
           "properties": {
-            "core": {"type": "object", "required": ["sprint_file", "log_file"], "properties": {"sprint_file": {"type": "string"}, "log_file": {"type": "string"}}},
-            "devex": {"type": "object", "required": ["sprint_file", "log_file"], "properties": {"sprint_file": {"type": "string"}, "log_file": {"type": "string"}}}
+            "core": {
+              "type": "object",
+              "required": ["sprint_file", "log_file"],
+              "properties": {
+                "sprint_file": {
+                  "type": "string"
+                },
+                "log_file": {
+                  "type": "string"
+                }
+              }
+            },
+            "devex": {
+              "type": "object",
+              "required": ["sprint_file", "log_file"],
+              "properties": {
+                "sprint_file": {
+                  "type": "string"
+                },
+                "log_file": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "archives": {
           "type": "object",
           "required": ["dir", "examples"],
           "properties": {
-            "dir": {"type": "string"},
-            "examples": {"type": "array", "items": {"type": "string"}}
+            "dir": {
+              "type": "string"
+            },
+            "examples": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         }
       }
+    },
+    "workflow_hooks": {
+      "type": "object",
+      "properties": {
+        "eslint_dryrun": { "type": "boolean", "default": false },
+        "prettier_staged": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": true
     },
     "sprint_block_schema": {
       "type": "object",
       "required": ["ampcode", "waves", "tasks"],
       "properties": {
-        "ampcode": {"type": "string"},
-        "branch": {"type": "string"},
+        "ampcode": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
         "waves": {
           "type": "array",
           "items": {
             "type": "object",
             "required": ["id", "parallel", "tasks"],
             "properties": {
-              "id": {"type": "string"},
-              "parallel": {"type": "boolean"},
-              "depends_on": {"type": "array", "items": {"type": "string"}},
-              "tasks": {"type": "array", "items": {"type": "string"}}
+              "id": {
+                "type": "string"
+              },
+              "parallel": {
+                "type": "boolean"
+              },
+              "depends_on": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tasks": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
             }
           }
         },
@@ -73,27 +178,169 @@
             "type": "object",
             "required": ["id", "agent", "title", "allowedFiles", "verify", "deliverables"],
             "properties": {
-              "id": {"type": "string"},
-              "agent": {"type": "string", "enum": ["susan", "devex"]},
-              "title": {"type": "string"},
-              "why": {"type": "string"},
-              "allowedFiles": {"type": "array", "items": {"type": "string"}},
-              "verify": {"type": "array", "items": {"type": "string"}},
-              "deliverables": {"type": "array", "items": {"type": "string"}}
+              "id": {
+                "type": "string"
+              },
+              "agent": {
+                "type": "string",
+                "enum": ["susan", "devex"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "why": {
+                "type": "string"
+              },
+              "allowedFiles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "verify": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deliverables": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
             },
             "additionalProperties": true
           }
         },
-        "branch_instructions": {"type": "array", "items": {"type": "string"}},
-        "sprint_logging": {"type": "object"}
+        "branch_instructions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sprint_logging": {
+          "type": "object"
+        },
+        "instructions": {
+          "type": "object",
+          "required": ["expectations", "logging"],
+          "properties": {
+            "overview": {
+              "type": "string"
+            },
+            "expectations": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "logging": {
+              "type": "object",
+              "required": ["log_file", "schema", "example"],
+              "properties": {
+                "log_file": {
+                  "type": "string",
+                  "pattern": "^(ampcode\\.log|devex\\.log|<ampcode\\.log\\|devex\\.log>)$"
+                },
+                "schema": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "string"
+                }
+              }
+            },
+            "hooks": {
+              "type": "object",
+              "properties": {
+                "eslint_dryrun": {
+                  "type": "object",
+                  "properties": {
+                    "summary": { "type": "string" },
+                    "example": { "type": "string" }
+                  },
+                  "required": ["summary", "example"]
+                }
+              },
+              "additionalProperties": true
+            },
+            "deliverables_global": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "knowledge": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "workflow": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
       },
       "additionalProperties": true
     },
-    "worker_workflow": {"type": "array", "items": {"type": "string"}},
-    "quality_bar": {"type": "object"},
-    "reports": {"type": "object"},
-    "agent_guardrails": {"type": "array", "items": {"type": "string"}},
-    "validation": {"type": "object"},
-    "example": {"type": "object"}
-  }
+    "worker_workflow": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "quality_bar": {
+      "type": "object"
+    },
+    "reports": {
+      "type": "object"
+    },
+    "agent_guardrails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "validation": {
+      "type": "object"
+    },
+    "example": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "workflow_hooks": {
+            "properties": { "eslint_dryrun": { "const": true } },
+            "required": ["eslint_dryrun"]
+          }
+        },
+        "required": ["workflow_hooks"]
+      },
+      "then": {
+        "properties": {
+          "sprint_block_schema": {
+            "properties": {
+              "instructions": {
+                "properties": {
+                  "hooks": { "required": ["eslint_dryrun"] }
+                },
+                "required": ["hooks"]
+              }
+            },
+            "required": ["instructions"]
+          }
+        }
+      }
+    }
+  ]
 }

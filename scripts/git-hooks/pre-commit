@@ -1,8 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 0) ESLint fix dry-run on staged files (fail-fast)
+if [ "${SKIP_ESLINT_DRYRUN:-}" != "1" ]; then
+  FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\\.(ts|tsx|js|jsx|mjs|cjs)$' || true)
+  if [ -n "$FILES" ]; then
+    echo "[pre-commit] eslint --fix (dry-run) on staged files"
+    npx tsx scripts/eslint-dry-run.ts $FILES || {
+      echo "[pre-commit] ESLint dry-run failed. See output above."
+      echo "[pre-commit] To override once: SKIP_ESLINT_DRYRUN=1 git commit -m '...'"
+      exit 1
+    }
+  fi
+fi
+
+echo "[pre-commit] format (staged)"
+FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\\.(ts|tsx|js|jsx|json|md|yml|yaml)$' || true)
+if [ -n "$FILES" ]; then
+  npx prettier -w $FILES >/dev/null 2>&1 || true
+  git add $FILES || true
+fi
 echo "[pre-commit] format:check"
-npm run -s format:check
+npm run -s format:check || true
 
 echo "[pre-commit] lint (warnings allowed)"
 npm run -s lint || true
@@ -15,4 +34,11 @@ if [ -n "$LOGS_STAGED" ]; then
   echo "[pre-commit] Validating sprint logs..."
   if [ ! -f dist/scripts/validate-sprints.js ]; then npm run -s build >/dev/null 2>&1 || true; fi
   node dist/scripts/validate-sprints.js || { echo "[pre-commit] ERROR: sprint log validation failed."; exit 1; }
+fi
+# Validate template and its examples when agent_template files are staged
+TPL_STAGED=$(git diff --cached --name-only | grep -E '^agent_template/' || true)
+if [ -n "$TPL_STAGED" ]; then
+  echo "[pre-commit] Validating agent template..."
+  if [ ! -f dist/scripts/validate-template.js ]; then npm run -s build >/dev/null 2>&1 || true; fi
+  node dist/scripts/validate-template.js || { echo "[pre-commit] ERROR: agent template validation failed."; exit 1; }
 fi

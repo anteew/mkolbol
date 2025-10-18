@@ -59,7 +59,10 @@ export class FrameMux {
 }
 
 class MuxStream extends Duplex {
-  constructor(private streamId: number, private mux: FrameMux) {
+  constructor(
+    private streamId: number,
+    private mux: FrameMux,
+  ) {
     super({ objectMode: false });
   }
 

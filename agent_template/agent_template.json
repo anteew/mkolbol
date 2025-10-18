@@ -22,6 +22,10 @@
       ]
     }
   },
+  "workflow_hooks": {
+    "eslint_dryrun": true,
+    "prettier_staged": true
+  },
   "sprint_block_schema": {
     "ampcode": "v1",
     "waves": [
@@ -36,7 +40,7 @@
     "tasks": [
       {
         "id": "<TASK_ID>",
-        "agent": "susan|devex",
+        "agent": "devex",
         "title": "<Short Title>",
         "why": "<Rationale>",
         "allowedFiles": ["<paths...>"],
@@ -53,7 +57,7 @@
       "core": {
         "log_file": "ampcode.log",
         "guidance": [
-          "After each task append 1\u20133 lines: [Nxxxx] what changed.",
+          "After each task append 1–3 lines: [Nxxxx] what changed.",
           "Include file pointers (path:line) when useful.",
           "Do not write to devex.log for core sprints."
         ]
@@ -61,11 +65,32 @@
       "devex": {
         "log_file": "devex.log",
         "guidance": [
-          "After each task append 1\u20133 lines: [Dxxxx] what changed.",
+          "After each task append 1–3 lines: [Dxxxx] what changed.",
           "Include file pointers (path:line) when useful.",
           "Do not write to ampcode.log for DevEx sprints."
         ]
       }
+    },
+    "instructions": {
+      "overview": "<One-liner of the sprint intent>",
+      "expectations": [
+        "Use JSONL logs and follow schema",
+        "Modify only allowedFiles",
+        "Run verify commands; deliver patches"
+      ],
+      "logging": {
+        "log_file": "<ampcode.log|devex.log>",
+        "schema": "agent_template/log_templates/<core|devex>_sprint_log.schema.json",
+        "example": "agent_template/log_templates/<core|devex>_sprint_log.example.jsonl"
+      },
+      "hooks": {
+        "eslint_dryrun": {
+          "summary": "Fail‑fast ESLint fix dry‑run runs first; override with SKIP_ESLINT_DRYRUN=1 to bypass once.",
+          "example": "agent_template/examples/precommit-eslint-dryrun.md"
+        }
+      },
+      "deliverables_global": ["patches/*.patch", "tests updated and passing", "docs updated"],
+      "knowledge": ["<Architect notes / context>", "<Links or hints>"]
     }
   },
   "worker_workflow": [

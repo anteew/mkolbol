@@ -29,7 +29,9 @@ Next (kickoff)
 - See devex.md sprint block P19-LINT for tasks and instructions.
 
 ---
+
 Update 2025-10-18T0130Z — JSON Sprint Template + Validators
+
 - Template: agent_template/agent_template.json (v2) — use to create single-file sprints: ampcode.json (core) or devex.json (DevEx).
 - Logs: write JSON Lines to ampcode.log (core) or devex.log (DevEx). Schemas under agent_template/log_templates/.
 - Validate locally: npm run validate:sprint (warn-only in pre-push).

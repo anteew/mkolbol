@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 export class PeerSource extends EventEmitter {
     peers = new Map();
     getPeers() {
-        return Array.from(this.peers.values()).map(p => ({ ...p }));
+        return Array.from(this.peers.values()).map((p) => ({ ...p }));
     }
     getPeer(hostId) {
         const peer = this.peers.get(hostId);
@@ -14,7 +14,7 @@ export class PeerSource extends EventEmitter {
         const updated = {
             ...peer,
             discoveredAt: existing?.discoveredAt ?? now,
-            lastSeen: now
+            lastSeen: now,
         };
         this.peers.set(peer.hostId, updated);
         if (existing) {
