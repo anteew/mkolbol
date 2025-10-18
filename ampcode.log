@@ -19,3 +19,29 @@ Events: staleExpired on sweep
 test:ci passing
 
 **Status**: Ready for PR #89
+
+## Sprint P23-DISCOVERY — 2025-10-17 23:22Z
+
+**Branch**: mkolbol-net-p23-discovery
+
+### N2301 — PeerSource + ConfigPeerSource ✅
+Commit: 42077de
+Files: src/discovery/PeerSource.ts, ConfigPeerSource.ts, types/network.ts
+Tests: 3 passing
+
+### N2302 — MdnsPeerSource + BeaconCodec ✅
+Commit: a695747
+Files: src/discovery/MdnsPeerSource.ts, BeaconCodec.ts
+Beacon: {hostId, addr, proto, versions, caps, ttl}
+
+### N2303 — mkctl peers (list/approve) ✅
+Commit: 62e2544
+Files: src/cli/peers.ts
+Storage: .mk/peers.json
+
+### N2304 — Acceptance ✅
+test:ci passing, ready for PR #91
+
+**Status**: Sprint complete, ready for Vega review
+
+# Note: P22 logging guidance present in ampcode.md; prefer per-sprint logs.

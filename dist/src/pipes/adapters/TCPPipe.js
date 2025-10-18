@@ -6,6 +6,9 @@ export class TCPPipeClient extends Duplex {
     socket;
     buffer = Buffer.alloc(0);
     sequenceId = 0;
+    reconnectAttempt = 0;
+    pingTimer;
+    shouldReconnect = false;
     constructor(options) {
         super({ objectMode: false });
         this.options = options;

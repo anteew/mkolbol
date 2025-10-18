@@ -1,0 +1,665 @@
+diff --git scripts/ci-local.ts scripts/ci-local.ts
+index 4479a90..a79c2af 100644
+--- scripts/ci-local.ts
++++ scripts/ci-local.ts
+@@ -35,12 +35,21 @@ async function runFastAcceptance(): Promise<void> {
+   else failed++;
+ 
+   // Test 4: Remote viewer example (smoke)
+-  console.log('[4/4] Testing remote viewer example...');
++  console.log('[4/5] Testing remote viewer example...');
+   const viewerTest = await testRemoteViewer();
+   results.push({ name: 'RemoteViewer', ...viewerTest });
+   if (viewerTest.passed) passed++;
+   else failed++;
+ 
++  // Test 5: Federation acceptance
++  console.log('[5/5] Testing router federation...');
++  const federationTest = await runTest(
++    'npx tsx examples/network/federation-demo/test.ts',
++  );
++  results.push({ name: 'FederationAcceptance', ...federationTest });
++  if (federationTest.passed) passed++;
++  else failed++;
++
+   // Summary
+   console.log('\n' + '='.repeat(60));
+   console.log('CI LOCAL FAST SUMMARY');
+diff --git examples/network/federation-demo/README.md examples/network/federation-demo/README.md
+new file mode 100644
+index 0000000..c710d41
+--- /dev/null
++++ examples/network/federation-demo/README.md
+@@ -0,0 +1,102 @@
++# Federation Demo
++
++This example demonstrates router-to-router federation with static peer configuration, endpoint propagation, and automatic failover.
++
++## Features
++
++- **Two Routers** with static peer discovery (Router-1 ↔ Router-2)
++- **Endpoint Propagation** - local announcements are shared across federation
++- **Path Preference** - local endpoints preferred over remote (local > LAN > WAN)
++- **Automatic Failover** - when local endpoint fails, traffic fails over to remote
++
++## Architecture
++
++```
++┌─────────────┐                  ┌─────────────┐
++│  Router-1   │◄────Federation───►│  Router-2   │
++│             │                   │             │
++│ Local:      │                   │ Local:      │
++│ service-a   │                   │ service-a   │
++│ service-b   │                   │ service-b   │
++│             │                   │             │
++│ Remote:     │                   │ Remote:     │
++│ (from R2)   │                   │ (from R1)   │
++└─────────────┘                   └─────────────┘
++```
++
++## Running the Demo
++
++### Terminal 1 - Router-2 (Start first)
++
++```bash
++npx tsx examples/network/federation-demo/router2.ts
++```
++
++### Terminal 2 - Router-1
++
++```bash
++npx tsx examples/network/federation-demo/router1.ts
++```
++
++## What to Observe
++
++1. **Federation Startup**
++   - Each router discovers its peer via static configuration
++   - Peer connections are established
++
++2. **Endpoint Propagation**
++   - Router-1 announces `service-a` and `service-b` locally
++   - Router-2 announces `service-a` and `service-b` locally
++   - Each router receives remote announcements from its peer
++
++3. **Path Preference**
++   - Each router sees multiple endpoints for the same coordinates
++   - Local endpoints are marked as `[BEST]` in routing table
++   - Remote endpoints are available as backups
++
++4. **Automatic Failover** (after 15 seconds)
++   - Router-1 withdraws its local `service-a`
++   - Router-1 automatically fails over to Router-2's `service-a`
++   - Best path updates from local → remote
++
++## Expected Output
++
++Router-1 will show:
++```
++[Router-1] Federation started
++[Router-1] Peers: router-2
++
++[Router-1/ADDED] r1-service-a (node:service-a) source=local
++[Router-1/ADDED] r2-service-a (node:service-a) source=router-2
++
++[Router-1] === Routing Table ===
++  node:service-a <- r1-service-a (LOCAL) [BEST]
++  node:service-a <- r2-service-a (router-2)
++
++[Router-1] SIMULATING FAILURE: Withdrawing local service-a...
++[Router-1/REMOVED] r1-service-a (node:service-a) source=local
++[Router-1] FAILOVER: Best service-a is now r2-service-a (source=router-2)
++```
++
++## Configuration
++
++- **TTL**: 10 seconds (endpoints expire if not refreshed)
++- **Sweep Interval**: 3 seconds (stale endpoint cleanup)
++- **Propagation Interval**: 2 seconds (federation sync)
++- **Peer Discovery**: Static configuration (ConfigPeerSource)
++
++## Key Concepts
++
++### Federation
++Routers share endpoint announcements with configured peers, creating a distributed routing table across the cluster.
++
++### Path Preference
++When multiple endpoints exist for the same coordinates:
++1. **Local** endpoints (announced locally) are preferred
++2. **Remote** endpoints (from peers) serve as backups
++
++### Failover
++When a preferred endpoint expires or is withdrawn, the router automatically selects the next best alternative based on path preference.
++
++### TTL Propagation
++Endpoints must be periodically re-announced to stay alive. When an endpoint stops being refreshed, it expires and is removed from the routing table, triggering failover to alternatives.
+diff --git examples/network/federation-demo/router1.ts examples/network/federation-demo/router1.ts
+new file mode 100644
+index 0000000..8284c2a
+--- /dev/null
++++ examples/network/federation-demo/router1.ts
+@@ -0,0 +1,98 @@
++#!/usr/bin/env tsx
++import { RoutingServer } from '../../../src/router/RoutingServer.js';
++import { Federation, ConfigPeerSource } from '../../../src/router/Federation.js';
++
++async function main() {
++  console.log('[Router-1] Starting...\n');
++
++  // Create router with 10-second TTL
++  const router = new RoutingServer({ ttlMs: 10000, sweepIntervalMs: 3000 });
++  router.startSweeper();
++
++  // Configure static peer (Router-2)
++  const peerSource = new ConfigPeerSource(['tcp://router-2:30020']);
++
++  // Create federation
++  const federation = new Federation({
++    routerId: 'router-1',
++    router,
++    peerSource,
++    propagateIntervalMs: 2000, // Propagate every 2 seconds
++  });
++
++  // Subscribe to router events for monitoring
++  router.subscribe((event) => {
++    const prefix = `[Router-1/${event.type.toUpperCase()}]`;
++    const source = event.endpoint.metadata?.federationSource || 'local';
++    console.log(
++      `${prefix} ${event.endpoint.id} (${event.endpoint.coordinates}) source=${source}`,
++    );
++  });
++
++  // Start federation
++  await federation.start();
++
++  console.log('[Router-1] Federation started');
++  console.log('[Router-1] Peers:', federation.getStatus().peers.map((p) => p.peerId).join(', '));
++  console.log();
++
++  // Announce local service-a endpoint
++  console.log('[Router-1] Announcing local service-a...');
++  router.announce({
++    id: 'r1-service-a',
++    type: 'inproc',
++    coordinates: 'node:service-a',
++    metadata: { info: 'Primary service-a on Router-1' },
++  });
++
++  // Announce local service-b endpoint
++  setTimeout(() => {
++    console.log('[Router-1] Announcing local service-b...');
++    router.announce({
++      id: 'r1-service-b',
++      type: 'inproc',
++      coordinates: 'node:service-b',
++      metadata: { info: 'Backup service-b on Router-1' },
++    });
++  }, 1000);
++
++  // Periodically show routing table
++  setInterval(() => {
++    console.log('\n[Router-1] === Routing Table ===');
++    const endpoints = router.list();
++    endpoints.forEach((ep) => {
++      const source = ep.metadata?.federationSource || 'LOCAL';
++      const best = router.resolve(ep.coordinates);
++      const isBest = best?.id === ep.id ? ' [BEST]' : '';
++      console.log(`  ${ep.coordinates} <- ${ep.id} (${source})${isBest}`);
++    });
++
++    const status = federation.getStatus();
++    console.log(`\n[Router-1] Local endpoints: ${status.localEndpointCount}`);
++    console.log(`[Router-1] Total endpoints: ${endpoints.length}`);
++  }, 5000);
++
++  // Demonstrate failover: withdraw local service-a after 15 seconds
++  setTimeout(() => {
++    console.log('\n[Router-1] SIMULATING FAILURE: Withdrawing local service-a...');
++    router.withdraw('r1-service-a');
++
++    setTimeout(() => {
++      const best = router.resolve('node:service-a');
++      if (best) {
++        const source = best.metadata?.federationSource || 'local';
++        console.log(`[Router-1] FAILOVER: Best service-a is now ${best.id} (source=${source})`);
++      } else {
++        console.log('[Router-1] FAILOVER: No service-a endpoints available');
++      }
++    }, 1000);
++  }, 15000);
++
++  // Keep alive
++  console.log('[Router-1] Running... Press Ctrl+C to stop\n');
++}
++
++main().catch((err) => {
++  console.error('[Router-1] Error:', err);
++  process.exit(1);
++});
+diff --git examples/network/federation-demo/router2.ts examples/network/federation-demo/router2.ts
+new file mode 100644
+index 0000000..30ae389
+--- /dev/null
++++ examples/network/federation-demo/router2.ts
+@@ -0,0 +1,82 @@
++#!/usr/bin/env tsx
++import { RoutingServer } from '../../../src/router/RoutingServer.js';
++import { Federation, ConfigPeerSource } from '../../../src/router/Federation.js';
++
++async function main() {
++  console.log('[Router-2] Starting...\n');
++
++  // Create router with 10-second TTL
++  const router = new RoutingServer({ ttlMs: 10000, sweepIntervalMs: 3000 });
++  router.startSweeper();
++
++  // Configure static peer (Router-1)
++  const peerSource = new ConfigPeerSource(['tcp://router-1:30020']);
++
++  // Create federation
++  const federation = new Federation({
++    routerId: 'router-2',
++    router,
++    peerSource,
++    propagateIntervalMs: 2000, // Propagate every 2 seconds
++  });
++
++  // Subscribe to router events for monitoring
++  router.subscribe((event) => {
++    const prefix = `[Router-2/${event.type.toUpperCase()}]`;
++    const source = event.endpoint.metadata?.federationSource || 'local';
++    console.log(
++      `${prefix} ${event.endpoint.id} (${event.endpoint.coordinates}) source=${source}`,
++    );
++  });
++
++  // Start federation
++  await federation.start();
++
++  console.log('[Router-2] Federation started');
++  console.log('[Router-2] Peers:', federation.getStatus().peers.map((p) => p.peerId).join(', '));
++  console.log();
++
++  // Announce local service-a endpoint (backup for Router-1's service-a)
++  console.log('[Router-2] Announcing local service-a (backup)...');
++  router.announce({
++    id: 'r2-service-a',
++    type: 'inproc',
++    coordinates: 'node:service-a',
++    metadata: { info: 'Backup service-a on Router-2' },
++  });
++
++  // Announce local service-b endpoint (primary for service-b)
++  setTimeout(() => {
++    console.log('[Router-2] Announcing local service-b (primary)...');
++    router.announce({
++      id: 'r2-service-b',
++      type: 'inproc',
++      coordinates: 'node:service-b',
++      metadata: { info: 'Primary service-b on Router-2' },
++    });
++  }, 1000);
++
++  // Periodically show routing table
++  setInterval(() => {
++    console.log('\n[Router-2] === Routing Table ===');
++    const endpoints = router.list();
++    endpoints.forEach((ep) => {
++      const source = ep.metadata?.federationSource || 'LOCAL';
++      const best = router.resolve(ep.coordinates);
++      const isBest = best?.id === ep.id ? ' [BEST]' : '';
++      console.log(`  ${ep.coordinates} <- ${ep.id} (${source})${isBest}`);
++    });
++
++    const status = federation.getStatus();
++    console.log(`\n[Router-2] Local endpoints: ${status.localEndpointCount}`);
++    console.log(`[Router-2] Total endpoints: ${endpoints.length}`);
++  }, 5000);
++
++  // Keep alive
++  console.log('[Router-2] Running... Press Ctrl+C to stop\n');
++}
++
++main().catch((err) => {
++  console.error('[Router-2] Error:', err);
++  process.exit(1);
++});
+diff --git examples/network/federation-demo/test.ts examples/network/federation-demo/test.ts
+new file mode 100644
+index 0000000..a9c92aa
+--- /dev/null
++++ examples/network/federation-demo/test.ts
+@@ -0,0 +1,158 @@
++#!/usr/bin/env tsx
++/**
++ * Automated acceptance test for router federation with failover.
++ * This test verifies:
++ * 1. Two routers with static peer configuration
++ * 2. Endpoint propagation across federation
++ * 3. Path preference (local > remote)
++ * 4. Automatic failover when local endpoint is withdrawn
++ */
++
++import { RoutingServer } from '../../../src/router/RoutingServer.js';
++import { Federation, ConfigPeerSource } from '../../../src/router/Federation.js';
++
++async function test() {
++  console.log('Federation Acceptance Test\n');
++
++  // Create Router-1
++  const router1 = new RoutingServer({ ttlMs: 10000 });
++  const peerSource1 = new ConfigPeerSource(['tcp://router-2:30020']);
++  const federation1 = new Federation({
++    routerId: 'router-1',
++    router: router1,
++    peerSource: peerSource1,
++  });
++
++  // Create Router-2
++  const router2 = new RoutingServer({ ttlMs: 10000 });
++  const peerSource2 = new ConfigPeerSource(['tcp://router-1:30020']);
++  const federation2 = new Federation({
++    routerId: 'router-2',
++    router: router2,
++    peerSource: peerSource2,
++  });
++
++  // Start both federations
++  await federation1.start();
++  await federation2.start();
++
++  console.log('✓ Federation initialized');
++
++  // Verify peer discovery
++  const status1 = federation1.getStatus();
++  const status2 = federation2.getStatus();
++
++  if (status1.peerCount !== 1 || status1.peers[0].peerId !== 'router-2') {
++    throw new Error(`Router-1 peer discovery failed: expected router-2, got ${status1.peers[0]?.peerId}`);
++  }
++
++  if (status2.peerCount !== 1 || status2.peers[0].peerId !== 'router-1') {
++    throw new Error(`Router-2 peer discovery failed: expected router-1, got ${status2.peers[0]?.peerId}`);
++  }
++
++  console.log('✓ Peer discovery works (router-1 ↔ router-2)');
++
++  // Router-1 announces service-a (primary)
++  router1.announce({
++    id: 'r1-service-a',
++    type: 'inproc',
++    coordinates: 'node:service-a',
++  });
++
++  // Router-2 announces service-a (backup)
++  router2.announce({
++    id: 'r2-service-a',
++    type: 'inproc',
++    coordinates: 'node:service-a',
++  });
++
++  console.log('✓ Endpoints announced on both routers');
++
++  // Simulate cross-propagation (in real impl, this happens via network)
++  const r1Endpoints = router1.list().filter((ep) => !ep.metadata?.federationSource);
++  for (const ep of r1Endpoints) {
++    federation2.receiveFromPeer('router-1', {
++      id: ep.id,
++      type: ep.type,
++      coordinates: ep.coordinates,
++      metadata: ep.metadata,
++    });
++  }
++
++  const r2Endpoints = router2.list().filter((ep) => !ep.metadata?.federationSource);
++  for (const ep of r2Endpoints) {
++    federation1.receiveFromPeer('router-2', {
++      id: ep.id,
++      type: ep.type,
++      coordinates: ep.coordinates,
++      metadata: ep.metadata,
++    });
++  }
++
++  console.log('✓ Cross-propagation simulated');
++
++  // Verify Router-1 has both endpoints
++  const r1List = router1.list();
++  if (r1List.length !== 2) {
++    throw new Error(`Router-1 should have 2 endpoints, has ${r1List.length}`);
++  }
++
++  // Verify Router-2 has both endpoints
++  const r2List = router2.list();
++  if (r2List.length !== 2) {
++    throw new Error(`Router-2 should have 2 endpoints, has ${r2List.length}`);
++  }
++
++  console.log('✓ Both routers see all endpoints');
++
++  // Verify path preference (local > remote)
++  const r1Best = router1.resolve('node:service-a');
++  if (!r1Best || r1Best.id !== 'r1-service-a') {
++    throw new Error(`Router-1 should prefer local r1-service-a, got ${r1Best?.id}`);
++  }
++
++  const r2Best = router2.resolve('node:service-a');
++  if (!r2Best || r2Best.id !== 'r2-service-a') {
++    throw new Error(`Router-2 should prefer local r2-service-a, got ${r2Best?.id}`);
++  }
++
++  console.log('✓ Path preference works (local > remote)');
++
++  // Simulate link failure on Router-1
++  router1.withdraw('r1-service-a');
++
++  console.log('✓ Simulated link failure (r1-service-a withdrawn)');
++
++  // Verify failover on Router-1
++  const r1BestAfter = router1.resolve('node:service-a');
++  if (!r1BestAfter || r1BestAfter.id !== 'r2-service-a') {
++    throw new Error(`Router-1 should failover to r2-service-a, got ${r1BestAfter?.id}`);
++  }
++
++  if (!r1BestAfter.metadata?.federationSource || r1BestAfter.metadata.federationSource !== 'router-2') {
++    throw new Error(`Failover endpoint should be from router-2, got ${r1BestAfter.metadata?.federationSource}`);
++  }
++
++  console.log('✓ Automatic failover works (router-1 → router-2)');
++
++  // Verify Router-2 still has its local endpoint as best
++  const r2BestAfter = router2.resolve('node:service-a');
++  if (!r2BestAfter || r2BestAfter.id !== 'r2-service-a') {
++    throw new Error(`Router-2 should still prefer local, got ${r2BestAfter?.id}`);
++  }
++
++  console.log('✓ Router-2 unaffected by Router-1 failure');
++
++  // Cleanup
++  federation1.stop();
++  federation2.stop();
++  router1.stopSweeper();
++  router2.stopSweeper();
++
++  console.log('\n✓ All federation acceptance tests passed!');
++}
++
++test().catch((err) => {
++  console.error('\n✗ Federation acceptance test failed:', err.message);
++  process.exit(1);
++});
+diff --git docs/devex/network-quickstart.md docs/devex/network-quickstart.md
+index b1cae5a..20ac772 100644
+--- docs/devex/network-quickstart.md
++++ docs/devex/network-quickstart.md
+@@ -296,12 +296,169 @@ You'll see the logs appear in your local terminal in real-time!
+ 
+ ---
+ 
++## Router Federation with Static Peers
++
++Router federation allows multiple routing servers to share endpoint announcements and provide automatic failover across a distributed cluster.
++
++### Quick Demo: Two-Router Federation
++
++This example demonstrates router-to-router federation with static peer configuration, endpoint propagation, and automatic failover.
++
++**Terminal 1: Router-2 (Start first)**
++
++```bash
++npm run build
++npx tsx examples/network/federation-demo/router2.ts
++```
++
++**Terminal 2: Router-1**
++
++```bash
++npx tsx examples/network/federation-demo/router1.ts
++```
++
++### What Happens
++
++1. **Federation Startup**
++   - Each router discovers its peer via static configuration
++   - Router-1 peers with Router-2, and vice versa
++
++2. **Endpoint Propagation**
++   - Each router announces endpoints locally (`service-a`, `service-b`)
++   - Federation propagates announcements to peer routers
++   - Each router sees both local and remote endpoints
++
++3. **Path Preference**
++   - Local endpoints are preferred over remote endpoints
++   - When multiple endpoints exist for same coordinates: local > LAN > WAN
++   - Best path is marked in routing table
++
++4. **Automatic Failover**
++   - After 15 seconds, Router-1 withdraws its local `service-a`
++   - Router-1 automatically fails over to Router-2's `service-a`
++   - Traffic is rerouted seamlessly
++
++### Architecture
++
++```
++┌─────────────┐                  ┌─────────────┐
++│  Router-1   │◄────Federation───►│  Router-2   │
++│             │    (Static Peers) │             │
++│ Local:      │                   │ Local:      │
++│ service-a   │                   │ service-a   │
++│ service-b   │                   │ service-b   │
++│             │                   │             │
++│ Remote:     │                   │ Remote:     │
++│ (from R2)   │                   │ (from R1)   │
++└─────────────┘                   └─────────────┘
++```
++
++### Key Features
++
++**ConfigPeerSource**: Static peer configuration
++- Peers are configured explicitly (no mDNS required)
++- Suitable for controlled environments (DC, K8s)
++- Format: `tcp://router-id:port` or `ws://router-id:port`
++
++**Path Preference**: Local > Remote routing
++- Local endpoints always preferred
++- Remote endpoints serve as backups
++- Automatic selection of best available path
++
++**TTL Propagation**: Liveness semantics across federation
++- Endpoints must be periodically refreshed
++- Stale endpoints are automatically removed
++- `staleExpired` events trigger failover
++
++**Eventual Consistency**: No strong ordering
++- Federation uses eventual consistency model
++- Announcements propagate asynchronously
++- No distributed consensus required
++
++### API Example
++
++```typescript
++import { RoutingServer } from 'mkolbol/router/RoutingServer';
++import { Federation, ConfigPeerSource } from 'mkolbol/router/Federation';
++
++// Create router
++const router = new RoutingServer({ ttlMs: 10000 });
++
++// Configure static peers
++const peerSource = new ConfigPeerSource([
++  'tcp://router-2:30020',
++  'tcp://router-3:30020',
++]);
++
++// Create federation
++const federation = new Federation({
++  routerId: 'router-1',
++  router,
++  peerSource,
++  propagateIntervalMs: 2000,
++});
++
++// Start federation
++await federation.start();
++
++// Announce local endpoint
++router.announce({
++  id: 'service-a',
++  type: 'inproc',
++  coordinates: 'node:service-a',
++});
++
++// Resolve best endpoint (local > remote)
++const best = router.resolve('node:service-a');
++
++// Get all endpoints ranked by preference
++const all = router.resolveAll('node:service-a');
++```
++
++### Monitoring Federation
++
++```typescript
++// Get federation status
++const status = federation.getStatus();
++console.log('Router ID:', status.routerId);
++console.log('Peer count:', status.peerCount);
++console.log('Local endpoints:', status.localEndpointCount);
++
++// Subscribe to routing events
++router.subscribe((event) => {
++  console.log(event.type); // 'added', 'updated', 'removed', 'staleExpired'
++  console.log(event.endpoint.id);
++  console.log(event.endpoint.metadata?.federationSource); // peer router ID
++});
++```
++
++### Running Acceptance Test
++
++Automated acceptance test that verifies federation, propagation, and failover:
++
++```bash
++npx tsx examples/network/federation-demo/test.ts
++```
++
++This test programmatically:
++- Sets up two routers with static peers
++- Verifies peer discovery
++- Announces endpoints and simulates cross-propagation
++- Validates path preference (local > remote)
++- Simulates link failure
++- Verifies automatic failover
++
++---
++
+ ## Next Steps
+ 
+ - See [Remote Viewer README](../../examples/network/remote-viewer/README.md) for TCP example
+ - See [WebSocket Smoke README](../../examples/network/ws-smoke/README.md) for WebSocket example
++- See [Federation Demo README](../../examples/network/federation-demo/README.md) for router federation
+ - See [TCPPipe tests](../../tests/integration/tcpPipe.spec.ts) for TCP API usage
+ - See [WebSocketPipe tests](../../tests/integration/wsPipe.spec.ts) for WebSocket API usage
++- See [Federation tests](../../tests/integration/router.federation.spec.ts) for federation API usage
++- See [Failover tests](../../tests/integration/router.failover.spec.ts) for path preference and failover
+ - See [FrameCodec tests](../../tests/net/frame.spec.ts) for protocol details
+ - See [mkctl Cookbook](./mkctl-cookbook.md#remote-viewing) for complete connect command reference
+ - See [Remote Host Setup](./remote-host-setup.md#ssh-tunnel-patterns-for-mkctl-connect) for SSH tunnel patterns

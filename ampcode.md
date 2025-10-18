@@ -1,54 +1,164 @@
 ```json
 {
   "ampcode": "v1",
-  "waves": [{ "id": "P20A-ROUTER-P3", "parallel": false, "tasks": ["N2001", "N2002", "N2003"] }],
-  "branch": "mkolbol-core-router-p3-subscribe",
+  "waves": [
+<<<<<<< HEAD
+    { "id": "P22-RESILIENCE", "parallel": false, "tasks": ["N2201","N2202","N2203"] }
+  ],
+  "branch": "mkolbol-net-p22-resilience",
   "tasks": [
-    {
-      "id": "N2001",
-      "agent": "susan",
-      "title": "RoutingServer: subscribe() API + event stream (added/updated/removed/staleExpired)",
-      "why": "Enable live route/liveness updates to consumers without polling.",
-      "allowedFiles": [
-        "src/router/RoutingServer.ts",
-        "src/executor/Executor.ts",
-        "src/types/router.ts",
-        "tests/integration/router.subscribe.spec.ts"
-      ],
-      "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_N2001_router-subscribe.patch"]
-    },
+    {"id":"N2201","agent":"susan","title":"Reconnect/backoff + clearer errors; heartbeat/ping tuning",
+      "allowedFiles":["src/pipes/adapters/TCPPipe.ts","src/pipes/adapters/WebSocketPipe.ts","tests/integration/net.resilience.spec.ts"],
+      "why":"Stabilize links across transient failures with clear remediation.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2201_net-resilience.patch"]},
 
-    {
-      "id": "N2002",
-      "agent": "susan",
-      "title": "Heartbeat/TTL integration: emit stale→expired transitions; snapshot includes expiresAt",
-      "why": "Expose liveness semantics over subscriptions; align with TTL rules.",
-      "allowedFiles": [
-        "src/router/RoutingServer.ts",
-        "tests/integration/router.ttl.spec.ts",
-        "tests/integration/router.subscribe.spec.ts"
-      ],
-      "verify": ["npm run build", "npm run test:ci"],
-      "deliverables": ["patches/DIFF_N2002_router-ttl-subscribe.patch"]
-    },
+    {"id":"N2202","agent":"susan","title":"FrameCodec v2 header + version negotiation (additive)",
+      "allowedFiles":["src/net/frame.ts","tests/net/frame.spec.ts","tests/integration/net.handshake.spec.ts"],
+      "why":"Allow safe, incremental protocol evolution.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2202_frame-v2.patch"]},
 
-    {
-      "id": "N2003",
-      "agent": "susan",
-      "title": "Acceptance: demo subscriber + soak under churn; Laminar artifacts",
-      "why": "Prove stability and clear events under load and restarts.",
-      "allowedFiles": [
-        "examples/network/subscriber-demo/**",
-        "docs/devex/network-quickstart.md",
-        "reports/**"
-      ],
-      "verify": ["npm run ci:local:fast"],
-      "deliverables": ["patches/DIFF_N2003_subscriber-acceptance.patch"]
-    }
+    {"id":"N2203","agent":"susan","title":"Docs: error surfaces and recommended timeouts; PR release notes",
+      "allowedFiles":["docs/devex/network-quickstart.md","docs/devex/troubleshooting.md","docs/devex/releases.md"],
+      "why":"Make failures legible and tunables explicit for operators.",
+      "verify":["npm run build"],
+      "deliverables":["patches/DIFF_N2203_resilience-docs.patch"]}
+=======
+    { "id": "P24-FEDERATION", "parallel": false, "tasks": ["N2401","N2402","N2403"] }
+  ],
+  "branch": "mkolbol-net-p24-federation",
+  "tasks": [
+    {"id":"N2401","agent":"devex","title":"Federation API: Router↔Router adverts via PeerSource (static first)",
+      "allowedFiles":["src/router/Federation.ts","src/router/RoutingServer.ts","tests/integration/router.federation.spec.ts"],
+      "why":"Let routers share endpoint ads and TTL across peers.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2401_router-federation.patch"]},
+
+    {"id":"N2402","agent":"devex","title":"Failover & path preference: local > LAN > WAN; TTL propagation",
+      "allowedFiles":["src/router/RoutingServer.ts","src/state/StateManager.ts","tests/integration/router.failover.spec.ts"],
+      "why":"Choose best path and recover when peers die; respect liveness events.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2402_router-failover.patch"]},
+
+    {"id":"N2403","agent":"devex","title":"Acceptance: two routers, static peers → federation → fail one link",
+      "allowedFiles":["examples/network/federation-demo/**","docs/devex/network-quickstart.md",".github/workflows/tests.yml"],
+      "why":"Prove federation and failover without mDNS dependency.",
+      "verify":["npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_N2403_federation-acceptance.patch"]}
+>>>>>>> origin/main
   ]
 }
 ```
+````json
+
+```json
+{
+  "ampcode": "v1",
+  "waves": [
+    { "id": "P24-FEDERATION", "parallel": false, "tasks": ["N2401","N2402","N2403"] }
+  ],
+  "branch": "mkolbol-net-p24-federation",
+  "tasks": [
+    {"id":"N2401","agent":"devex","title":"Federation API: Router↔Router adverts via PeerSource (static first)",
+      "allowedFiles":["src/router/Federation.ts","src/router/RoutingServer.ts","tests/integration/router.federation.spec.ts"],
+      "why":"Let routers share endpoint ads and TTL across peers.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2401_router-federation.patch"]},
+
+    {"id":"N2402","agent":"devex","title":"Failover & path preference: local > LAN > WAN; TTL propagation",
+      "allowedFiles":["src/router/RoutingServer.ts","src/state/StateManager.ts","tests/integration/router.failover.spec.ts"],
+      "why":"Choose best path and recover when peers die; respect liveness events.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2402_router-failover.patch"]},
+
+    {"id":"N2403","agent":"devex","title":"Acceptance: two routers, static peers → federation → fail one link",
+      "allowedFiles":["examples/network/federation-demo/**","docs/devex/network-quickstart.md",".github/workflows/tests.yml"],
+      "why":"Prove federation and failover without mDNS dependency.",
+      "verify":["npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_N2403_federation-acceptance.patch"]}
+  ]
+}
+````
+
+Branch Instructions
+
+- IMPORTANT: Work only on `mkolbol-net-p24-federation`.
+- Start with ConfigPeerSource; later add MdnsPeerSource once P23 lands.
+- Use existing subscribe() + TTL events; no polling.
+- Keep federation eventual‑consistency; no strong ordering.
+
+{
+"ampcode": "v1",
+"waves": [
+{ "id": "P23-DISCOVERY", "parallel": false, "tasks": ["N2301","N2302","N2303","N2304"] }
+],
+"branch": "mkolbol-net-p23-discovery",
+"tasks": [
+{"id":"N2301","agent":"susan","title":"PeerSource interface + ConfigPeerSource (static peers)",
+"allowedFiles":["src/discovery/PeerSource.ts","src/discovery/ConfigPeerSource.ts","src/types/network.ts","tests/integration/peerSource.config.spec.ts"],
+"why":"Provide common interface so federation can run before mDNS lands.",
+"verify":["npm run build","npm run test:ci"],
+"deliverables":["patches/DIFF_N2301_peer-source.patch"]},
+
+    {"id":"N2302","agent":"susan","title":"MdnsPeerSource: mDNS/UDP beacons (userspace LLDP‑like)",
+      "allowedFiles":["src/discovery/MdnsPeerSource.ts","src/discovery/BeaconCodec.ts","tests/integration/mdnsPeer.spec.ts"],
+      "why":"LAN discovery without raw L2; advert hostId, addr, proto, versions, caps, ttl.",
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2302_mdns-peer.patch"]},
+
+    {"id":"N2303","agent":"susan","title":"mkctl peers: list/approve/persist pairing (JSON store)",
+      "allowedFiles":["scripts/mkctl.ts","src/cli/peers.ts","tests/cli/mkctlPeers.spec.ts","docs/devex/mkctl-cookbook.md"],
+      "why":"Operator approval before federation; avoids surprise links.",
+      "verify":["npm run build","node dist/scripts/mkctl.js peers list --json"],
+      "deliverables":["patches/DIFF_N2303_mkctl-peers.patch"]},
+
+    {"id":"N2304","agent":"susan","title":"Acceptance: two‑host auto‑discover + approve + connect",
+      "allowedFiles":["docs/devex/network-quickstart.md","tests/integration/mdnsAccept.spec.ts",".github/workflows/tests.yml"],
+      "why":"Prove zero‑config discovery with explicit approval and mkctl connect works.",
+      "verify":["npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_N2304_discovery-acceptance.patch"]}
+
+]
+}
+
+````
+
+Branch Instructions
+
+- IMPORTANT: Work only on `mkolbol-net-p23-discovery`.
+- Beacon Schema: {hostId, addr, proto:{tcp|ws}, supportedVersions:[1|2], namespaces, caps, ttl}.
+- Security: no auth; require explicit approve/persist to use peers.
+- Tests avoid real multicast in CI; use loopback + injected PeerSource for determinism.
+
+```json
+{
+"ampcode": "v1",
+"waves": [
+{ "id": "P20A-ROUTER-P3", "parallel": false, "tasks": ["N2001","N2002","N2003"] }
+],
+"branch": "mkolbol-core-router-p3-subscribe",
+"tasks": [
+{"id":"N2001","agent":"susan","title":"RoutingServer: subscribe() API + event stream (added/updated/removed/staleExpired)",
+"why":"Enable live route/liveness updates to consumers without polling.",
+"allowedFiles":["src/router/RoutingServer.ts","src/executor/Executor.ts","src/types/router.ts","tests/integration/router.subscribe.spec.ts"],
+"verify":["npm run build","npm run test:ci"],
+"deliverables":["patches/DIFF_N2001_router-subscribe.patch"]},
+
+    {"id":"N2002","agent":"susan","title":"Heartbeat/TTL integration: emit stale→expired transitions; snapshot includes expiresAt",
+      "why":"Expose liveness semantics over subscriptions; align with TTL rules.",
+      "allowedFiles":["src/router/RoutingServer.ts","tests/integration/router.ttl.spec.ts","tests/integration/router.subscribe.spec.ts"],
+      "verify":["npm run build","npm run test:ci"],
+      "deliverables":["patches/DIFF_N2002_router-ttl-subscribe.patch"]},
+
+    {"id":"N2003","agent":"susan","title":"Acceptance: demo subscriber + soak under churn; Laminar artifacts",
+      "why":"Prove stability and clear events under load and restarts.",
+      "allowedFiles":["examples/network/subscriber-demo/**","docs/devex/network-quickstart.md","reports/**"],
+      "verify":["npm run ci:local:fast"],
+      "deliverables":["patches/DIFF_N2003_subscriber-acceptance.patch"]}
+  ]
+}
+````
 
 Branch Instructions
 
