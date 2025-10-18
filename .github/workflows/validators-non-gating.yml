@@ -31,3 +31,10 @@ jobs:
         if: always()
         run: |
           echo "Validators completed (non-gating). See step logs for details." >> $GITHUB_STEP_SUMMARY
+
+      - name: Post summary comment (non-gating)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node dist/scripts/post-validator-summary.js --pr ${{ github.event.pull_request.number }}

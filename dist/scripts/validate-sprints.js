@@ -18,11 +18,14 @@ async function validateJSONL(filePath, schemaPath, ajv) {
     let lineNo = 0;
     let ok = true;
     for await (const line of rl) {
-        if (!line.trim())
-            continue;
+        const t = line.trim();
+        if (!t)
+            continue; // skip blank
+        if (!(t.startsWith('{')))
+            continue; // allow headings/comments from legacy logs
         lineNo++;
         try {
-            const obj = JSON.parse(line);
+            const obj = JSON.parse(t);
             const valid = validate(obj);
             if (!valid) {
                 ok = false;
