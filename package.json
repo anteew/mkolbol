@@ -89,7 +89,9 @@
     "ci:local": "tsx scripts/ci-local.ts",
     "ci:local:fast": "CI_FAST=1 tsx scripts/ci-local.ts",
     "hooks:install": "bash scripts/install-hooks.sh",
-    "ci:local:docker": "echo \"Stub: see docker/Dockerfile.ci (not built).\" && exit 0"
+    "ci:local:docker": "echo \"Stub: see docker/Dockerfile.ci (not built).\" && exit 0",
+    "validate:sprint": "node dist/scripts/validate-sprints.js",
+    "validate:sprint:all": "npm run build && node dist/scripts/validate-sprints.js"
   },
   "dependencies": {
     "node-pty": "^1.0.0",
@@ -109,6 +111,8 @@
     "tsx": "^4.19.2",
     "typescript": "^5.6.2",
     "typescript-eslint": "^8.46.1",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
   }
 }
