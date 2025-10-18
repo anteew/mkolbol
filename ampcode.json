@@ -4,11 +4,7 @@
     {
       "id": "P25-MULTIPLEX",
       "parallel": false,
-      "tasks": [
-        "N2501",
-        "N2502",
-        "N2503"
-      ]
+      "tasks": ["N2501", "N2502", "N2503"]
     }
   ],
   "branch": "mkolbol-net-p25-multiplex",
@@ -25,29 +21,16 @@
         "src/pipes/adapters/WebSocketPipe.ts",
         "tests/integration/mux.basic.spec.ts"
       ],
-      "verify": [
-        "npm run build",
-        "npm run test:ci"
-      ],
-      "deliverables": [
-        "patches/DIFF_N2501_frame-mux.patch"
-      ]
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_N2501_frame-mux.patch"]
     },
     {
       "id": "N2502",
       "agent": "susan",
       "title": "Per-stream backpressure + fairness; head-of-line mitigation",
-      "allowedFiles": [
-        "src/net/mux.ts",
-        "tests/integration/mux.backpressure.spec.ts"
-      ],
-      "verify": [
-        "npm run build",
-        "npm run test:ci"
-      ],
-      "deliverables": [
-        "patches/DIFF_N2502_mux-backpressure.patch"
-      ]
+      "allowedFiles": ["src/net/mux.ts", "tests/integration/mux.backpressure.spec.ts"],
+      "verify": ["npm run build", "npm run test:ci"],
+      "deliverables": ["patches/DIFF_N2502_mux-backpressure.patch"]
     },
     {
       "id": "N2503",
@@ -58,12 +41,8 @@
         "docs/devex/network-quickstart.md",
         ".github/workflows/tests.yml"
       ],
-      "verify": [
-        "npm run ci:local:fast"
-      ],
-      "deliverables": [
-        "patches/DIFF_N2503_mux-acceptance.patch"
-      ]
+      "verify": ["npm run ci:local:fast"],
+      "deliverables": ["patches/DIFF_N2503_mux-acceptance.patch"]
     }
   ],
   "branch_instructions": [
@@ -83,10 +62,6 @@
       "schema": "agent_template/log_templates/core_sprint_log.schema.json",
       "example": "agent_template/log_templates/core_sprint_log.example.jsonl"
     },
-    "deliverables_global": [
-      "patches/*.patch",
-      "tests updated and passing",
-      "docs updated"
-    ]
+    "deliverables_global": ["patches/*.patch", "tests updated and passing", "docs updated"]
   }
 }

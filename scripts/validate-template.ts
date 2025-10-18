@@ -7,10 +7,30 @@ import * as readline from 'readline';
 const root = process.cwd();
 const tmplPath = resolve(root, 'agent_template', 'agent_template.json');
 const tmplSchemaPath = resolve(root, 'agent_template', 'schema', 'agent_template.schema.json');
-const coreLogSchemaPath = resolve(root, 'agent_template', 'log_templates', 'core_sprint_log.schema.json');
-const devexLogSchemaPath = resolve(root, 'agent_template', 'log_templates', 'devex_sprint_log.schema.json');
-const coreLogExample = resolve(root, 'agent_template', 'log_templates', 'core_sprint_log.example.jsonl');
-const devexLogExample = resolve(root, 'agent_template', 'log_templates', 'devex_sprint_log.example.jsonl');
+const coreLogSchemaPath = resolve(
+  root,
+  'agent_template',
+  'log_templates',
+  'core_sprint_log.schema.json',
+);
+const devexLogSchemaPath = resolve(
+  root,
+  'agent_template',
+  'log_templates',
+  'devex_sprint_log.schema.json',
+);
+const coreLogExample = resolve(
+  root,
+  'agent_template',
+  'log_templates',
+  'core_sprint_log.example.jsonl',
+);
+const devexLogExample = resolve(
+  root,
+  'agent_template',
+  'log_templates',
+  'devex_sprint_log.example.jsonl',
+);
 
 function loadJSON(p: string) {
   return JSON.parse(readFileSync(p, 'utf8'));
@@ -24,7 +44,8 @@ async function validateJSONL(filePath: string, schemaPath: string, ajv: Ajv) {
   const schema = loadJSON(schemaPath);
   const validate = ajv.compile(schema);
   const rl = readline.createInterface({ input: createReadStream(filePath), crlfDelay: Infinity });
-  let ok = true; let lineNo = 0;
+  let ok = true;
+  let lineNo = 0;
   for await (const line of rl) {
     const t = line.trim();
     if (!t) continue;
@@ -75,8 +96,10 @@ async function main() {
   // Validate log example files against their schemas
   if (!existsSync(coreLogSchemaPath) || !existsSync(devexLogSchemaPath)) {
     ok = false;
-    if (!existsSync(coreLogSchemaPath)) console.error('[template-validate] missing core log schema');
-    if (!existsSync(devexLogSchemaPath)) console.error('[template-validate] missing devex log schema');
+    if (!existsSync(coreLogSchemaPath))
+      console.error('[template-validate] missing core log schema');
+    if (!existsSync(devexLogSchemaPath))
+      console.error('[template-validate] missing devex log schema');
   } else {
     const coreOk = await validateJSONL(coreLogExample, coreLogSchemaPath, ajv);
     const devOk = await validateJSONL(devexLogExample, devexLogSchemaPath, ajv);
@@ -86,4 +109,7 @@ async function main() {
   if (!ok) process.exit(1);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

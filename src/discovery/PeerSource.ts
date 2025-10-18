@@ -13,7 +13,7 @@ export abstract class PeerSource extends EventEmitter {
   abstract stop(): Promise<void>;
 
   getPeers(): PeerInfo[] {
-    return Array.from(this.peers.values()).map(p => ({ ...p }));
+    return Array.from(this.peers.values()).map((p) => ({ ...p }));
   }
 
   getPeer(hostId: string): PeerInfo | null {
@@ -24,15 +24,15 @@ export abstract class PeerSource extends EventEmitter {
   protected addOrUpdatePeer(peer: PeerInfo): void {
     const existing = this.peers.get(peer.hostId);
     const now = Date.now();
-    
+
     const updated: PeerInfo = {
       ...peer,
       discoveredAt: existing?.discoveredAt ?? now,
-      lastSeen: now
+      lastSeen: now,
     };
 
     this.peers.set(peer.hostId, updated);
-    
+
     if (existing) {
       this.emit('peerUpdated', updated);
     } else {

@@ -16,9 +16,7 @@
   "properties": {
     "template": {
       "type": "string",
-      "enum": [
-        "sprint-template"
-      ]
+      "enum": ["sprint-template"]
     },
     "version": {
       "type": "integer",
@@ -26,21 +24,14 @@
     },
     "instantiation": {
       "type": "object",
-      "required": [
-        "create_new_sprint_file",
-        "core",
-        "devex",
-        "archive_policy"
-      ],
+      "required": ["create_new_sprint_file", "core", "devex", "archive_policy"],
       "properties": {
         "create_new_sprint_file": {
           "type": "boolean"
         },
         "core": {
           "type": "object",
-          "required": [
-            "target_filename"
-          ],
+          "required": ["target_filename"],
           "properties": {
             "target_filename": {
               "type": "string"
@@ -52,9 +43,7 @@
         },
         "devex": {
           "type": "object",
-          "required": [
-            "target_filename"
-          ],
+          "required": ["target_filename"],
           "properties": {
             "target_filename": {
               "type": "string"
@@ -66,10 +55,7 @@
         },
         "archive_policy": {
           "type": "object",
-          "required": [
-            "dir",
-            "examples"
-          ],
+          "required": ["dir", "examples"],
           "properties": {
             "dir": {
               "type": "string"
@@ -89,28 +75,18 @@
     },
     "conventions": {
       "type": "object",
-      "required": [
-        "one_active_sprint_per_file",
-        "files",
-        "archives"
-      ],
+      "required": ["one_active_sprint_per_file", "files", "archives"],
       "properties": {
         "one_active_sprint_per_file": {
           "type": "boolean"
         },
         "files": {
           "type": "object",
-          "required": [
-            "core",
-            "devex"
-          ],
+          "required": ["core", "devex"],
           "properties": {
             "core": {
               "type": "object",
-              "required": [
-                "sprint_file",
-                "log_file"
-              ],
+              "required": ["sprint_file", "log_file"],
               "properties": {
                 "sprint_file": {
                   "type": "string"
@@ -122,10 +98,7 @@
             },
             "devex": {
               "type": "object",
-              "required": [
-                "sprint_file",
-                "log_file"
-              ],
+              "required": ["sprint_file", "log_file"],
               "properties": {
                 "sprint_file": {
                   "type": "string"
@@ -139,10 +112,7 @@
         },
         "archives": {
           "type": "object",
-          "required": [
-            "dir",
-            "examples"
-          ],
+          "required": ["dir", "examples"],
           "properties": {
             "dir": {
               "type": "string"
@@ -159,11 +129,7 @@
     },
     "sprint_block_schema": {
       "type": "object",
-      "required": [
-        "ampcode",
-        "waves",
-        "tasks"
-      ],
+      "required": ["ampcode", "waves", "tasks"],
       "properties": {
         "ampcode": {
           "type": "string"
@@ -175,11 +141,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "id",
-              "parallel",
-              "tasks"
-            ],
+            "required": ["id", "parallel", "tasks"],
             "properties": {
               "id": {
                 "type": "string"
@@ -206,24 +168,14 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "id",
-              "agent",
-              "title",
-              "allowedFiles",
-              "verify",
-              "deliverables"
-            ],
+            "required": ["id", "agent", "title", "allowedFiles", "verify", "deliverables"],
             "properties": {
               "id": {
                 "type": "string"
               },
               "agent": {
                 "type": "string",
-                "enum": [
-                  "susan",
-                  "devex"
-                ]
+                "enum": ["susan", "devex"]
               },
               "title": {
                 "type": "string"
@@ -264,10 +216,7 @@
         },
         "instructions": {
           "type": "object",
-          "required": [
-            "expectations",
-            "logging"
-          ],
+          "required": ["expectations", "logging"],
           "properties": {
             "overview": {
               "type": "string"
@@ -281,11 +230,7 @@
             },
             "logging": {
               "type": "object",
-              "required": [
-                "log_file",
-                "schema",
-                "example"
-              ],
+              "required": ["log_file", "schema", "example"],
               "properties": {
                 "log_file": {
                   "type": "string",

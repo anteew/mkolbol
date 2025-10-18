@@ -31,7 +31,12 @@ function buildMarkdown(template: RunResult, sprint: RunResult): string {
     lines.push(template.stderr || template.stdout);
     lines.push('```');
   }
-  lines.push(mdSection('Sprints + Logs (ampcode.json/devex.json + *.log)', `Status: **${badge(sprint.ok)}**`));
+  lines.push(
+    mdSection(
+      'Sprints + Logs (ampcode.json/devex.json + *.log)',
+      `Status: **${badge(sprint.ok)}**`,
+    ),
+  );
   if (!sprint.ok) {
     lines.push('```');
     lines.push(sprint.stderr || sprint.stdout);
@@ -91,4 +96,3 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-

@@ -6,8 +6,8 @@ describe('ConfigPeerSource', () => {
     const source = new ConfigPeerSource({
       peers: [
         { hostId: 'host1', addr: 'localhost:3001', proto: 'tcp', supportedVersions: [1] },
-        { hostId: 'host2', addr: 'localhost:3002', proto: 'ws', supportedVersions: [1, 2] }
-      ]
+        { hostId: 'host2', addr: 'localhost:3002', proto: 'ws', supportedVersions: [1, 2] },
+      ],
     });
 
     await source.start();
@@ -21,7 +21,7 @@ describe('ConfigPeerSource', () => {
   it('emits peerDiscovered events', async () => {
     const events: any[] = [];
     const source = new ConfigPeerSource({
-      peers: [{ hostId: 'host1', addr: 'localhost:3001', proto: 'tcp', supportedVersions: [1] }]
+      peers: [{ hostId: 'host1', addr: 'localhost:3001', proto: 'tcp', supportedVersions: [1] }],
     });
 
     source.on('peerDiscovered', (peer) => events.push(peer));
@@ -33,7 +33,7 @@ describe('ConfigPeerSource', () => {
 
   it('getPeer returns specific peer', async () => {
     const source = new ConfigPeerSource({
-      peers: [{ hostId: 'host1', addr: 'localhost:3001', proto: 'tcp', supportedVersions: [1] }]
+      peers: [{ hostId: 'host1', addr: 'localhost:3001', proto: 'tcp', supportedVersions: [1] }],
     });
 
     await source.start();

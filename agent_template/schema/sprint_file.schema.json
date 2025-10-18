@@ -2,12 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Sprint File Schema (ampcode.json/devex.json)",
   "type": "object",
-  "required": [
-    "ampcode",
-    "waves",
-    "tasks",
-    "branch"
-  ],
+  "required": ["ampcode", "waves", "tasks", "branch"],
   "additionalProperties": true,
   "properties": {
     "ampcode": {
@@ -20,11 +15,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "id",
-          "parallel",
-          "tasks"
-        ],
+        "required": ["id", "parallel", "tasks"],
         "properties": {
           "id": {
             "type": "string"
@@ -51,14 +42,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "id",
-          "agent",
-          "title",
-          "allowedFiles",
-          "verify",
-          "deliverables"
-        ],
+        "required": ["id", "agent", "title", "allowedFiles", "verify", "deliverables"],
         "properties": {
           "id": {
             "type": "string"
@@ -105,10 +89,7 @@
     },
     "instructions": {
       "type": "object",
-      "required": [
-        "expectations",
-        "logging"
-      ],
+      "required": ["expectations", "logging"],
       "properties": {
         "overview": {
           "type": "string"
@@ -122,11 +103,7 @@
         },
         "logging": {
           "type": "object",
-          "required": [
-            "log_file",
-            "schema",
-            "example"
-          ],
+          "required": ["log_file", "schema", "example"],
           "properties": {
             "log_file": {
               "type": "string",

@@ -12,7 +12,7 @@ export function listPeers(): PeerApproval[] {
 
 export function approvePeer(hostId: string, approvedBy?: string): void {
   const peers = listPeers();
-  if (peers.some(p => p.hostId === hostId)) {
+  if (peers.some((p) => p.hostId === hostId)) {
     console.log(`Peer ${hostId} already approved`);
     return;
   }

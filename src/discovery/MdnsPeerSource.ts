@@ -74,7 +74,7 @@ export class MdnsPeerSource extends PeerSource {
       addr: this.options.addr,
       proto: this.options.proto,
       supportedVersions: this.options.supportedVersions ?? [1],
-      ttl: this.options.peerTtl ?? 30000
+      ttl: this.options.peerTtl ?? 30000,
     };
 
     const encoded = BeaconCodec.encode(beacon);
