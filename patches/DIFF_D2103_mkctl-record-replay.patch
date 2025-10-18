@@ -1,0 +1,767 @@
+diff --git a/docs/devex/mkctl-cookbook.md b/docs/devex/mkctl-cookbook.md
+index e9f6471..e385df3 100644
+--- a/docs/devex/mkctl-cookbook.md
++++ b/docs/devex/mkctl-cookbook.md
+@@ -1719,6 +1719,53 @@ cat reports/router-endpoints.json | jq 'length'
+ 
+ View output from remote TCP or WebSocket pipes in real-time.
+ 
++### URL Format Contract (Frozen)
++
++The `mkctl connect` command uses a stable URL format for TCP and WebSocket connections:
++
++**TCP Format:**
++```
++tcp://HOST:PORT
++```
++
++**WebSocket Format:**
++```
++ws://HOST:PORT[/PATH]
++```
++
++**HOST:**
++- `localhost` - Local loopback
++- Hostname - Valid DNS hostname (RFC 1123)
++- IPv4 address - Four octets (0-255)
++
++**PORT:**
++- Integer between 1 and 65535
++- Required for both TCP and WebSocket
++
++**PATH:**
++- Optional for WebSocket
++- Must start with `/` if provided
++- Not allowed for TCP
++
++**Examples:**
++```bash
++# Valid TCP URLs
++tcp://localhost:30010
++tcp://192.168.1.100:30018
++tcp://example.com:8080
++
++# Valid WebSocket URLs
++ws://localhost:30015
++ws://localhost:30015/pipe
++ws://10.0.0.50:8080/ws
++```
++
++**Unsupported:**
++- HTTP/HTTPS protocols (use `ws://` instead)
++- IPv6 addresses (not supported in v1)
++- Port numbers outside 1-65535 range
++- TCP URLs with path components
++
+ ### Connect to TCP Pipe
+ 
+ Connect to a remote TCP pipe server and view the output:
+@@ -1780,17 +1827,29 @@ mkctl connect --url ws://localhost:30012/pipe --json
+ 
+ **JSON output format:**
+ 
++Each line is a JSON object representing a single frame from the frame protocol:
++
+ ```json
+ {"type":"data","payload":"Hello from timer","timestamp":1697520905123}
+ {"type":"data","payload":"tick","timestamp":1697520906123}
+ {"type":"ping","timestamp":1697520910000}
++{"type":"pong","timestamp":1697520910100}
+ ```
+ 
+ **Fields:**
+ 
+-- `type` - Frame type (`data`, `ping`, `pong`, `close`)
+-- `payload` - The actual data (for data frames)
+-- `timestamp` - Unix timestamp in milliseconds
++- `type` - Frame type: `data`, `ping`, `pong`, or `close`
++- `timestamp` - Unix timestamp in milliseconds (when frame was created)
++- `payload` - The actual data (UTF-8 string for data frames, omitted for control frames)
++- `sequenceId` - Optional sequence number for data frames
++- `encoding` - Set to `base64` if payload is binary (non-UTF-8)
++
++**Frame Types:**
++
++- **data** - Contains actual stream data in the `payload` field
++- **ping** - Keep-alive heartbeat from server (no payload)
++- **pong** - Heartbeat response from client (no payload)
++- **close** - Graceful shutdown signal (no payload)
+ 
+ **Use cases for JSON mode:**
+ 
+@@ -1889,4 +1948,94 @@ telnet remote-host 30010
+ - **[Network Quickstart](./network-quickstart.md)** - TCP and WebSocket pipe setup
+ - **[Remote Host Setup](./remote-host-setup.md)** - Complete remote deployment guide
+ 
++### Record and Replay Sessions
++
++Record pipe sessions to files for later playback, debugging, or testing:
++
++```bash
++# Record a session to file
++mkctl connect --url tcp://localhost:30010 --record session.mkframes
++
++# Replay a recorded session
++mkctl connect --replay session.mkframes
++
++# Replay in JSON mode
++mkctl connect --replay session.mkframes --json
++```
++
++**Recording format:**
++
++Sessions are saved in JSONL format (one frame per line). Each line contains:
++
++```json
++{"type":"data","timestamp":1697520905123,"payload":"Hello from timer"}
++{"type":"ping","timestamp":1697520910000}
++{"type":"data","timestamp":1697520911123,"payload":"tick","sequenceId":42}
++```
++
++**Use cases:**
++
++- **Debug production issues** - Record problematic sessions and replay locally
++- **Test frame handling** - Capture real traffic patterns for testing
++- **Audit trails** - Keep permanent records of pipe communications
++- **Demo scenarios** - Record interesting sessions for presentations
++- **Offline analysis** - Process frame sequences without live connection
++
++**Examples:**
++
++```bash
++# Record while viewing (human-readable mode)
++mkctl connect --url tcp://localhost:30010 --record debug-session.mkframes
++
++# Record in JSON mode (see both live output and file)
++mkctl connect --url tcp://localhost:30010 --json --record raw-frames.mkframes
++
++# Replay and filter with jq
++mkctl connect --replay session.mkframes --json | jq 'select(.type=="data")'
++
++# Compare two sessions
++diff <(mkctl connect --replay session1.mkframes) \
++     <(mkctl connect --replay session2.mkframes)
++
++# Extract payloads only
++mkctl connect --replay session.mkframes --json | jq -r '.payload // empty'
++```
++
++**Recording lifecycle:**
++
++```
++1. File created when first frame arrives
++2. Each frame appended immediately (no buffering)
++3. File closed on disconnect (Ctrl+C or connection end)
++4. Progress messages on stderr, data on stdout
++```
++
++**File location:**
++
++- Paths can be relative or absolute
++- Relative paths are relative to current working directory
++- Parent directories must exist (won't create them)
++
++**Limitations:**
++
++- Cannot use `--record` and `--replay` together
++- Replay mode ignores `--url` (operates on file only)
++- Binary payloads are base64-encoded in recording
++
++**Troubleshooting:**
++
++```bash
++# Check recording file format
++head -5 session.mkframes | jq '.'
++
++# Count frames in recording
++wc -l session.mkframes
++
++# Validate all frames parse correctly
++cat session.mkframes | jq -c '.' > /dev/null && echo "Valid JSONL"
++
++# Extract timestamps to verify ordering
++cat session.mkframes | jq -r '.timestamp' | sort -n
++```
++
+ ---
+diff --git a/scripts/mkctl.ts b/scripts/mkctl.ts
+index 887ea28..dcb9ebf 100644
+--- a/scripts/mkctl.ts
++++ b/scripts/mkctl.ts
+@@ -11,6 +11,15 @@ import { RoutingServer } from '../src/router/RoutingServer.js';
+ import type { RoutingEndpoint } from '../src/types.js';
+ import { TCPPipeClient } from '../src/pipes/adapters/TCPPipe.js';
+ import { WebSocketPipeClient } from '../src/pipes/adapters/WebSocketPipe.js';
++import type { Frame } from '../src/net/transport.js';
++import {
++  parseURL,
++  validateConnectOptions,
++  getConnectHelp,
++  URLParseError,
++  type ParsedURL as ConnectParsedURL,
++  type ConnectOptions,
++} from '../src/cli/connect.js';
+ 
+ const EXIT_CODES = {
+   SUCCESS: 0,
+@@ -551,21 +560,54 @@ async function handleEndpointsCommand(args: string[]): Promise<void> {
+   }
+ }
+ 
+-interface ConnectArguments {
+-  url: string;
+-  json: boolean;
+-}
++async function handleReplayMode(replayPath: string, json: boolean): Promise<number> {
++  console.error(`[mkctl] Replaying from ${replayPath}...`);
++
++  try {
++    const content = await fs.readFile(replayPath, 'utf-8');
++    const lines = content.trim().split('\n');
++
++    console.error(`[mkctl] Replaying ${lines.length} frames`);
+ 
+-interface ParsedURL {
+-  protocol: 'tcp' | 'ws';
+-  host: string;
+-  port: number;
+-  path?: string;
++    for (const line of lines) {
++      if (!line.trim()) continue;
++
++      try {
++        const frame = JSON.parse(line);
++
++        if (json) {
++          // JSON mode: output the stored frame as-is
++          console.log(JSON.stringify(frame));
++        } else {
++          // Human-readable mode: output only the payload
++          if (frame.type === 'data' && frame.payload) {
++            process.stdout.write(frame.payload);
++          }
++        }
++      } catch (err) {
++        console.error(`[mkctl] Warning: Failed to parse frame: ${err}`);
++      }
++    }
++
++    console.error('[mkctl] Replay complete');
++    return EXIT_CODES.SUCCESS;
++  } catch (err: unknown) {
++    if (err instanceof Error) {
++      throw new MkctlError(
++        `Failed to replay from ${replayPath}: ${err.message}`,
++        EXIT_CODES.RUNTIME,
++        { cause: err },
++      );
++    }
++    throw err;
++  }
+ }
+ 
+-function parseConnectArgs(args: string[]): ConnectArguments {
++function parseConnectArgs(args: string[]): ConnectOptions {
+   let url: string | undefined;
+   let json = false;
++  let record: string | undefined;
++  let replay: string | undefined;
+ 
+   for (let i = 0; i < args.length; i++) {
+     const token = args[i];
+@@ -578,51 +620,70 @@ function parseConnectArgs(args: string[]): ConnectArguments {
+       i++;
+     } else if (token === '--json') {
+       json = true;
++    } else if (token === '--record') {
++      const next = args[i + 1];
++      if (!next || next.startsWith('--')) {
++        throw new MkctlError('--record requires a file path', EXIT_CODES.USAGE);
++      }
++      record = next;
++      i++;
++    } else if (token === '--replay') {
++      const next = args[i + 1];
++      if (!next || next.startsWith('--')) {
++        throw new MkctlError('--replay requires a file path', EXIT_CODES.USAGE);
++      }
++      replay = next;
++      i++;
++    } else if (token === '--help' || token === '-h') {
++      console.log(getConnectHelp());
++      process.exit(EXIT_CODES.SUCCESS);
+     }
+   }
+ 
+-  if (!url) {
++  // URL is required unless in replay mode
++  if (!url && !replay) {
++    console.log(getConnectHelp());
++    throw new MkctlError('Missing required option: --url (or --replay)', EXIT_CODES.USAGE);
++  }
++
++  return { url: url || '', json, record, replay };
++}
++
++async function handleConnectCommand(args: string[]): Promise<number> {
++  let options: ConnectOptions;
++  try {
++    options = parseConnectArgs(args);
++  } catch (err: unknown) {
++    if (err instanceof MkctlError) {
++      throw err;
++    }
+     throw new MkctlError(
+-      'Usage: mkctl connect --url <tcp://host:port | ws://host:port/path> [--json]',
++      err instanceof Error ? err.message : String(err),
+       EXIT_CODES.USAGE,
+     );
+   }
+ 
+-  return { url, json };
+-}
++  const { url, json, record, replay } = options;
+ 
+-function parseURL(url: string): ParsedURL {
+-  const tcpMatch = url.match(/^tcp:\/\/([^:]+):(\d+)$/);
+-  if (tcpMatch) {
+-    const host = tcpMatch[1];
+-    const port = Number.parseInt(tcpMatch[2], 10);
+-    if (Number.isNaN(port) || port <= 0 || port > 65535) {
+-      throw new MkctlError(`Invalid port in URL: ${url}`, EXIT_CODES.USAGE);
+-    }
+-    return { protocol: 'tcp', host, port };
++  // Handle replay mode
++  if (replay) {
++    return handleReplayMode(replay, json ?? false);
+   }
+ 
+-  const wsMatch = url.match(/^ws:\/\/([^:]+):(\d+)(\/.*)?$/);
+-  if (wsMatch) {
+-    const host = wsMatch[1];
+-    const port = Number.parseInt(wsMatch[2], 10);
+-    const path = wsMatch[3] || '/';
+-    if (Number.isNaN(port) || port <= 0 || port > 65535) {
+-      throw new MkctlError(`Invalid port in URL: ${url}`, EXIT_CODES.USAGE);
++  let parsed: ConnectParsedURL;
++  try {
++    validateConnectOptions(options);
++    parsed = parseURL(url);
++  } catch (err: unknown) {
++    if (err instanceof URLParseError) {
++      throw new MkctlError(err.message, EXIT_CODES.USAGE);
+     }
+-    return { protocol: 'ws', host, port, path };
++    throw new MkctlError(
++      err instanceof Error ? err.message : String(err),
++      EXIT_CODES.USAGE,
++    );
+   }
+ 
+-  throw new MkctlError(
+-    `Invalid URL format: ${url}\nExpected: tcp://host:port or ws://host:port/path`,
+-    EXIT_CODES.USAGE,
+-  );
+-}
+-
+-async function handleConnectCommand(args: string[]): Promise<number> {
+-  const { url, json } = parseConnectArgs(args);
+-  const parsed = parseURL(url);
+-
+   console.error(`[mkctl] Connecting to ${url}...`);
+ 
+   let client: TCPPipeClient | WebSocketPipeClient;
+@@ -648,45 +709,94 @@ async function handleConnectCommand(args: string[]): Promise<number> {
+     await client.connect();
+     console.error(`[mkctl] Connected to ${url}`);
+ 
+-    const handleShutdown = () => {
++    // Set up recording file handle if needed
++    let recordFileHandle: fs.FileHandle | undefined;
++    if (record) {
++      try {
++        recordFileHandle = await fs.open(record, 'w');
++        console.error(`[mkctl] Recording to ${record}`);
++      } catch (err) {
++        throw new MkctlError(
++          `Failed to open record file ${record}: ${err instanceof Error ? err.message : String(err)}`,
++          EXIT_CODES.RUNTIME,
++        );
++      }
++    }
++
++    const handleShutdown = async () => {
+       if (isShuttingDown) return;
+       isShuttingDown = true;
+       console.error('\n[mkctl] Disconnecting...');
++      if (recordFileHandle) {
++        try {
++          await recordFileHandle.close();
++          console.error(`[mkctl] Recording saved to ${record}`);
++        } catch (err) {
++          console.error(`[mkctl] Warning: Failed to close record file: ${err}`);
++        }
++      }
+       client.close();
+     };
+ 
+     process.once('SIGINT', handleShutdown);
+     process.once('SIGTERM', handleShutdown);
+ 
+-    client.on('data', (chunk: Buffer) => {
+-      if (json) {
+-        try {
+-          const data = {
+-            timestamp: Date.now(),
+-            data: chunk.toString('base64'),
+-            size: chunk.length,
+-          };
+-          console.log(JSON.stringify(data));
+-        } catch (err) {
+-          console.error(`[mkctl] Error formatting data: ${err}`);
++    // Always listen to frame events for recording
++    client.on('frame', async (frame: Frame) => {
++      try {
++        const output: any = {
++          type: frame.metadata.type,
++          timestamp: frame.metadata.timestamp,
++        };
++
++        // Include payload for data frames (as UTF-8 string if possible)
++        if (frame.metadata.type === 'data' && frame.payload) {
++          try {
++            output.payload = frame.payload.toString('utf8');
++          } catch {
++            output.payload = frame.payload.toString('base64');
++            output.encoding = 'base64';
++          }
+         }
+-      } else {
+-        process.stdout.write(chunk);
++
++        // Include sequenceId if present
++        if (frame.metadata.sequenceId !== undefined) {
++          output.sequenceId = frame.metadata.sequenceId;
++        }
++
++        // Record frame to file if recording
++        if (recordFileHandle) {
++          try {
++            await recordFileHandle.write(JSON.stringify(output) + '\n');
++          } catch (err) {
++            console.error(`[mkctl] Warning: Failed to write frame to record file: ${err}`);
++          }
++        }
++
++        // Output frame based on mode
++        if (json) {
++          console.log(JSON.stringify(output));
++        } else if (frame.metadata.type === 'data' && frame.payload) {
++          process.stdout.write(frame.payload);
++        }
++      } catch (err) {
++        console.error(`[mkctl] Error processing frame: ${err}`);
+       }
+     });
+ 
+-    client.on('end', () => {
++    client.on('end', async () => {
+       if (!isShuttingDown) {
+         console.error('[mkctl] Connection closed by remote');
++        await handleShutdown();
+       }
+       process.exit(exitCode);
+     });
+ 
+-    client.on('error', (err: Error) => {
++    client.on('error', async (err: Error) => {
+       console.error(`[mkctl] Connection error: ${err.message}`);
+       exitCode = EXIT_CODES.RUNTIME;
+       if (!isShuttingDown) {
+-        client.close();
++        await handleShutdown();
+       }
+     });
+ 
+diff --git a/src/cli/connect.ts b/src/cli/connect.ts
+new file mode 100644
+index 0000000..6a49035
+--- /dev/null
++++ b/src/cli/connect.ts
+@@ -0,0 +1,276 @@
++/**
++ * Connect command - attach to remote TCP or WebSocket pipes
++ *
++ * URL Format Contract (frozen as of P21):
++ * - TCP:  tcp://HOST:PORT
++ * - WebSocket: ws://HOST:PORT[/PATH]
++ *
++ * Examples:
++ * - tcp://localhost:30010
++ * - tcp://192.168.1.100:30018
++ * - ws://localhost:30015
++ * - ws://localhost:30015/pipe
++ *
++ * Constraints:
++ * - HOST: Valid hostname or IPv4 address
++ * - PORT: Integer 1-65535
++ * - PATH: Optional for WebSocket, must start with /
++ */
++
++export interface ParsedURL {
++  protocol: 'tcp' | 'ws';
++  host: string;
++  port: number;
++  path?: string;
++}
++
++export interface ConnectOptions {
++  url: string;
++  json?: boolean;
++  record?: string;
++  replay?: string;
++}
++
++export class URLParseError extends Error {
++  constructor(message: string) {
++    super(message);
++    this.name = 'URLParseError';
++  }
++}
++
++/**
++ * Parse and validate a connection URL
++ *
++ * @param url - The URL to parse (tcp://... or ws://...)
++ * @returns Parsed URL components
++ * @throws URLParseError if URL is invalid
++ */
++export function parseURL(url: string): ParsedURL {
++  if (!url || typeof url !== 'string') {
++    throw new URLParseError('URL must be a non-empty string');
++  }
++
++  // Check for known unsupported protocols first
++  if (url.startsWith('http://') || url.startsWith('https://')) {
++    throw new URLParseError(
++      `HTTP/HTTPS not supported. Use ws:// for WebSocket or tcp:// for TCP`,
++    );
++  }
++
++  // Check if URL has a protocol
++  if (!url.includes('://')) {
++    throw new URLParseError(
++      `Invalid URL format. Expected tcp://HOST:PORT or ws://HOST:PORT[/PATH]`,
++    );
++  }
++
++  const proto = url.split('://')[0];
++
++  // Check for TCP protocol
++  if (proto === 'tcp') {
++    const tcpMatch = url.match(/^tcp:\/\/([^:]+):(\d+)$/);
++    if (!tcpMatch) {
++      throw new URLParseError(
++        `Invalid URL format. Expected tcp://HOST:PORT`,
++      );
++    }
++
++    const host = tcpMatch[1];
++    const portStr = tcpMatch[2];
++    const port = Number.parseInt(portStr, 10);
++
++    if (Number.isNaN(port)) {
++      throw new URLParseError(`Invalid port number: ${portStr}`);
++    }
++
++    if (port <= 0 || port > 65535) {
++      throw new URLParseError(`Port must be between 1 and 65535, got: ${port}`);
++    }
++
++    if (!isValidHost(host)) {
++      throw new URLParseError(`Invalid hostname: ${host}`);
++    }
++
++    return { protocol: 'tcp', host, port };
++  }
++
++  // Check for WebSocket protocol
++  if (proto === 'ws') {
++    const wsMatch = url.match(/^ws:\/\/([^:]+):(\d+)(\/.*)?$/);
++    if (!wsMatch) {
++      throw new URLParseError(
++        `Invalid URL format. Expected ws://HOST:PORT[/PATH]`,
++      );
++    }
++
++    const host = wsMatch[1];
++    const portStr = wsMatch[2];
++    const path = wsMatch[3];
++    const port = Number.parseInt(portStr, 10);
++
++    if (Number.isNaN(port)) {
++      throw new URLParseError(`Invalid port number: ${portStr}`);
++    }
++
++    if (port <= 0 || port > 65535) {
++      throw new URLParseError(`Port must be between 1 and 65535, got: ${port}`);
++    }
++
++    if (!isValidHost(host)) {
++      throw new URLParseError(`Invalid hostname: ${host}`);
++    }
++
++    return {
++      protocol: 'ws',
++      host,
++      port,
++      path: path || undefined,
++    };
++  }
++
++  // Unknown protocol
++  throw new URLParseError(
++    `Unsupported protocol: ${proto}. Supported protocols: tcp://, ws://`,
++  );
++}
++
++/**
++ * Validate hostname or IP address
++ *
++ * Accepts:
++ * - localhost
++ * - Hostnames (alphanumeric + hyphens)
++ * - IPv4 addresses
++ *
++ * Does NOT validate:
++ * - IPv6 (not supported in v1)
++ * - Internationalized domain names
++ */
++function isValidHost(host: string): boolean {
++  if (!host || host.length === 0) {
++    return false;
++  }
++
++  // Allow localhost
++  if (host === 'localhost') {
++    return true;
++  }
++
++  // Check for IPv4 address
++  const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
++  const ipv4Match = host.match(ipv4Regex);
++  if (ipv4Match) {
++    // Validate each octet is 0-255
++    for (let i = 1; i <= 4; i++) {
++      const octet = Number.parseInt(ipv4Match[i], 10);
++      if (octet < 0 || octet > 255) {
++        return false;
++      }
++    }
++    return true;
++  }
++
++  // Check for valid hostname (RFC 1123)
++  // - Labels separated by dots
++  // - Each label: alphanumeric + hyphens, cannot start/end with hyphen
++  // - Each label: 1-63 chars
++  // - Total: max 253 chars
++  if (host.length > 253) {
++    return false;
++  }
++
++  const labels = host.split('.');
++  const labelRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
++
++  for (const label of labels) {
++    if (!labelRegex.test(label)) {
++      return false;
++    }
++  }
++
++  return labels.length > 0;
++}
++
++/**
++ * Get help text for connect command
++ */
++export function getConnectHelp(): string {
++  return `
++Usage: mkctl connect --url <URL> [options]
++
++Connect to a remote TCP or WebSocket pipe and view output.
++
++Options:
++  --url <URL>       Connection URL (required)
++                    TCP format:  tcp://HOST:PORT
++                    WS format:   ws://HOST:PORT[/PATH]
++  --json            Output raw frames as JSON (default: human-readable)
++  --record <PATH>   Save frames to file for later replay
++  --replay <PATH>   Replay frames from file (ignores --url)
++
++Examples:
++  # Connect to local TCP pipe
++  mkctl connect --url tcp://localhost:30010
++
++  # Connect to remote TCP pipe
++  mkctl connect --url tcp://192.168.1.100:30018
++
++  # Connect to WebSocket pipe
++  mkctl connect --url ws://localhost:30015/pipe
++
++  # JSON output for tooling
++  mkctl connect --url tcp://localhost:30010 --json
++
++  # Record session to file
++  mkctl connect --url tcp://localhost:30010 --record session.mkframes
++
++  # Replay recorded session
++  mkctl connect --replay session.mkframes
++
++  # Replay in JSON mode
++  mkctl connect --replay session.mkframes --json
++
++URL Contract:
++  HOST: localhost, hostname, or IPv4 address
++  PORT: Integer between 1 and 65535
++  PATH: Optional for WebSocket, must start with /
++
++Supported Protocols:
++  tcp://  - Raw TCP connection with frame protocol
++  ws://   - WebSocket connection with frame protocol
++
++Recording Format:
++  Frames are saved in JSONL format (one frame per line)
++  Each line contains: {type, timestamp, payload, sequenceId}
++
++For remote connections, use SSH tunneling for security:
++  ssh -L 30010:localhost:30010 user@remote-host
++
++See: docs/devex/mkctl-cookbook.md#remote-viewing
++`.trim();
++}
++
++/**
++ * Validate connect options
++ *
++ * @param options - Options to validate
++ * @throws URLParseError if options are invalid
++ */
++export function validateConnectOptions(options: ConnectOptions): void {
++  // Replay mode doesn't require URL
++  if (options.replay) {
++    return;
++  }
++
++  if (!options.url) {
++    throw new URLParseError('--url is required (unless using --replay)');
++  }
++
++  // Parse URL to validate format
++  parseURL(options.url);
++
++  // Cannot use both record and replay
++  if (options.record && options.replay) {
++    throw new URLParseError('Cannot use both --record and --replay');
++  }
++}

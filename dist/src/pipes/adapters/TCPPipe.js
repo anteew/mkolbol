@@ -39,6 +39,8 @@ export class TCPPipeClient extends Duplex {
             if (!result)
                 break;
             this.buffer = this.buffer.slice(result.bytesConsumed);
+            // Emit 'frame' event with full frame metadata before processing
+            this.emit('frame', result.frame);
             if (result.frame.metadata.type === 'data')
                 this.push(result.frame.payload);
         }

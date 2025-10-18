@@ -48,7 +48,7 @@ export class RoutingServer extends EventEmitter {
         this.emitEvent({
             type: isNew ? 'added' : 'updated',
             endpoint: { ...endpoint },
-            timestamp: now
+            timestamp: now,
         });
     }
     withdraw(id) {
@@ -61,7 +61,7 @@ export class RoutingServer extends EventEmitter {
                 this.emitEvent({
                     type: 'removed',
                     endpoint: { ...endpoint },
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
                 });
             }
         }
@@ -187,7 +187,7 @@ export class RoutingServer extends EventEmitter {
         this.subscribers.delete(callback);
     }
     emitEvent(event) {
-        this.subscribers.forEach(cb => cb(event));
+        this.subscribers.forEach((cb) => cb(event));
         this.emit('routerEvent', event);
     }
 }

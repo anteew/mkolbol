@@ -858,6 +858,10 @@ node dist/scripts/mkctl.js connect --url ws://localhost:30012/pipe
 # Get JSON output for tooling
 node dist/scripts/mkctl.js connect --url tcp://localhost:30010 --json
 
+# Record and replay sessions (NEW in P21)
+node dist/scripts/mkctl.js connect --url tcp://localhost:30010 --record session.mkframes
+node dist/scripts/mkctl.js connect --replay session.mkframes
+
 # Show help
 node dist/scripts/mkctl.js
 ```

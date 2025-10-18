@@ -11,6 +11,15 @@ import { RoutingServer } from '../src/router/RoutingServer.js';
 import type { RoutingEndpoint } from '../src/types.js';
 import { TCPPipeClient } from '../src/pipes/adapters/TCPPipe.js';
 import { WebSocketPipeClient } from '../src/pipes/adapters/WebSocketPipe.js';
+import type { Frame } from '../src/net/transport.js';
+import {
+  parseURL,
+  validateConnectOptions,
+  getConnectHelp,
+  URLParseError,
+  type ParsedURL as ConnectParsedURL,
+  type ConnectOptions,
+} from '../src/cli/connect.js';
 
 const EXIT_CODES = {
   SUCCESS: 0,
@@ -551,21 +560,54 @@ async function handleEndpointsCommand(args: string[]): Promise<void> {
   }
 }
 
-interface ConnectArguments {
-  url: string;
-  json: boolean;
+async function handleReplayMode(replayPath: string, json: boolean): Promise<number> {
+  console.error(`[mkctl] Replaying from ${replayPath}...`);
+
+  try {
+    const content = await fs.readFile(replayPath, 'utf-8');
+    const lines = content.trim().split('\n');
+
+    console.error(`[mkctl] Replaying ${lines.length} frames`);
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      try {
+        const frame = JSON.parse(line);
+
+        if (json) {
+          // JSON mode: output the stored frame as-is
+          console.log(JSON.stringify(frame));
+        } else {
+          // Human-readable mode: output only the payload
+          if (frame.type === 'data' && frame.payload) {
+            process.stdout.write(frame.payload);
+          }
+        }
+      } catch (err) {
+        console.error(`[mkctl] Warning: Failed to parse frame: ${err}`);
+      }
+    }
+
+    console.error('[mkctl] Replay complete');
+    return EXIT_CODES.SUCCESS;
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      throw new MkctlError(
+        `Failed to replay from ${replayPath}: ${err.message}`,
+        EXIT_CODES.RUNTIME,
+        { cause: err },
+      );
+    }
+    throw err;
+  }
 }
 
-interface ParsedURL {
-  protocol: 'tcp' | 'ws';
-  host: string;
-  port: number;
-  path?: string;
-}
-
-function parseConnectArgs(args: string[]): ConnectArguments {
+function parseConnectArgs(args: string[]): ConnectOptions {
   let url: string | undefined;
   let json = false;
+  let record: string | undefined;
+  let replay: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     const token = args[i];
@@ -578,50 +620,63 @@ function parseConnectArgs(args: string[]): ConnectArguments {
       i++;
     } else if (token === '--json') {
       json = true;
+    } else if (token === '--record') {
+      const next = args[i + 1];
+      if (!next || next.startsWith('--')) {
+        throw new MkctlError('--record requires a file path', EXIT_CODES.USAGE);
+      }
+      record = next;
+      i++;
+    } else if (token === '--replay') {
+      const next = args[i + 1];
+      if (!next || next.startsWith('--')) {
+        throw new MkctlError('--replay requires a file path', EXIT_CODES.USAGE);
+      }
+      replay = next;
+      i++;
+    } else if (token === '--help' || token === '-h') {
+      console.log(getConnectHelp());
+      process.exit(EXIT_CODES.SUCCESS);
     }
   }
 
-  if (!url) {
-    throw new MkctlError(
-      'Usage: mkctl connect --url <tcp://host:port | ws://host:port/path> [--json]',
-      EXIT_CODES.USAGE,
-    );
+  // URL is required unless in replay mode
+  if (!url && !replay) {
+    console.log(getConnectHelp());
+    throw new MkctlError('Missing required option: --url (or --replay)', EXIT_CODES.USAGE);
   }
 
-  return { url, json };
-}
-
-function parseURL(url: string): ParsedURL {
-  const tcpMatch = url.match(/^tcp:\/\/([^:]+):(\d+)$/);
-  if (tcpMatch) {
-    const host = tcpMatch[1];
-    const port = Number.parseInt(tcpMatch[2], 10);
-    if (Number.isNaN(port) || port <= 0 || port > 65535) {
-      throw new MkctlError(`Invalid port in URL: ${url}`, EXIT_CODES.USAGE);
-    }
-    return { protocol: 'tcp', host, port };
-  }
-
-  const wsMatch = url.match(/^ws:\/\/([^:]+):(\d+)(\/.*)?$/);
-  if (wsMatch) {
-    const host = wsMatch[1];
-    const port = Number.parseInt(wsMatch[2], 10);
-    const path = wsMatch[3] || '/';
-    if (Number.isNaN(port) || port <= 0 || port > 65535) {
-      throw new MkctlError(`Invalid port in URL: ${url}`, EXIT_CODES.USAGE);
-    }
-    return { protocol: 'ws', host, port, path };
-  }
-
-  throw new MkctlError(
-    `Invalid URL format: ${url}\nExpected: tcp://host:port or ws://host:port/path`,
-    EXIT_CODES.USAGE,
-  );
+  return { url: url || '', json, record, replay };
 }
 
 async function handleConnectCommand(args: string[]): Promise<number> {
-  const { url, json } = parseConnectArgs(args);
-  const parsed = parseURL(url);
+  let options: ConnectOptions;
+  try {
+    options = parseConnectArgs(args);
+  } catch (err: unknown) {
+    if (err instanceof MkctlError) {
+      throw err;
+    }
+    throw new MkctlError(err instanceof Error ? err.message : String(err), EXIT_CODES.USAGE);
+  }
+
+  const { url, json, record, replay } = options;
+
+  // Handle replay mode
+  if (replay) {
+    return handleReplayMode(replay, json ?? false);
+  }
+
+  let parsed: ConnectParsedURL;
+  try {
+    validateConnectOptions(options);
+    parsed = parseURL(url);
+  } catch (err: unknown) {
+    if (err instanceof URLParseError) {
+      throw new MkctlError(err.message, EXIT_CODES.USAGE);
+    }
+    throw new MkctlError(err instanceof Error ? err.message : String(err), EXIT_CODES.USAGE);
+  }
 
   console.error(`[mkctl] Connecting to ${url}...`);
 
@@ -648,45 +703,94 @@ async function handleConnectCommand(args: string[]): Promise<number> {
     await client.connect();
     console.error(`[mkctl] Connected to ${url}`);
 
-    const handleShutdown = () => {
+    // Set up recording file handle if needed
+    let recordFileHandle: fs.FileHandle | undefined;
+    if (record) {
+      try {
+        recordFileHandle = await fs.open(record, 'w');
+        console.error(`[mkctl] Recording to ${record}`);
+      } catch (err) {
+        throw new MkctlError(
+          `Failed to open record file ${record}: ${err instanceof Error ? err.message : String(err)}`,
+          EXIT_CODES.RUNTIME,
+        );
+      }
+    }
+
+    const handleShutdown = async () => {
       if (isShuttingDown) return;
       isShuttingDown = true;
       console.error('\n[mkctl] Disconnecting...');
+      if (recordFileHandle) {
+        try {
+          await recordFileHandle.close();
+          console.error(`[mkctl] Recording saved to ${record}`);
+        } catch (err) {
+          console.error(`[mkctl] Warning: Failed to close record file: ${err}`);
+        }
+      }
       client.close();
     };
 
     process.once('SIGINT', handleShutdown);
     process.once('SIGTERM', handleShutdown);
 
-    client.on('data', (chunk: Buffer) => {
-      if (json) {
-        try {
-          const data = {
-            timestamp: Date.now(),
-            data: chunk.toString('base64'),
-            size: chunk.length,
-          };
-          console.log(JSON.stringify(data));
-        } catch (err) {
-          console.error(`[mkctl] Error formatting data: ${err}`);
+    // Always listen to frame events for recording
+    client.on('frame', async (frame: Frame) => {
+      try {
+        const output: any = {
+          type: frame.metadata.type,
+          timestamp: frame.metadata.timestamp,
+        };
+
+        // Include payload for data frames (as UTF-8 string if possible)
+        if (frame.metadata.type === 'data' && frame.payload) {
+          try {
+            output.payload = frame.payload.toString('utf8');
+          } catch {
+            output.payload = frame.payload.toString('base64');
+            output.encoding = 'base64';
+          }
         }
-      } else {
-        process.stdout.write(chunk);
+
+        // Include sequenceId if present
+        if (frame.metadata.sequenceId !== undefined) {
+          output.sequenceId = frame.metadata.sequenceId;
+        }
+
+        // Record frame to file if recording
+        if (recordFileHandle) {
+          try {
+            await recordFileHandle.write(JSON.stringify(output) + '\n');
+          } catch (err) {
+            console.error(`[mkctl] Warning: Failed to write frame to record file: ${err}`);
+          }
+        }
+
+        // Output frame based on mode
+        if (json) {
+          console.log(JSON.stringify(output));
+        } else if (frame.metadata.type === 'data' && frame.payload) {
+          process.stdout.write(frame.payload);
+        }
+      } catch (err) {
+        console.error(`[mkctl] Error processing frame: ${err}`);
       }
     });
 
-    client.on('end', () => {
+    client.on('end', async () => {
       if (!isShuttingDown) {
         console.error('[mkctl] Connection closed by remote');
+        await handleShutdown();
       }
       process.exit(exitCode);
     });
 
-    client.on('error', (err: Error) => {
+    client.on('error', async (err: Error) => {
       console.error(`[mkctl] Connection error: ${err.message}`);
       exitCode = EXIT_CODES.RUNTIME;
       if (!isShuttingDown) {
-        client.close();
+        await handleShutdown();
       }
     });
 

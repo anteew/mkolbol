@@ -70,6 +70,8 @@ export class WebSocketPipeClient extends Duplex {
             }
             const { frame, bytesConsumed } = result;
             this.buffer = this.buffer.slice(bytesConsumed);
+            // Emit 'frame' event with full frame metadata before processing
+            this.emit('frame', frame);
             if (frame.metadata.type === 'data') {
                 this.push(frame.payload);
             }
