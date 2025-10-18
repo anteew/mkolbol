@@ -89,7 +89,7 @@
     },
     "instructions": {
       "type": "object",
-      "required": ["expectations", "logging", "briefing"],
+      "required": ["expectations", "logging", "briefing", "parallelization"],
       "properties": {
         "briefing": { "type": "string", "minLength": 1 },
         "overview": {
@@ -131,6 +131,29 @@
               "type": "string"
             }
           }
+        },
+        "parallelization": {
+          "type": "object",
+          "required": ["policy", "rationale"],
+          "properties": {
+            "policy": { "type": "string", "enum": ["prefer_parallel", "prefer_serial"] },
+            "rationale": { "type": "string", "minLength": 1 },
+            "candidates": { "type": "array", "items": { "type": "string" } },
+            "constraints": { "type": "array", "items": { "type": "string" } },
+            "max_concurrency": { "type": "integer", "minimum": 1 },
+            "suggested_splits": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["taskId", "subtasks"],
+                "properties": {
+                  "taskId": { "type": "string" },
+                  "subtasks": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          },
+          "additionalProperties": true
         },
         "deliverables_global": {
           "type": "array",

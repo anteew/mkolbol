@@ -69,6 +69,13 @@
         "example": "agent_template/examples/precommit-eslint-dryrun.md"
       }
     },
+    "parallelization": {
+      "policy": "prefer_parallel",
+      "rationale": "FrameMux core (N2501), backpressure (N2502), and acceptance/demo (N2503) can proceed in parallel with light touchpoints; keep coordination minimal via patches.",
+      "candidates": ["N2501", "N2502", "N2503"],
+      "constraints": ["Coordinate shared files (mux.ts/tests) to avoid long-lived conflicts"],
+      "max_concurrency": 3
+    },
     "deliverables_global": ["patches/*.patch", "tests updated and passing", "docs updated"]
   }
 }
