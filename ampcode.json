@@ -1,7 +1,19 @@
 {
   "ampcode": "v1",
-  "waves": [{ "id": "P26-OS-CLOUD-D1", "parallel": false, "tasks": ["N2601", "N2602", "N2603"] }],
-  "branch": "mkolbol-oscloud-d1-probe-manager",
+  "waves": [
+    {
+      "id": "P26-OS-CLOUD-D1",
+      "parallel": false,
+      "tasks": [
+        "N2601",
+        "N2602",
+        "N2603",
+        "N2604",
+        "N2605"
+      ]
+    }
+  ],
+  "branch": "mkolbol-oscloud-d1-utility-servers",
   "tasks": [
     {
       "id": "N2601",
@@ -14,8 +26,14 @@
         "src/types.ts",
         "scripts/mkctl.ts"
       ],
-      "verify": ["npm run build", "npm run validate:sprint", "npm run ci:local:fast"],
-      "deliverables": ["patches/DIFF_N2601_probe-manager.patch"]
+      "verify": [
+        "npm run build",
+        "npm run validate:sprint",
+        "npm run ci:local:fast"
+      ],
+      "deliverables": [
+        "patches/DIFF_N2601_probe-manager.patch"
+      ]
     },
     {
       "id": "N2602",
@@ -27,8 +45,14 @@
         "scripts/mkctl.ts",
         "docs/devex/network-quickstart.md"
       ],
-      "verify": ["npm run build", "npm run validate:sprint", "npm run ci:local:fast"],
-      "deliverables": ["patches/DIFF_N2602_probe-backoff-mkctl-watch.patch"]
+      "verify": [
+        "npm run build",
+        "npm run validate:sprint",
+        "npm run ci:local:fast"
+      ],
+      "deliverables": [
+        "patches/DIFF_N2602_probe-backoff-mkctl-watch.patch"
+      ]
     },
     {
       "id": "N2603",
@@ -40,8 +64,49 @@
         "examples/docker/beachhead/README.md",
         "docs/devex/network-quickstart.md"
       ],
-      "verify": ["npm run build", "npm run ci:local:fast"],
-      "deliverables": ["patches/DIFF_N2603_oscloud-compose-acceptance.patch"]
+      "verify": [
+        "npm run build",
+        "npm run ci:local:fast"
+      ],
+      "deliverables": [
+        "patches/DIFF_N2603_oscloud-compose-acceptance.patch"
+      ]
+    },
+    {
+      "id": "N2604",
+      "agent": "susan",
+      "title": "FilesystemServer v1: JSONL FS ops + demo",
+      "why": "Provide a portable FS service for modules/servers without direct FS access; enables Courier + demos to persist artifacts.",
+      "allowedFiles": [
+        "src/servers/filesystemServer.ts",
+        "docs/devex/servers-filesystem.md",
+        "examples/servers/fs-server-demo.ts"
+      ],
+      "verify": [
+        "npm run build",
+        "npx tsx examples/servers/fs-server-demo.ts | head -n 4"
+      ],
+      "deliverables": [
+        "patches/DIFF_N2604_filesystem-server.patch"
+      ]
+    },
+    {
+      "id": "N2605",
+      "agent": "susan",
+      "title": "LoggingServer v1: JSONL logger + rotation + demo",
+      "why": "Standardize JSONL logging with rotation so servers and demos can emit structured logs without bespoke code.",
+      "allowedFiles": [
+        "src/servers/loggingServer.ts",
+        "docs/devex/servers-logging.md",
+        "examples/servers/logging-server-demo.ts"
+      ],
+      "verify": [
+        "npm run build",
+        "npx tsx examples/servers/logging-server-demo.ts"
+      ],
+      "deliverables": [
+        "patches/DIFF_N2605_logging-server.patch"
+      ]
     }
   ],
   "branch_instructions": [
@@ -58,7 +123,7 @@
     ],
     "briefing": "Implement ProbeManager: on beacon, attempt tcp/ws connect, register/refresh routes in Hostess, handle TTL and backoff; expose mkctl endpoints list/watch. Acceptance via docker-compose with Node and Go beachheads.",
     "logging": {
-      "log_file": "ampcode.log",
+      "log_file": "susan-log.jsonl",
       "schema": "agent_template/log_templates/core_sprint_log.schema.json",
       "example": "agent_template/log_templates/core_sprint_log.example.jsonl"
     },
@@ -71,10 +136,20 @@
     "parallelization": {
       "policy": "prefer_parallel",
       "rationale": "FrameMux core (N2501), backpressure (N2502), and acceptance/demo (N2503) can proceed in parallel with light touchpoints; keep coordination minimal via patches.",
-      "candidates": ["N2501", "N2502", "N2503"],
-      "constraints": ["Coordinate shared files (mux.ts/tests) to avoid long-lived conflicts"],
+      "candidates": [
+        "N2501",
+        "N2502",
+        "N2503"
+      ],
+      "constraints": [
+        "Coordinate shared files (mux.ts/tests) to avoid long-lived conflicts"
+      ],
       "max_concurrency": 3
     },
-    "deliverables_global": ["patches/*.patch", "tests updated and passing", "docs updated"]
+    "deliverables_global": [
+      "patches/*.patch",
+      "tests updated and passing",
+      "docs updated"
+    ]
   }
 }
