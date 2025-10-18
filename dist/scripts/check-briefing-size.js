@@ -11,7 +11,12 @@ function check(file) {
     const data = JSON.parse(readFileSync(p, 'utf8'));
     const briefing = data?.instructions?.briefing;
     if (!briefing)
-        return { file, tokens: 0, status: 'ok', msg: '[briefing] missing (schema may enforce presence)' };
+        return {
+            file,
+            tokens: 0,
+            status: 'ok',
+            msg: '[briefing] missing (schema may enforce presence)',
+        };
     const tokens = approxTokens(briefing);
     const warn = Number(process.env.BRIEFING_WARN_TOKENS || 600);
     const fail = Number(process.env.BRIEFING_FAIL_TOKENS || 1200);

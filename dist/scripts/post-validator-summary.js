@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 function run(cmd, args, allowFail = true) {
     const res = spawnSync(cmd, args, { encoding: 'utf8' });
@@ -14,6 +14,52 @@ function mdSection(title, body) {
 }
 function badge(ok) {
     return ok ? '✅ PASS' : '❌ FAIL (non-gating)';
+}
+function approxTokens(text) {
+    return Math.ceil((text || '').length / 4);
+}
+function loadJSON(pathRel) {
+    const p = resolve(process.cwd(), pathRel);
+    if (!existsSync(p))
+        return null;
+    try {
+        return JSON.parse(readFileSync(p, 'utf8'));
+    }
+    catch {
+        return null;
+    }
+}
+function buildBriefingBlock() {
+    const warn = Number(process.env.BRIEFING_WARN_TOKENS || 600);
+    const fail = Number(process.env.BRIEFING_FAIL_TOKENS || 1200);
+    const files = ['ampcode.json', 'devex.json'];
+    const rows = [];
+    for (const f of files) {
+        const data = loadJSON(f);
+        if (!data)
+            continue;
+        const briefing = data?.instructions?.briefing;
+        const tokens = approxTokens(briefing || '');
+        const status = tokens >= fail ? 'FAIL' : tokens >= warn ? 'WARN' : 'OK';
+        rows.push(`- ${f}: ${tokens} tokens → ${status}`);
+    }
+    if (rows.length === 0)
+        return '_No sprint files found to compute briefing size._';
+    return [`Warn≥${warn}, Fail≥${fail}`, ...rows].join('\n');
+}
+function buildSprintJSONBlock() {
+    const out = [];
+    const files = ['ampcode.json', 'devex.json'];
+    out.push('<!-- sprint-json-begin -->');
+    for (const f of files) {
+        const data = loadJSON(f);
+        if (!data)
+            continue;
+        const pretty = JSON.stringify(data, null, 2);
+        out.push(['', '<details>', `<summary>${f}</summary>`, '', '```json', pretty, '```', '</details>', ''].join('\n'));
+    }
+    out.push('<!-- sprint-json-end -->');
+    return out.join('\n');
 }
 function buildMarkdown(template, sprint) {
     const lines = [];
@@ -33,6 +79,11 @@ function buildMarkdown(template, sprint) {
     }
     lines.push('');
     lines.push('_Note: This job is informational and non-gating._');
+    lines.push('');
+    lines.push(mdSection('Briefing Token Budgets', buildBriefingBlock()));
+    lines.push('');
+    lines.push('## Sprint Specs (for review)');
+    lines.push(buildSprintJSONBlock());
     return lines.join('\n');
 }
 function parseArgs(argv) {
