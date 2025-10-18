@@ -1,0 +1,76 @@
+{
+  "template": "agent-template",
+  "version": 1,
+  "conventions": {
+    "one_active_sprint_per_file": true,
+    "files": {
+      "core": { "sprint_file": "ampcode.md", "log_file": "ampcode.log" },
+      "devex": { "sprint_file": "devex.md", "log_file": "devex.log" }
+    },
+    "archives": {
+      "dir": "archives/",
+      "examples": [
+        "archives/ampcode-md-archive-<UTC>.md",
+        "archives/devex-md-archive-<UTC>.md",
+        "archives/ampcode.log.<UTC>"
+      ]
+    }
+  },
+  "sprint_block_schema": {
+    "ampcode": "v1",
+    "waves": [
+      { "id": "<WAVE_ID>", "parallel": true, "depends_on": ["<WAVE_ID>"], "tasks": ["<TASK_ID>"] }
+    ],
+    "branch": "<BRANCH_NAME>",
+    "tasks": [
+      {
+        "id": "<TASK_ID>",
+        "agent": "susan|devex",
+        "title": "<Short Title>",
+        "why": "<Rationale>",
+        "allowedFiles": ["<paths...>"],
+        "verify": ["<commands...>"],
+        "deliverables": ["patches/DIFF_<ID>_<slug>.patch"]
+      }
+    ],
+    "branch_instructions": [
+      "IMPORTANT: Work only on <BRANCH_NAME>.",
+      "Follow allowedFiles strictly; keep changes minimal.",
+      "Use verify commands before pushing."
+    ],
+    "sprint_logging": {
+      "core": {
+        "log_file": "ampcode.log",
+        "guidance": [
+          "After each task append 1–3 lines: [Nxxxx] what changed.",
+          "Include file pointers (path:line) when useful.",
+          "Do not write to devex.log for core sprints."
+        ]
+      },
+      "devex": {
+        "log_file": "devex.log",
+        "guidance": [
+          "After each task append 1–3 lines: [Dxxxx] what changed.",
+          "Include file pointers (path:line) when useful.",
+          "Do not write to ampcode.log for DevEx sprints."
+        ]
+      }
+    }
+  },
+  "worker_workflow": [
+    "Read sprint block and Branch Instructions.",
+    "Run: export MK_LOCAL_NODE=1; npm run build; npm run test:ci.",
+    "Apply changes only under allowedFiles.",
+    "Log concise updates to the correct log file per sprint.",
+    "Create deliverable patches under patches/ with DIFF_* naming."
+  ],
+  "quality_bar": {
+    "tests": "All modified areas covered; CI passing locally.",
+    "docs": "Update affected docs and examples when behavior changes.",
+    "perf": "Avoid regressions on hot paths; note any deltas."
+  },
+  "reports": {
+    "artifacts": ["reports/summary.jsonl", "reports/<suite>/<case>.jsonl"],
+    "digests": "docs/digests/*.md (optional)"
+  }
+}
