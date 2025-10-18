@@ -1,5 +1,7 @@
 # mkolbol
 
+[Agent Hub → AGENTS.md](AGENTS.md)
+
 **Stream-based microkernel for AI agent systems**
 
 ## QUICKSTART — Build With mk (30–60s)

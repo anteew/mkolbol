@@ -12,6 +12,7 @@ Quick Links
 - Rehydrate checklists: `VEGA/rehydrate-checklist-*.md`
 - PR summary bot: `scripts/post-validator-summary.ts`
 - PR reader tool: `scripts/agent-tools/pr-comment-extract.ts`
+  - Hydrate file locally from PR: `npm run agents:hydrate -- --pr <NUM>`
 
 Local Bootstrap
 
@@ -29,6 +30,7 @@ PR Utilities
 
 - Post summary (CI): non‑gating validators append a summary comment to PRs.
 - Read summary locally: `npm run agents:pr:read -- --pr <NUM> [--trim] [--out summary.md]`.
+- Hydrate rehydration doc from PR: `npm run agents:hydrate -- --pr <NUM>` (writes `VEGA/rehydrate-from-pr-<NUM>.md`).
 
 Conventions
 
